@@ -18,8 +18,9 @@ package vm
 
 import (
 	"errors"
-	"github.com/holiman/uint256"
 	"math/big"
+
+	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -703,7 +704,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]by
 		bigVal = value.ToBig()
 	}
 
-	ret, returnGas, err := interpreter.evm.Call(callContext.contract, toAddr, args, gas, bigVal)
+	ret, returnGas, err := interpreter.evm.Call(InvokedByContract, callContext.contract, toAddr, args, gas, bigVal)
 
 	if err != nil {
 		temp.Clear()

@@ -41,6 +41,9 @@ func (a *NodeID) UnmarshalText(input []byte) error {
 func (a *NodeID) UnmarshalJSON(input []byte) error {
 	return hexutil.UnmarshalFixedJSON(nodeIdT, input, a[:])
 }
+func (n NodeID) TerminalString() string {
+	return hex.EncodeToString(n[:8])
+}
 
 var inputT = reflect.TypeOf(Input{})
 
@@ -190,10 +193,11 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.In
 	d.IssuanceItemList = append(d.IssuanceItemList, &IssuanceItem{Address: address, Amount: amount})
 }
 
+// 分配奖励，包括出块奖励，质押奖励
 //  注意：委托人不一定每次都能参与到出块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是可能已经不在当前结算周期的101备选人列表里了，那这个出块节点的委托人在当前结算周期，就不参与这个块的出块奖励分配）
 type RewardData struct {
 	BlockRewardAmount   *big.Int         `json:"blockRewardAmount,omitempty"`   //出块奖励
-	DelegatorReward     bool             `json:"delegatorReward,omitempty"`     //是否有委托人的奖励（出块奖励是否分配给委托人）
+	DelegatorReward     bool             `json:"delegatorReward"`               //出块奖励中，分配给委托人的奖励
 	StakingRewardAmount *big.Int         `json:"stakingRewardAmount,omitempty"` //一结算周期内所有101节点的质押奖励
 	CandidateInfoList   []*CandidateInfo `json:"candidateInfoList,omitempty"`   //备选节点信息
 }
@@ -230,6 +234,15 @@ type RestrictingReleaseItem struct {
 	LackingAmount *big.Int `json:"lackingAmount,omitempty"`         //欠释放金额
 }
 
+//todo:改名
+//撤消委托后领取的奖励（全部减持）
+type WithdrawDelegation struct {
+	TxHash          Hash     `json:"txHash,omitempty"`                    //委托用户撤销节点的全部委托的交易HASH
+	DelegateAddress Address  `json:"delegateAddress,omitempty,omitempty"` //委托用户地址
+	NodeID          NodeID   `json:"nodeId,omitempty"`                    //委托用户委托的节点ID
+	RewardAmount    *big.Int `json:"rewardAmount,omitempty"`              //委托用户从此节点获取的全部委托奖励
+}
+
 var ExeBlockDataCollector = make(map[uint64]*ExeBlockData)
 
 func PopExeBlockData(blockNumber uint64) *ExeBlockData {
@@ -257,6 +270,7 @@ func GetExeBlockData(blockNumber uint64) *ExeBlockData {
 }
 
 type ExeBlockData struct {
+	ActiveVersion                 string                         `json:"activeVersion,omitempty"` //如果当前块有升级提案生效，则填写新版本,0.14.0
 	AdditionalIssuanceData        *AdditionalIssuanceData        `json:"additionalIssuanceData,omitempty"`
 	RewardData                    *RewardData                    `json:"rewardData,omitempty"`
 	ZeroSlashingItemList          []*ZeroSlashingItem            `json:"zeroSlashingItemList,omitempty"`
@@ -264,8 +278,9 @@ type ExeBlockData struct {
 	StakingSetting                *StakingSetting                `json:"stakingSetting,omitempty"`
 	StakingFrozenItemList         []*StakingFrozenItem           `json:"stakingFrozenItemList,omitempty"`
 	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
-	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"` //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
-	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"` //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
+	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"`    //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
+	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"`    //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
+	WithdrawDelegationList        []*WithdrawDelegation          `json:"withdrawDelegationList,omitempty"` //当委托用户撤回节点的全部委托时，需要的统计信息（由于Alaya在运行中，只能兼容Alaya的bug）
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -336,10 +351,8 @@ func CollectStakingSetting(blockNumber uint64, operatingThreshold *big.Int) {
 
 func CollectZeroSlashingItem(blockNumber uint64, nodeId NodeID, slashingAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-			log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "slashingAmount", slashingAmount)
-			exeBlockData.ZeroSlashingItemList = append(exeBlockData.ZeroSlashingItemList, &ZeroSlashingItem{NodeID: nodeId, SlashingAmount: slashingAmount})
-		}
+		log.Debug("CollectZeroSlashingItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "slashingAmount", slashingAmount)
+		exeBlockData.ZeroSlashingItemList = append(exeBlockData.ZeroSlashingItemList, &ZeroSlashingItem{NodeID: nodeId, SlashingAmount: slashingAmount})
 	}
 }
 
@@ -363,5 +376,21 @@ func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddre
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
 		exeBlockData.EmbedContractTxList = append(exeBlockData.EmbedContractTxList, &EmbedContractTx{TxHash: txHash, From: from, ContractAddress: contractAddress, Input: Bytes2Hex(input)})
+	}
+}
+
+//撤消委托时，才需要收集委托奖励总金额
+func CollectWithdrawDelegation(blockNumber uint64, txHash Hash, delegateAddress Address, nodeId NodeID, delegationRewardAmount *big.Int) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectWithdrawDelegation", "blockNumber", blockNumber, "txHash", txHash.Hex(), "delegateAddress", delegateAddress.Bech32(), "nodeId", Bytes2Hex(nodeId[:]), "delegationRewardAmount", delegationRewardAmount)
+		amt := new(big.Int).Set(delegationRewardAmount)
+		exeBlockData.WithdrawDelegationList = append(exeBlockData.WithdrawDelegationList, &WithdrawDelegation{TxHash: txHash, DelegateAddress: delegateAddress, NodeID: nodeId, RewardAmount: amt})
+	}
+}
+
+func CollectActiveVersion(blockNumber uint64, newVersion uint32) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectActiveVersion", "blockNumber", blockNumber, "newVersion", newVersion)
+		exeBlockData.ActiveVersion = FormatVersion(newVersion)
 	}
 }

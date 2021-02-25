@@ -343,6 +343,8 @@ func collectBrief(block *types.Block) *Brief {
 					} else if xutil.IsBeginOfConsensus(bn) {
 					brief.BlockType = common.ConsensusBeginBlock
 		*/
+	} else if xutil.IsBeginOfConsensus(bn) && !xutil.IsBeginOfEpoch(bn) {
+		brief.BlockType = common.ConsensusBeginBlock
 	} else if xutil.IsElection(bn) {
 		brief.BlockType = common.ConsensusElectionBlock
 	} else if xutil.IsBeginOfEpoch(bn) {

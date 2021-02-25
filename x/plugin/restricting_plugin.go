@@ -78,12 +78,14 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 		expect := xutil.CalculateEpoch(head.Number.Uint64())
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)
 		//到EPOCH尾了，看看是否有需要在这个结算周期释放的锁仓计划（除创世块锁仓计划）
+		//stats
 		if err := rp.releaseRestricting(head.Number.Uint64(), expect, state); err != nil {
 			return err
 		}
 		//到年尾了，需要释放创世块的锁仓计划，把钱按计划释放到激励池中
 		if ok, _ := xcom.IsYearEnd(blockHash, head.Number.Uint64()); ok {
 			rp.log.Info(fmt.Sprintf("release genesis restricting plan, blocknumber:%d", head.Number.Uint64()))
+			//stats：统计数据
 			return rp.releaseGenesisRestrictingPlans(head.Number.Uint64(), blockHash, state)
 		}
 	}
@@ -447,12 +449,15 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	}
 
 	rp.transferAmount(state, vm.StakingContractAddr, vm.RestrictingContractAddr, amount)
+	//如果存在NeedRelease，意味着锁仓合约中有需要立即释放给用户的金额,我们需要优先把NeedRelease余额回退给用户
 	if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
+		//如果NeedRelease大于等于此次回退的余额，因此将此次回退的余额全部回退到用户账户，并将锁仓信息中的NeedRelease与CachePlanAmount扣除相应金额
 		if restrictInfo.NeedRelease.Cmp(amount) >= 0 {
 			restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, amount)
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, amount)
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, amount)
 		} else {
+			//如果NeedRelease小于此次回退的余额,将NeedRelease全部退回给用户，
 			rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
 			restrictInfo.CachePlanAmount.Sub(restrictInfo.CachePlanAmount, restrictInfo.NeedRelease)
 			restrictInfo.NeedRelease = big.NewInt(0)
@@ -574,6 +579,7 @@ func (rp *RestrictingPlugin) storeAmount2ReleaseAmount(state xcom.StateDB, epoch
 }
 
 // releaseRestricting will release restricting plans on target epoch
+//stats
 func (rp *RestrictingPlugin) releaseRestricting(blockNumber uint64, epoch uint64, state xcom.StateDB) error {
 
 	rp.log.Info("Call releaseRestricting begin", "epoch", epoch)

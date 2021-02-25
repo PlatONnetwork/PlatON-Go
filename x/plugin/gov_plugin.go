@@ -18,10 +18,11 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
@@ -126,6 +127,8 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				return err
 			}
 
+			//stats
+			common.CollectActiveVersion(blockNumber, versionProposal.NewVersion)
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))
 		}
 	}

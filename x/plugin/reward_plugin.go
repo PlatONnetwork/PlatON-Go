@@ -118,7 +118,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			return err
 		}
 	}
-
+	//委托用户奖励，包括接的（质押奖励+出块奖励）*委托分红比例
 	//分配出块奖励
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
 		return err
@@ -147,6 +147,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	return nil
 }
 
+//stats
 func convertVerifier(verifierList []*staking.Candidate) []*common.CandidateInfo {
 	candidateInfoList := make([]*common.CandidateInfo, len(verifierList))
 	for idx, verifier := range verifierList {
@@ -181,12 +182,16 @@ func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
 	return false
 }
 
+//stats
+//func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) (common.Address, *big.Int) {
 	platonFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.PlatONFundAccount(), platonFoundationIncr)
 	return xcom.PlatONFundAccount(), platonFoundationIncr
 }
 
+//stats
+//func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
 func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) (common.Address, *big.Int) {
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
@@ -225,7 +230,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
 		*/
-
+		//stats
 		//计算总发行金额
 		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
 		//todo: chain_env.issue_amount, chain_env.total_issue_amount，更新发行金额，总发行金额(整个操作在最后做)。
@@ -241,7 +246,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		additionalIssuance.AdditionalAmount = currIssuance        //今年增发量 = 上年发行量 * 今年增发率
 		additionalIssuance.AdditionalRate = increaseIssuanceRatio //今年增发率
 	}
-	//今年的增发量，需要转入一部分到激励池中
+	//今年的增发量，需要转入一部分到激励池中，以及其它基金会账户
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
 
@@ -346,6 +351,8 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
 				return err
 			}
+			//为下个结算周期保存节点新的新信息（累计委托分红，新周期累计分红，新的分红比例）
+			//todo:lvxiaoyi，这个逻辑放到PrepareNextEpoch()中，作为一个整体逻辑
 			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
 				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: setCanMutableStore  failed",
 					"blockNumber", blockNumber, "blockHash", blockHash, "err", err, "mutable", verifier.CandidateMutable)
@@ -527,6 +534,8 @@ func (rmp *RewardMgrPlugin) getBlockMinderAddress(blockHash common.Hash, head *t
 // 2. 委托用户，出块奖励从激励池发放到委托激励合约。
 // 3. 为每个质押节点，记录应该分配给委托用户的所有奖励。
 func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *types.Header, reward *big.Int, state xcom.StateDB) error {
+
+	//由header中pubkey得出块节点id
 	nodeID, add, err := rmp.getBlockMinderAddress(blockHash, head)
 	if err != nil {
 		log.Error("AllocatePackageBlock getBlockMinderAddress fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
@@ -540,6 +549,8 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 		log.Error("AllocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
+	//stats,
+	//tddo:跟踪系统需要知道coinBase/minerAddress和nodeId的对应关系
 	blockReward := big.NewInt(0).Set(reward)
 	if currVerifier {
 		cm, err := rmp.stakingPlugin.GetCanMutable(blockHash, add)
@@ -575,7 +586,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 	if head.Coinbase != vm.RewardManagerPoolAddr {
 		log.Debug("allocate package reward,block reward", "blockNumber", head.Number, "blockHash", blockHash, "nodeID", nodeID.String(),
 			"coinBase", head.Coinbase.String(), "reward", reward)
-		// 1. 出块节点，直接从激励池拿到质押奖励。
+		// 1. 出块节点，直接从激励池拿到出块奖励。
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(head.Coinbase, reward)
 	} else {
