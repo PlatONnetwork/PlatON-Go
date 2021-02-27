@@ -103,6 +103,19 @@ func Bech32ToAddress(s string) (Address, error) {
 	return a, nil
 }
 
+// Bech32ToAddressWithoutCheckHrp returns Address with byte values of s.
+// If s is Decode fail, it will return zero address.
+func Bech32ToAddressWithoutCheckHrp(s string) Address {
+	_, converted, err := bech32util.DecodeAndConvert(s)
+	if err != nil {
+		log.Error(" hrp address decode  fail", "err", err)
+		panic(err)
+	}
+	var a Address
+	a.SetBytes(converted)
+	return a
+}
+
 // Deprecated: address to string is use bech32 now
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
 // Ethereum address or not.
