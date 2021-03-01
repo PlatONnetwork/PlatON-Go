@@ -160,6 +160,11 @@ type InitFundItem struct {
 	Amount *big.Int `json:"amount,omitempty"`
 }
 
+type AutoStakingTx struct {
+	RestrictingAmount *big.Int `json:"restrictingAmount,omitempty"`
+	BalanceAmount     *big.Int `json:"balanceAmount,omitempty"`
+}
+
 func (g *GenesisData) AddAllocItem(address Address, amount *big.Int) {
 	g.AllocItemList = append(g.AllocItemList, &AllocItem{Address: address, Amount: amount})
 }
@@ -260,6 +265,7 @@ func InitExeBlockData(blockNumber uint64) {
 		RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
 		EmbedTransferTxList:        make([]*EmbedTransferTx, 0),
 		EmbedContractTxList:        make([]*EmbedContractTx, 0),
+		AutoStakingMap:             make(map[Hash]*AutoStakingTx),
 	}
 
 	ExeBlockDataCollector[blockNumber] = exeBlockData
@@ -281,6 +287,7 @@ type ExeBlockData struct {
 	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"`    //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
 	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"`    //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 	WithdrawDelegationList        []*WithdrawDelegation          `json:"withdrawDelegationList,omitempty"` //当委托用户撤回节点的全部委托时，需要的统计信息（由于Alaya在运行中，只能兼容Alaya的bug）
+	AutoStakingMap                map[Hash]*AutoStakingTx        `json:"autoStakingTxMap,omitempty"`
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -392,5 +399,12 @@ func CollectActiveVersion(blockNumber uint64, newVersion uint32) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectActiveVersion", "blockNumber", blockNumber, "newVersion", newVersion)
 		exeBlockData.ActiveVersion = FormatVersion(newVersion)
+	}
+}
+
+func CollectAutoStakingTx(blockNumber uint64, txHash Hash, restrictingAmount *big.Int, balanceAmount *big.Int) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectAutoStakingTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "restrictingAmount", restrictingAmount.String(), "balanceAmount", balanceAmount.String())
+		exeBlockData.AutoStakingMap[txHash] = &AutoStakingTx{RestrictingAmount: restrictingAmount, BalanceAmount: balanceAmount}
 	}
 }
