@@ -42,6 +42,8 @@ require (
 	github.com/panjf2000/ants/v2 v2.4.1
 	github.com/pborman/uuid v0.0.0-20170112150404-1b00554d8222
 	github.com/peterh/liner v1.0.1-0.20170902204657-a37ad3984311
+	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5
+	github.com/pingcap/failpoint v0.0.0-20200603062251-b230c36c413c
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/prometheus v1.7.2-0.20170814170113-3101606756c5
 	github.com/rjeczalik/notify v0.9.1
@@ -50,7 +52,7 @@ require (
 	github.com/rs/cors v0.0.0-20160617231935-a62a804a8a00
 	github.com/rs/xhandler v0.0.0-20160618193221-ed27b6fd6521 // indirect
 	github.com/shirou/gopsutil v2.20.5+incompatible
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tealeg/xlsx v1.0.5
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
