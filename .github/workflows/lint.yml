@@ -17,3 +17,4 @@ jobs:
         with:
           version: v1.29
           args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --skip-dirs="tests" --skip-dirs-use-default=true --disable-all --enable=govet  --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen
+          skip-pkg-cache: true
