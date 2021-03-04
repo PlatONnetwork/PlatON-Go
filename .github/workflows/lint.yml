@@ -12,6 +12,10 @@ jobs:
       - name: make
         run: bash ./build/build_deps.sh
 
+      - name: Get dependencies
+        run : |
+          go mod download github.com/Azure/azure-pipeline-go
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
