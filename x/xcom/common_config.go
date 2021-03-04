@@ -218,7 +218,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
-				SlashBlocksReward:          uint32(25000),
+				SlashBlocksReward:          uint32(2500),
 				ZeroProduceCumulativeTime:  uint16(20),
 				ZeroProduceNumberThreshold: uint16(1),
 				ZeroProduceFreezeDuration:  uint64(56),
