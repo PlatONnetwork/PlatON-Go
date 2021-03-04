@@ -45,7 +45,7 @@ const (
 	Hundred                   = 100
 	TenThousand               = 10000
 	CeilBlocksReward          = 50000
-	CeilMaxValidators         = 501
+	CeilMaxValidators         = 10000
 	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 43
 	PositiveInfinity          = "+∞"
@@ -218,7 +218,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
-				SlashBlocksReward:          uint32(250),
+				SlashBlocksReward:          uint32(2500),
 				ZeroProduceCumulativeTime:  uint16(20),
 				ZeroProduceNumberThreshold: uint16(1),
 				ZeroProduceFreezeDuration:  uint64(56),
