@@ -186,7 +186,7 @@ func (h *Header) Signature() []byte {
 }
 
 // Check whether the Extra field exceeds the limit size
-func (h *Header) CheckExtraSize() bool {
+func (h *Header) IsInvalid() bool {
 	return len(h.Extra) > ExtraMaxSize
 }
 
