@@ -41,7 +41,7 @@ import (
 var (
 	EmptyRootHash = DeriveSha(Transactions{})
 	// Extra field in the block header, maximum length
-	ExtraMaxSize = 129
+	ExtraMaxSize = 97
 )
 
 // BlockNonce is an 81-byte vrf proof containing random numbers
