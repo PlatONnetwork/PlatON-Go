@@ -44,6 +44,7 @@ func init() {
 		core.GetTxReceiptCmd,
 		core.StabilityCmd,
 		core.StabPrepareCmd,
+		core.AnalyzeStressTestCmd,
 		ppos.GovCmd,
 		ppos.SlashingCmd,
 		ppos.StakingCmd,

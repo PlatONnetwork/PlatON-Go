@@ -382,7 +382,7 @@ var (
 	MaxConsensusPeersFlag = cli.IntFlag{
 		Name:  "maxconsensuspeers",
 		Usage: "Maximum number of network consensus peers (network disabled if set to 0)",
-		Value: 75,
+		Value: 100,
 	}
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",

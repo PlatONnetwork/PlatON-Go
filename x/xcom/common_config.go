@@ -45,7 +45,7 @@ const (
 	Hundred                   = 100
 	TenThousand               = 10000
 	CeilBlocksReward          = 50000
-	CeilMaxValidators         = 501
+	CeilMaxValidators         = 10000
 	FloorMaxConsensusVals     = 4
 	CeilMaxConsensusVals      = 43
 	PositiveInfinity          = "+∞"
@@ -190,7 +190,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	)
 
 	// 3.31811981  thousand millions LAT
-	if cdfundBalance, ok = new(big.Int).SetString("331811981000000000000000000", 10); !ok {
+	if cdfundBalance, ok = new(big.Int).SetString("322361981000000000000000000", 10); !ok {
 		return nil
 	}
 
@@ -218,7 +218,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				SlashFractionDuplicateSign: uint32(10),
 				DuplicateSignReportReward:  uint32(50),
 				MaxEvidenceAge:             uint32(27),
-				SlashBlocksReward:          uint32(250),
+				SlashBlocksReward:          uint32(2500),
 				ZeroProduceCumulativeTime:  uint16(20),
 				ZeroProduceNumberThreshold: uint16(1),
 				ZeroProduceFreezeDuration:  uint64(56),
@@ -246,9 +246,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.HexToAddress("0x7c03dc00f817B4454F4F0FFD04509d14F1b97390"),
+				PlatONFundAccount: common.Bech32ToAddressWithoutCheckHrp("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.HexToAddress("0xf2D36ea2f0Ab1B96Eb62d5a9131194c3010FeA37"),
+				CDFAccount:        common.Bech32ToAddressWithoutCheckHrp("lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
