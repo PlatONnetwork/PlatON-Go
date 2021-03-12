@@ -62,9 +62,7 @@ const (
 	IncreaseIssuanceRatioLowerLimit   = 0
 
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
-	ElectionBaseL1 = 6000
-	ElectionBaseL2 = 10000
-	ElectionBaseL3 = 60000
+	ElectionBase = 30
 )
 
 var (
@@ -819,11 +817,5 @@ func EconomicString() string {
 // Calculate the P value of the binomial distribution
 // Parameter: The total weight of the election
 func CalcP(totalWeight float64, sqrtWeight float64) float64 {
-	if totalWeight < float64(1000000000) {
-		return float64(ElectionBaseL1) / sqrtWeight
-	} else if totalWeight < float64(10000000000) {
-		return float64(ElectionBaseL2) / sqrtWeight
-	} else {
-		return float64(ElectionBaseL3) / sqrtWeight
-	}
+	return float64(ElectionBase) / sqrtWeight
 }
