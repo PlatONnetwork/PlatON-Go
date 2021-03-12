@@ -826,7 +826,19 @@ func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
 func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasExtStep)
-	blockHash := ctx.evm.GetHash(num)
+
+	// Add get block height limit, same as evm opBlockhash
+	var upper, lower uint64
+	upper = ctx.evm.BlockNumber.Uint64()
+	if upper < 257 {
+		lower = 0
+	} else {
+		lower = upper - 256
+	}
+	var blockHash common.Hash
+	if num >= lower && num < upper {
+		blockHash = ctx.evm.GetHash(num)
+	}
 	_, err := proc.WriteAt(blockHash.Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
