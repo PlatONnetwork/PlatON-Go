@@ -63,7 +63,8 @@ const (
 )
 
 type Table struct {
-	mutex   sync.Mutex        // protects buckets, bucket content, nursery, rand
+	mutex sync.Mutex // protects buckets, bucket content, nursery, rand
+	//K桶，buckets[0]是最近的
 	buckets [nBuckets]*bucket // index of known nodes by distance
 	nursery []*Node           // bootstrap nodes
 	rand    *mrand.Rand       // source of randomness, periodically reseeded
@@ -92,8 +93,11 @@ type transport interface {
 
 // bucket contains nodes, ordered by their last activity. the entry
 // that was most recently active is the first element in entries.
+//节点可以在 entries 和 replacements 互相转化，一个 entries 节点如果 Validate 失败，那么它会被原本将一个原本在 replacements 数组的节点替换。
 type bucket struct {
-	entries      []*Node // live entries, sorted by time of last contact
+	//一个K桶中有多个节点，他们到本节点的距离相同，按最近联系时间排序,entries[0]是最新联系过的。
+	entries []*Node // live entries, sorted by time of last contact
+	//数组中保存候补节点，如果 entries 数组数量满了，之后的节点会被加入该数组
 	replacements []*Node // recently seen nodes to be used if revalidation fails
 	ips          netutil.DistinctNetSet
 }
@@ -256,6 +260,7 @@ func (tab *Table) Resolve(targetID NodeID) *Node {
 // nodes that are closer to it on each iteration.
 // The given target does not need to be an actual node
 // identifier.
+//实现节点查找目标节点，它的实现就是 Kademlia 协议，通过节点间的接力，一步一步接近目标。
 func (tab *Table) Lookup(targetID NodeID) []*Node {
 	return tab.lookup(targetID, true)
 }
@@ -279,6 +284,7 @@ func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
 		result = tab.closest(target, bucketSize)
 		tab.mutex.Unlock()
 		if len(result.entries) > 0 || !refreshIfEmpty {
+			//找到了最近邻居，或者refreshIfEmpty=false,不要求刷新本地table的K桶
 			break
 		}
 		// The result set is empty, all nodes were dropped, refresh.
@@ -413,15 +419,18 @@ loop:
 // doRefresh performs a lookup for a random target to keep buckets
 // full. seed nodes are inserted if the table is empty (initial
 // bootstrap or discarded faulty peers).
+//更新邻居关系
 func (tab *Table) doRefresh(done chan struct{}) {
 	defer close(done)
 
 	// Load nodes from the database and insert
 	// them. This should yield a few previously seen nodes that are
 	// (hopefully) still alive.
+	//加载种子节点
 	tab.loadSeedNodes()
 
 	// Run self lookup to discover new neighbor nodes.
+	//查找本节点的最近邻居
 	tab.lookup(tab.self.ID, false)
 
 	// The Kademlia paper specifies that the bucket refresh should
@@ -430,9 +439,11 @@ func (tab *Table) doRefresh(done chan struct{}) {
 	// (not hash-sized) and it is not easily possible to generate a
 	// sha3 preimage that falls into a chosen bucket.
 	// We perform a few lookups with a random target instead.
+	//查找3个随机节点的最近邻居
 	for i := 0; i < 3; i++ {
 		var target NodeID
 		crand.Read(target[:])
+		//产生一个随机的nodeId，查找它
 		tab.lookup(target, false)
 	}
 }
@@ -450,6 +461,14 @@ func (tab *Table) loadSeedNodes() {
 
 // doRevalidate checks that the last node in a random bucket is still live
 // and replaces or deletes the node if it isn't.
+//有效性检测就是利用 ping 消息进行探活操作。 Table.loop() 启动了一个定时器（0~10s），定期随机选择一个bucket，向其 entries 中末尾的节点发送 ping 消息，如果对方回应了 pong ，则探活成功。
+//
+//举个栗子，假设某个bucket， entries 最多保存2个节点， replacements 最多保存4个节点。
+//初始情况下 entries =[A, B], replacements = [C, D, E]，
+//如果此时节点F加入网络， bond 通过，由于 entries 已满，只能加入到 replacements = [C, D, E, F]。
+//此时Revalidate定时器到期，则会对 B进行检测，如果通过，则 entries =[B, A]，
+//如果不通过，则将随机选择 replacements 中的一项（假设为D）替换B的位置，最终 entries =[A, D]， replacements = [C, E, F]
+//
 func (tab *Table) doRevalidate(done chan<- struct{}) {
 	defer func() { done <- struct{}{} }()
 
@@ -520,6 +539,8 @@ func (tab *Table) copyLiveNodes() {
 
 // closest returns the n nodes in the table that are closest to the
 // given id. The caller must hold tab.mutex.
+//从K桶中找到节点n的的最近邻居
+//target，NodeID的hash值
 func (tab *Table) closest(target common.Hash, nresults int) *nodesByDistance {
 	// This is a very wasteful way to find the closest nodes but
 	// obviously correct. I believe that tree-based buckets would make

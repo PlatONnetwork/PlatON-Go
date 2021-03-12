@@ -73,7 +73,7 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 }
 
 // EndBlock invoke releaseRestricting
-func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB, downloading Downloading) error {
 	if xutil.IsEndOfEpoch(head.Number.Uint64()) {
 		expect := xutil.CalculateEpoch(head.Number.Uint64())
 		rp.log.Info("begin to release restricting plan", "currentHash", blockHash, "currBlock", head.Number, "expectBlock", head.Number, "expectEpoch", expect)

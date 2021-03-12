@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -155,12 +157,12 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 	return nil
 }
 
-func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB, downloading Downloading) error {
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
 	if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
+		//本结算周期末，选举下一个结算周期的101名单
 		// handle UnStaking Item
 		err := sk.HandleUnCandidateItem(state, header.Number.Uint64(), blockHash, epoch)
 		if nil != err {
@@ -170,15 +172,15 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		}
 
 		// Election next epoch validators
-		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64(), state); nil != err {
+		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64(), epoch, state, downloading); nil != err {
 			log.Error("Failed to call ElectNextVerifierList on stakingPlugin EndBlock",
 				"blockNumber", header.Number.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	}
 
+	//提前选举下一个共识周期的25节点
 	if xutil.IsElection(header.Number.Uint64()) {
-
 		// ELection next round validators
 		err := sk.Election(blockHash, header, state)
 		if nil != err {
@@ -1182,7 +1184,7 @@ func rufundDelegateFn(refundBalance, aboutRelease, aboutRestrictingPlan *big.Int
 	return refundTmp, releaseTmp, restrictingPlanTmp, nil
 }
 
-func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, epoch uint64, state xcom.StateDB, downloading Downloading) error {
 
 	oldIndex, err := sk.getVeriferIndex(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
@@ -1291,6 +1293,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+	//monitor, 发送事件，需要监控的备选节点列表
+	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch, queue, downloading)
 
 	log.Debug("Call ElectNextVerifierList  Next verifiers", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"list length", len(queue), "list", newVerifierArr)
@@ -2059,6 +2063,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			"blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+
+	//MONITOR,保存下一个共识论的25节点
+	p2p.SaveConsensusElection(xutil.CalculateRound(blockNumber)+1, p2p.ConvertToNodeIdList(next.Arr))
 
 	// 处理 低出块率的状态 用
 	//  (现有的 代码逻辑 基本不会进入这个)

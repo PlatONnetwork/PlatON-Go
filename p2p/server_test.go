@@ -343,6 +343,10 @@ func (tg taskgen) removeConsensusFromQueue(*discover.Node) {
 func (tg taskgen) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
 }
 
+func (tg taskgen) clearMonitorScheduler()                                                      {}
+func (tg taskgen) initDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn) {}
+func (tg taskgen) addMonitorTask(*discover.Node)                                               {}
+
 type testTask struct {
 	index  int
 	called bool
@@ -658,4 +662,14 @@ func newkey() *ecdsa.PrivateKey {
 		panic("couldn't generate key: " + err.Error())
 	}
 	return key
+}
+
+func TestConnFlags(t *testing.T) {
+	var conn = &conn{}
+	conn.set(monitorConn, true)
+	conn.set(consensusDialedConn, true)
+	conn.flags |= trustedConn
+	assert.Equal(t, true, conn.is(monitorConn))
+	assert.Equal(t, true, conn.is(consensusDialedConn))
+	assert.Equal(t, true, conn.is(trustedConn))
 }

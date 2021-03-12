@@ -233,7 +233,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 			} else {
 				currentHeader.Time.Add(currentHeader.Time, new(big.Int).SetInt64(packTime))
 			}
-			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB); nil != err {
+			if err := plugin.EndBlock(common.ZeroHash, currentHeader, mockDB, nil); nil != err {
 				t.Fatalf("call endBlock fail, err：%v", err)
 			}
 			return nil

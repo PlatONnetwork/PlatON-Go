@@ -32,9 +32,13 @@ import (
 	gerr "github.com/go-errors/errors"
 )
 
+type Downloading interface {
+	HighestBlock() uint64
+}
+
 type BasePlugin interface {
 	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
-	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
+	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB, downloading Downloading) error
 	Confirmed(nodeId discover.NodeID, block *types.Block) error
 }
 

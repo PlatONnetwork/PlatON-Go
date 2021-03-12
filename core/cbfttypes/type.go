@@ -22,10 +22,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 	"math/big"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
@@ -258,4 +259,17 @@ func (vs *Validators) sort() {
 		vs.sortedNodes = append(vs.sortedNodes, node)
 	}
 	sort.Sort(vs.sortedNodes)
+}
+
+type ElectNextEpochVerifierEvent struct {
+	NodeIdList []discover.NodeID
+}
+
+func (event ElectNextEpochVerifierEvent) String() string {
+	var build string
+	for _, node := range event.NodeIdList {
+		build = string(append([]byte(node.TerminalString())))
+		build = build + "\n"
+	}
+	return build
 }

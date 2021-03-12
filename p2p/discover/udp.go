@@ -186,6 +186,10 @@ type udp struct {
 // our implementation handles this by storing a callback function for
 // each pending reply. incoming packets from a node are dispatched
 // to all the callback functions for that node.
+
+//udp收到消息后，期得的后续处理。
+//比如，发送一个ping后，期待收到一个pong相应。那么发送ping后，就构造一个pending并通过addpending通道放到队列plist中。
+//待gotreply通道收到reply消息后，从队列plist查找符合的期pending，然后用reply中的数据，来回调pending中的函数。
 type pending struct {
 	// these fields must match in the reply.
 	from  NodeID
@@ -205,6 +209,7 @@ type pending struct {
 	errc chan<- error
 }
 
+//udp收到的消息。
 type reply struct {
 	from  NodeID
 	ptype byte
@@ -425,10 +430,12 @@ func (t *udp) loop() {
 			return
 
 		case p := <-t.addpending:
+			//增加一个pending，一般是发送消息后，都要增加一个pending，以期待得到相应后继续执行回调函数
 			p.deadline = time.Now().Add(respTimeout)
 			plist.PushBack(p)
 
 		case r := <-t.gotreply:
+			//收到一个响应，查找pending并执行回调。
 			var matched bool
 			for el := plist.Front(); el != nil; el = el.Next() {
 				p := el.Value.(*pending)
@@ -542,6 +549,7 @@ func encodePacket(priv *ecdsa.PrivateKey, ptype byte, req interface{}) (packet, 
 }
 
 // readLoop runs in its own goroutine. it handles incoming UDP packets.
+//接收UDP数据包
 func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 	defer t.conn.Close()
 	if unhandled != nil {
@@ -571,17 +579,21 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 	}
 }
 
+//解析并分发处理UDP包
 func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
+	//解析包
 	packet, fromID, hash, err := decodePacket(buf)
 	if err != nil {
 		log.Debug("Bad discv4 packet", "addr", from, "err", err)
 		return err
 	}
+	//处理解析处理的数据包
 	err = packet.handle(t, from, fromID, hash)
 	log.Trace("<< "+packet.name(), "addr", from, "err", err)
 	return err
 }
 
+//解析UDP包，有4种类型的数据
 func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 	if len(buf) < headSize+1 {
 		return nil, NodeID{}, nil, errPacketTooSmall
@@ -598,12 +610,12 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 	var req packet
 	switch ptype := sigdata[0]; ptype {
 	case pingPacket:
-		req = new(ping)
-	case pongPacket:
+		req = new(ping) //ping包
+	case pongPacket: //pong包
 		req = new(pong)
-	case findnodePacket:
+	case findnodePacket: //发现节点包
 		req = new(findnode)
-	case neighborsPacket:
+	case neighborsPacket: //新邻居节点包
 		req = new(neighbors)
 	default:
 		return nil, fromID, hash, fmt.Errorf("unknown type: %d", ptype)
@@ -613,6 +625,7 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 	return req, fromID, hash, err
 }
 
+//处理收到的ping包
 func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
 	if expired(req.Expiration) {
 		return errExpired
@@ -622,22 +635,29 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errData
 	}
 
+	//发送ping对应的pong包
 	t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
 		Rest:       cRest,
 	})
+	//WHY: 发送ping后，为什么还需要处理reply?
 	t.handleReply(fromID, pingPacket, req)
 
 	// Add the node to the table. Before doing so, ensure that we have a recent enough pong
 	// recorded in the database so their findnode requests will be accepted later.
 	n := NewNode(fromID, from.IP, uint16(from.Port), req.From.TCP)
 	if time.Since(t.db.lastPongReceived(fromID)) > nodeDBNodeExpiration {
+		//如果本节点，曾经收到过发松ping消息的节点的Pong消息，但是这个pong消息已经过去很久了(24小时）。
+		//就是说，本节点曾经发送ping消息给它，也收到过它的pong消息，但是这个pong消息距离现在时间已经很久了（24小时）。
+		//此时，将回送一个ping消息给对方节点（如果收到pong，则调用t.addThroughPing(n)，把对方节点加入节点表）
+		//如果第一次收到一个节点的ping，也将回送一个ping来确认。
 		t.sendPing(fromID, from, func() { t.addThroughPing(n) })
 	} else {
 		t.addThroughPing(n)
 	}
+	//更新收到ping的时间戳
 	t.db.updateLastPingReceived(fromID, time.Now())
 	return nil
 }

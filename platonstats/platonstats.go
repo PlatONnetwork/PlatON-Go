@@ -111,6 +111,7 @@ func convertBlock(block *types.Block) *blockdata {
 type Brief struct {
 	BlockType   common.BlockType
 	EpochNo     uint64
+	ConsensusNo uint64
 	NodeID      common.NodeID
 	NodeAddress common.Address
 }
@@ -329,7 +330,7 @@ func collectBrief(block *types.Block) *Brief {
 	brief := new(Brief)
 	brief.BlockType = common.GeneralBlock
 	brief.EpochNo = xutil.CalculateEpoch(bn)
-
+	brief.ConsensusNo = xutil.CalculateRound(bn)
 	if bn == 0 {
 		brief.BlockType = common.GenesisBlock
 		return brief

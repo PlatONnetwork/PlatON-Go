@@ -354,6 +354,10 @@ func (d *Downloader) Synchronise(id string, head common.Hash, bn *big.Int, mode 
 	return err
 }
 
+func (d *Downloader) HighestBlock() uint64 {
+	return d.Progress().HighestBlock
+}
+
 // synchronise will select the peer and use it for synchronising. If an empty string is given
 // it will use the best peer possible and synchronize if its TD is higher than our own. If any of the
 // checks fail an error will be returned. This method is synchronous

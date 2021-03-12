@@ -55,6 +55,7 @@ type BlockChainReactor struct {
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
+	downloading   plugin.Downloading
 }
 
 var (
@@ -73,6 +74,10 @@ func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int) *BlockChainReact
 		}
 	})
 	return bcr
+}
+
+func (bcr *BlockChainReactor) SetDownloader(downloading plugin.Downloading) {
+	bcr.downloading = downloading
 }
 
 func (bcr *BlockChainReactor) Start(mode string) {
@@ -307,7 +312,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	for _, pluginRule := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
-			if err := plugin.EndBlock(blockHash, header, state); nil != err {
+			if err := plugin.EndBlock(blockHash, header, state, bcr.downloading); nil != err {
 				return err
 			}
 		}

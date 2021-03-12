@@ -49,7 +49,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		buildDbRestrictingPlan(addrArr[0], t, chain.StateDB)
 		head := types.Header{Number: big.NewInt(1)}
 
-		if err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB); err != nil {
+		if err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB, nil); err != nil {
 			t.Error(err)
 			return
 		}
@@ -84,7 +84,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		chain := mock.NewChain()
 		blockNumber := uint64(1) * xutil.CalcBlocksEachEpoch()
 		head := types.Header{Number: big.NewInt(int64(blockNumber))}
-		err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB)
+		err := RestrictingInstance().EndBlock(common.Hash{}, &head, chain.StateDB, nil)
 		if err != nil {
 			t.Error(err)
 			return

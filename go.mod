@@ -64,5 +64,7 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gorm.io/driver/mysql v1.0.4
+	gorm.io/gorm v1.21.3
 	gotest.tools v2.2.0+incompatible // indirect
 )

@@ -199,6 +199,7 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash commo
 	}
 
 	// Epoch validators
+	//保存初始的备选节点名单
 	lastHash, err = putbasedbFn(staking.GetEpochValArrKey(verifierIndex.Start, verifierIndex.End), validatorArr, lastHash)
 	if nil != err {
 		return lastHash, fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
@@ -238,6 +239,7 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash commo
 	}
 
 	// Current Round validator
+	//保存初始共识论的验证人名单
 	lastHash, err = putbasedbFn(staking.GetRoundValArrKey(curr_indexInfo.Start, curr_indexInfo.End), validatorArr, lastHash)
 	if nil != err {
 		return lastHash, fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())

@@ -25,6 +25,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -370,6 +373,25 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 
+	//MONITOR
+	//downloader 在NewProtocolManager中初始化
+	reactor.SetDownloader(eth.Downloader())
+
+	genesisValidatorQueue, err := staking.NewStakingDB().GetRoundValListByIrr(1, xutil.ConsensusSize())
+	if err != nil {
+		log.Error("cannot load and monitor genesis validators", "error", err)
+		return nil, errors.New("cannot load and monitor genesis validators")
+	}
+
+	//在第一个结算周期，验证人数=备选节点人数，就是genesis_data中内置的节点
+	//保存初始的验证人名单，第一个共识轮周期从0开始计算
+	p2p.SaveConsensusElection(0, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	//保存初始的备选节点名单，第一个共识轮周期从0开始计算
+	p2p.SaveEpochElection(0, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+
+	//发送monitor 事件
+	p2p.PostMonitorNodeEvent(eth.eventMux, 0, 0, genesisValidatorQueue, eth.protocolManager.downloader)
+
 	eth.APIBackend = &EthAPIBackend{eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
@@ -640,7 +662,6 @@ func (s *Ethereum) Stop() error {
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
-
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())

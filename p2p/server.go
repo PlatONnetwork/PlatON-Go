@@ -41,10 +41,14 @@ import (
 )
 
 const (
+
+	//拨号超时 15 秒
 	defaultDialTimeout = 15 * time.Second
 
 	// Connectivity defaults.
-	maxActiveDialTasks     = 16
+	//活动的拨号任务最多16个
+	maxActiveDialTasks = 16
+
 	defaultMaxPendingPeers = 50
 	defaultDialRatio       = 3
 
@@ -181,19 +185,20 @@ type Server struct {
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
 
-	quit            chan struct{}
-	addstatic       chan *discover.Node
-	removestatic    chan *discover.Node
-	addconsensus    chan *discover.Node
-	removeconsensus chan *discover.Node
-	addtrusted      chan *discover.Node
-	removetrusted   chan *discover.Node
-	posthandshake   chan *conn
-	addpeer         chan *conn
-	delpeer         chan peerDrop
-	loopWG          sync.WaitGroup // loop, listenLoop
-	peerFeed        event.Feed
-	log             log.Logger
+	quit                  chan struct{}
+	addstatic             chan *discover.Node
+	removestatic          chan *discover.Node
+	addconsensus          chan *discover.Node
+	removeconsensus       chan *discover.Node
+	addtrusted            chan *discover.Node
+	removetrusted         chan *discover.Node
+	rescheduleNodeMonitor chan []discover.NodeID
+	posthandshake         chan *conn
+	addpeer               chan *conn
+	delpeer               chan peerDrop
+	loopWG                sync.WaitGroup // loop, listenLoop
+	peerFeed              event.Feed
+	log                   log.Logger
 
 	eventMux  *event.TypeMux
 	consensus bool
@@ -215,6 +220,7 @@ const (
 	inboundConn
 	trustedConn
 	consensusDialedConn
+	monitorConn
 )
 
 // conn wraps a network connection with information gathered
@@ -377,6 +383,13 @@ func (srv *Server) RemoveTrustedPeer(node *discover.Node) {
 	}
 }
 
+func (srv *Server) MonitorNodeIdList(nodeIdList []discover.NodeID) {
+	select {
+	case srv.rescheduleNodeMonitor <- nodeIdList:
+	case <-srv.quit:
+	}
+}
+
 // SubscribePeers subscribes the given channel to peer events
 func (srv *Server) SubscribeEvents(ch chan *PeerEvent) event.Subscription {
 	return srv.peerFeed.Subscribe(ch)
@@ -492,6 +505,9 @@ func (srv *Server) Start() (err error) {
 	srv.removeconsensus = make(chan *discover.Node)
 	srv.addtrusted = make(chan *discover.Node)
 	srv.removetrusted = make(chan *discover.Node)
+
+	srv.rescheduleNodeMonitor = make(chan []discover.NodeID)
+
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
 
@@ -620,6 +636,11 @@ type dialer interface {
 	removeConsensus(*discover.Node)
 	removeConsensusFromQueue(*discover.Node)
 	initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn)
+
+	clearMonitorScheduler()
+	//rescheduleNodeMonitor([]discover.NodeID)
+	addMonitorTask(*discover.Node)
+	initDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -629,6 +650,7 @@ func (srv *Server) run(dialstate dialer) {
 		inboundCount   = 0
 		trusted        = make(map[discover.NodeID]bool, len(srv.TrustedNodes))
 		consensusNodes = make(map[discover.NodeID]bool, 0)
+		monitorNodes   = make(map[discover.NodeID]bool, 0)
 		taskdone       = make(chan task, maxActiveDialTasks)
 		runningTasks   []task
 		queuedTasks    []task // tasks that can't run yet
@@ -677,6 +699,18 @@ func (srv *Server) run(dialstate dialer) {
 	}
 	dialstate.initRemoveConsensusPeerFn(dialstateRemoveConsensusPeerFn)
 
+	disconnectMonitorNodeFn := func(node *discover.Node) bool {
+		srv.log.Trace("disconnect monitor node from ", "node", node)
+		if p, ok := peers[node.ID]; ok {
+			//关闭仅是monitor的连接
+			if p.rw.is(monitorConn) && !p.rw.is(staticDialedConn|trustedConn|consensusDialedConn|inboundConn) {
+				p.Disconnect(DiscRequested)
+				return true
+			}
+		}
+		return false
+	}
+	dialstate.initDisconnectMonitorPeerFn(disconnectMonitorNodeFn)
 running:
 	for {
 		scheduleTasks()
@@ -738,6 +772,20 @@ running:
 					p.Disconnect(DiscRequested)
 				}
 			}
+			/*case nodeIdList := <-srv.rescheduleNodeMonitor:
+			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
+			dialstate.rescheduleNodeMonitor(nodeIdList)*/
+		case nodeIdList := <-srv.rescheduleNodeMonitor:
+			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
+			dialstate.clearMonitorScheduler()
+			for _, nodeId := range nodeIdList {
+				node := discover.NewNode(nodeId, nil, 0, 0)
+				dialstate.addMonitorTask(node)
+				monitorNodes[node.ID] = true
+				if p, ok := peers[node.ID]; ok {
+					p.rw.set(monitorConn, true)
+				}
+			}
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
@@ -777,6 +825,10 @@ running:
 
 			if consensusNodes[c.id] {
 				c.flags |= consensusDialedConn
+			}
+
+			if monitorNodes[c.id] {
+				c.flags |= monitorConn
 			}
 
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
@@ -861,7 +913,7 @@ func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCo
 	// Disconnect over limit non-consensus node.
 	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) {
 		for _, p := range peers {
-			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
+			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn|monitorConn) {
 				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
 				p.Disconnect(DiscRequested)
 				break
@@ -870,9 +922,9 @@ func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCo
 	}
 
 	switch {
-	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && len(peers) >= srv.MaxPeers:
+	case !c.is(trustedConn|staticDialedConn|consensusDialedConn|monitorConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
-	case !c.is(trustedConn|consensusDialedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
+	case !c.is(trustedConn|consensusDialedConn|monitorConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
 		return DiscTooManyPeers
 	case peers[c.id] != nil:
 		return DiscAlreadyConnected
@@ -1145,7 +1197,7 @@ func (srv *Server) StartWatching(eventMux *event.TypeMux) {
 }
 
 func (srv *Server) watching() {
-	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{}, cbfttypes.ElectNextEpochVerifierEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -1174,8 +1226,16 @@ func (srv *Server) watching() {
 				log.Trace("Received RemoveValidatorEvent", "nodeID", removeEv.NodeID.String())
 				node := discover.NewNode(removeEv.NodeID, nil, 0, 0)
 				srv.RemoveConsensusPeer(node)
+			case cbfttypes.ElectNextEpochVerifierEvent:
+				electNextEpochVerifierEvent, ok := ev.Data.(cbfttypes.ElectNextEpochVerifierEvent)
+				if !ok {
+					log.Error("Received ElectNextEpochVerifierEvent type error")
+					continue
+				}
+				log.Trace("Received ElectNextEpochVerifierEvent", "nodeIdList", electNextEpochVerifierEvent.String())
+				srv.MonitorNodeIdList(electNextEpochVerifierEvent.NodeIdList)
 			default:
-				log.Error("Received unexcepted event")
+				log.Error("Received unexpected event")
 			}
 
 		case <-srv.quit:
