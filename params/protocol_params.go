@@ -23,7 +23,7 @@ const (
 	MinGasLimit          uint64 = 5000               // Minimum the gas limit may ever be.
 	GenesisGasLimit      uint64 = 4712388 * 2        // Gas limit of the Genesis block.
 	DefaultMinerGasCeil  uint64 = 21000 * 8000 * 1.2 // 201600000
-	MaxGasCeil           uint64 = 21000 * 30000
+	MaxGasCeil           uint64 = 300000000
 
 	MaximumExtraDataSize uint64 = 32    // Maximum size extra data may be after Genesis.
 	ExpByteGas           uint64 = 10    // Times ceil(log256(exponent)) for the EXP instruction.

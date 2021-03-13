@@ -56,7 +56,7 @@ func SigHash(header *types.Header) (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
+		header.ExtraData(),
 		header.Nonce,
 	})
 	hasher.Sum(hash[:0])
@@ -74,7 +74,7 @@ func Ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	if len(header.Extra) < ExtraSeal {
 		return common.Address{}, ErrMissingSignature
 	}
-	signature := header.Extra[len(header.Extra)-ExtraSeal:]
+	signature := header.Signature()
 
 	// Recover the public key and the Ethereum address
 	pubkey, err := crypto.Ecrecover(SigHash(header).Bytes(), signature)

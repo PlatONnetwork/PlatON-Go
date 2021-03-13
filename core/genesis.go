@@ -516,7 +516,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 func DefaultGenesisBlock() *Genesis {
 
 	generalAddr := common.MustBech32ToAddress("lat1dl93r6fr022ca5yjqe6cgkg06er9pyqfwkwwdg")
-	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)
+	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
@@ -524,7 +524,7 @@ func DefaultGenesisBlock() *Genesis {
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
 		Timestamp: 0,
-		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		ExtraData: []byte("Let us compute"),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
