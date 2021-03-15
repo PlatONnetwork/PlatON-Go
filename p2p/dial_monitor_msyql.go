@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -109,6 +110,18 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 }
 
 func SaveNodePingResult(nodeId string, ip string, port string, status int8) {
-	var nodePing = TbNodePing{NodeId: nodeId, Ip: ip, Port: port, Status: status, ReplyTime: time.Now().Unix()}
-	MonitorDB().Save(&nodePing)
+	var nodePing TbNodePing
+	MonitorDB().Find(&nodePing, "node_id=?", nodeId)
+	if strings.TrimSpace(nodePing.NodeId) != "" {
+		nodePing.Ip = ip
+		nodePing.Port = port
+		nodePing.Status = status
+		if status == 1 {
+			nodePing.ReplyTime = time.Now().Unix()
+		}
+		MonitorDB().Save(&nodePing)
+	}
+
+	/*var nodePing = TbNodePing{NodeId: nodeId, Ip: ip, Port: port, Status: status, ReplyTime: time.Now().Unix(), UpdateTime: time.Now().Unix()}
+	MonitorDB().Save(&nodePing)*/
 }

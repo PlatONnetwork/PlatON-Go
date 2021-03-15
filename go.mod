@@ -13,6 +13,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v0.1.0
 	github.com/cespare/xxhash v1.1.0
+	github.com/confluentinc/confluent-kafka-go v1.6.1
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
@@ -61,5 +62,7 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/urfave/cli.v1 v1.20.0
-	gotest.tools v2.2.0+incompatible // indirect
+	gorm.io/driver/mysql v1.0.5
+	gorm.io/gorm v1.21.3
+	gotest.tools v2.2.0+incompatible
 )
