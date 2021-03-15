@@ -384,13 +384,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	//在第一个结算周期，验证人数=备选节点人数，就是genesis_data中内置的节点
-	//保存初始的验证人名单，第一个共识轮周期从0开始计算
-	p2p.SaveConsensusElection(0, p2p.ConvertToNodeIdList(genesisValidatorQueue))
-	//保存初始的备选节点名单，第一个共识轮周期从0开始计算
-	p2p.SaveEpochElection(0, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	//保存初始的验证人名单，第一个共识轮周期从1开始计算
+	p2p.SaveConsensusElection(1, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	//保存初始的备选节点名单，第一个共识轮周期从1开始计算
+	p2p.SaveEpochElection(1, p2p.ConvertToNodeIdList(genesisValidatorQueue))
 
 	//发送monitor 事件
-	p2p.PostMonitorNodeEvent(eth.eventMux, 0, 0, genesisValidatorQueue, eth.protocolManager.downloader)
+	p2p.PostMonitorNodeEvent(eth.eventMux, 0, 1, genesisValidatorQueue, eth.protocolManager.downloader)
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
 	gpoParams := config.GPO

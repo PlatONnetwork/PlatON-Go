@@ -17,7 +17,7 @@ var (
 )
 
 type TbEpoch struct {
-	Epoch      uint64 `gorm:"primaryKey"`
+	Epoch      uint64 `gorm:"primaryKey"` //从1开始
 	NodeId     string `gorm:"primaryKey"`
 	CreateTime int64  `gorm:"autoCreateTime"`
 	UpdateTime int64  `gorm:"autoUpdateTime"`
@@ -28,7 +28,7 @@ func (TbEpoch) TableName() string {
 }
 
 type TbConsensus struct {
-	ConsensusNo  uint64 `gorm:"primaryKey"`
+	ConsensusNo  uint64 `gorm:"primaryKey"` //从1开始
 	NodeId       string `gorm:"primaryKey"`
 	StatBlockQty uint64
 	CreateTime   int64 `gorm:"autoCreateTime"`
