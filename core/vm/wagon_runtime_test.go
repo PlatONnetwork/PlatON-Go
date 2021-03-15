@@ -53,7 +53,8 @@ var testCase = []*Case{
 			evm: &EVM{Context: Context{
 				GetHash: func(u uint64) common.Hash {
 					return common.Hash{1, 2, 3}
-				}},
+				},
+				BlockNumber: big.NewInt(1)},
 			},
 		},
 		funcName: "platon_block_hash_test",
@@ -1575,12 +1576,12 @@ func checkContractRet(ret []byte) bool {
 	return true
 }
 
-func TestGetBlockHash(t *testing.T)  {
+func TestGetBlockHash(t *testing.T) {
 
-	testBlockHash := common.BytesToHash([]byte{1,2,3,4})
-	newProc := func (blockNumber int64) *exec.Process{
+	testBlockHash := common.BytesToHash([]byte{1, 2, 3, 4})
+	newProc := func(blockNumber int64) *exec.Process {
 		return exec.NewProcess(newTestVM(&EVM{
-			Context:Context{
+			Context: Context{
 				GetHash: func(u uint64) common.Hash {
 					return testBlockHash
 				},
@@ -1591,15 +1592,15 @@ func TestGetBlockHash(t *testing.T)  {
 
 	type TestCase struct {
 		blockNumber int64
-		getNumber uint64
-		expect common.Hash
+		getNumber   uint64
+		expect      common.Hash
 	}
-	cases := []TestCase {
-			{1,123, common.Hash{}},
-			{123,123, common.Hash{}},
-			{123, 122, testBlockHash},
-			{1024, 122, common.Hash{}},
-			{1024, 1024-256, testBlockHash},
+	cases := []TestCase{
+		{1, 123, common.Hash{}},
+		{123, 123, common.Hash{}},
+		{123, 122, testBlockHash},
+		{1024, 122, common.Hash{}},
+		{1024, 1024 - 256, testBlockHash},
 	}
 	for _, c := range cases {
 		proc := newProc(c.blockNumber)
@@ -1607,6 +1608,6 @@ func TestGetBlockHash(t *testing.T)  {
 		res := common.Hash{}
 		proc.ReadAt(res[:], 1024)
 		assert.Equal(t, c.expect, res)
-		assert.Equal(t, initExternalGas - GasExtStep, proc.HostCtx().(*VMContext).contract.Gas)
+		assert.Equal(t, initExternalGas-GasExtStep, proc.HostCtx().(*VMContext).contract.Gas)
 	}
 }
