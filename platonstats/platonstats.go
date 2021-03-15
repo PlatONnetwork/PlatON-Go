@@ -110,7 +110,7 @@ func convertBlock(block *types.Block) *blockdata {
 
 type Brief struct {
 	BlockType   common.BlockType
-	EpochNo     uint64
+	Epoch       uint64
 	ConsensusNo uint64
 	NodeID      common.NodeID
 	NodeAddress common.Address
@@ -118,7 +118,8 @@ type Brief struct {
 
 type StatsBlockExt struct {
 	BlockType    common.BlockType       `json:"blockType"`
-	EpochNo      uint64                 `json:"epochNo"`
+	Epoch        uint64                 `json:"epoch"`
+	ConsensusNo  uint64                 `json:"consensusNo"`
 	NodeID       common.NodeID          `json:"nodeID,omitempty"`
 	NodeAddress  common.Address         `json:"nodeAddress,omitempty"`
 	Block        map[string]interface{} `json:"block,omitempty"`
@@ -287,7 +288,8 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 	statsBlockExt := &StatsBlockExt{
 		BlockType:   brief.BlockType,
-		EpochNo:     brief.EpochNo,
+		Epoch:       brief.Epoch,
+		ConsensusNo: brief.ConsensusNo,
 		NodeID:      brief.NodeID,
 		NodeAddress: brief.NodeAddress,
 		//Block:        convertBlock(block),
@@ -329,7 +331,7 @@ func collectBrief(block *types.Block) *Brief {
 
 	brief := new(Brief)
 	brief.BlockType = common.GeneralBlock
-	brief.EpochNo = xutil.CalculateEpoch(bn)
+	brief.Epoch = xutil.CalculateEpoch(bn)
 	brief.ConsensusNo = xutil.CalculateRound(bn)
 	if bn == 0 {
 		brief.BlockType = common.GenesisBlock
