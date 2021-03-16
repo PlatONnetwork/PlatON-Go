@@ -365,7 +365,7 @@ func (s *dialstate) taskDone(t task, now time.Time) {
 			s.hist.add(t.dest.ID, now.Add(dialHistoryExpiration))
 		}
 		//MONITOR：记录
-		SaveNodePingResult(t.dest.ID.String(), t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 1)
+		SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 1)
 
 	}
 }

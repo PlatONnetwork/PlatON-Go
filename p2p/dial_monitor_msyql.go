@@ -82,7 +82,7 @@ func MonitorDB() *gorm.DB {
 func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 	epochList := make([]TbEpoch, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
-		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.String()}
+		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.HexPrefixString()}
 	}
 	MonitorDB().Create(&epochList)
 }
@@ -90,7 +90,7 @@ func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 	consensusList := make([]TbConsensus, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
-		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.String(), StatBlockQty: 0}
+		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.HexPrefixString(), StatBlockQty: 0}
 	}
 	MonitorDB().Create(&consensusList)
 }
@@ -98,9 +98,9 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 func InitNodePing(nodeIdList []discover.NodeID) {
 	for _, nodeId := range nodeIdList {
 		var nodePing TbNodePing
-		MonitorDB().Find(&nodePing, "node_id=?", nodeId.String())
+		MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
 		if nodePing.NodeId == "" {
-			nodePing = TbNodePing{NodeId: nodeId.String(), Status: 0, ReplyTime: time.Now().Unix()}
+			nodePing = TbNodePing{NodeId: nodeId.HexPrefixString(), Status: 0, ReplyTime: time.Now().Unix()}
 			MonitorDB().Create(&nodePing)
 		} else {
 			nodePing.Status = 0
@@ -109,9 +109,9 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 	}
 }
 
-func SaveNodePingResult(nodeId string, ip string, port string, status int8) {
+func SaveNodePingResult(nodeId discover.NodeID, ip string, port string, status int8) {
 	var nodePing TbNodePing
-	MonitorDB().Find(&nodePing, "node_id=?", nodeId)
+	MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
 	if strings.TrimSpace(nodePing.NodeId) != "" {
 		nodePing.Ip = ip
 		nodePing.Port = port

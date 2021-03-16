@@ -103,7 +103,7 @@ func (t *monitorTask) Do(srv *Server) {
 	if t.dest.Incomplete() {
 		if !t.resolve(srv) {
 			//MONITOR：没有找发现节点
-			SaveNodePingResult(t.dest.ID.String(), t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
+			SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
 			return
 		}
 	}
@@ -111,7 +111,7 @@ func (t *monitorTask) Do(srv *Server) {
 	if err != nil {
 		log.Trace("Dial error", "task", t, "err", err)
 		//MONITOR：连接节点错误
-		SaveNodePingResult(t.dest.ID.String(), t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
+		SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {

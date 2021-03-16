@@ -242,6 +242,9 @@ func (n NodeID) Bytes() []byte {
 func (n NodeID) String() string {
 	return fmt.Sprintf("%x", n[:])
 }
+func (n NodeID) HexPrefixString() string {
+	return fmt.Sprintf("0x%x", n[:])
+}
 
 // The Go syntax representation of a NodeID is a call to HexID.
 func (n NodeID) GoString() string {

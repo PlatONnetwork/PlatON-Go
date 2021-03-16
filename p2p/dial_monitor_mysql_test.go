@@ -3,6 +3,8 @@ package p2p
 import (
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -36,6 +38,12 @@ var (
 	}
 )
 
+func TestNodeIDToString(t *testing.T) {
+	t.Log(nodeIdArr[0].String())
+	t.Log(hexutil.Encode(nodeIdArr[0].Bytes()))
+	t.Log(nodeIdArr[0].HexPrefixString())
+}
+
 func TestSaveEpochElection(t *testing.T) {
 	SaveEpochElection(1, nodeIdArr)
 }
@@ -61,7 +69,7 @@ func TestListNodePing(t *testing.T) {
 }
 
 func TestSaveNodePingResult(t *testing.T) {
-	SaveNodePingResult("11a315747ce79cdf3d6aaf87ff2b6897950a20bda281838f922ea9407736fec9029d85f6202fd059a57a9119d05895402e7570948ae759cb093a54c3da9e0a4a", "127.0.0.1", "12345", 1)
+	SaveNodePingResult(nodeIdArr[0], "127.0.0.1", "12345", 1)
 }
 
 type TbBlock struct {
