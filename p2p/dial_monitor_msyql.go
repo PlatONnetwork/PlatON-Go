@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"gorm.io/driver/mysql"
@@ -44,8 +46,7 @@ type TbNodePing struct {
 	Status     int8
 	ReplyTime  int64
 	ReplyBlock uint64
-	Ip         string
-	Port       string
+	Addr       string
 	CreateTime int64 `gorm:"autoCreateTime"`
 	UpdateTime int64 `gorm:"autoUpdateTime"`
 }
@@ -80,6 +81,7 @@ func MonitorDB() *gorm.DB {
 }
 
 func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
+	log.Info("SaveEpochElection", "epoch", epoch, "nodeIdList", nodeIdList)
 	epochList := make([]TbEpoch, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
 		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.HexPrefixString()}
@@ -88,6 +90,7 @@ func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 }
 
 func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
+	log.Info("SaveConsensusElection", "consensusNo", consensusNo, "nodeIdList", nodeIdList)
 	consensusList := make([]TbConsensus, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
 		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.HexPrefixString(), StatBlockQty: 0}
@@ -96,11 +99,12 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 }
 
 func InitNodePing(nodeIdList []discover.NodeID) {
+	log.Info("InitNodePing", "nodeIdList", nodeIdList)
 	for _, nodeId := range nodeIdList {
 		var nodePing TbNodePing
 		MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
 		if nodePing.NodeId == "" {
-			nodePing = TbNodePing{NodeId: nodeId.HexPrefixString(), Status: 0, ReplyTime: time.Now().Unix()}
+			nodePing = TbNodePing{NodeId: nodeId.HexPrefixString(), Status: 0}
 			MonitorDB().Create(&nodePing)
 		} else {
 			nodePing.Status = 0
@@ -109,12 +113,13 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 	}
 }
 
-func SaveNodePingResult(nodeId discover.NodeID, ip string, port string, status int8) {
+func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
+	log.Info("SaveNodePingResult", "nodeId", nodeId.HexPrefixString(), "addr", addr, status)
+
 	var nodePing TbNodePing
 	MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
 	if strings.TrimSpace(nodePing.NodeId) != "" {
-		nodePing.Ip = ip
-		nodePing.Port = port
+		nodePing.Addr = addr
 		nodePing.Status = status
 		if status == 1 {
 			nodePing.ReplyTime = time.Now().Unix()

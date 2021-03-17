@@ -1294,7 +1294,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return err
 	}
 	//monitor, 发送事件，需要监控的备选节点列表
-	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch, queue, downloading)
+	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, queue, downloading)
 
 	log.Debug("Call ElectNextVerifierList  Next verifiers", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"list length", len(queue), "list", newVerifierArr)

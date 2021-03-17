@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -51,7 +50,7 @@ const (
 type removeConsensusPeerFn func(node *discover.Node)
 
 //断开监控节点peer时的回调函数
-type disconnectMonitorPeerFn func(node *discover.Node) bool
+type monitorTaskDoneFurtherFn func(node *discover.Node) bool
 
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests
@@ -201,10 +200,15 @@ func (s *dialstate) addMonitorTask(node *discover.Node) {
 	s.monitorTasks.AddMonitorTask(&monitorTask{flags: monitorConn, dest: node})
 }
 
-func (s *dialstate) initDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn) {
-	s.monitorTasks.InitDisconnectMonitorPeerFn(disconnectMonitorPeerFn)
+func (s *dialstate) removeMonitorTask(node *discover.Node) {
+	s.monitorTasks.RemoveMonitorTask(node.ID)
 }
 
+func (s *dialstate) initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
+	s.monitorTasks.InitMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
+}
+
+// 从各个任务列表中，获取可以新建拨号的任务（正在拨号的，已经完成拨号的，黑名单的等除外）
 func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
 	if s.start.IsZero() {
 		s.start = now
@@ -269,6 +273,11 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 		switch err {
 		case errNotWhitelisted, errSelf:
 			s.monitorTasks.RemoveTask(t.dest.ID)
+		case errAlreadyConnected:
+			//已经连接了, 保存当前时间，从监控任务中删除
+			//s.monitorTasks.RemoveTask(t.dest.ID)
+			//SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 1)
+			s.monitorTasks.monitorTaskDoneFurtherFn(t.dest)
 		case nil:
 			s.dialing[t.dest.ID] = t.flags
 			newtasks = append(newtasks, t)
@@ -358,15 +367,9 @@ func (s *dialstate) taskDone(t task, now time.Time) {
 		s.lookupRunning = false
 		s.lookupBuf = append(s.lookupBuf, t.results...)
 	case *monitorTask:
+		s.hist.add(t.dest.ID, now.Add(dialHistoryExpiration))
 		delete(s.dialing, t.dest.ID)
-
-		if t.TryDisconnect() {
-		} else {
-			s.hist.add(t.dest.ID, now.Add(dialHistoryExpiration))
-		}
-		//MONITOR：记录
-		SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 1)
-
+		t.MonitorTaskDoneFurther()
 	}
 }
 

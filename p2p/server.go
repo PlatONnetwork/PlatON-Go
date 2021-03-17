@@ -275,6 +275,9 @@ func (f connFlag) String() string {
 	if f&consensusDialedConn != 0 {
 		s += "-consensusdial"
 	}
+	if f&monitorConn != 0 {
+		s += "-monitordial"
+	}
 	if s != "" {
 		s = s[1:]
 	}
@@ -640,7 +643,8 @@ type dialer interface {
 	clearMonitorScheduler()
 	//rescheduleNodeMonitor([]discover.NodeID)
 	addMonitorTask(*discover.Node)
-	initDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn)
+	removeMonitorTask(*discover.Node)
+	initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -677,6 +681,7 @@ func (srv *Server) run(dialstate dialer) {
 			t := ts[i]
 			srv.log.Trace("New dial task", "task", t)
 			go func() { t.Do(srv); taskdone <- t }()
+			//开始拨号，并把任务移入正在拨号列表
 			runningTasks = append(runningTasks, t)
 		}
 		return ts[i:]
@@ -699,18 +704,24 @@ func (srv *Server) run(dialstate dialer) {
 	}
 	dialstate.initRemoveConsensusPeerFn(dialstateRemoveConsensusPeerFn)
 
-	disconnectMonitorNodeFn := func(node *discover.Node) bool {
+	monitorTaskDoneFurtherFn := func(node *discover.Node) bool {
 		srv.log.Trace("disconnect monitor node from ", "node", node)
+		dialstate.removeMonitorTask(node)
 		if p, ok := peers[node.ID]; ok {
 			//关闭仅是monitor的连接
+			//MONITOR：记录
+			SaveNodePingResult(node.ID, p.RemoteAddr().String(), 1)
 			if p.rw.is(monitorConn) && !p.rw.is(staticDialedConn|trustedConn|consensusDialedConn|inboundConn) {
+				log.Info("disconnect monitor node from, node is only for monitor purpose", "node", node)
 				p.Disconnect(DiscRequested)
 				return true
 			}
+		} else {
+			SaveNodePingResult(node.ID, "nil", 2)
 		}
 		return false
 	}
-	dialstate.initDisconnectMonitorPeerFn(disconnectMonitorNodeFn)
+	dialstate.initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
 running:
 	for {
 		scheduleTasks()
@@ -772,11 +783,9 @@ running:
 					p.Disconnect(DiscRequested)
 				}
 			}
-			/*case nodeIdList := <-srv.rescheduleNodeMonitor:
-			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
-			dialstate.rescheduleNodeMonitor(nodeIdList)*/
 		case nodeIdList := <-srv.rescheduleNodeMonitor:
 			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
+			log.Info("p2p.server.rescheduleNodeMonitor", "nodeIdList", nodeIdList)
 			dialstate.clearMonitorScheduler()
 			for _, nodeId := range nodeIdList {
 				node := discover.NewNode(nodeId, nil, 0, 0)
@@ -1232,7 +1241,7 @@ func (srv *Server) watching() {
 					log.Error("Received ElectNextEpochVerifierEvent type error")
 					continue
 				}
-				log.Trace("Received ElectNextEpochVerifierEvent", "nodeIdList", electNextEpochVerifierEvent.String())
+				log.Info("Received ElectNextEpochVerifierEvent", "nodeIdList", electNextEpochVerifierEvent.String())
 				srv.MonitorNodeIdList(electNextEpochVerifierEvent.NodeIdList)
 			default:
 				log.Error("Received unexpected event")

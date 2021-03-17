@@ -3,7 +3,6 @@ package p2p
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,8 +22,8 @@ var (
 )
 
 type monitorScheduler struct {
-	queue                   []*monitorTask
-	disconnectMonitorPeerFn disconnectMonitorPeerFn
+	queue                    []*monitorTask
+	monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn
 }
 
 type monitorTask struct {
@@ -35,6 +34,10 @@ type monitorTask struct {
 	err          error
 }
 
+func (t *monitorTask) String() string {
+	return fmt.Sprintf("{flags: %v, dest: %v, lastResolved: %v}", t.flags, t.dest, t.lastResolved)
+}
+
 func MonitorScheduler() *monitorScheduler {
 	monitorSchedulerOnce.Do(func() {
 		log.Info("Init node monitor scheduler ...")
@@ -43,8 +46,8 @@ func MonitorScheduler() *monitorScheduler {
 	return monitorSchedulerRef
 }
 
-func (tasks *monitorScheduler) InitDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn) {
-	tasks.disconnectMonitorPeerFn = disconnectMonitorPeerFn
+func (tasks *monitorScheduler) InitMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
+	tasks.monitorTaskDoneFurtherFn = monitorTaskDoneFurtherFn
 }
 
 // whether the queue is empty
@@ -62,21 +65,20 @@ func (tasks *monitorScheduler) ClearMonitorScheduler() {
 func (tasks *monitorScheduler) AddMonitorTask(task *monitorTask) {
 	tasks.queue = append(tasks.queue, task)
 }
-
-/*func (tasks *monitorScheduler) AddMonitorNode(node *discover.Node) {
-	tasks.queue = append(tasks.queue, &monitorTask{flags: monitorConn, dest: node})
-}
-*/
-/*func (tasks *monitorScheduler) RenewMonitorSchedule(nodeIdList []discover.NodeID) {
-	tasks.queue = []*monitorTask{}
-	for _, nodeId := range nodeIdList {
-		node := discover.NewNode(nodeId, nil, 0, 0)
-		tasks.queue = append(tasks.queue, &monitorTask{flags: monitorConn, dest: node})
+func (tasks *monitorScheduler) RemoveMonitorTask(nodeId discover.NodeID) {
+	log.Info("before RemoveMonitorTask", "nodeId", nodeId, "task queue length", len(tasks.queue), "task queue", tasks.description())
+	if !tasks.isEmpty() {
+		for i, t := range tasks.queue {
+			if t.dest.ID == nodeId {
+				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
+				break
+			}
+		}
 	}
-}*/
+	log.Info("after RemoveMonitorTask", "nodeId", nodeId, "task queue length", len(tasks.queue), "task queue", tasks.description())
+}
 
 func (tasks *monitorScheduler) ListTask() []*monitorTask {
-	log.Info("list monitor dial task", "task queue", tasks.description())
 	return tasks.queue
 }
 
@@ -100,18 +102,15 @@ func (tasks *monitorScheduler) description() string {
 }
 
 func (t *monitorTask) Do(srv *Server) {
+	log.Info("monitorTask.Do", "id", t.dest.ID)
 	if t.dest.Incomplete() {
 		if !t.resolve(srv) {
-			//MONITOR：没有找发现节点
-			SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
 			return
 		}
 	}
 	err := t.dial(srv, t.dest)
 	if err != nil {
 		log.Trace("Dial error", "task", t, "err", err)
-		//MONITOR：连接节点错误
-		SaveNodePingResult(t.dest.ID, t.dest.IP.String(), strconv.FormatUint(uint64(t.dest.TCP), 10), 2)
 		// Try resolving the ID of static nodes if dialing failed.
 		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
 			if t.resolve(srv) {
@@ -122,9 +121,10 @@ func (t *monitorTask) Do(srv *Server) {
 	t.err = err
 }
 
-//如果节点只是monitor，则关闭，并返回true；否则返回false
-func (t *monitorTask) TryDisconnect() bool {
-	return MonitorScheduler().disconnectMonitorPeerFn(t.dest)
+//monitorTask任务结束后的后续操作（保存NodePing结果，从监控任务列表删除任务）
+func (t *monitorTask) MonitorTaskDoneFurther() bool {
+	log.Info("monitorTask.MonitorTaskDoneFurther", "id", t.dest)
+	return MonitorScheduler().monitorTaskDoneFurtherFn(t.dest)
 }
 
 func (t *monitorTask) resolve(srv *Server) bool {
@@ -170,23 +170,50 @@ type Downloading interface {
 	HighestBlock() uint64
 }
 
+//
+//
+// param: eventMux
+// param: blockNumber, 选举块高，结算周期末，选出下一个结算周期的备选101节点
+// param: epoch 结算周期。从1开始计算。创世块可以认为是0
+// param: verifierList
+// param: downloading
 func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, verifierList []*staking.Validator, downloading Downloading) {
 	nodeIdList := ConvertToNodeIdList(verifierList)
 	//nodeIdStringList := xcom.ConvertToNodeIdStringList(verifierList)
-	//MONITOR，保存下一轮结算周期的新101名单
-	SaveEpochElection(epoch+1, nodeIdList)
+	//MONITOR，保存这一轮结算周期的新101名单
+	log.Info("PostMonitorNodeEvent", "blockNumber", blockNumber, "epoch", epoch, "nodeIdList", nodeIdList)
 
-	if blockNumber > downloading.HighestBlock() {
-		//说明区块是共识协议得到的，需要执行monitor任务
-		//MONITOR，保存新101名单
+	SaveEpochElection(epoch, nodeIdList)
+
+	if blockNumber == 0 {
+		log.Info("current block is genesis block")
+
 		InitNodePing(nodeIdList)
-		eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList})
+		if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+			log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+		}
+
 	} else {
-		//此次需要同步的最高块，可以认为是链上当前块，如果当前结算周期和链上结算周期一致，则开始执行monitor任务
-		chainEpoch := xutil.CalculateEpoch(downloading.HighestBlock())
-		if chainEpoch == epoch {
+		if blockNumber > downloading.HighestBlock() {
+			log.Info("current block is consensus block")
+			//说明区块是共识协议得到的，需要执行monitor任务
+			//MONITOR，保存新101名单
 			InitNodePing(nodeIdList)
-			eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList})
+			if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+				log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+			}
+		} else {
+			//此次需要同步的最高块，可以认为是链上当前块，如果当前结算周期和链上结算周期一致，则开始执行monitor任务
+			chainEpoch := xutil.CalculateEpoch(downloading.HighestBlock())
+			if chainEpoch == epoch && epoch != 1 { //epoch=1 第一个epoch的 监控信息，已经有创世块写入。
+				log.Info("current block is downloaded block and epoch is same as chain")
+				InitNodePing(nodeIdList)
+				if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+					log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+				}
+			} else {
+				log.Info("current block is downloaded block but far way from chain")
+			}
 		}
 	}
 }

@@ -265,11 +265,15 @@ type ElectNextEpochVerifierEvent struct {
 	NodeIdList []discover.NodeID
 }
 
+func (event ElectNextEpochVerifierEvent) String2() string {
+	return fmt.Sprintf("{NodeIdList: %v}", event.NodeIdList)
+}
+
 func (event ElectNextEpochVerifierEvent) String() string {
-	var build string
+	var buffer bytes.Buffer
 	for _, node := range event.NodeIdList {
-		build = string(append([]byte(node.TerminalString())))
-		build = build + "\n"
+		buffer.WriteString(node.HexPrefixString())
+		buffer.WriteString("\n")
 	}
-	return build
+	return buffer.String()
 }

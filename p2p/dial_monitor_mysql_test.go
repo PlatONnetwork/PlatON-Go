@@ -1,7 +1,10 @@
 package p2p
 
 import (
+	"net"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -38,6 +41,22 @@ var (
 	}
 )
 
+func TestEvent(t *testing.T) {
+	event := cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdArr}
+	t.Log("TestMonitorTask", event)
+}
+
+func TestMonitorTask(t *testing.T) {
+	ip := net.IPv4(123, 1, 2, 3)
+	node := &discover.Node{ID: randomID(), IP: ip, TCP: 8080}
+	task := &monitorTask{flags: monitorConn, dest: node}
+	t.Log("TestMonitorTask", task)
+}
+
+func TestNodeIDList(t *testing.T) {
+	t.Log(nodeIdArr)
+}
+
 func TestNodeIDToString(t *testing.T) {
 	t.Log(nodeIdArr[0].String())
 	t.Log(hexutil.Encode(nodeIdArr[0].Bytes()))
@@ -69,7 +88,7 @@ func TestListNodePing(t *testing.T) {
 }
 
 func TestSaveNodePingResult(t *testing.T) {
-	SaveNodePingResult(nodeIdArr[0], "127.0.0.1", "12345", 1)
+	SaveNodePingResult(nodeIdArr[0], "127.0.0.1:8080", 1)
 }
 
 type TbBlock struct {

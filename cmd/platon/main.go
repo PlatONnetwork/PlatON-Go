@@ -28,6 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/panjf2000/ants/v2"
 	"gopkg.in/urfave/cli.v1"
 
@@ -374,4 +378,24 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	if err := ethereum.StartMining(); err != nil {
 		utils.Fatalf("Failed to start mining: %v", err)
 	}
+
+	//MONITOR
+	startMonitor(ethereum)
+
+}
+
+//监控内置节点
+func startMonitor(ethereum *eth.Ethereum) {
+	genesisValidatorQueue, err := staking.NewStakingDB().GetRoundValListByIrr(1, xutil.ConsensusSize())
+	if err != nil {
+		log.Error("cannot load and monitor genesis validators", "error", err)
+		utils.Fatalf("cannot load and monitor genesis validators: %v", err)
+	}
+
+	//在第一个结算周期，验证人数=备选节点人数，就是genesis_data中内置的节点
+	//保存初始的验证人名单，第一个共识轮周期从1开始计算
+	p2p.SaveConsensusElection(1, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	//发送monitor事件
+	log.Info("main.PostMonitorNodeEvent.eventMux", "mux", ethereum.EventMux())
+	p2p.PostMonitorNodeEvent(ethereum.EventMux(), 0, 1, genesisValidatorQueue, ethereum.Downloader())
 }

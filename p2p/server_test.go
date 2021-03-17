@@ -343,9 +343,10 @@ func (tg taskgen) removeConsensusFromQueue(*discover.Node) {
 func (tg taskgen) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
 }
 
-func (tg taskgen) clearMonitorScheduler()                                                      {}
-func (tg taskgen) initDisconnectMonitorPeerFn(disconnectMonitorPeerFn disconnectMonitorPeerFn) {}
-func (tg taskgen) addMonitorTask(*discover.Node)                                               {}
+func (tg taskgen) clearMonitorScheduler()                                                         {}
+func (tg taskgen) initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {}
+func (tg taskgen) addMonitorTask(*discover.Node)                                                  {}
+func (tg taskgen) removeMonitorTask(*discover.Node)                                               {}
 
 type testTask struct {
 	index  int
