@@ -42,6 +42,7 @@ platon-with-mv:
 all:
 	build/build_deps.sh
 	$(GORUN) build/ci.go install
+	@mv $(GOBIN)/keytool $(GOBIN)/platonkey
 
 all-debug:
 	build/build_deps.sh
