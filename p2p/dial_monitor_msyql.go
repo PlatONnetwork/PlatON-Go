@@ -84,7 +84,7 @@ func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 	log.Info("SaveEpochElection", "epoch", epoch, "nodeIdList", nodeIdList)
 	epochList := make([]TbEpoch, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
-		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.HexPrefixString()}
+		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.String()}
 	}
 	MonitorDB().Create(&epochList)
 }
@@ -93,7 +93,7 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 	log.Info("SaveConsensusElection", "consensusNo", consensusNo, "nodeIdList", nodeIdList)
 	consensusList := make([]TbConsensus, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
-		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.HexPrefixString(), StatBlockQty: 0}
+		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.String(), StatBlockQty: 0}
 	}
 	MonitorDB().Create(&consensusList)
 }
@@ -102,9 +102,9 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 	log.Info("InitNodePing", "nodeIdList", nodeIdList)
 	for _, nodeId := range nodeIdList {
 		var nodePing TbNodePing
-		MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
+		MonitorDB().Find(&nodePing, "node_id=?", nodeId.String())
 		if nodePing.NodeId == "" {
-			nodePing = TbNodePing{NodeId: nodeId.HexPrefixString(), Status: 0}
+			nodePing = TbNodePing{NodeId: nodeId.String(), Status: 0}
 			MonitorDB().Create(&nodePing)
 		} else {
 			nodePing.Status = 0
@@ -114,10 +114,10 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 }
 
 func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
-	log.Info("SaveNodePingResult", "nodeId", nodeId.HexPrefixString(), "addr", addr, status)
+	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, status)
 
 	var nodePing TbNodePing
-	MonitorDB().Find(&nodePing, "node_id=?", nodeId.HexPrefixString())
+	MonitorDB().Find(&nodePing, "node_id=?", nodeId.String())
 	if strings.TrimSpace(nodePing.NodeId) != "" {
 		nodePing.Addr = addr
 		nodePing.Status = status

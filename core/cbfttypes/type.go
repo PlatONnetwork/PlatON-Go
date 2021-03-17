@@ -272,7 +272,7 @@ func (event ElectNextEpochVerifierEvent) String2() string {
 func (event ElectNextEpochVerifierEvent) String() string {
 	var buffer bytes.Buffer
 	for _, node := range event.NodeIdList {
-		buffer.WriteString(node.HexPrefixString())
+		buffer.WriteString(node.String())
 		buffer.WriteString("\n")
 	}
 	return buffer.String()
