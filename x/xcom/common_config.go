@@ -431,7 +431,7 @@ func CheckSlashBlocksReward(rewards int) error {
 
 func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
 	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > maxZeroProduceCumulativeTime {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, uint16(EpochSize())))
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, maxZeroProduceCumulativeTime))
 	}
 	return nil
 }
