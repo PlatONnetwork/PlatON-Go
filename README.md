@@ -1,7 +1,7 @@
 ## Go PlatON
 
 Welcome to the PlatON-Go source code repository! This is an Ethereum-based、high-performance and high-security implementation of the PlatON protocol.
-Most of peculiarities according the PlatON's [whitepaper](https://www.platon.network/static-new/pdf/zh/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_ZH.pdf) has been developed.
+Most of peculiarities according the PlatON's **whitepaper**([English](https://www.platon.network/pdf/en/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_EN.pdf)|[中文](https://www.platon.network/pdf/zh/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_ZH.pdf)) has been developed.
 
 [![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=feature%2Fbump-version-to-0.7)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
 
@@ -12,7 +12,7 @@ The requirements to build PlatON-Go are:
 - [Golang](https://golang.org/doc/install) :version 1.13+
 - [cmake](https://cmake.org/) :version 3.0+
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
-> The 'cmake' and 'gcc&g++' are usually included in Ubuntu18.04
+> 'cmake' and 'gcc&g++' are usually built-in with Ubuntu
 
 In addition, the following libraries needs to be installed manually
 
@@ -129,7 +129,7 @@ at block: 26 (Wed, 15 Dec 51802 20:22:44 CST)
 29
 ```
 
-For more information, please visit our [Docs](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Getting-Started).
+For more information, please visit our [Docs](https://devdocs.platon.network/docs/en/).
 
 ## Contributing to PlatON-Go
 

@@ -19,10 +19,6 @@ platon:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/platon\" to launch platon."
 
-fix-cbft-test:
-	build/cbft_test.sh
-	@echo "Done fix."
-
 platon-with-mpc:
 	build/build_deps.sh
 	$(GORUN) build/ci.go install -mpc on ./cmd/platon
@@ -46,6 +42,7 @@ platon-with-mv:
 all:
 	build/build_deps.sh
 	$(GORUN) build/ci.go install
+	@mv $(GOBIN)/keytool $(GOBIN)/platonkey
 
 all-debug:
 	build/build_deps.sh
