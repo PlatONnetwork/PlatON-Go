@@ -129,7 +129,7 @@ at block: 26 (Wed, 15 Dec 51802 20:22:44 CST)
 29
 ```
 
-For more information, please visit our [Docs](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Getting-Started).
+For more information, please visit our [Docs](https://devdocs.platon.network/docs/en/).
 
 ## Contributing to PlatON-Go
 
