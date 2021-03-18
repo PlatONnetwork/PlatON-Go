@@ -926,7 +926,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 	var user restricting.RestrictingInfo
 	user.ReleaseList = list
 	user.CachePlanAmount = lockAmount
-	user.StakingAmount = big.NewInt(0)
+	user.AdvanceAmount = big.NewInt(0)
 	user.NeedRelease = big.NewInt(0)
 
 	bUser, err := rlp.EncodeToBytes(user)
