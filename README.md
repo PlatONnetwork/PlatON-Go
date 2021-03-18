@@ -1,7 +1,7 @@
 ## Go PlatON
 
 Welcome to the PlatON-Go source code repository! This is an Ethereum-based、high-performance and high-security implementation of the PlatON protocol.
-Most of peculiarities according the PlatON's [whitepaper](https://www.platon.network/static-new/pdf/zh/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_ZH.pdf) has been developed.
+Most of peculiarities according the PlatON's **whitepaper**: [English](https://www.platon.network/pdf/en/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_EN.pdf),[中文](https://www.platon.network/pdf/zh/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_ZH.pdf) has been developed.
 
 [![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=feature%2Fbump-version-to-0.7)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
 
