@@ -298,9 +298,9 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	} else if typ == RestrictVon { //  from account RestrictingPlan von
 
-		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := rt.AdvanceLockedFunds(can.StakingAddress, amount, state)
 		if nil != err {
-			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting AdvanceLockedFunds() is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 				"stakeAddr", can.StakingAddress, "stakingVon", amount, "err", err)
 			return err
@@ -448,9 +448,9 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 
 	} else if typ == RestrictVon {
 
-		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := rt.AdvanceLockedFunds(can.StakingAddress, amount, state)
 		if nil != err {
-			log.Error("Failed to IncreaseStaking on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+			log.Error("Failed to IncreaseStaking on stakingPlugin: call Restricting AdvanceLockedFunds() is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
 				"nodeId", can.NodeId.String(), "account", can.StakingAddress, "amount", amount, "err", err)
 			return err
@@ -881,9 +881,9 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.ReleasedHes = new(big.Int).Add(del.ReleasedHes, amount)
 
 	} else if typ == RestrictVon { //  from account RestrictingPlan von
-		err := rt.PledgeLockFunds(delAddr, amount, state)
+		err := rt.AdvanceLockedFunds(delAddr, amount, state)
 		if nil != err {
-			log.Error("Failed to Delegate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+			log.Error("Failed to Delegate on stakingPlugin: call Restricting AdvanceLockedFunds() is failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "epoch", epoch,
 				"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum", can.StakingBlockNum,
 				"amount", amount, "err", err)
