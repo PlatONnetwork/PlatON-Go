@@ -586,7 +586,7 @@ func TestNewRestrictingPlugin_MixPledgeLockFunds(t *testing.T) {
 	}
 	mockDB.AddBalance(to, big.NewInt(2e18))
 
-	res, free, err := plugin.MixPledgeLockFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB)
+	res, free, err := plugin.MixAdvanceLockedFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB)
 	if err != nil {
 		t.Error(err)
 	}
@@ -602,7 +602,7 @@ func TestNewRestrictingPlugin_MixPledgeLockFunds(t *testing.T) {
 		t.Errorf("to balance von cost wrong")
 	}
 
-	if _, _, err := plugin.MixPledgeLockFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB); err == nil {
+	if _, _, err := plugin.MixAdvanceLockedFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB); err == nil {
 		t.Error("should not success")
 	}
 
