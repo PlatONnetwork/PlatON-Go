@@ -4,6 +4,7 @@ Welcome to the PlatON-Go source code repository! This is an Ethereum-based、hig
 Most of peculiarities according the PlatON's **whitepaper**([English](https://www.platon.network/pdf/en/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_EN.pdf)|[中文](https://www.platon.network/pdf/zh/PlatON_A_High-Efficiency_Trustless_Computing_Network_Whitepaper_ZH.pdf)) has been developed.
 
 [![Build Status](https://github.com/PlatONnetwork/PlatON-Go/workflows/unittest/badge.svg)](https://github.com/PlatONnetwork/PlatON-Go/actions)
+[![codecov](https://codecov.io/gh/PlatONnetwork/PlatON-Go/branch/feature-mainnet-launch/graph/badge.svg)](https://codecov.io/gh/PlatONnetwork/PlatON-Go)
 [![version](https://img.shields.io/github/v/tag/PlatONnetwork/PlatON-Go)](https://github.com/PlatONnetwork/PlatON-Go/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/PlatONnetwork/PlatON-Go/total.svg)](https://github.com/PlatONnetwork/PlatON-Go)
 
