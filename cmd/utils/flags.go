@@ -1291,12 +1291,13 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 	}
 }
 
-func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup string, datadir string) {
+func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup, dsn string, datadir string) {
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		// Retrieve both eth and les services
 		var ethServ *eth.Ethereum
 		ctx.Service(&ethServ)
-
+		//todo:初始化监控数据库，以后可以移入platonstats包
+		p2p.InitMonitorDB(dsn)
 		return platonstats.New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup, ethServ, datadir)
 	}); err != nil {
 		Fatalf("Failed to register the PlatON stats service: %v", err)
