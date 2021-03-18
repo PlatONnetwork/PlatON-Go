@@ -358,8 +358,8 @@ func (rp *RestrictingPlugin) AdvanceLockedFunds(account common.Address, amount *
 	return nil
 }
 
-// MixPledgeLockFunds transfer the money from the restricting contract account to the staking contract account,use restricting von first,if restricting not en
-func (rp *RestrictingPlugin) MixPledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (*big.Int, *big.Int, error) {
+// MixAdvanceLockedFunds transfer the money from the restricting contract account to the staking contract account,use restricting von first,if restricting not en
+func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amount *big.Int, state xcom.StateDB) (*big.Int, *big.Int, error) {
 
 	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
@@ -375,7 +375,7 @@ func (rp *RestrictingPlugin) MixPledgeLockFunds(account common.Address, amount *
 			return nil, nil, err
 		}
 	}
-	rp.log.Debug("Call MixPledgeLockFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
+	rp.log.Debug("Call MixAdvanceLockedFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
 
 	if amount.Cmp(common.Big0) < 0 {
 		return nil, nil, restricting.ErrPledgeLockFundsAmountLessThanZero

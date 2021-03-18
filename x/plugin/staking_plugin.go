@@ -307,9 +307,9 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		}
 		can.RestrictingPlanHes = amount
 	} else if typ == RestrictAndFreeVon { //  use Restricting and free von
-		restrictingPlanHes, releasedHes, err := rt.MixPledgeLockFunds(can.StakingAddress, amount, state)
+		restrictingPlanHes, releasedHes, err := rt.MixAdvanceLockedFunds(can.StakingAddress, amount, state)
 		if nil != err {
-			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting MixPledgeLockFunds() is failed",
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting MixAdvanceLockedFunds() is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
 				"stakeAddr", can.StakingAddress, "stakingVon", amount, "err", err)
 			return err
