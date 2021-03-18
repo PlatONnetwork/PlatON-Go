@@ -561,7 +561,7 @@ func TestRestrictingInstance(t *testing.T) {
 	assert.Equal(t, true, mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) == 0)
 }
 
-func TestNewRestrictingPlugin_MixPledgeLockFunds(t *testing.T) {
+func TestNewRestrictingPlugin_MixAdvanceLockedFunds(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
