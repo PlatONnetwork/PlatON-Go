@@ -651,7 +651,7 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 		// The state of the node needs to be restored
 		if stakeItem.Recovery {
 			// If the node is reported double-signed during the lock-up period，
-			// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the pledge after the expiration
+			// Then you need to enter the double-signed lock-up period after the lock-up period expires and release the staking after the expiration
 			// Otherwise, the state of the node is restored to the normal staking state
 			if can.IsDuplicateSign() {
 
@@ -2302,7 +2302,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		// Only when the staking is released, the staking-related information needs to be emptied.
 		if needReturnHes {
 			// need to sub account rc
-			// Only need to be executed if the pledge is released
+			// Only need to be executed if the staking is released
 			if err := sk.db.SubAccountStakeRc(blockHash, can.StakingAddress); nil != err {
 				log.Error("Failed to SlashCandidates: Sub Account staking Reference Count is failed", "slashType", slashItem.SlashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)

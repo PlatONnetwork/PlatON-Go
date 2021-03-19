@@ -335,7 +335,7 @@ func (rp *RestrictingPlugin) AdvanceLockedFunds(account common.Address, amount *
 	rp.log.Debug("Call AdvanceLockedFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
 
 	if amount.Cmp(common.Big0) < 0 {
-		return restricting.ErrPledgeLockFundsAmountLessThanZero
+		return restricting.ErrAdvanceLockedFundsAmountLessThanZero
 	} else if amount.Cmp(common.Big0) == 0 {
 		return nil
 	}
@@ -375,10 +375,10 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 			return nil, nil, err
 		}
 	}
-	rp.log.Debug("Call MixAdvanceLockedFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
+	rp.log.Debug("Call mixAdvanceLockedFunds begin", "account", account, "amount", amount, "old info", restrictInfo)
 
 	if amount.Cmp(common.Big0) < 0 {
-		return nil, nil, restricting.ErrPledgeLockFundsAmountLessThanZero
+		return nil, nil, restricting.ErrAdvanceLockedFundsAmountLessThanZero
 	} else if amount.Cmp(common.Big0) == 0 {
 		return amount, amount, nil
 	}
@@ -408,7 +408,7 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 	rp.storeRestrictingInfo(state, restrictingKey, restrictInfo)
 	rp.transferAmount(state, vm.RestrictingContractAddr, vm.StakingContractAddr, forRestricting)
 
-	rp.log.Debug("Call mixPledgeLockFunds finished", "RestrictingContractBalance", state.GetBalance(vm.RestrictingContractAddr), "StakingContractBalance", state.GetBalance(vm.StakingContractAddr), "new info", restrictInfo, "for free", forFree, "for restricting", forRestricting)
+	rp.log.Debug("Call mixAdvanceLockedFunds finished", "RestrictingContractBalance", state.GetBalance(vm.RestrictingContractAddr), "StakingContractBalance", state.GetBalance(vm.StakingContractAddr), "new info", restrictInfo, "for free", forFree, "for restricting", forRestricting)
 	return forRestricting, forFree, nil
 }
 
