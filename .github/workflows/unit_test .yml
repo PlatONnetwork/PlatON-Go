@@ -35,7 +35,7 @@ jobs:
         run: make platon
 
       - name: Test
-        run: go test -tags=test -covermode=count -coverprofile=coverage.out  `go list ./...|grep -v life|grep -v swarm|grep -v tests|grep -v bn256|grep -v mobile`
+        run: go test -tags=test -covermode=count -coverprofile=coverage.txt  `go list ./...|grep -v life|grep -v swarm|grep -v tests|grep -v bn256|grep -v mobile`
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v1
