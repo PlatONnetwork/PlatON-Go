@@ -25,7 +25,7 @@ import (
 // for genesis and plugin test
 type RestrictingInfo struct {
 	NeedRelease     *big.Int
-	StakingAmount   *big.Int
+	AdvanceAmount   *big.Int
 	CachePlanAmount *big.Int
 	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
 }

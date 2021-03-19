@@ -149,7 +149,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs
-	if result.Failed() && result.Err != nil {
+	if result.Failed() {
 		if bizError, ok := result.Err.(*common.BizError); ok {
 			buf := new(bytes.Buffer)
 			res := strconv.Itoa(int(bizError.Code))
