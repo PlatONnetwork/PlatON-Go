@@ -49,7 +49,7 @@ var (
 	}
 	getRelatedListByDelAddrCmd = cli.Command{
 		Name:   "getRelatedListByDelAddr",
-		Usage:  "1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add",
+		Usage:  "1103,Query the NodeID and staking Id of the node entrusted by the current account address,parameter:add",
 		Before: netCheck,
 		Action: getRelatedListByDelAddr,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
@@ -63,7 +63,7 @@ var (
 	}
 	getCandidateInfoCmd = cli.Command{
 		Name:   "getCandidateInfo",
-		Usage:  "1105,Query the pledge information of the current node,parameter:nodeid",
+		Usage:  "1105,Query the staking information of the current node,parameter:nodeid",
 		Before: netCheck,
 		Action: getCandidateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeIdFlag, jsonFlag},
@@ -77,7 +77,7 @@ var (
 	}
 	getStakingRewardCmd = cli.Command{
 		Name:   "getStakingReward",
-		Usage:  "1201,query the pledge reward of the current settlement epoch",
+		Usage:  "1201,query the staking reward of the current settlement epoch",
 		Before: netCheck,
 		Action: getStakingReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
