@@ -217,7 +217,7 @@ func (tt *TestCmd) Kill() {
 }
 
 func (tt *TestCmd) withKillTimeout(fn func()) {
-	timeout := time.AfterFunc(5*time.Second, func() {
+	timeout := time.AfterFunc(8*time.Second, func() {
 		tt.Log("killing the child process (timeout)")
 		tt.Kill()
 	})
