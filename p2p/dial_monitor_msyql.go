@@ -108,7 +108,7 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 			nodePing = TbNodePing{NodeId: nodeId.String(), Status: 0}
 			MonitorDB().Create(&nodePing)
 		} else {
-			nodePing.Status = 0
+			//nodePing.Status = 0
 			MonitorDB().Save(&nodePing)
 		}
 	}
