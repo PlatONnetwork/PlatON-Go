@@ -245,19 +245,10 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 		return err
 	}
 	// pre-check
-	{
-
-		if totalAmount.Cmp(big.NewInt(1e18)) < 0 {
-			rp.log.Error("Failed to AddRestrictingRecord: total restricting amount need more than 1 LAT",
-				"from", from, "amount", totalAmount)
-			return restricting.ErrLockedAmountTooLess
-		}
-
-		if state.GetBalance(from).Cmp(totalAmount) < 0 {
-			rp.log.Error("Failed to AddRestrictingRecord: balance of the sender is not enough",
-				"total", totalAmount, "balance", state.GetBalance(from))
-			return restricting.ErrBalanceNotEnough
-		}
+	if state.GetBalance(from).Cmp(totalAmount) < 0 {
+		rp.log.Error("Failed to AddRestrictingRecord: balance of the sender is not enough",
+			"total", totalAmount, "balance", state.GetBalance(from))
+		return restricting.ErrBalanceNotEnough
 	}
 	if txhash == common.ZeroHash {
 		return nil
@@ -584,6 +575,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		rp.log.Debug("Call releaseRestricting: begin to release record", "index", index, "account", account,
 			"restrictInfo", restrictInfo, "releaseAmount", releaseAmount)
 
+		//if NeedRelease>0,CachePlanAmount = AdvanceAmount
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
 			restrictInfo.NeedRelease.Add(restrictInfo.NeedRelease, releaseAmount)
 		} else {
