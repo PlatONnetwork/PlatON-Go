@@ -19,10 +19,12 @@ In addition, the following libraries needs to be installed manually
 ```
 sudo apt install libgmp-dev libssl-dev
 ```
-Then, clone the repository
+Then, clone the repository and download dependency
 
 ```
 git clone https://github.com/PlatONnetwork/PlatON-Go.git --recursive
+
+go mod download
 ```
 
 Switch to the PlatON-Go repository root directory.
