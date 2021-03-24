@@ -68,10 +68,10 @@ const (
 var (
 	one, _ = new(big.Int).SetString("1000000000000000000", 10)
 
-	// 10 ATP
+	// 10 LAT
 	DelegateLowerLimit, _ = new(big.Int).SetString("10000000000000000000", 10)
 
-	// 1W ATP
+	// 1W LAT
 	DelegateUpperLimit, _ = new(big.Int).SetString("10000000000000000000000", 10)
 
 	// hard code genesis staking balance
@@ -80,7 +80,7 @@ var (
 
 	// 10W
 	StakeLowerLimit, _ = new(big.Int).SetString("100000000000000000000000", 10)
-	// 1000W ATP
+	// 1000W LAT
 	StakeUpperLimit, _ = new(big.Int).SetString("10000000000000000000000000", 10)
 
 	FloorMinimumRelease = new(big.Int).Mul(new(big.Int).SetUint64(100), one)
@@ -187,7 +187,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		cdfundBalance *big.Int
 	)
 
-	// 3.31811981  thousand millions LAT
+	// 3.22361981  thousand millions LAT
 	if cdfundBalance, ok = new(big.Int).SetString("322361981000000000000000000", 10); !ok {
 		return nil
 	}

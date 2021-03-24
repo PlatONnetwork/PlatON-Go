@@ -119,15 +119,12 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			expect error
 			des    string
 		}
-		var largePlans, largeMountPlans, notEnough []restricting.RestrictingPlan
+		var largePlans, largeMountPlans []restricting.RestrictingPlan
 		for i := 0; i < 40; i++ {
 			largePlans = append(largePlans, restricting.RestrictingPlan{1, big.NewInt(1e15)})
 		}
 		for i := 0; i < 4; i++ {
 			largeMountPlans = append(largeMountPlans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
-		}
-		for i := 0; i < 4; i++ {
-			notEnough = append(notEnough, restricting.RestrictingPlan{1, big.NewInt(1e16)})
 		}
 		x := []testtmp{
 			{
@@ -159,11 +156,6 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 				input:  largeMountPlans,
 				expect: restricting.ErrBalanceNotEnough,
 				des:    "amount not enough",
-			},
-			{
-				input:  notEnough,
-				expect: restricting.ErrLockedAmountTooLess,
-				des:    "amount too small",
 			},
 		}
 		for _, value := range x {
