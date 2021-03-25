@@ -389,7 +389,7 @@ func startMonitor(ethereum *eth.Ethereum) {
 	genesisValidatorQueue, err := staking.NewStakingDB().GetRoundValListByIrr(1, xutil.ConsensusSize())
 	if err != nil {
 		log.Error("cannot load and monitor genesis validators", "error", err)
-		utils.Fatalf("cannot load and monitor genesis validators: %v", err)
+		return
 	}
 
 	//在第一个结算周期，验证人数=备选节点人数，就是genesis_data中内置的节点
