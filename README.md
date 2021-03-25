@@ -26,13 +26,13 @@ In addition, the following libraries needs to be installed manually
 ```
 sudo apt install libgmp-dev libssl-dev
 ```
-Then, clone the repository
+Then, clone the repository and download dependency
 
 ```
 git clone https://github.com/PlatONnetwork/PlatON-Go.git --recursive
-```
 
-Switch to the PlatON-Go repository root directory.
+cd PlatON-Go && go mod download
+```
 
 Ubuntu:
 
@@ -46,7 +46,7 @@ Windows:
 go run build\ci.go install 
 ```
 
-The resulting binary will be placed in '$PlatON-Go/build/bin'(Ubuntu) or in '%GOPATH%\bin'(Windows) .
+The resulting binary will be placed in '$PlatON-Go/build/bin' .
 
 ## Getting Started
 
