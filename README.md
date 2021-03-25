@@ -31,7 +31,7 @@ Then, clone the repository and download dependency
 ```
 git clone https://github.com/PlatONnetwork/PlatON-Go.git --recursive
 
-go mod download
+cd PlatON-Go && go mod download
 ```
 
 Switch to the PlatON-Go repository root directory.
