@@ -46,7 +46,7 @@ Windows:
 go run build\ci.go install 
 ```
 
-The resulting binary will be placed in '$PlatON-Go/build/bin'(Ubuntu) or in '%GOPATH%\bin'(Windows) .
+The resulting binary will be placed in '$PlatON-Go/build/bin' .
 
 ## Getting Started
 
