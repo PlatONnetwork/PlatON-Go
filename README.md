@@ -34,8 +34,6 @@ git clone https://github.com/PlatONnetwork/PlatON-Go.git --recursive
 cd PlatON-Go && go mod download
 ```
 
-Switch to the PlatON-Go repository root directory.
-
 Ubuntu:
 
 ```
