@@ -45,7 +45,6 @@ import (
 )
 
 func init() {
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	bls.Init(bls.BLS12_381)
 }
 
@@ -927,7 +926,7 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 	var user restricting.RestrictingInfo
 	user.ReleaseList = list
 	user.CachePlanAmount = lockAmount
-	user.StakingAmount = big.NewInt(0)
+	user.AdvanceAmount = big.NewInt(0)
 	user.NeedRelease = big.NewInt(0)
 
 	bUser, err := rlp.EncodeToBytes(user)

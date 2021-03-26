@@ -18,7 +18,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -138,7 +137,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		// about can power ...
-		powerKey := staking.TallyPowerKey(base.ProgramVersion, mutable.Shares, base.NodeId, base.StakingBlockNum, base.StakingTxIndex)
+		powerKey := staking.TallyPowerKey(base.ProgramVersion, mutable.Shares, base.StakingBlockNum, base.StakingTxIndex, base.NodeId)
 		lastHash, err = putbasedbFn(powerKey, nodeAddr.Bytes(), lastHash)
 		if nil != err {
 			return lastHash, fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s",
@@ -246,40 +245,6 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	stateDB.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), lastHash.Bytes())
 
 	return lastHash, nil
-}
-
-// genesisAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
-// and the third year allowance, to stateDB
-func genesisAllowancePlan(statedb *state.StateDB) error {
-
-	account := vm.RewardManagerPoolAddr
-	var (
-		zeroYear  = new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-		oneYear   = new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18))
-		twoYear   = new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18))
-		threeYear = new(big.Int).Mul(big.NewInt(42993086), big.NewInt(1e18))
-		fourYear  = new(big.Int).Mul(big.NewInt(36262520), big.NewInt(1e18))
-		fiveYear  = new(big.Int).Mul(big.NewInt(29363689), big.NewInt(1e18))
-		sixYear   = new(big.Int).Mul(big.NewInt(22292388), big.NewInt(1e18))
-		sevenYear = new(big.Int).Mul(big.NewInt(15044304), big.NewInt(1e18))
-		eightYear = new(big.Int).Mul(big.NewInt(7615018), big.NewInt(1e18))
-	)
-
-	statedb.SubBalance(xcom.CDFAccount(), zeroYear)
-	statedb.AddBalance(account, zeroYear)
-	needRelease := []*big.Int{oneYear, twoYear, threeYear, fourYear, fiveYear, sixYear, sevenYear, eightYear}
-
-	restrictingPlans := make([]restricting.RestrictingPlan, 0)
-	OneYearEpochs := xutil.EpochsPerYear()
-	for key, value := range needRelease {
-		epochs := OneYearEpochs * (uint64(key) + 1)
-		restrictingPlans = append(restrictingPlans, restricting.RestrictingPlan{epochs, value})
-	}
-
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(xcom.CDFAccount(), vm.RewardManagerPoolAddr, 0, restrictingPlans, statedb); err != nil {
-		return err
-	}
-	return nil
 }
 
 func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {

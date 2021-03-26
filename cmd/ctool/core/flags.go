@@ -87,6 +87,21 @@ var (
 		Usage: "transfer value",
 	}
 
+	TxStressSourceFilesPathFlag = cli.StringSliceFlag{
+		Name:  "sourceFile",
+		Usage: "the tps source file path",
+	}
+
+	TxStressStatisticTimeFlag = cli.IntFlag{
+		Name:  "statisticTime",
+		Usage: "Statistics every few seconds",
+	}
+
+	TxStressOutPutFileFlag = cli.StringFlag{
+		Name:  "output",
+		Usage: "the output file path",
+	}
+
 	deployCmdFlags = []cli.Flag{
 		ContractWasmFilePathFlag,
 		ContractAbiFilePathFlag,
@@ -129,5 +144,10 @@ var (
 		AccountSizeFlag,
 		TransferValueFlag,
 		ConfigPathFlag,
+	}
+	txStressFlags = []cli.Flag{
+		TxStressSourceFilesPathFlag,
+		TxStressStatisticTimeFlag,
+		TxStressOutPutFileFlag,
 	}
 )

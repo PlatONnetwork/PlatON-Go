@@ -26,7 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -100,7 +100,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	if vm.IsPlatONPrecompiledContract(s.address) {
+	if cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(s.address) {
 		return false
 	}
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
@@ -291,13 +291,15 @@ func (self *stateObject) setState(key []byte, value []byte) {
 	self.dirtyStorage[string(key)] = cpy
 }
 
-func (self *stateObject) getPrefixValue(key, value []byte) []byte {
+func (self *stateObject) getPrefixValue(pack, key, value []byte) []byte {
 	// Empty value deleted on updateTrie
 	if len(value) == 0 {
 		return []byte{}
 	}
 	// Ensure the same Value, unique in the same trie and different trie values
-	prefix := append(self.data.StorageKeyPrefix, key...)
+	//prefix := append(self.data.StorageKeyPrefix, key...)
+	prefix := append(self.data.StorageKeyPrefix, pack...)
+	prefix = append(prefix, key...)
 	prefixHash := common.Hash{}
 	keccak := sha3.NewKeccak256()
 	keccak.Write(prefix)

@@ -280,29 +280,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
 	core.SenderCacher.SetTxPool(eth.txPool)
-
-	// mpcPool deal with mpc transactions
-	// modify By J
-	//if config.MPCPool.Journal != "" {
-	//	config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
-	//} else {
-	//	config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
-	//}
-	//if config.MPCPool.Rejournal == 0 {
-	//	config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
-	//}
-	//if config.MPCPool.Lifetime == 0 {
-	//	config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
-	//}
-	//eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
-	//eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
-
-	// modify by platon remove consensusCache
-	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
@@ -317,11 +297,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
 	}
 
-	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, &vmConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
+	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
 		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
-
-	//extra data for each block will be set by worker.go
-	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())

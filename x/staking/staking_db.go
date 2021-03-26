@@ -331,14 +331,14 @@ func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeA
 
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
 
-	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.NodeId, can.StakingBlockNum, can.StakingTxIndex)
+	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 	return db.del(blockHash, key)
 }
 
@@ -467,6 +467,14 @@ type DelegationInfo struct {
 	StakeBlockNumber uint64
 	Delegation       *Delegation
 }
+
+type DelByDelegateEpoch []*DelegationInfo
+
+func (d DelByDelegateEpoch) Len() int { return len(d) }
+func (d DelByDelegateEpoch) Less(i, j int) bool {
+	return d[i].Delegation.DelegateEpoch < d[j].Delegation.DelegateEpoch
+}
+func (d DelByDelegateEpoch) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 
 func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*DelegationInfo, error) {
 	key := GetDelegateKeyBySuffix(delAddr.Bytes())

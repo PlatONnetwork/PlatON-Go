@@ -54,7 +54,8 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
-	numBroadcastTxPeers = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastTxPeers    = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastBlockPeers = 5 // Maximum number of peers for broadcast new block
 
 	defaultTxsCacheSize      = 20
 	defaultBroadcastInterval = 100 * time.Millisecond
@@ -779,18 +780,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == TxMsg:
+		// Transactions arrived, make sure we have a valid and fresh chain to handle them
+		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
+		if atomic.LoadUint32(&pm.acceptTxs) == 0 || atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
+			break
+		}
 		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-		// Transactions arrived, make sure we have a valid and fresh chain to handle them
-		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
-			break
-		}
-		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
-		if atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
-			break
 		}
 		for i, tx := range txs {
 			// Validate and mark the remote transaction
@@ -800,7 +798,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			p.MarkTransaction(tx.Hash())
 		}
 
-		go pm.txpool.AddRemotes(txs)
+		pm.txpool.AddRemotes(txs)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -828,8 +826,21 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 			log.Warn("Propagating dangling block", "number", block.Number(), "hash", hash)
 			return
 		}
-		// Send the block to a subset of our peers
-		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+
+		var transfer []*peer
+		if len(peers) <= numBroadcastBlockPeers {
+			// Send the block to all peers
+			transfer = peers
+		} else {
+			// Send the block to a subset of our peers
+			rand.Seed(time.Now().UnixNano())
+			indexes := rand.Perm(len(peers))
+			maxPeers := int(math.Sqrt(float64(len(peers))))
+			transfer = make([]*peer, 0, maxPeers)
+			for i := 0; i < maxPeers; i++ {
+				transfer = append(transfer, peers[indexes[i]])
+			}
+		}
 		for _, peer := range transfer {
 			peer.AsyncSendNewBlock(block)
 		}

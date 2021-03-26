@@ -135,7 +135,6 @@ type worker struct {
 	EmptyBlock   string
 	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
-	vmConfig     *vm.Config
 	engine       consensus.Engine
 	eth          Backend
 	chain        *core.BlockChain
@@ -202,14 +201,13 @@ type worker struct {
 	vmTimeout uint64
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, vmConfig *vm.Config, engine consensus.Engine,
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
 	eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
 
 	worker := &worker{
 		config:       config,
 		miningConfig: miningConfig,
-		vmConfig:     vmConfig,
 		engine:       engine,
 		eth:          eth,
 		mux:          mux,
@@ -703,6 +701,11 @@ func (w *worker) resultLoop() {
 				logs     []*types.Log
 			)
 			for i, receipt := range _receipts {
+				// add block location fields
+				receipt.BlockHash = hash
+				receipt.BlockNumber = block.Number()
+				receipt.TransactionIndex = uint(i)
+
 				receipts[i] = new(types.Receipt)
 				*receipts[i] = *receipt
 				// Update the block hash in all logs since it is now available and not when the
@@ -730,7 +733,10 @@ func (w *worker) resultLoop() {
 			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64(), "coinbase", block.Coinbase(), "time", block.Time(), "root", block.Root())
 
 			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			if !w.engine.Syncing() {
+				log.Trace("Broadcast the block and announce chain insertion event", "hash", block.Hash(), "number", block.NumberU64())
+				w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			}
 
 			var events []interface{}
 			switch stat {
@@ -793,8 +799,10 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) {
 	snapForSnap, snapForState := w.current.DBSnapshot()
 
+	vmCfg := *w.chain.GetVMConfig()       // value copy
+	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state,
-		w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
+		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
 		w.current.RevertToDBSnapshot(snapForSnap, snapForState)
@@ -980,15 +988,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Time:       big.NewInt(timestamp),
 	}
 
-	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
-	if w.isRunning() {
-		//todo: Notes, need update.
-		//todo: Merge confirmation.
-		if b, ok := w.engine.(consensus.Bft); ok {
-			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
-		}
-	}
-
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	// Initialize the header extra in Prepare function of engine
 	if err := w.engine.Prepare(w.chain, header); err != nil {
@@ -1010,6 +1009,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
 		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
 		return err
+	}
+
+	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
+	if w.isRunning() {
+		if b, ok := w.engine.(consensus.Bft); ok {
+			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
+		}
 	}
 
 	if !noempty && "on" == w.EmptyBlock {

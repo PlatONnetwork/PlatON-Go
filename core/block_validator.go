@@ -120,10 +120,8 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 		gasFloor = gasCeil
 	}
 
-	// contrib = (parentGasUsed * 3 / 2) / 256
 	contrib := (parent.GasUsed() + parent.GasUsed()/2) / params.GasLimitBoundDivisor
 
-	// decay = parentGasLimit / 256 -1
 	decay := parent.GasLimit()/params.GasLimitBoundDivisor - 1
 
 	/*

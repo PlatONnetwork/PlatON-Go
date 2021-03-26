@@ -96,6 +96,8 @@ type StateDB struct {
 
 	// The index in clearReferenceFunc of parent StateDB
 	referenceFuncIndex int
+	// statedb is created based on this root
+	originRoot common.Hash
 }
 
 // Create a new state from a given trie.
@@ -113,6 +115,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		preimages:          make(map[common.Hash][]byte),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         root,
 	}
 	return state, nil
 }
@@ -129,6 +132,7 @@ func (self *StateDB) NewStateDB() *StateDB {
 		journal:            newJournal(),
 		parent:             self,
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         self.Root(),
 	}
 
 	index := self.AddReferenceFunc(stateDB.clearParentRef)
@@ -138,6 +142,16 @@ func (self *StateDB) NewStateDB() *StateDB {
 	//	stateDB.parent.DumpStorage(false)
 	//}
 	return stateDB
+}
+
+// TxIndex returns the current transaction index set by Prepare.
+func (self *StateDB) TxIndex() int {
+	return self.txIndex
+}
+
+// BlockHash returns the current block hash set by Prepare.
+func (self *StateDB) BlockHash() common.Hash {
+	return self.bhash
 }
 
 func (self *StateDB) HadParent() bool {
@@ -447,8 +461,8 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 	stateObject := self.GetOrNewStateObject(address)
 
 	if stateObject != nil {
-		//prefixKey := stateObject.getPrefixKey(key)
-		stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
+		//stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
+		stateObject.SetState(self.db, key, stateObject.getPrefixValue(self.originRoot.Bytes(), key, value))
 	}
 	self.lock.Unlock()
 }
@@ -803,6 +817,7 @@ func (self *StateDB) Copy() *StateDB {
 		preimages:          make(map[common.Hash][]byte),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
+		originRoot:         self.originRoot,
 	}
 
 	// Copy the dirty states, logs, and preimages
@@ -956,6 +971,9 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	defer s.lock.Unlock()
 
 	defer s.clearJournalAndRefund()
+
+	// Increasing node version in memory database
+	s.db.TrieDB().IncrVersion()
 
 	for addr := range s.journal.dirties {
 		s.stateObjectsDirty[addr] = struct{}{}

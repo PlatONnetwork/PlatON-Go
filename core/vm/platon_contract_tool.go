@@ -36,24 +36,32 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 
 	// execute contracts method
 	result := reflect.ValueOf(fn).Call(params)
-	if err, ok := result[1].Interface().(error); ok {
+	switch errtyp := result[1].Interface().(type) {
+	case *common.BizError:
 		log.Error("Failed to execute contract tx", "err", err)
-		return xcom.NewResult(common.InternalError, nil), err
+		return xcom.NewResult(errtyp, nil), errtyp
+	case error:
+		log.Error("Failed to execute contract tx", "err", err)
+		return xcom.NewResult(common.InternalError, nil), errtyp
+	default:
 	}
 	return result[0].Bytes(), nil
 }
 
-func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int) []byte {
+func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string, fncode int, errCode *common.BizError) ([]byte, error) {
 	event := strconv.Itoa(fncode)
-	receipt := strconv.Itoa(errCode)
+	receipt := strconv.Itoa(int(errCode.Code))
 	blockNumber := evm.BlockNumber.Uint64()
-	if errCode != 0 {
+	if errCode.Code != 0 {
 		txHash := evm.StateDB.TxHash()
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
 	}
 	xcom.AddLog(evm.StateDB, blockNumber, contractAddr, event, receipt)
-	return []byte(receipt)
+	if errCode.Code == common.NoErr.Code {
+		return []byte(receipt), nil
+	}
+	return []byte(receipt), errCode
 }
 
 func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res interface{}) []byte {

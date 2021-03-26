@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
 	"time"
@@ -40,7 +41,7 @@ type (
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
-	// GetHashFunc returns the nth block hash in the blockchain
+	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 )
@@ -173,8 +174,6 @@ type EVM struct {
 
 	// chainConfig contains information about the current chain
 	chainConfig *params.ChainConfig
-	// chain rules contains the chain rules for the current epoch
-	chainRules params.Rules
 	// virtual machine configuration options used to initialise the
 	// evm.
 	vmConfig Config
@@ -200,7 +199,6 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
-		chainRules:   chainConfig.Rules(ctx.BlockNumber),
 		interpreters: make([]Interpreter, 0, 1),
 	}
 
@@ -211,7 +209,7 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 }
 
 func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
-	if evm.SnapshotDB != nil {
+	if evm.SnapshotDB != nil && evm.StateDB.TxHash() != common.ZeroHash {
 		evm.SnapshotDB.RevertToSnapshot(evm.BlockHash, snapshotDBID)
 	}
 	evm.StateDB.RevertToSnapshot(stateDBID)
@@ -219,6 +217,9 @@ func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
 
 func (evm *EVM) DBSnapshot() (snapshotID int, StateDBID int) {
 	if evm.SnapshotDB != nil {
+		if evm.StateDB.TxHash() == common.ZeroHash {
+			return 0, evm.StateDB.Snapshot()
+		}
 		return evm.SnapshotDB.Snapshot(evm.BlockHash), evm.StateDB.Snapshot()
 	}
 	return 0, evm.StateDB.Snapshot()
@@ -228,6 +229,11 @@ func (evm *EVM) DBSnapshot() (snapshotID int, StateDBID int) {
 // it's safe to be called multiple times.
 func (evm *EVM) Cancel() {
 	atomic.StoreInt32(&evm.abort, 1)
+}
+
+// Cancelled returns true if Cancel has been called
+func (evm *EVM) Cancelled() bool {
+	return atomic.LoadInt32(&evm.abort) == 1
 }
 
 // Interpreter returns the current interpreter
@@ -249,7 +255,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		return nil, gas, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if value.Sign() != 0 && !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, ErrInsufficientBalance
 	}
 
@@ -279,15 +285,12 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
-	start := time.Now()
-
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
 		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
-
-		defer func() { // Lazy evaluation of the parameters
-			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
-		}()
+		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
+			evm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
+		}(gas, time.Now())
 	}
 	ret, err = run(evm, contract, input, false)
 
@@ -320,7 +323,10 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 		return nil, gas, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	// Note although it's noop to transfer X ether to caller itself. But
+	// if caller doesn't have enough balance, it would be an error to allow
+	// over-charging itself. So the check here is necessary.
+	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, ErrInsufficientBalance
 	}
 
@@ -394,6 +400,12 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 		to                                        = AccountRef(addr)
 		snapshotForSnapshotDB, snapshotForStateDB = evm.DBSnapshot()
 	)
+	// TODO
+	// We do an AddBalance of zero here, just in order to trigger a touch.
+	// This doesn't matter on Mainnet, where all empties are gone at the time of Byzantium,
+	// but is the correct thing to do and matters on other networks, in tests, and potential
+	// future scenarios
+	evm.StateDB.AddBalance(addr, big0)
 	// Initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
 	// only.
@@ -518,9 +530,9 @@ func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.I
 //
 // The different between Create2 with Create is Create2 uses sha3(0xff ++ msg.sender ++ salt ++ sha3(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *uint256.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 	codeAndHash := &codeAndHash{code: code}
-	contractAddr = crypto.CreateAddress2(caller.Address(), common.BigToHash(salt), codeAndHash.Hash().Bytes())
+	contractAddr = crypto.CreateAddress2(caller.Address(), common.Hash(salt.Bytes32()), codeAndHash.Hash().Bytes())
 	return evm.create(caller, codeAndHash, gas, endowment, contractAddr)
 }
 

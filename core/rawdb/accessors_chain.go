@@ -21,6 +21,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -249,22 +251,41 @@ func DeleteBody(db ethdb.Writer, hash common.Hash, number uint64) {
 	}
 }
 
-// ReadReceipts retrieves all the transaction receipts belonging to a block.
-func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64) types.Receipts {
+// ReadRawReceipts retrieves all the transaction receipts belonging to a block.
+// The receipt metadata fields are not guaranteed to be populated, so they
+// should not be used. Use ReadReceipts instead if the metadata is needed.
+func ReadRawReceipts(db ethdb.Reader, hash common.Hash, number uint64) types.Receipts {
 	// Retrieve the flattened receipt slice
+	// We're deriving many fields from the block body, retrieve beside the receipt
 	data, _ := db.Get(blockReceiptsKey(number, hash))
 	if len(data) == 0 {
 		return nil
 	}
-	// Convert the revceipts from their storage form to their internal representation
+	// Convert the receipts from their storage form to their internal representation
 	storageReceipts := []*types.ReceiptForStorage{}
 	if err := rlp.DecodeBytes(data, &storageReceipts); err != nil {
 		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
 	receipts := make(types.Receipts, len(storageReceipts))
-	for i, receipt := range storageReceipts {
-		receipts[i] = (*types.Receipt)(receipt)
+	for i, storageReceipt := range storageReceipts {
+		receipts[i] = (*types.Receipt)(storageReceipt)
+	}
+	return receipts
+}
+
+// ReadReceipts retrieves all the transaction receipts belonging to a block.
+func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *params.ChainConfig) types.Receipts {
+	// We're deriving many fields from the block body, retrieve beside the receipt
+	receipts := ReadRawReceipts(db, hash, number)
+	body := ReadBody(db, hash, number)
+	if body == nil {
+		log.Error("Missing body but have receipt", "hash", hash, "number", number)
+		return nil
+	}
+	if err := receipts.DeriveFields(config, hash, number, body.Transactions); err != nil {
+		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
+		return nil
 	}
 	return receipts
 }

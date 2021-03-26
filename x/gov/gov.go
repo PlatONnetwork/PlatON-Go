@@ -17,6 +17,7 @@
 package gov
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -42,11 +43,12 @@ type Staking interface {
 }
 
 const (
-	ModuleStaking  = "staking"
-	ModuleSlashing = "slashing"
-	ModuleBlock    = "block"
-	ModuleTxPool   = "txPool"
-	ModuleReward   = "reward"
+	ModuleStaking     = "staking"
+	ModuleSlashing    = "slashing"
+	ModuleBlock       = "block"
+	ModuleTxPool      = "txPool"
+	ModuleReward      = "reward"
+	ModuleRestricting = "restricting"
 )
 
 const (
@@ -66,6 +68,7 @@ const (
 	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
@@ -877,4 +880,17 @@ func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) 
 	}
 
 	return uint64(value), nil
+}
+
+func GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	valueStr, err := GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
+	if nil != err {
+		return nil, err
+	}
+	value, ok := new(big.Int).SetString(valueStr, 10)
+	if !ok {
+		return nil, errors.New("set KeyRestrictingMinimumAmount to big int fail")
+	}
+
+	return value, nil
 }

@@ -382,8 +382,13 @@ func (bm *BftMock) TracingSwitch(flag int8) {
 func (bm *BftMock) Pause() {
 
 }
+
 func (bm *BftMock) Resume() {
 
+}
+
+func (bm *BftMock) Syncing() bool {
+	return false
 }
 
 func (bm *BftMock) DecodeExtra(extra []byte) (common.Hash, uint64, error) {

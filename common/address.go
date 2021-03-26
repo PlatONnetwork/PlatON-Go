@@ -18,31 +18,35 @@ import (
 )
 
 const (
-	MainNetAddressPrefix = "lat"
-	TestNetAddressPrefix = "lax"
+	DefaultAddressHRP = "lat"
 )
 
-var currentAddressPrefix string
+var currentAddressHRP string
 
-func GetAddressPrefix() string {
-	if currentAddressPrefix == "" {
-		return TestNetAddressPrefix
+func GetAddressHRP() string {
+	if currentAddressHRP == "" {
+		return DefaultAddressHRP
 	}
-	return currentAddressPrefix
+	return currentAddressHRP
 }
 
-func SetAddressPrefix(s string) {
-	log.Info("addressPrefix  has set", "prefix", s)
-	currentAddressPrefix = s
+func SetAddressHRP(s string) error {
+	if s == "" {
+		s = DefaultAddressHRP
+	}
+	if len(s) != 3 {
+		return errors.New("the length of addressHRP must be 3")
+	}
+	log.Info("the address hrp has been set", "hrp", s)
+	currentAddressHRP = s
+	return nil
 }
 
-func CheckAddressPrefix(s string) bool {
-	switch s {
-	case MainNetAddressPrefix, TestNetAddressPrefix:
-		return true
-	default:
+func CheckAddressHRP(s string) bool {
+	if currentAddressHRP != "" && s != currentAddressHRP {
 		return false
 	}
+	return true
 }
 
 /////////// Address
@@ -85,18 +89,31 @@ func Bech32ToAddress(s string) (Address, error) {
 	if err != nil {
 		return Address{}, err
 	}
-	if !CheckAddressPrefix(hrpDecode) {
-		return Address{}, fmt.Errorf("the address prefix not compare right,input:%s", s)
+	if !CheckAddressHRP(hrpDecode) {
+		return Address{}, fmt.Errorf("the address hrp not compare right,input:%s", s)
 	}
 
-	if currentAddressPrefix == "" {
-		log.Warn("the address prefix not set yet", "input", s)
-	} else if currentAddressPrefix != hrpDecode {
-		log.Warn("the address not compare current net", "want", currentAddressPrefix, "input", s)
+	if currentAddressHRP == "" {
+		log.Warn("the address hrp not set yet", "input", s)
+	} else if currentAddressHRP != hrpDecode {
+		log.Warn("the address not compare current net", "want", currentAddressHRP, "input", s)
 	}
 	var a Address
 	a.SetBytes(converted)
 	return a, nil
+}
+
+// Bech32ToAddressWithoutCheckHrp returns Address with byte values of s.
+// If s is Decode fail, it will return zero address.
+func Bech32ToAddressWithoutCheckHrp(s string) Address {
+	_, converted, err := bech32util.DecodeAndConvert(s)
+	if err != nil {
+		log.Error(" hrp address decode  fail", "err", err)
+		panic(err)
+	}
+	var a Address
+	a.SetBytes(converted)
+	return a
 }
 
 // Deprecated: address to string is use bech32 now
@@ -114,7 +131,7 @@ func IsBech32Address(s string) bool {
 	if err != nil {
 		return false
 	}
-	if !CheckAddressPrefix(hrp) {
+	if !CheckAddressHRP(hrp) {
 		return false
 	}
 	return true
@@ -132,24 +149,7 @@ func (a Address) Hash() Hash { return BytesToHash(a[:]) }
 // Deprecated: address to string is use bech32 now
 // Hex returns an EIP55-compliant hex string representation of the address.it's use for node address
 func (a Address) Hex() string {
-	unchecksummed := hex.EncodeToString(a[:])
-	sha := sha3.NewKeccak256()
-	sha.Write([]byte(unchecksummed))
-	hash := sha.Sum(nil)
-
-	result := []byte(unchecksummed)
-	for i := 0; i < len(result); i++ {
-		hashByte := hash[i/2]
-		if i%2 == 0 {
-			hashByte = hashByte >> 4
-		} else {
-			hashByte &= 0xf
-		}
-		if result[i] > '9' && hashByte > 7 {
-			result[i] -= 32
-		}
-	}
-	return "0x" + string(result)
+	return "0x" + a.HexWithNoPrefix()
 }
 
 // Deprecated: address to string is use bech32 now
@@ -180,11 +180,11 @@ func (a Address) String() string {
 }
 
 func (a Address) Bech32() string {
-	return a.Bech32WithPrefix(GetAddressPrefix())
+	return a.Bech32WithHRP(GetAddressHRP())
 }
 
-func (a Address) Bech32WithPrefix(prefix string) string {
-	if v, err := bech32util.ConvertAndEncode(prefix, a.Bytes()); err != nil {
+func (a Address) Bech32WithHRP(hrp string) string {
+	if v, err := bech32util.ConvertAndEncode(hrp, a.Bytes()); err != nil {
 		log.Error("address can't ConvertAndEncode to string", "err", err, "add", a.Bytes())
 		return ""
 	} else {
@@ -214,7 +214,7 @@ func (a *Address) SetBytes(b []byte) {
 
 // MarshalText returns the hex representation of a.
 func (a Address) MarshalText() ([]byte, error) {
-	v, err := bech32util.ConvertAndEncode(GetAddressPrefix(), a.Bytes())
+	v, err := bech32util.ConvertAndEncode(GetAddressHRP(), a.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +227,8 @@ func (a *Address) UnmarshalText(input []byte) error {
 	if err != nil {
 		return err
 	}
-	if hrpDecode != GetAddressPrefix() {
-		return fmt.Errorf("the address not compare current net,want %v,have %v", GetAddressPrefix(), string(input))
+	if !CheckAddressHRP(hrpDecode) {
+		return fmt.Errorf("the address not compare current net,want %v,have %v", GetAddressHRP(), string(input))
 	}
 	a.SetBytes(converted)
 	return nil
@@ -243,8 +243,8 @@ func (a *Address) UnmarshalJSON(input []byte) error {
 	if err != nil {
 		return &json.UnmarshalTypeError{Value: err.Error(), Type: addressT}
 	}
-	if hrpDecode != GetAddressPrefix() {
-		return &json.UnmarshalTypeError{Value: fmt.Sprintf("hrpDecode not compare the current net,want %v,have %v", GetAddressPrefix(), hrpDecode), Type: addressT}
+	if !CheckAddressHRP(hrpDecode) {
+		return &json.UnmarshalTypeError{Value: fmt.Sprintf("hrpDecode not compare the current net,want %v,have %v", GetAddressHRP(), hrpDecode), Type: addressT}
 	}
 	a.SetBytes(v)
 	return nil
@@ -270,40 +270,6 @@ func (a *Address) Scan(src interface{}) error {
 // Value implements valuer for database/sql.
 func (a Address) Value() (driver.Value, error) {
 	return a[:], nil
-}
-
-type AddressOutput struct {
-	MainNet string `json:"mainnet"`
-	TestNet string `json:"testnet"`
-}
-
-func NewAddressOutput(add Address) AddressOutput {
-	return AddressOutput{
-		add.Bech32WithPrefix(MainNetAddressPrefix),
-		add.Bech32WithPrefix(TestNetAddressPrefix),
-	}
-}
-
-func (a AddressOutput) Address() (Address, error) {
-	if a.MainNet == "" || a.TestNet == "" {
-		return ZeroAddr, errors.New("can't generate address,the addressOutput is empty")
-	}
-	addr, err := Bech32ToAddress(a.MainNet)
-	if err != nil {
-		return ZeroAddr, err
-	}
-	addr2, err := Bech32ToAddress(a.TestNet)
-	if err != nil {
-		return ZeroAddr, err
-	}
-	if addr != addr2 {
-		return ZeroAddr, fmt.Errorf("main net address and testnet address not same,mainnet:%s,testnet:%s", a.MainNet, a.TestNet)
-	}
-	return addr, nil
-}
-
-func (a AddressOutput) Print() {
-	fmt.Printf("main net Address: %s\nother net Address: %s\n", a.MainNet, a.TestNet)
 }
 
 // UnprefixedAddress allows marshaling an Address without 0x prefix.

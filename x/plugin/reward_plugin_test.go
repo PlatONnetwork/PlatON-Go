@@ -18,19 +18,21 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -176,7 +178,6 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 }
 
 func TestRewardMgrPlugin_EndBlock(t *testing.T) {
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	var plugin = RewardMgrInstance()
 	StakingInstance()
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
