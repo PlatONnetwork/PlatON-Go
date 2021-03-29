@@ -798,7 +798,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			p.MarkTransaction(tx.Hash())
 		}
 
-		go pm.txpool.AddRemotes(txs)
+		pm.txpool.AddRemotes(txs)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -871,7 +871,6 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 				txset[peer] = append(txset[peer], tx)
 			}
 		} else {
-			rand.Seed(time.Now().UnixNano())
 			indexes := rand.Perm(len(peers))
 			for i := 0; i < numBroadcastTxPeers; i++ {
 				peer := peers[indexes[i]]

@@ -968,7 +968,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Info("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"epochBlocks", epochBlocks, "incIssuanceNumber", incIssuanceNumber)
 	}
-	// Get the total block reward and pledge reward for each settlement cycle
+	// Get the total block reward and Staking reward for each settlement cycle
 	// 下一个epoch的总出块激励金，以及质押激励金。
 	epochTotalNewBlockReward := percentageCalculation(epochTotalReward, xcom.NewBlockRewardRate())
 	//下一个epoch的总质押奖励，总质押激励 = 总激励 - 出块激励。

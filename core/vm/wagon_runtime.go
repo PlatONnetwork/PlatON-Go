@@ -1288,6 +1288,13 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
@@ -1347,6 +1354,13 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
@@ -1407,6 +1421,13 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
+
+	if nil != err {
+		if _, ok := err.(*common.BizError); ok {
+			ctx.CallOut = ret
+		}
+	}
+
 	ctx.contract.Gas += returnGas
 
 	return status
