@@ -8,10 +8,19 @@ package secp256k1
 /*
 #cgo CFLAGS: -I./libsecp256k1
 #cgo CFLAGS: -I./libsecp256k1/src/
+
+#ifdef __SIZEOF_INT128__
+#  define HAVE___INT128
+#  define USE_FIELD_5X52
+#  define USE_SCALAR_4X64
+#else
+#  define USE_FIELD_10X26
+#  define USE_SCALAR_8X32
+#endif
+
+#define USE_ENDOMORPHISM
 #define USE_NUM_NONE
-#define USE_FIELD_10X26
 #define USE_FIELD_INV_BUILTIN
-#define USE_SCALAR_8X32
 #define USE_SCALAR_INV_BUILTIN
 #define NDEBUG
 #include "./libsecp256k1/src/secp256k1.c"
@@ -28,6 +37,7 @@ import (
 	"errors"
 	"math/big"
 	"unsafe"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
@@ -173,6 +183,5 @@ func PubkeyNotInfinity(x, y *big.Int) bool {
 	math.ReadBits(y, point[32:])
 	pointPtr := (*C.uchar)(unsafe.Pointer(&point[0]))
 	res := C.secp256k1_pubkey_is_infinity(context, pointPtr)
-	return  res ==0
+	return res == 0
 }
-

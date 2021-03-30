@@ -19,6 +19,7 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -50,7 +51,6 @@ import (
 )
 
 func init() {
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	bls.Init(bls.BLS12_381)
 }
 
@@ -190,7 +190,7 @@ var (
 	}
 
 	initProgramVersion = uint32(0<<16 | 8<<8 | 0) // 65536, version: 0.8.0
-	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
+	promoteVersion     = params.CodeVersion()     // 131072, version: 2.0.0
 
 	balanceStr = []string{
 		"90000000000000000000000000",
@@ -690,7 +690,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 	// build restricting user info
 	var user restricting.RestrictingInfo
 	user.CachePlanAmount = big.NewInt(int64(5e18))
-	user.StakingAmount = big.NewInt(0)
+	user.AdvanceAmount = big.NewInt(0)
 	user.NeedRelease = big.NewInt(0)
 	user.ReleaseList = list
 

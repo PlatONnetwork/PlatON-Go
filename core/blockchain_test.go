@@ -17,7 +17,6 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -267,9 +266,6 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 	// Check that the chain is valid number and link wise
 	if full {
 		prev := blockchain.engine.CurrentBlock()
-
-		b, _ := json.Marshal(prev)
-		fmt.Println("current block", string(b))
 
 		for block := blockchain.engine.GetBlockByHash(prev.ParentHash()); block != nil; prev, block = block, blockchain.engine.GetBlockByHash(block.ParentHash()) {
 

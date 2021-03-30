@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 
 	mapset "github.com/deckarep/golang-set"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -313,7 +314,21 @@ func (s *Server) handle(ctx context.Context, codec ServerCodec, req *serverReque
 	if req.callb.errPos >= 0 { // test if method returned an error
 		if !reply[req.callb.errPos].IsNil() {
 			e := reply[req.callb.errPos].Interface().(error)
-			res := codec.CreateErrorResponse(&req.id, &callbackError{e.Error()})
+
+			c := &jsonError{
+				Code:    defaultErrorCode,
+				Message: e.Error(),
+			}
+			ec, ok := e.(Error)
+			if ok {
+				c.Code = ec.ErrorCode()
+			}
+
+			de, ok := e.(DataError)
+			if ok {
+				c.Data = de.ErrorData()
+			}
+			res := codec.CreateErrorResponseWithInfo(&req.id, c, c.Data)
 			return res, nil
 		}
 	}

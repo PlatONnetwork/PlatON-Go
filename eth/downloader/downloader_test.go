@@ -49,7 +49,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 	MaxForkAncestry = uint64(10000)
 	fsHeaderContCheck = 500 * time.Millisecond
-	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 // downloadTester is a test simulator for mocking out local block chain.

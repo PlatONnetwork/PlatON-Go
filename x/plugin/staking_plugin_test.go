@@ -1543,7 +1543,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.True(t, recoveryCan.IsValid())
 
 	// The simulation first punishes the low block rate, and then the double sign punishment.
-	// After the lock-up period of the low block rate penalty expires, the double-signing pledge freeze
+	// After the lock-up period of the low block rate penalty expires, the double-signing staking freeze
 	index++
 	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
 		t.Fatal(err)
@@ -1574,7 +1574,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.True(t, recoveryCan2.IsInvalidDuplicateSign())
 	assert.False(t, recoveryCan2.IsInvalidLowRatio())
 
-	// Handle double-signature freeze and release pledge, delete nodes
+	// Handle double-signature freeze and release staking, delete nodes
 	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
 	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
 	assert.Nil(t, err)
@@ -2989,7 +2989,9 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-
+		if i == 0 {
+			canTmp.AppendStatus(staking.Invalided)
+		}
 		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if !assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking, num: %d, err: %v", i, err)) {
@@ -3055,6 +3057,12 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
+	for _, nodeId := range nodeIdArr {
+		addr, _ := xutil.NodeId2Addr(nodeId)
+		can, err := StakingInstance().GetCanBase(blockHash2, addr)
+		assert.Nil(t, err)
+		assert.True(t, can.ProgramVersion == promoteVersion)
+	}
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
@@ -3622,6 +3630,68 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
+
+}
+
+func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
+
+	newChainState()
+
+	curve := elliptic.P256()
+
+	currentNonce := crypto.Keccak256([]byte("nonce"))
+
+	buildCandidate := func(stakeThreshold int) (staking.ValidatorQueue, [][]byte) {
+		preNonces := make([][]byte, 0)
+		vqList := make(staking.ValidatorQueue, 0)
+		candidateNumber := 101
+		for i := 0; i < candidateNumber; i++ {
+			shares := new(big.Int).SetUint64(uint64(stakeThreshold))
+			shares.Mul(shares, new(big.Int).SetInt64(1e18))
+
+			mrand.Seed(time.Now().UnixNano())
+
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
+			privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
+			nodeId := discover.PubkeyID(&privKey.PublicKey)
+			addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
+
+			var blsKeyHex bls.PublicKeyHex
+			b, _ := blsKey.GetPublicKey().MarshalText()
+			if err := blsKeyHex.UnmarshalText(b); nil != err {
+				log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+				return nil, nil
+			}
+
+			v := &staking.Validator{
+				NodeAddress: addr,
+				NodeId:      nodeId,
+				BlsPubKey:   blsKeyHex,
+
+				ProgramVersion:  uint32(mrand.Intn(5) + 1),
+				Shares:          shares,
+				StakingBlockNum: uint64(mrand.Intn(230)),
+				StakingTxIndex:  uint32(mrand.Intn(1000)),
+				ValidatorTerm:   1,
+			}
+			vqList = append(vqList, v)
+			preNonces = append(preNonces, crypto.Keccak256(common.Int64ToBytes(time.Now().UnixNano() + int64(i)))[:])
+			time.Sleep(time.Microsecond * 10)
+		}
+		return vqList, preNonces
+	}
+
+	stakeThreshold := 1000000
+	for i := 0; i < 3; i++ {
+		vqList, preNonceList := buildCandidate(stakeThreshold)
+		stakeThreshold *= 10
+		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
+			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, params.GenesisVersion)
+			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
+			assert.True(t, nil != result, "the result is nil")
+		})
+	}
 
 }
 

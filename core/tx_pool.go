@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -125,6 +126,7 @@ var (
 	queuedReplaceMeter   = metrics.NewRegisteredMeter("txpool/queued/replace", nil)
 	queuedRateLimitMeter = metrics.NewRegisteredMeter("txpool/queued/ratelimit", nil) // Dropped due to rate limiting
 	queuedNofundsMeter   = metrics.NewRegisteredMeter("txpool/queued/nofunds", nil)   // Dropped due to out-of-funds
+	queuedEvictionMeter  = metrics.NewRegisteredMeter("txpool/queued/eviction", nil)  // Dropped due to lifetime
 
 	// General tx metrics
 	knownTxMeter       = metrics.NewRegisteredMeter("txpool/known", nil)
@@ -190,8 +192,7 @@ type TxPoolConfig struct {
 	Journal   string           // Journal of local transactions to survive node restarts
 	Rejournal time.Duration    // Time interval to regenerate the local transaction journal
 
-	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
-	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
+	PriceBump uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
 	AccountSlots  uint64 // Number of executable transaction slots guaranteed per account
 	GlobalSlots   uint64 // Maximum number of executable transaction slots for all accounts
@@ -210,8 +211,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	Journal:   "transactions.rlp",
 	Rejournal: time.Hour,
 
-	PriceLimit: 1,
-	PriceBump:  10,
+	PriceBump: 10,
 
 	AccountSlots:  16,
 	GlobalSlots:   16384,
@@ -230,10 +230,6 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 	if conf.Rejournal < time.Second {
 		log.Warn("Sanitizing invalid txpool journal time", "provided", conf.Rejournal, "updated", time.Second)
 		conf.Rejournal = time.Second
-	}
-	if conf.PriceLimit < 1 {
-		log.Warn("Sanitizing invalid txpool price limit", "provided", conf.PriceLimit, "updated", DefaultTxPoolConfig.PriceLimit)
-		conf.PriceLimit = DefaultTxPoolConfig.PriceLimit
 	}
 	if conf.PriceBump < 1 {
 		log.Warn("Sanitizing invalid txpool price bump", "provided", conf.PriceBump, "updated", DefaultTxPoolConfig.PriceBump)
@@ -277,7 +273,6 @@ type TxPool struct {
 	gasPrice *big.Int
 	txFeed   event.Feed
 	scope    event.SubscriptionScope
-	// modified by PlatON
 
 	signer types.Signer
 	mu     sync.RWMutex
@@ -310,6 +305,8 @@ type TxPool struct {
 	reorgShutdownCh chan struct{} // requests shutdown of scheduleReorgLoop
 
 	cacheAccountNeedPromoted *accountSet
+
+	addTxCh chan []*types.Transaction
 }
 
 type txpoolResetRequest struct {
@@ -334,6 +331,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 
+		gasPrice:  new(big.Int),
 		resetHead: chain.CurrentBlock(),
 
 		exitCh:          make(chan struct{}),
@@ -342,7 +340,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		queueTxEventCh:  make(chan *types.Transaction),
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
-		gasPrice:        new(big.Int).SetUint64(config.PriceLimit),
+		//Maintain a redundant transaction cache in the channel
+		addTxCh: make(chan []*types.Transaction, runtime.NumCPU()+3),
 	}
 
 	pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
@@ -375,6 +374,10 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	pool.wg.Add(1)
 	go pool.loop()
 
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go pool.parallelAddTx()
+	}
+
 	return pool
 }
 
@@ -405,7 +408,7 @@ func (pool *TxPool) loop() {
 			close(pool.reorgShutdownCh)
 			return
 
-		// Handle stats reporting ticks
+			// Handle stats reporting ticks
 		case <-report.C:
 			pool.mu.RLock()
 			pending, queued := pool.stats()
@@ -425,7 +428,7 @@ func (pool *TxPool) loop() {
 				return true
 			})
 
-		// Handle inactive account transaction eviction
+			// Handle inactive account transaction eviction
 		case <-evict.C:
 			pool.mu.Lock()
 			for addr := range pool.queue {
@@ -435,14 +438,16 @@ func (pool *TxPool) loop() {
 				}
 				// Any non-locals old enough should be removed
 				if time.Since(pool.beats[addr]) > pool.config.Lifetime {
-					for _, tx := range pool.queue[addr].Flatten() {
+					list := pool.queue[addr].Flatten()
+					for _, tx := range list {
 						pool.removeTx(tx.Hash(), true)
 					}
+					queuedEvictionMeter.Mark(int64(len(list)))
 				}
 			}
 			pool.mu.Unlock()
 
-		// Handle local transaction journal rotation
+			// Handle local transaction journal rotation
 		case <-journal.C:
 			if pool.journal != nil {
 				pool.mu.Lock()
@@ -455,7 +460,6 @@ func (pool *TxPool) loop() {
 	}
 }
 
-// added by PlatON
 func (pool *TxPool) Reset(newBlock *types.Block) {
 	startTime := time.Now()
 	if pool == nil {
@@ -802,6 +806,8 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		if log.GetWasmLogLevel() == log.LvlTrace {
 			log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
 		}
+		// Successful promotion, bump the heartbeat
+		pool.beats[from] = time.Now()
 		return old != nil, nil
 	}
 	// New transaction isn't replacing a pending one, push into queue
@@ -855,6 +861,10 @@ func (pool *TxPool) enqueueTx(hash common.Hash, tx *types.Transaction) (bool, er
 		pool.all.Add(tx)
 		pool.priced.Put(tx)
 	}
+	// If we never record the heartbeat, do it right now.
+	if _, exist := pool.beats[from]; !exist {
+		pool.beats[from] = time.Now()
+	}
 	return old != nil, nil
 }
 
@@ -901,8 +911,10 @@ func (pool *TxPool) promoteTx(addr common.Address, list *txList, hash common.Has
 		pool.priced.Put(tx)
 	}
 	// Set the potentially new pending nonce and notify any subsystems of the new tx
-	pool.beats[addr] = time.Now()
+	pool.pendingNonces.set(addr, tx.Nonce()+1)
 
+	// Successful promotion, bump the heartbeat
+	pool.beats[addr] = time.Now()
 	return true
 }
 
@@ -928,7 +940,8 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // This method is used to add transactions from the p2p network and does not wait for pool
 // reorganization and internal event propagation.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, false, false)
+	pool.addTxCh <- txs
+	return nil
 }
 
 // This is like AddRemotes, but waits for pool reorganization. Tests use this method.
@@ -947,8 +960,14 @@ func (pool *TxPool) addRemoteSync(tx *types.Transaction) error {
 //
 // Deprecated: use AddRemotes
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	errs := pool.AddRemotes([]*types.Transaction{tx})
+	errs := pool.addTxs([]*types.Transaction{tx}, false, true)
 	return errs[0]
+}
+
+func (pool *TxPool) parallelAddTx() {
+	for task := range pool.addTxCh {
+		pool.addTxs(task, false, false)
+	}
 }
 
 // addTxs attempts to queue a batch of transactions if they are valid.
@@ -1097,7 +1116,6 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
 			// If no more pending transactions are left, remove the list
 			if pending.Empty() {
 				delete(pool.pending, addr)
-				delete(pool.beats, addr)
 			}
 			// Postpone any invalidated transactions
 			for _, tx := range invalids {
@@ -1118,6 +1136,7 @@ func (pool *TxPool) removeTx(hash common.Hash, outofbound bool) {
 		}
 		if future.Empty() {
 			delete(pool.queue, addr)
+			delete(pool.beats, addr)
 		}
 	}
 }
@@ -1471,6 +1490,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		// Delete the entire queue entry if it became empty.
 		if list.Empty() {
 			delete(pool.queue, addr)
+			delete(pool.beats, addr)
 		}
 	}
 	return promoted
@@ -1667,10 +1687,9 @@ func (pool *TxPool) demoteUnexecutables() {
 			}
 			pendingGauge.Dec(int64(len(gapped)))
 		}
-		// Delete the entire queue entry if it became empty.
+		// Delete the entire pending entry if it became empty.
 		if list.Empty() {
 			delete(pool.pending, addr)
-			delete(pool.beats, addr)
 		}
 	}
 }
