@@ -172,7 +172,6 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	bn := currentBlock.Number()
 
 	pHead, pBn := peer.Head()
-	//modified by platon
 	diff := new(big.Int).Sub(pBn, bn)
 	if diff.Cmp(big.NewInt(2)) < 0 {
 		return

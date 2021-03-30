@@ -137,9 +137,9 @@ func AnalyzeStressTest(configPaths []string, output string, t int) error {
 		latencyCell := row.AddCell()
 		latencyCell.Value = strconv.FormatInt(d[1], 10)
 		tpsCell := row.AddCell()
-		tpsCell.Value = strconv.FormatInt(d[2], 10)
+		tpsCell.SetInt64(d[2])
 		ttfCell := row.AddCell()
-		ttfCell.Value = strconv.FormatInt(d[3], 10)
+		ttfCell.SetInt64(d[3])
 		if i == 0 {
 			totalReceive := row.AddCell()
 			totalReceive.Value = strconv.FormatInt(int64(total), 10)

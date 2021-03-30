@@ -1546,7 +1546,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.True(t, recoveryCan.IsValid())
 
 	// The simulation first punishes the low block rate, and then the double sign punishment.
-	// After the lock-up period of the low block rate penalty expires, the double-signing pledge freeze
+	// After the lock-up period of the low block rate penalty expires, the double-signing staking freeze
 	index++
 	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
 		t.Fatal(err)
@@ -1577,7 +1577,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.True(t, recoveryCan2.IsInvalidDuplicateSign())
 	assert.False(t, recoveryCan2.IsInvalidLowRatio())
 
-	// Handle double-signature freeze and release pledge, delete nodes
+	// Handle double-signature freeze and release staking, delete nodes
 	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
 	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
 	assert.Nil(t, err)

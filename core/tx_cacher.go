@@ -105,58 +105,6 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	}
 }
 
-// recoverFromBlocks recovers the senders from a batch of blocks and caches them
-// back into the same data structures. There is no validation being done, nor
-// any reaction to invalid signatures. That is up to calling code later.
-/*func (cacher *txSenderCacher) recoverFromBlocks(signer types.Signer, blocks []*types.Block) {
-	count := 0
-	for _, block := range blocks {
-		count += len(block.Transactions())
-	}
-	txs := make([]*types.Transaction, 0, count)
-	if cacher.txPool != nil {
-		for _, block := range blocks {
-			for _, tx := range block.Transactions() {
-				if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
-					tx = txInPool
-				} else {
-					txs = append(txs, tx)
-				}
-			}
-		}
-	} else {
-		for _, block := range blocks {
-			for _, tx := range block.Transactions() {
-				txs = append(txs, tx)
-			}
-		}
-	}
-
-	if len(txs) > 0 {
-		cacher.recover(signer, txs)
-	}
-}*/
-
-/*func (cacher *txSenderCacher) RecoverTxsFromPool(signer types.Signer, txs []*types.Transaction) chan struct{} {
-	// Ensure we have meaningful task sizes and schedule the recoveries
-	tasks := cacher.threads
-	if len(txs) < tasks*4 {
-		tasks = (len(txs) + 3) / 4
-	}
-
-	CalTx := make(chan struct{}, tasks)
-	for i := 0; i < tasks; i++ {
-		cacher.tasks <- &txSenderCacherRequest{
-			signer: signer,
-			txs:    txs,
-			inc:    tasks,
-			done: CalTx,
-			starts: i,
-		}
-	}
-	return CalTx
-}*/
-
 // recoverFromBlock recovers the senders from  block and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.

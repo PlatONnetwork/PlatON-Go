@@ -124,19 +124,19 @@ func main() {
 		}
 
 		restrictingErrCode := map[uint32]string{
-			restricting.ErrParamEpochInvalid.Code:                 restricting.ErrParamEpochInvalid.Msg,
-			restricting.ErrCountRestrictPlansInvalid.Code:         restricting.ErrCountRestrictPlansInvalid.Msg,
-			restricting.ErrLockedAmountTooLess.Code:               restricting.ErrLockedAmountTooLess.Msg,
-			restricting.ErrBalanceNotEnough.Code:                  restricting.ErrBalanceNotEnough.Msg,
-			restricting.ErrAccountNotFound.Code:                   restricting.ErrAccountNotFound.Msg,
-			restricting.ErrSlashingTooMuch.Code:                   restricting.ErrSlashingTooMuch.Msg,
-			restricting.ErrStakingAmountEmpty.Code:                restricting.ErrStakingAmountEmpty.Msg,
-			restricting.ErrPledgeLockFundsAmountLessThanZero.Code: restricting.ErrPledgeLockFundsAmountLessThanZero.Msg,
-			restricting.ErrReturnLockFundsAmountLessThanZero.Code: restricting.ErrReturnLockFundsAmountLessThanZero.Msg,
-			restricting.ErrSlashingAmountLessThanZero.Code:        restricting.ErrSlashingAmountLessThanZero.Msg,
-			restricting.ErrCreatePlanAmountLessThanZero.Code:      restricting.ErrCreatePlanAmountLessThanZero.Msg,
-			restricting.ErrStakingAmountInvalid.Code:              restricting.ErrStakingAmountInvalid.Msg,
-			restricting.ErrRestrictBalanceNotEnough.Code:          restricting.ErrRestrictBalanceNotEnough.Msg,
+			restricting.ErrParamEpochInvalid.Code:                    restricting.ErrParamEpochInvalid.Msg,
+			restricting.ErrCountRestrictPlansInvalid.Code:            restricting.ErrCountRestrictPlansInvalid.Msg,
+			restricting.ErrLockedAmountTooLess.Code:                  restricting.ErrLockedAmountTooLess.Msg,
+			restricting.ErrBalanceNotEnough.Code:                     restricting.ErrBalanceNotEnough.Msg,
+			restricting.ErrAccountNotFound.Code:                      restricting.ErrAccountNotFound.Msg,
+			restricting.ErrSlashingTooMuch.Code:                      restricting.ErrSlashingTooMuch.Msg,
+			restricting.ErrStakingAmountEmpty.Code:                   restricting.ErrStakingAmountEmpty.Msg,
+			restricting.ErrAdvanceLockedFundsAmountLessThanZero.Code: restricting.ErrAdvanceLockedFundsAmountLessThanZero.Msg,
+			restricting.ErrReturnLockFundsAmountLessThanZero.Code:    restricting.ErrReturnLockFundsAmountLessThanZero.Msg,
+			restricting.ErrSlashingAmountLessThanZero.Code:           restricting.ErrSlashingAmountLessThanZero.Msg,
+			restricting.ErrCreatePlanAmountLessThanZero.Code:         restricting.ErrCreatePlanAmountLessThanZero.Msg,
+			restricting.ErrStakingAmountInvalid.Code:                 restricting.ErrStakingAmountInvalid.Msg,
+			restricting.ErrRestrictBalanceNotEnough.Code:             restricting.ErrRestrictBalanceNotEnough.Msg,
 		}
 
 		govErrCode := map[uint32]string{
