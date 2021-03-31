@@ -137,7 +137,7 @@ func TestDialStateDynDial(t *testing.T) {
 				},
 			},
 			// No new dial tasks are launched in the this round because
-			// maxDynDials has been reached.
+			// maxDynDials has been reached
 			{
 				peers: []*Peer{
 					{rw: &conn{flags: staticDialedConn, id: uintID(0)}},

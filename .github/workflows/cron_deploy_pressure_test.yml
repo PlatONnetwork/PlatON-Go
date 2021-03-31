@@ -1,0 +1,51 @@
+name: cron_deploy_pressure_test
+
+on:
+  schedule:
+    - cron: "1 16 * * *"
+
+env:
+  GO111MODULE: on
+
+jobs:
+  statistics:
+    runs-on: [self-hosted, Linux, X64, deploy]
+    steps:
+       - name: Statistics_TPS
+         run: bash /opt/statistics_tps.sh
+  build:
+    name: Build_Deploy
+    runs-on: [self-hosted, Linux, X64, deploy]
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+      with:
+          ref: merge-latest-ethereum
+          submodules: true 
+
+    - uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+          
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+    
+    - name: Build
+      run: make platon
+    
+    - name: Deploy_platon
+      run: bash /opt/deploy_platon.sh
+      
+    - name: Deploy_transfer
+      run: bash /opt/deploy_transfer.sh
