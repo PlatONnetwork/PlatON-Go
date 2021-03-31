@@ -16,7 +16,12 @@
 
 package xcom
 
-import "testing"
+import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
 
 func TestDefaultEMConfig(t *testing.T) {
 	t.Run("DefaultMainNet", func(t *testing.T) {
@@ -46,4 +51,14 @@ func TestDefaultEMConfig(t *testing.T) {
 	if getDefaultEMConfig(10) != nil {
 		t.Error("the chain config not support")
 	}
+}
+
+func TestMainNetHash(t *testing.T) {
+	tempEc := getDefaultEMConfig(DefaultMainNet)
+	bytes, err := rlp.EncodeToBytes(tempEc)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(common.RlpHash(bytes).Hex())
+	assert.True(t, common.RlpHash(bytes).Hex() == MainNetECHash)
 }
