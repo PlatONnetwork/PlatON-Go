@@ -63,6 +63,8 @@ const (
 
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
 	ElectionBase = 30
+
+	MainNetECHash = "0x35e759a523156faac43dd0caec95cceed63ae22f250e518657a79d3dc3578ba4"
 )
 
 var (
