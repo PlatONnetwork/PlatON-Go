@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package consensus
 
 import (
@@ -18,26 +34,61 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
+
+func NewFaker() *BftMock {
+	c := new(BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	c.blockIndexs = make(map[common.Hash]int, 0)
+	return c
+}
+
+func NewFailFaker(number uint64) *BftMock {
+	c := NewFaker()
+	c.fakeFail = number
+	return c
+}
+
+//func NewFakeDelayer(delay time.Duration) *BftMock {
+//	c := new(BftMock)
+//	c.Blocks = make([]*types.Block, 0)
+//	c.fakeDelay = delay
+//	return c
+//}
 
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
-	EventMux *event.TypeMux
-	Blocks   []*types.Block
-	Next     uint32
-	Current  *types.Block
-	Base     *types.Block
+	EventMux    *event.TypeMux
+	Blocks      []*types.Block
+	blockIndexs map[common.Hash]int
+	Next        uint32
+	Current     *types.Block
+	Base        *types.Block
+	fakeFail    uint64 // Block number which fails BFT check even in fake mode
+	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
 func (bm *BftMock) InsertChain(block *types.Block) error {
-	if nil == bm.Blocks {
-		bm.Blocks = make([]*types.Block, 0)
+	if _, ok := bm.blockIndexs[block.Hash()]; ok {
+		return nil
+	}
+
+	if len(bm.Blocks) != 0 && bm.Blocks[len(bm.Blocks)-1].Hash() != block.ParentHash() {
+		return nil
 	}
 	bm.Blocks = append(bm.Blocks, block)
+	bm.blockIndexs[block.Hash()] = len(bm.Blocks) - 1
 	bm.Current = block
 	bm.Base = block
+
 	return nil
+}
+
+func (bm *BftMock) GetPrepareQC(number uint64) *ctypes.QuorumCert {
+	panic("implement me")
 }
 
 // FastSyncCommitHead is a fake interface, no need to implement.
@@ -112,6 +163,9 @@ func (bm *BftMock) Author(header *types.Header) (common.Address, error) {
 // given engine. Verifying the seal may be done optionally here, or explicitly
 // via the VerifySeal method.
 func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bool) error {
+	if bm.fakeFail == header.Number.Uint64() {
+		return fmt.Errorf("failed verifyHeader on bftMock")
+	}
 	return nil
 }
 
@@ -122,9 +176,16 @@ func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bo
 func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
 	results := make(chan error, len(headers))
 	c := make(chan<- struct{})
+
+	//time.Sleep(bm.fakeDelay)
 	go func() {
-		for range headers {
-			results <- nil
+		for i := range headers {
+			if bm.fakeFail == headers[i].Number.Uint64() {
+				results <- fmt.Errorf("failed verifyHeader on bftMock")
+			} else {
+				results <- nil
+			}
+
 		}
 	}()
 	return c, results
@@ -167,7 +228,7 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 //
 // Note, the method returns immediately and will send the result async. More
 // than one result may also be returned depending on the consensus algorithm.
-func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
 
 	header := block.Header()
 	if block.NumberU64() == 0 {
@@ -176,6 +237,7 @@ func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *t
 	sign := header.SealHash().Bytes()
 	copy(header.Extra[len(header.Extra)-ExtraSeal:], sign[:])
 	sealBlock := block.WithSeal(header)
+	complete <- struct{}{}
 	results <- sealBlock
 	bm.EventMux.Post(cbfttypes.CbftResult{
 		Block: sealBlock,
@@ -284,6 +346,16 @@ func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 
 // GetBlockByHash is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
+
+	if index, ok := bm.blockIndexs[hash]; ok {
+		return bm.Blocks[index]
+	}
+
+	return nil
+}
+
+// GetBlockByHash get the specified block by hash and number.
+func (bm *BftMock) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
 
@@ -310,8 +382,13 @@ func (bm *BftMock) TracingSwitch(flag int8) {
 func (bm *BftMock) Pause() {
 
 }
+
 func (bm *BftMock) Resume() {
 
+}
+
+func (bm *BftMock) Syncing() bool {
+	return false
 }
 
 func (bm *BftMock) DecodeExtra(extra []byte) (common.Hash, uint64, error) {

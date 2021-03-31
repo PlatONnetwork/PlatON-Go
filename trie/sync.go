@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -38,10 +37,10 @@ var ErrAlreadyProcessed = errors.New("already processed")
 
 // request represents a scheduled or already in-flight state retrieval request.
 type request struct {
-	hash    common.Hash // Hash of the node data content to retrieve
-	data    []byte      // Data content of the node, cached until all subtrees complete
-	raw     bool        // Whether this is a raw entry (code) or a trie node
-	storage bool
+	hash common.Hash // Hash of the node data content to retrieve
+	data []byte      // Data content of the node, cached until all subtrees complete
+	raw  bool        // Whether this is a raw entry (code) or a trie node
+
 	parents []*request // Parent state nodes referencing this entry (notify all upon completion)
 	depth   int        // Depth level within the trie the node is located to prioritise DFS
 	deps    int        // Number of dependencies before allowed to commit this node
@@ -56,22 +55,17 @@ type SyncResult struct {
 	Data []byte      // Data content of the retrieved node
 }
 
-type batchData struct {
-	data    []byte
-	storage bool
-}
-
 // syncMemBatch is an in-memory buffer of successfully downloaded but not yet
 // persisted data items.
 type syncMemBatch struct {
-	batch map[common.Hash]*batchData // In-memory membatch of recently completed items
-	order []common.Hash              // Order of completion to prevent out-of-order data loss
+	batch map[common.Hash][]byte // In-memory membatch of recently completed items
+	order []common.Hash          // Order of completion to prevent out-of-order data loss
 }
 
 // newSyncMemBatch allocates a new memory-buffer for not-yet persisted trie nodes.
 func newSyncMemBatch() *syncMemBatch {
 	return &syncMemBatch{
-		batch: make(map[common.Hash]*batchData),
+		batch: make(map[common.Hash][]byte),
 		order: make([]common.Hash, 0, 256),
 	}
 }
@@ -80,14 +74,14 @@ func newSyncMemBatch() *syncMemBatch {
 // unknown trie hashes to retrieve, accepts node data associated with said hashes
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
-	database DatabaseReader           // Persistent database to check for existing entries
+	database ethdb.Reader             // Persistent database to check for existing entries
 	membatch *syncMemBatch            // Memory buffer to avoid frequent database writes
 	requests map[common.Hash]*request // Pending requests pertaining to a key hash
 	queue    *prque.Prque             // Priority queue with the pending requests
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *Sync {
+func NewSync(root common.Hash, database ethdb.Reader, callback LeafCallback) *Sync {
 	ts := &Sync{
 		database: database,
 		membatch: newSyncMemBatch(),
@@ -110,7 +104,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 	key := root.Bytes()
 	blob, _ := s.database.Get(key)
 	log.Debug("sync blob", "root", root, "depth", depth, "parent", parent)
-	if local, err := decodeNode(key, blob, 0); local != nil && err == nil {
+	if local, err := decodeNode(key, blob); local != nil && err == nil {
 		return
 	}
 	// Assemble the new sub-trie sync request
@@ -135,7 +129,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 // interpreted as a trie node, but rather accepted and stored into the database
 // as is. This method's goal is to support misc state metadata retrievals (e.g.
 // contract code).
-func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, storage bool) {
+func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 	// Short circuit if the entry is empty or already known
 	if hash == emptyState {
 		return
@@ -148,10 +142,9 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, stor
 	}
 	// Assemble the new sub-trie sync request
 	req := &request{
-		hash:    hash,
-		raw:     true,
-		storage: storage,
-		depth:   depth,
+		hash:  hash,
+		raw:   true,
+		depth: depth,
 	}
 	// If this sub-trie has a designated parent, link them together
 	if parent != (common.Hash{}) {
@@ -167,7 +160,7 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, stor
 
 // Missing retrieves the known missing nodes from the trie for retrieval.
 func (s *Sync) Missing(max int) []common.Hash {
-	requests := []common.Hash{}
+	var requests []common.Hash
 	for !s.queue.Empty() && (max == 0 || len(requests) < max) {
 		requests = append(requests, s.queue.PopItem().(common.Hash))
 	}
@@ -179,6 +172,7 @@ func (s *Sync) Missing(max int) []common.Hash {
 // it failed.
 func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 	committed := false
+
 	for i, item := range results {
 		// If the item was not requested, bail out
 		request := s.requests[item.Hash]
@@ -196,7 +190,7 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 			continue
 		}
 		// Decode the node data content and update the request
-		node, err := decodeNode(item.Hash[:], item.Data, 0)
+		node, err := decodeNode(item.Hash[:], item.Data)
 		if err != nil {
 			return committed, i, err
 		}
@@ -222,21 +216,11 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 
 // Commit flushes the data stored in the internal membatch out to persistent
 // storage, returning the number of items written and any occurred error.
-func (s *Sync) Commit(dbw ethdb.Putter) (int, error) {
+func (s *Sync) Commit(dbw ethdb.Writer) (int, error) {
 	// Dump the membatch into a database dbw
 	for i, key := range s.membatch.order {
-		v, _ := s.membatch.batch[key]
-		if v.storage {
-			var seckeybuf [43]byte
-			buf := append(seckeybuf[:0], SecureKeyPrefix...)
-			buf = append(buf, key[:]...)
-			if err := dbw.Put(buf, s.membatch.batch[key].data); err != nil {
-				return i, err
-			}
-		} else {
-			if err := dbw.Put(key[:], s.membatch.batch[key].data); err != nil {
-				return i, err
-			}
+		if err := dbw.Put(key[:], s.membatch.batch[key]); err != nil {
+			return i, err
 		}
 	}
 	written := len(s.membatch.order)
@@ -297,19 +281,10 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 	requests := make([]*request, 0, len(children))
 	for _, child := range children {
 		// Notify any external watcher of a new key/value node
-		if node, ok := (child.node).(valueNode); ok {
-			if req.callback != nil {
+		if req.callback != nil {
+			if node, ok := (child.node).(valueNode); ok {
 				if err := req.callback(node, req.hash); err != nil {
 					return nil, err
-				}
-			} else {
-				var val []byte
-				if err := rlp.DecodeBytes(node, &val); err != nil {
-					return nil, err
-				}
-				hash := common.BytesToHash(val)
-				if hash != emptyStorage {
-					s.AddRawEntry(hash, 64, req.hash, true)
 				}
 			}
 		}
@@ -340,7 +315,7 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 // committed themselves.
 func (s *Sync) commit(req *request) (err error) {
 	// Write the node content to the membatch
-	s.membatch.batch[req.hash] = &batchData{req.data, req.storage}
+	s.membatch.batch[req.hash] = req.data
 	s.membatch.order = append(s.membatch.order, req.hash)
 
 	delete(s.requests, req.hash)

@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package evidence
 
 import (
@@ -166,16 +182,14 @@ func (ev *EvidenceView) Verify() error {
 
 // EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
-	Index     uint32          `json:"index"`
-	Address   common.Address  `json:"address"`
-	NodeID    discover.NodeID `json:"nodeId"`
-	BlsPubKey *bls.PublicKey  `json:"blsPubKey"`
+	Index     uint32             `json:"index"`
+	NodeID    discover.NodeID    `json:"nodeId"`
+	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		Address:   node.Address,
 		NodeID:    node.NodeID,
 		BlsPubKey: node.BlsPubKey,
 	}

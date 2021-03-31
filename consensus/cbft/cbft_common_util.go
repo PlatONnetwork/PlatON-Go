@@ -1,9 +1,29 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
 	"crypto/ecdsa"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -21,7 +41,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -46,10 +65,10 @@ func NewBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x49593262e3500db9c952093899eb2ceedf97a359cabb7e08ea0a8906e3623190")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xf60c3f04d00426589a02d2192d77dec9a6c0f15a041c8a18da38e1adb89fd95c")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -63,10 +82,10 @@ func NewBlockWithSign(parent common.Hash, number uint64, node *TestCBFT) *types.
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
-		Root:        common.BytesToHash(hexutil.MustDecode("0x49593262e3500db9c952093899eb2ceedf97a359cabb7e08ea0a8906e3623190")),
+		Root:        common.BytesToHash(hexutil.MustDecode("0xf60c3f04d00426589a02d2192d77dec9a6c0f15a041c8a18da38e1adb89fd95c")),
 		Coinbase:    common.Address{},
 		GasLimit:    10000000000,
 	}
@@ -128,11 +147,8 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 	return New(sysConfig, optConfig, ctx.EventMux, ctx)
 }
 
-// CreateBackend returns a new Backend for testing.
-func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
+func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 	var (
-		db    = ethdb.NewMemDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},
@@ -144,7 +160,15 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,
 	}
-	gspec.MustCommit(db)
+	block := gspec.MustCommit(db)
+	return gspec, block
+}
+
+// CreateBackend returns a new Backend for testing.
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
+
+	var db = rawdb.NewMemoryDatabase()
+	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	cache := core.NewBlockChainCache(chain)
@@ -156,7 +180,7 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 // CreateValidatorBackend returns a new ValidatorBackend for testing.
 func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 	var (
-		db    = ethdb.NewMemDatabase()
+		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
 			Config: chainConfig,
 			Alloc:  core.GenesisAlloc{},

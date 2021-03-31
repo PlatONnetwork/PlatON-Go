@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -26,6 +26,13 @@ import (
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -55,6 +62,11 @@ test tool
 func Test_CleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
 	sndb.Clear()
+}
+
+func PrintObject(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Debug(s + " == " + string(objs))
 }
 
 func watching(eventMux *event.TypeMux, t *testing.T) {
@@ -91,7 +103,7 @@ func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
 	for i := 0; i < int(xcom.MaxValidators()); i++ {
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
+		preNonces = append(preNonces, crypto.Keccak256([]byte(time.Now().Add(time.Duration(i)).String())[:]))
 		time.Sleep(time.Microsecond * 10)
 	}
 	return curentNonce, preNonces
@@ -182,7 +194,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
@@ -287,7 +299,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		return nil, err
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if nil != err {
 		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
@@ -320,7 +332,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 
 	// new block
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -423,7 +435,9 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount)
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, 0, amount, delegateRewardPerList)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -550,7 +564,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -656,7 +670,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
@@ -687,7 +701,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -742,7 +756,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
 	}
 
-	nonce = crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce = crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header = &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -869,7 +883,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canBase.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canBase.ProgramVersion, canMutable.Shares, canBase.StakingBlockNum, canBase.StakingTxIndex, canBase.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -973,7 +987,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	xcom.PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
 	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
@@ -1004,7 +1018,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	// new block
 	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 
-	nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(1))))[:]
+	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
 		ParentHash:  currentHash,
 		Coinbase:    sender,
@@ -1492,6 +1506,10 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		return
 	}
 
+	// get Candidate info
+	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
+		t.Fatal(fmt.Sprintf("expect candidate info is no found, err: %v", err))
+	}
 	/**
 	Start HandleUnCandidateItem
 	*/
@@ -1502,14 +1520,66 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	}
 
 	// get Candidate info
-	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
-		t.Logf("expect candidate info is no found, err: %v", err)
-		return
-	} else {
-		t.Error("It is not expect~")
+	_, err = getCandidate(blockHash2, index)
+	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
+
+	// Penalty for simulating low block rate, and then return to normal state
+	index++
+	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
+		t.Fatal(err)
+	}
+	canAddr, _ = xutil.NodeId2Addr(nodeIdArr[index])
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
+	epoch = xutil.CalculateEpoch(blockNumber2.Uint64())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ZeroProduceFreezeDuration())
+	assert.Nil(t, err)
 
+	recoveryCan, err := getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+	assert.NotNil(t, recoveryCan)
+	assert.True(t, recoveryCan.IsValid())
+
+	// The simulation first punishes the low block rate, and then the double sign punishment.
+	// After the lock-up period of the low block rate penalty expires, the double-signing staking freeze
+	index++
+	if err := create_staking(state, blockNumber2, blockHash2, index, 0, t); nil != err {
+		t.Fatal(err)
+	}
+	canAddr, _ = xutil.NodeId2Addr(nodeIdArr[index])
+	recoveryCan2, err := getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+	recoveryCan2.AppendStatus(staking.Invalided)
+	recoveryCan2.AppendStatus(staking.LowRatio)
+	recoveryCan2.AppendStatus(staking.DuplicateSign)
+	assert.True(t, recoveryCan2.IsInvalidLowRatio())
+	assert.Nil(t, StakingInstance().EditCandidate(blockHash2, blockNumber2, canAddr, recoveryCan2))
+
+	// Handle the lock period of low block rate, and increase the double sign freeze operation
+	if err := StakingInstance().addRecoveryUnStakeItem(blockNumber2.Uint64(), blockHash2, nodeIdArr[index], canAddr, blockNumber2.Uint64()); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
+		return
+	}
+	newBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.ZeroProduceFreezeDuration() + blockNumber2.Uint64())
+	epoch = xutil.CalculateEpoch(newBlockNumber.Uint64())
+	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, epoch)
+	assert.Nil(t, err)
+
+	recoveryCan2, err = getCandidate(blockHash2, index)
+	assert.Nil(t, err)
+
+	assert.NotNil(t, recoveryCan2)
+	assert.True(t, recoveryCan2.IsInvalidDuplicateSign())
+	assert.False(t, recoveryCan2.IsInvalidLowRatio())
+
+	// Handle double-signature freeze and release staking, delete nodes
+	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
+	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
+	assert.Nil(t, err)
+	recoveryCan2, err = getCandidate(blockHash2, index)
+	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
@@ -1562,7 +1632,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	/**
 	Start Delegate
 	*/
-	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+	del, err := delegate(state, blockHash2, blockNumber2, can, 0, index, t)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
 		return
@@ -1570,13 +1640,51 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
-
+		return
 	}
-	t.Log("Finish Delegate ~~")
+	t.Log("Finish Delegate ~~, Info is:", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
+	assert.True(t, can.DelegateTotalHes.Cmp(del.ReleasedHes) == 0)
+	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
+	assert.True(t, del.CumulativeIncome == nil)
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+
+	canAddr, _ := xutil.NodeId2Addr(can.NodeId)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 3 err", err)
+		return
+	}
+
+	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
+	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+		t.Fatal("Failed to Delegate:", err)
+	}
+
+	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+	assert.True(t, del.DelegateEpoch == 3)
+	assert.True(t, del.ReleasedHes.Cmp(delegateAmount) == 0)
+	assert.True(t, can.DelegateEpoch == del.DelegateEpoch)
+	assert.True(t, can.DelegateTotal.Cmp(del.Released) == 0)
+
+	t.Log("Finish Delegate ~~, Info is:", del)
+
 	t.Log("Get Candidate Info is:", can)
 
 }
@@ -1619,6 +1727,9 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	// Delegate
 	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
 
+	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
+	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
+
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
 	}
@@ -1645,8 +1756,10 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	/**
 	Start Withdrew Delegate
 	*/
-	err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, common.Big257, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del)
+	amount := common.Big257
+	delegateTotalHes := can.DelegateTotalHes
+	_, err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
 		return
@@ -1655,11 +1768,52 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
 	}
-	t.Log("Finish WithdrewDelegate ~~")
+	t.Log("Finish WithdrewDelegate ~~", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
 	assert.True(t, nil != can)
+	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(can.DelegateTotalHes) == 0)
+	assert.True(t, new(big.Int).Sub(delegateTotalHes, amount).Cmp(del.ReleasedHes) == 0)
+
+	curBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch() * 3)
+	if err := sndb.NewBlock(curBlockNumber, blockHash2, blockHash3); nil != err {
+		t.Error("newBlock 3 err", err)
+		return
+	}
+
+	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[0], sndb); nil != err {
+		t.Fatal(err)
+	}
+	delegateRewardPerList = append(delegateRewardPerList, &reward.DelegateRewardPer{
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+	if err := AppendDelegateRewardPer(blockHash3, can.NodeId, can.StakingBlockNum, delegateRewardPerList[1], sndb); nil != err {
+		t.Fatal(err)
+	}
+
+	expectedIssueIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
+	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
+	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
+	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
+
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+		return
+	}
+
+	can, err = getCandidate(blockHash3, index)
+
+	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
+	assert.True(t, expectedBalance.Cmp(state.GetBalance(addrArr[index+1])) == 0)
 	t.Log("Get Candidate Info is:", can)
 }
 
@@ -2033,11 +2187,11 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2219,11 +2373,11 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2317,7 +2471,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	}
 
 	// Will be Slashing candidate
-	slashQueue := make(staking.CandidateQueue, 2)
+	slashQueue := make(staking.CandidateQueue, 5)
 
 	for i := 0; i < 1000; i++ {
 
@@ -2361,6 +2515,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			return
 		}
 
+		releasedHes := new(big.Int).SetUint64(10000)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:          nodeId,
@@ -2379,18 +2534,18 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 				},
 			},
 			CandidateMutable: &staking.CandidateMutable{
-				Shares: balance,
+				Shares: new(big.Int).Add(balance, releasedHes),
 
 				// Prevent null pointer initialization
-				Released:           common.Big0,
-				ReleasedHes:        common.Big0,
+				Released:           new(big.Int).Set(balance),
+				ReleasedHes:        releasedHes,
 				RestrictingPlan:    common.Big0,
 				RestrictingPlanHes: common.Big0,
 			},
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
+		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, canTmp.Shares, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2435,11 +2590,11 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
 		if nil != err {
-			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToNodeAddress(addrSuffix).Hex(), "err", err)
 			return
 		}
 
-		addr := common.BytesToAddress(addrSuffix)
+		addr := common.BytesToNodeAddress(addrSuffix)
 
 		val := &staking.Validator{
 			NodeAddress:     addr,
@@ -2479,6 +2634,9 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
+	slashItemQueue := make(staking.SlashQueue, 0)
+
+	// Be punished for less than the quality deposit
 	slashItem1 := &staking.SlashNodeItem{
 		NodeId:      slash1.NodeId,
 		Amount:      slash1.Released,
@@ -2486,23 +2644,122 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 
+	// Double sign penalty
 	sla := new(big.Int).Div(slash2.Released, big.NewInt(10))
-	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
-
+	caller := common.MustBech32ToAddress("lax1uj3zd9yz00axz7ls88ynwsp3jprhjd9ldx9qpm")
 	slashItem2 := &staking.SlashNodeItem{
 		NodeId:      slash2.NodeId,
 		Amount:      sla,
 		SlashType:   staking.DuplicateSign,
 		BenefitAddr: caller,
 	}
-	slashItemQueue := make(staking.SlashQueue, 0)
 	slashItemQueue = append(slashItemQueue, slashItem1)
 	slashItemQueue = append(slashItemQueue, slashItem2)
 
-	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
+	// Penalty for two low block rates
+	slash3 := slashQueue[2]
+	slashAmount3 := new(big.Int).Div(slash3.Released, big.NewInt(10))
+	slashItem3_1 := &staking.SlashNodeItem{
+		NodeId:      slash3.NodeId,
+		Amount:      slashAmount3,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItem3_2 := &staking.SlashNodeItem{
+		NodeId:      slash3.NodeId,
+		Amount:      slashAmount3,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem3_1)
+	slashItemQueue = append(slashItemQueue, slashItem3_2)
 
+	// Penalty for low block rate first, and then trigger double sign penalty
+	slash4 := slashQueue[3]
+	slashAmount4 := new(big.Int).Div(slash4.Released, big.NewInt(10))
+	slashItem4_1 := &staking.SlashNodeItem{
+		NodeId:      slash4.NodeId,
+		Amount:      slashAmount4,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItem4_2 := &staking.SlashNodeItem{
+		NodeId:      slash4.NodeId,
+		Amount:      slashAmount4,
+		SlashType:   staking.DuplicateSign,
+		BenefitAddr: caller,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem4_1)
+	slashItemQueue = append(slashItemQueue, slashItem4_2)
+
+	// Double signing penalty first, and then triggering low block rate penalty
+	slash5 := slashQueue[4]
+	slashAmount5 := new(big.Int).Div(slash5.Released, big.NewInt(10))
+	slashItem5_1 := &staking.SlashNodeItem{
+		NodeId:      slash5.NodeId,
+		Amount:      slashAmount5,
+		SlashType:   staking.DuplicateSign,
+		BenefitAddr: caller,
+	}
+	slashItem5_2 := &staking.SlashNodeItem{
+		NodeId:      slash5.NodeId,
+		Amount:      slashAmount5,
+		SlashType:   staking.LowRatio,
+		BenefitAddr: vm.RewardManagerPoolAddr,
+	}
+	slashItemQueue = append(slashItemQueue, slashItem5_1)
+	slashItemQueue = append(slashItemQueue, slashItem5_2)
+
+	err = StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slashItemQueue...)
 	assert.Nil(t, err, fmt.Sprintf("Failed to SlashCandidates Second can (DuplicateSign), err: %v", err))
 
+	canAddr1, _ := xutil.NodeId2Addr(slash1.NodeId)
+	can1, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can1.Released.Cmp(new(big.Int).Sub(slash1.Released, slashItem1.Amount)) == 0)
+	assert.True(t, can1.ReleasedHes.Cmp(slash1.ReleasedHes) == 0)
+	assert.True(t, can1.Shares.Cmp(common.Big0) > 0)
+
+	canAddr2, _ := xutil.NodeId2Addr(slash2.NodeId)
+	can2, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can2.Released.Cmp(new(big.Int).Sub(slash2.Released, slashItem2.Amount)) == 0)
+	assert.True(t, can2.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can2.Shares.Cmp(common.Big0) == 0)
+
+	canAddr3, _ := xutil.NodeId2Addr(slash3.NodeId)
+	can3, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can3.Released.Cmp(new(big.Int).Sub(slash3.Released, slashAmount3)) == 0)
+	assert.True(t, can3.ReleasedHes.Cmp(slash3.ReleasedHes) == 0)
+	assert.True(t, can3.Shares.Cmp(common.Big0) > 0)
+	assert.True(t, can3.IsInvalidLowRatio())
+
+	canAddr4, _ := xutil.NodeId2Addr(slash4.NodeId)
+	can4, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can4.Released.Cmp(new(big.Int).Sub(slash4.Released, new(big.Int).Add(slashAmount4, slashAmount4))) == 0)
+	assert.True(t, can4.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can4.Shares.Cmp(common.Big0) == 0)
+	assert.True(t, can4.IsInvalidLowRatio() && can4.IsInvalidDuplicateSign())
+
+	canAddr5, _ := xutil.NodeId2Addr(slash5.NodeId)
+	can5, err := StakingInstance().GetCandidateInfo(blockHash2, canAddr5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.True(t, can5.Released.Cmp(new(big.Int).Sub(slash5.Released, new(big.Int).Add(slashAmount5, slashAmount5))) == 0)
+	assert.True(t, can5.ReleasedHes.Cmp(common.Big0) == 0)
+	assert.True(t, can5.Shares.Cmp(common.Big0) == 0)
+	assert.True(t, can5.IsInvalidLowRatio() && can5.IsInvalidDuplicateSign())
 }
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
@@ -2732,7 +2989,9 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-
+		if i == 0 {
+			canTmp.AppendStatus(staking.Invalided)
+		}
 		err = StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if !assert.Nil(t, err, fmt.Sprintf("Failed to Create Staking, num: %d, err: %v", i, err)) {
@@ -2798,6 +3057,12 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	err = StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ProposalPassedNotify, err: %v", err))
+	for _, nodeId := range nodeIdArr {
+		addr, _ := xutil.NodeId2Addr(nodeId)
+		can, err := StakingInstance().GetCanBase(blockHash2, addr)
+		assert.Nil(t, err)
+		assert.True(t, can.ProgramVersion == promoteVersion)
+	}
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
@@ -3337,7 +3602,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		blsKey.SetByCSPRNG()
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
-		addr := crypto.PubkeyToAddress(privKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
 
 		var blsKeyHex bls.PublicKeyHex
 		b, _ := blsKey.GetPublicKey().MarshalText()
@@ -3362,10 +3627,119 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 
+}
+
+func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
+
+	newChainState()
+
+	curve := elliptic.P256()
+
+	currentNonce := crypto.Keccak256([]byte("nonce"))
+
+	buildCandidate := func(stakeThreshold int) (staking.ValidatorQueue, [][]byte) {
+		preNonces := make([][]byte, 0)
+		vqList := make(staking.ValidatorQueue, 0)
+		candidateNumber := 101
+		for i := 0; i < candidateNumber; i++ {
+			shares := new(big.Int).SetUint64(uint64(stakeThreshold))
+			shares.Mul(shares, new(big.Int).SetInt64(1e18))
+
+			mrand.Seed(time.Now().UnixNano())
+
+			var blsKey bls.SecretKey
+			blsKey.SetByCSPRNG()
+			privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
+			nodeId := discover.PubkeyID(&privKey.PublicKey)
+			addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
+
+			var blsKeyHex bls.PublicKeyHex
+			b, _ := blsKey.GetPublicKey().MarshalText()
+			if err := blsKeyHex.UnmarshalText(b); nil != err {
+				log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+				return nil, nil
+			}
+
+			v := &staking.Validator{
+				NodeAddress: addr,
+				NodeId:      nodeId,
+				BlsPubKey:   blsKeyHex,
+
+				ProgramVersion:  uint32(mrand.Intn(5) + 1),
+				Shares:          shares,
+				StakingBlockNum: uint64(mrand.Intn(230)),
+				StakingTxIndex:  uint32(mrand.Intn(1000)),
+				ValidatorTerm:   1,
+			}
+			vqList = append(vqList, v)
+			preNonces = append(preNonces, crypto.Keccak256(common.Int64ToBytes(time.Now().UnixNano() + int64(i)))[:])
+			time.Sleep(time.Microsecond * 10)
+		}
+		return vqList, preNonces
+	}
+
+	stakeThreshold := 1000000
+	for i := 0; i < 3; i++ {
+		vqList, preNonceList := buildCandidate(stakeThreshold)
+		stakeThreshold *= 10
+		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
+			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, params.GenesisVersion)
+			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
+			assert.True(t, nil != result, "the result is nil")
+		})
+	}
+
+}
+
+func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
+	newPlugins()
+	handler.NewVrfHandler(make([]byte, 0))
+	defer func() {
+		slash.db.Clear()
+	}()
+
+	gov.InitGenesisGovernParam(common.ZeroHash, slash.db, 2048)
+
+	privateKey, _ := crypto.GenerateKey()
+	vqList := make(staking.ValidatorQueue, 0)
+	dataList := make([][]byte, 0)
+	data := common.Int64ToBytes(time.Now().UnixNano())
+	if err := slash.db.NewBlock(new(big.Int).SetUint64(1), blockHash, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	for i := 0; i < int(xcom.MaxConsensusVals()); i++ {
+		vrfData, err := vrf.Prove(privateKey, data)
+		if nil != err {
+			t.Fatal(err)
+		}
+		data = vrf.ProofToHash(vrfData)
+		dataList = append(dataList, data)
+
+		tempPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
+		addr := crypto.PubkeyToNodeAddress(tempPrivateKey.PublicKey)
+		v := &staking.Validator{
+			NodeAddress: addr,
+			NodeId:      nodeId,
+		}
+		vqList = append(vqList, v)
+	}
+	if enValue, err := rlp.EncodeToBytes(dataList); nil != err {
+		t.Fatal(err)
+	} else {
+		if err := slash.db.Put(common.ZeroHash, handler.NonceStorageKey, enValue); nil != err {
+			t.Fatal(err)
+		}
+	}
+	resultQueue, err := randomOrderValidatorQueue(1, common.ZeroHash, vqList)
+	if nil != err {
+		t.Fatal(err)
+	}
+	assert.True(t, len(resultQueue) == len(vqList))
 }
 
 /**
@@ -3514,4 +3888,52 @@ func Test_IteratorCandidate(t *testing.T) {
 	arrJson, _ := json.Marshal(queue)
 	t.Log("CandidateList:", string(arrJson))
 	t.Log("Candidate queue length:", len(queue))
+}
+
+func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
+	del := new(staking.Delegation)
+	del.Released = new(big.Int).SetInt64(0)
+	del.RestrictingPlan = new(big.Int).SetInt64(0)
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del.DelegateEpoch = 1
+	del.CumulativeIncome = new(big.Int)
+	per := make([]*reward.DelegateRewardPer, 0)
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:    1,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(200),
+	})
+	expectedCumulativeIncome := per[1].CalDelegateReward(del.ReleasedHes)
+	calcDelegateIncome(3, del, per)
+	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+
+	del = new(staking.Delegation)
+	del.Released = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.RestrictingPlan = new(big.Int).SetInt64(0)
+	del.ReleasedHes = new(big.Int).Mul(new(big.Int).SetInt64(100), new(big.Int).SetInt64(params.LAT))
+	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
+	del.DelegateEpoch = 2
+	del.CumulativeIncome = new(big.Int)
+	per = make([]*reward.DelegateRewardPer, 0)
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:    2,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+	per = append(per, &reward.DelegateRewardPer{
+		Epoch:    3,
+		Delegate: new(big.Int).SetUint64(10),
+		Reward:   new(big.Int).SetUint64(100),
+	})
+
+	expectedCumulativeIncome = per[0].CalDelegateReward(del.Released)
+	expectedCumulativeIncome = expectedCumulativeIncome.Add(expectedCumulativeIncome, per[1].CalDelegateReward(new(big.Int).Add(del.Released, del.ReleasedHes)))
+	calcDelegateIncome(4, del, per)
+	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
 }

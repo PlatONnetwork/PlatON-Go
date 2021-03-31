@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
@@ -41,10 +57,16 @@ type GovContract struct {
 }
 
 func (gc *GovContract) RequiredGas(input []byte) uint64 {
+	if checkInputEmpty(input) {
+		return 0
+	}
 	return params.GovGas
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
+	if checkInputEmpty(input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, gc.FnSigns())
 }
 
@@ -73,19 +95,19 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	switch fcode {
 	case SubmitText:
 		if gasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitVersion:
 		if gasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitCancel:
 		if gasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	case SubmitParam:
 		if gasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
-			return common.InvalidParameter.Wrap("Gas price under the min gas price.")
+			return common.InvalidParameter.Wrap(ErrUnderPrice.Error())
 		}
 	}
 
@@ -99,7 +121,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitText of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -107,6 +129,10 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 
 	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	if txHash == common.ZeroHash {
@@ -120,7 +146,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		ProposalID:   txHash,
 		Proposer:     verifier,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitText", SubmitText, err)
 }
 
@@ -132,7 +158,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -143,6 +169,10 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 
 	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
 		return nil, ErrOutOfGas
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	if txHash == common.ZeroHash {
@@ -158,7 +188,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		Proposer:        verifier,
 		NewVersion:      newVersion,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitVersion", SubmitVersion, err)
 }
 
@@ -170,7 +200,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitCancel of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -182,10 +212,12 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		return nil, ErrOutOfGas
 	}
 
+	if gc.Evm.GasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
+	}
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
-
 	p := &gov.CancelProposal{
 		PIPID:           pipID,
 		EndVotingRounds: endVotingRounds,
@@ -195,7 +227,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		Proposer:        verifier,
 		TobeCanceled:    tobeCanceledProposalID,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
@@ -206,7 +238,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitParam of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"PIPID", pipID,
@@ -219,10 +251,13 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		return nil, ErrOutOfGas
 	}
 
+	if gc.Evm.GasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
+	}
+
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
-
 	p := &gov.ParamProposal{
 		PIPID:        pipID,
 		ProposalType: gov.Param,
@@ -233,8 +268,8 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		Name:         name,
 		NewValue:     newValue,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
-	return gc.nonCallHandler("submitParam", SubmitText, err)
+	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
+	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
@@ -244,7 +279,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call vote of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"verifierID", verifier.TerminalString(),
@@ -279,7 +314,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call declareVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"activeNode", activeNode.TerminalString(),
@@ -305,7 +340,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getProposal of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
@@ -321,7 +356,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getTallyResult of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
@@ -340,7 +375,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listProposal of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
@@ -355,7 +390,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getActiveVersion of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
@@ -370,7 +405,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getAccuVerifiesCount of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"blockNumber", blockNumber,
 		"blockHash", blockHash,
@@ -393,7 +428,7 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
-	returnValue := []uint16{uint16(len(list)), yeas, nays, abstentions}
+	returnValue := []uint64{uint64(len(list)), yeas, nays, abstentions}
 	return gc.callHandler("getAccuVerifiesCount", returnValue, nil)
 }
 
@@ -404,7 +439,7 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getGovernParamValue of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"module", module,
 		"name", name,
@@ -422,7 +457,7 @@ func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 	blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listGovernParam of GovContract",
-		"from", from.Hex(),
+		"from", from,
 		"txHash", txHash,
 		"module", module,
 		"blockNumber", blockNumber)
@@ -436,14 +471,14 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.GovContractAddr, gc.Evm, funcName+" of GovContract",
-				bizErr.Error(), int(fcode), int(bizErr.Code)), nil
+				bizErr.Error(), int(fcode), bizErr)
 		} else {
 			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "err", err)
 			return nil, err
 		}
 	} else {
-		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), int(common.NoErr.Code)), nil
+		return txResultHandler(vm.GovContractAddr, gc.Evm, "", "", int(fcode), common.NoErr)
 	}
 }
 

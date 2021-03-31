@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package evidence
 
 import (
@@ -54,7 +70,7 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 
 		nodes[i] = &cbfttypes.ValidateNode{
 			Index:   uint32(i),
-			Address: crypto.PubkeyToAddress(pk[i].PublicKey),
+			Address: crypto.PubkeyToNodeAddress(pk[i].PublicKey),
 			PubKey:  &pk[i].PublicKey,
 			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
 		}
@@ -79,7 +95,7 @@ func makePrepareBlock(epoch, viewNumber uint64, block *types.Block, blockIndex u
 		t.Fatalf("%s", "prepareBlock cannibalizeBytes error")
 	}
 	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
-	t.Logf("prepareBlock signature:%s", p.Signature.String())
+	//t.Logf("prepareBlock signature:%s", p.Signature.String())
 
 	return p
 }
@@ -100,7 +116,7 @@ func makePrepareVote(epoch, viewNumber uint64, blockHash common.Hash, blockNumbe
 		t.Fatalf("%s", "prepareVote cannibalizeBytes error")
 	}
 	p.Signature.SetBytes(secretKeys.Sign(string(buf)).Serialize())
-	t.Logf("prepareVote signature:%s", p.Signature.String())
+	//t.Logf("prepareVote signature:%s", p.Signature.String())
 
 	return p
 }

@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -19,9 +19,12 @@ package plugin
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -51,14 +54,25 @@ func initInfo(t *testing.T) (*SlashingPlugin, xcom.StateDB) {
 	StakingInstance()
 	RestrictingInstance()
 	chain := mock.NewChain()
-	gov.InitGenesisGovernParam(snapshotdb.Instance())
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
+	avList := []gov.ActiveVersionValue{
+		{
+			ActiveVersion: 1,
+			ActiveBlock:   0,
+		},
+	}
+	enValue, err := json.Marshal(avList)
+	if nil != err {
+		panic(err)
+	}
+	chain.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), enValue)
 	return si, chain.StateDB
 }
 
 func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.PrivateKey, blsKey bls.SecretKey, t *testing.T, stateDb xcom.StateDB) {
 	stakingDB := staking.NewStakingDB()
 
-	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	sender := common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
 
 	buildDbRestrictingPlan(sender, t, stateDb)
 
@@ -265,6 +279,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
+	newPlugins()
 	_, _, _ = newChainState()
 	si, stateDB := initInfo(t)
 	defer func() {
@@ -392,7 +407,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x94ac820f54471ae9a32342f8a86e516944ec333a717241428ed997c4d3c1c8e3",
            "validateNode": {
             "index": 0,
-            "address": "0x85396cdef1d2800c621361437c2439c59c934038",
             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
@@ -407,7 +421,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xc789252723b04c60fc4566abefa23aa4e9ef18d9b4ebd1b083a564700cbb8891",
            "validateNode": {
             "index": 0,
-            "address": "0x85396cdef1d2800c621361437c2439c59c934038",
             "nodeId": "c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1",
             "blsPubKey": "f9b5e5b333418f5f6cb23ad092d2321c49a6fc17dfa2e5899a0fa0a6ab96bc44482552c9149f5909ec7772a902094401912576fdd78497bf57399c711566284ae2f5db3f8e611ac21dbc53cf7c1ff881ab760c0f1e5954b9cd2602b98007ef05"
            },
@@ -425,7 +438,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -440,7 +452,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -458,7 +469,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -473,7 +483,6 @@ func TestSlashingPlugin_Slash(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -481,7 +490,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
           }
          }`
 	blockNumber = new(big.Int).Add(blockNumber, common.Big1)
-	stakingAddr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	stakingAddr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
 	stakingNodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
@@ -522,7 +531,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, commitHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, stakingAddr, can); nil != err {
+	if err := StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, common.NodeAddress(stakingAddr), can); nil != err {
 		t.Fatal(err)
 	}
 	normalEvidence, err := si.DecodeEvidence(1, normalData)
@@ -535,7 +544,11 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(normalEvidence, common.ZeroHash, blockNumber.Uint64(), stateDB, anotherSender); nil != err {
 		t.Fatal(err)
 	}
-	if value, err := si.CheckDuplicateSign(common.HexToAddress("0x85396cdef1d2800c621361437c2439c59c934038"), common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	slashNodeId, err := discover.HexID("c0b49363fa1c2a0d3c55cafec4955cb261a537afd4fe45ff21c7b84cba660d5157865d984c2d2a61b4df1d3d028634136d04030ed6a388b429eaa6e2bdefaed1")
+	if nil != err {
+		t.Fatal(err)
+	}
+	if value, err := si.CheckDuplicateSign(slashNodeId, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Fatal(err)
 	}
 	abnormalEvidence, err := si.DecodeEvidence(1, abnormalData)
@@ -568,8 +581,301 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
+	if _, err := si.CheckDuplicateSign(nodeIdArr[0], 1, 1, stateDB); nil != err {
 		t.Fatal(err)
+	}
+}
+
+func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
+	_, genesis, _ := newChainState()
+	si, stateDB := initInfo(t)
+	// Starting from the second consensus round
+	blockNumber := new(big.Int).SetUint64(xutil.ConsensusSize()*2 - xcom.ElectionDistance())
+	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	defer func() {
+		snapshotdb.Instance().Clear()
+	}()
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "4", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+
+	validatorQueue := make(staking.ValidatorQueue, 0)
+	// The following uses multiple nodes to simulate a variety of different scenarios
+	validatorMap := make(map[discover.NodeID]bool)
+	// Blocks were produced in the last round; removed from pending list
+	// bits：1 -> delete
+	validatorMap[nodeIdArr[0]] = true
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[0],
+	})
+	nodePrivate, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	noSlashingNodeId := discover.PubkeyID(&nodePrivate.PublicKey)
+	// Current round of production blocks; removed from pending list
+	// bits: 1 -> delete
+	validatorMap[noSlashingNodeId] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: noSlashingNodeId,
+	})
+	// There is no penalty when the time window is reached, there is no zero block in the middle,
+	// the last round was zero block, and the "bit" operation is performed.
+	// bits：010001
+	validatorMap[nodeIdArr[1]] = false
+	validatorMap[noSlashingNodeId] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[1],
+	})
+	// There is no penalty when the time window is reached;
+	// there is no production block in the penultimate round and no production block in the last round;
+	// "bit" operations are required
+	// bits：011001
+	validatorMap[nodeIdArr[2]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[2],
+	})
+	// There is no penalty for reaching the time window;
+	// there is no production block in the penultimate round, and the last round is not selected as a consensus node;
+	// a "bit" operation is required
+	// bits：001001
+	validatorMap[nodeIdArr[3]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[3],
+	})
+	// No penalty is reached when the time window is reached;
+	// it has not been selected as a consensus node in the middle, and it has not been selected as a consensus node in the last round;
+	// it is necessary to move the "bit" operation. After the operation, the "bit" bit = 0, from the list of waiting penalties Delete
+	// bits：00001 -> delete
+	validatorMap[nodeIdArr[4]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[4],
+	})
+	// Since the value of the time window is reduced after being governed;
+	// and there are no production blocks in the last two rounds, N bits need to be shifted, but no penalty is imposed.
+	// Governance again, at this time the time window becomes larger, and the consensus node was not selected in the last round, no penalty will be imposed.
+	// bits：111001
+	validatorMap[nodeIdArr[5]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[5],
+	})
+	// Meet the penalty conditions, punish them, and remove them from the pending list
+	// bits：1011 -> delete
+	validatorMap[nodeIdArr[6]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[6],
+	})
+	var blsKey bls.SecretKey
+	blsKey.SetByCSPRNG()
+	var blsKeyHex bls.PublicKeyHex
+	b, _ := blsKey.GetPublicKey().MarshalText()
+	if err := blsKeyHex.UnmarshalText(b); nil != err {
+		panic(err)
+	}
+
+	canAddr, err := xutil.NodeId2Addr(nodeIdArr[6])
+	if nil != err {
+		t.Fatal(err)
+	}
+	can := &staking.Candidate{
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeIdArr[6],
+			BlsPubKey:       blsKeyHex,
+			StakingAddress:  common.Address(canAddr),
+			BenefitAddress:  common.Address(canAddr),
+			StakingBlockNum: blockNumber.Uint64(),
+			StakingTxIndex:  1,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Shares:             new(big.Int).SetUint64(1000),
+			Released:           common.Big256,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+		},
+	}
+	stateDB.CreateAccount(can.StakingAddress)
+	stateDB.AddBalance(can.StakingAddress, new(big.Int).SetUint64(1000000000000000000))
+	if val, err := rlp.EncodeToBytes(can); nil != err {
+		t.Fatal(err)
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanBaseKeyByAddr(canAddr), val); nil != err {
+		t.Fatal(err)
+	}
+	if val, err := rlp.EncodeToBytes(can.CandidateMutable); nil != err {
+		t.Fatal(err)
+	} else if err := snapshotdb.Instance().PutBaseDB(staking.CanMutableKeyByAddr(canAddr), val); nil != err {
+		t.Fatal(err)
+	}
+
+	header := &types.Header{
+		Number: blockNumber,
+		Extra:  make([]byte, 97),
+	}
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Third consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
+	validatorMap[nodeIdArr[0]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[0],
+	})
+	validatorMap[nodeIdArr[6]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[6],
+	})
+	sign, err := crypto.Sign(header.SealHash().Bytes(), nodePrivate)
+	if nil != err {
+		t.Fatal(err)
+	}
+	copy(header.Extra[len(header.Extra)-common.ExtraSeal:], sign[:])
+	if err := si.setPackAmount(common.ZeroHash, header); nil != err {
+		t.Fatal(err)
+	}
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Fourth consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
+	validatorMap[nodeIdArr[0]] = true
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[0],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Fifth consensus round
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
+	validatorMap[nodeIdArr[2]] = false
+	validatorMap[nodeIdArr[3]] = false
+	validatorMap[nodeIdArr[5]] = false
+	validatorMap[nodeIdArr[6]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[2],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[3],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[5],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[6],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) != 1 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 1)
+		return
+	}
+	// Sixth consensus round
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "2", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
+	validatorMap[nodeIdArr[1]] = false
+	validatorMap[nodeIdArr[2]] = false
+	validatorMap[nodeIdArr[5]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[1],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[2],
+	})
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[5],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+	// Seventh consensus round
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "6", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+		t.Fatal(err)
+	}
+	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
+	validatorMap = make(map[discover.NodeID]bool)
+	validatorQueue = make(staking.ValidatorQueue, 0)
+	validatorMap[nodeIdArr[5]] = false
+	validatorQueue = append(validatorQueue, &staking.Validator{
+		NodeId: nodeIdArr[5],
+	})
+	if slashingQueue, err := si.zeroProduceProcess(common.ZeroHash, header, validatorMap, validatorQueue); nil != err {
+		t.Fatal(err)
+	} else if len(slashingQueue) > 0 {
+		t.Errorf("zeroProduceProcess amount: have %v, want %v", len(slashingQueue), 0)
+		return
+	}
+
+	waitSlashingNodeList, err := si.getWaitSlashingNodeList(header.Number.Uint64(), common.ZeroHash)
+	if nil != err {
+		t.Fatal(err)
+	}
+	if len(waitSlashingNodeList) != 4 {
+		t.Errorf("waitSlashingNodeList amount: have %v, want %v", len(waitSlashingNodeList), 0)
+		return
+	}
+	expectMap := make(map[discover.NodeID]*WaitSlashingNode)
+	expectMap[nodeIdArr[1]] = &WaitSlashingNode{
+		CountBit: 1,
+		Round:    5,
+	}
+	expectMap[nodeIdArr[2]] = &WaitSlashingNode{
+		CountBit: 3, // 11
+		Round:    4,
+	}
+	expectMap[nodeIdArr[3]] = &WaitSlashingNode{
+		CountBit: 1,
+		Round:    4,
+	}
+	expectMap[nodeIdArr[5]] = &WaitSlashingNode{
+		CountBit: 7, // 111
+		Round:    4,
+	}
+	for _, value := range waitSlashingNodeList {
+		if expectValue, ok := expectMap[value.NodeId]; !ok {
+			t.Errorf("waitSlashingNodeList info: not nodeId:%v", value.NodeId.TerminalString())
+			return
+		} else {
+			if expectValue.Round != value.Round {
+				t.Errorf("waitSlashingNodeList info: have round:%v, want round:%v", value.Round, expectValue.Round)
+				return
+			}
+			if expectValue.CountBit != value.CountBit {
+				t.Errorf("waitSlashingNodeList info: have countBit:%v, want countBit:%v", value.CountBit, expectValue.CountBit)
+				return
+			}
+		}
 	}
 }

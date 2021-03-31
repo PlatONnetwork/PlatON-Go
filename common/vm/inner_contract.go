@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -25,5 +25,12 @@ var (
 	RewardManagerPoolAddr      = common.HexToAddress("0x1000000000000000000000000000000000000003") // The PlatON Precompiled contract addr for reward
 	SlashingContractAddr       = common.HexToAddress("0x1000000000000000000000000000000000000004") // The PlatON Precompiled contract addr for slashing
 	GovContractAddr            = common.HexToAddress("0x1000000000000000000000000000000000000005") // The PlatON Precompiled contract addr for governance
+	DelegateRewardPoolAddr     = common.HexToAddress("0x1000000000000000000000000000000000000006") // The PlatON Precompiled contract addr for delegate reward
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 )
+
+type PrecompiledContractCheck interface {
+	IsPlatONPrecompiledContract(address common.Address) bool
+}
+
+var PrecompiledContractCheckInstance PrecompiledContractCheck

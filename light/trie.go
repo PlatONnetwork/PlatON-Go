@@ -89,20 +89,6 @@ func (db *odrDatabase) ContractCodeSize(addrHash, codeHash common.Hash) (int, er
 	return len(code), err
 }
 
-func (db *odrDatabase) ContractAbi(addrHash, abiHash common.Hash) ([]byte, error) {
-	if abiHash == sha3Nil {
-		return nil, nil
-	}
-	if abi, err := db.backend.Database().Get(abiHash[:]); err == nil {
-		return abi, nil
-	}
-	id := *db.id
-	id.AccKey = addrHash[:]
-	req := &CodeRequest{Id: &id, Hash: abiHash}
-	err := db.backend.Retrieve(db.ctx, req)
-	return req.Data, err
-}
-
 func (db *odrDatabase) TrieDB() *trie.Database {
 	return nil
 }
@@ -144,11 +130,19 @@ func (t *odrTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	return t.trie.Commit(onleaf)
 }
 
+func (t *odrTrie) ParallelCommit(onleaf trie.LeafCallback) (common.Hash, error) {
+	return t.Commit(onleaf)
+}
+
 func (t *odrTrie) Hash() common.Hash {
 	if t.trie == nil {
 		return t.id.Root
 	}
 	return t.trie.Hash()
+}
+
+func (t *odrTrie) ParallelHash() common.Hash {
+	return t.Hash()
 }
 
 func (t *odrTrie) NodeIterator(startkey []byte) trie.NodeIterator {
@@ -159,7 +153,7 @@ func (t *odrTrie) GetKey(sha []byte) []byte {
 	return nil
 }
 
-func (t *odrTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Putter) error {
+func (t *odrTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 	return errors.New("not implemented, needs client/server interface split")
 }
 

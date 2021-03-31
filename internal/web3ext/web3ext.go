@@ -235,11 +235,6 @@ web3._extend({
 			call: 'debug_chaindbCompact',
 		}),
 		new web3._extend.Method({
-			name: 'metrics',
-			call: 'debug_metrics',
-			params: 1
-		}),
-		new web3._extend.Method({
 			name: 'verbosity',
 			call: 'debug_verbosity',
 			params: 1
@@ -410,6 +405,10 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'economicConfig',
 			call: 'debug_economicConfig',
+		}),
+		new web3._extend.Method({
+			name: 'getWaitSlashingNodeList',
+			call: 'debug_getWaitSlashingNodeList',
 		}),
 		new web3._extend.Method({
 			name: 'enableDBGC',

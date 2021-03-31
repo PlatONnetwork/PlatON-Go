@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -43,10 +42,6 @@ type StateDB interface {
 	GetCode(common.Address) []byte
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
-
-	GetAbiHash(common.Address) common.Hash
-	GetAbi(common.Address) []byte
-	SetAbi(common.Address, []byte)
 
 	AddRefund(uint64)
 	SubRefund(uint64)
@@ -74,7 +69,7 @@ type StateDB interface {
 	AddLog(*types.Log)
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+	ForEachStorage(common.Address, func([]byte, []byte) bool)
 
 	//ppos add
 	TxHash() common.Hash
@@ -88,41 +83,47 @@ type Result struct {
 	Ret  interface{}
 }
 
-func NewOkResult(data interface{}) []byte {
-	res := &Result{common.NoErr.Code, data}
-	bs, _ := json.Marshal(res)
-	return bs
-}
-
-func NewFailedResult(err *common.BizError) []byte {
-	res := &Result{err.Code, err.Msg}
+func NewResult(err *common.BizError, data interface{}) []byte {
+	var res *Result
+	if err != nil && err != common.NoErr {
+		res = &Result{err.Code, err.Msg}
+	} else {
+		res = &Result{common.NoErr.Code, data}
+	}
 	bs, _ := json.Marshal(res)
 	return bs
 }
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
+	AddLogWithRes(state, blockNumber, contractAddr, event, data, nil)
+}
 
+// addLog let the result add to event.
+func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Address, event, code string, res interface{}) {
 	buf := new(bytes.Buffer)
-	if err := rlp.Encode(buf, [][]byte{[]byte(data)}); nil != err {
-		log.Error("Cannot RlpEncode the log data, data", "data", data)
-		panic("Cannot RlpEncode the log data")
+	if res == nil {
+		if err := rlp.Encode(buf, [][]byte{[]byte(code)}); nil != err {
+			log.Error("Cannot RlpEncode the log data", "data", code, "err", err)
+			panic("Cannot RlpEncode the log data")
+		}
+	} else {
+		resByte, err := rlp.EncodeToBytes(res)
+		if err != nil {
+			log.Error("Cannot RlpEncode the log res", "res", res, "err", err, "event", event)
+			panic("Cannot RlpEncode the log data")
+		}
+		if err := rlp.Encode(buf, [][]byte{[]byte(code), resByte}); nil != err {
+			log.Error("Cannot RlpEncode the log data", "data", code, "err", err, "event", event)
+			panic("Cannot RlpEncode the log data")
+		}
+
 	}
 
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
-		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Topics:      nil, //[]common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})
-}
-
-func PrintObject(s string, obj interface{}) {
-	objs, _ := json.Marshal(obj)
-	log.Debug(s + " == " + string(objs))
-}
-
-func PrintObjForErr(s string, obj interface{}) {
-	objs, _ := json.Marshal(obj)
-	log.Error(s + " == " + string(objs))
 }

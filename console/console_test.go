@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -102,6 +104,7 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
 	}
+	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 	//ethConf := &eth.Config{
 	//	Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
 	//}
@@ -201,6 +204,7 @@ func TestApi(t *testing.T) {
 	defer tester.Close(t)
 	fmt.Fprintf(tester.console.printer, "Welcome to the PlatON JavaScript console!\n\n")
 	_, err := tester.console.jsre.Run(`
+		console.log("aaaaaaa");
 		console.log("instance: " + web3.version.node);
 		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
@@ -211,9 +215,9 @@ func TestApi(t *testing.T) {
 		console.log("gasPrice",platon.gasPrice)
 		console.log("accounts",platon.accounts)
 		console.log("blockNumber",platon.blockNumber)
-		console.log("getBalance",platon.getBalance("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
-		console.log("getStorageAt",platon.getStorageAt("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
-		console.log("getTransactionCount",platon.getTransactionCount("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		console.log("getBalance",platon.getBalance("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getStorageAt",platon.getStorageAt("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
+		console.log("getTransactionCount",platon.getTransactionCount("lat1sczumw7md5ny4f6zuaczph9utr7decvzlw0wsq"))
 		console.log("getBlockTransactionCountByHash or ByNumber",platon.getBlockTransactionCount("1234"))
 		//console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")

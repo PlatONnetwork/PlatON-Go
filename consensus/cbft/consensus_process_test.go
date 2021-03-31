@@ -1,9 +1,30 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -28,14 +49,21 @@ func TestViewChange(t *testing.T) {
 }
 
 func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
+	tempDir, _ := ioutil.TempDir("", "wal")
+	defer os.RemoveAll(tempDir)
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
+
+	nodes[0].engine.wal, _ = wal.NewWal(nil, tempDir)
+	nodes[0].engine.bridge, _ = NewBridge(nodes[0].engine.nodeServiceContext, nodes[0].engine)
+
 	for i := 0; i < 4; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -81,9 +109,15 @@ func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
 		}))
 	}
 	assert.NotNil(t, nodes[0].engine.state.LastViewChangeQC())
-
 	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
-
+	lastViewChangeQC, _ := nodes[0].engine.bridge.GetViewChangeQC(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber())
+	assert.Nil(t, lastViewChangeQC)
+	lastViewChangeQC, _ = nodes[0].engine.bridge.GetViewChangeQC(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()-1)
+	assert.NotNil(t, lastViewChangeQC)
+	epoch, viewNumber, _, _, _, blockNumber := lastViewChangeQC.MaxBlock()
+	assert.Equal(t, nodes[0].engine.state.Epoch(), epoch)
+	assert.Equal(t, nodes[0].engine.state.ViewNumber()-1, viewNumber)
+	assert.Equal(t, uint64(4), blockNumber)
 }
 
 func testTryChangeViewByViewChange(t *testing.T, nodes []*TestCBFT) {
@@ -189,12 +223,13 @@ func testRichViewChangeQCCase(t *testing.T, c testCase) {
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 4; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -267,18 +302,20 @@ func TestViewChangeBySwitchPoint(t *testing.T) {
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
 		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node.agency = validator.NewMockAgency(cbftnodes, 10)
 		assert.Nil(t, node.Start())
 		node.engine.validatorPool.MockSwitchPoint(10)
 		nodes = append(nodes, node)
 	}
 
 	result := make(chan *types.Block, 1)
-
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < 10; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {

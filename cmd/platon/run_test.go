@@ -22,8 +22,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
 	"github.com/docker/docker/pkg/reexec"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
 )
 
 func tmpdir(t *testing.T) string {
@@ -34,7 +35,7 @@ func tmpdir(t *testing.T) string {
 	return dir
 }
 
-type testgeth struct {
+type testplaton struct {
 	*cmdtest.TestCmd
 
 	// template variables for expect
@@ -42,7 +43,7 @@ type testgeth struct {
 }
 
 func init() {
-	// Run the app if we've been exec'd as "platon-test" in runGeth.
+	// Run the app if we've been exec'd as "platon-test" in runPlatON.
 	reexec.Register("platon-test", func() {
 		if err := app.Run(os.Args); err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -62,8 +63,8 @@ func TestMain(m *testing.M) {
 
 // spawns platon with the given command line args. If the args don't set --datadir, the
 // child g gets a temporary data directory.
-func runGeth(t *testing.T, args ...string) *testgeth {
-	tt := &testgeth{}
+func runPlatON(t *testing.T, args ...string) *testplaton {
+	tt := &testplaton{}
 	tt.TestCmd = cmdtest.NewTestCmd(t, tt)
 	for i, arg := range args {
 		switch {
@@ -76,7 +77,7 @@ func runGeth(t *testing.T, args ...string) *testgeth {
 	if tt.Datadir == "" {
 		tt.Datadir = tmpdir(t)
 		tt.Cleanup = func() { os.RemoveAll(tt.Datadir) }
-		args = append([]string{"-datadir", tt.Datadir}, args...)
+		args = append([]string{"--datadir", tt.Datadir}, args...)
 		// Remove the temporary datadir if something fails below.
 		defer func() {
 			if t.Failed() {

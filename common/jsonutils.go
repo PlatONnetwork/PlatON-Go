@@ -1,12 +1,6 @@
 package common
 
-import (
-	"encoding/json"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-)
-
-func MustToString(obj interface{}) string {
+/*func MustToString(obj interface{}) string {
 	if obj == nil {
 		return ""
 	}
@@ -21,4 +15,4 @@ func MustToObject(bs []byte, objRefer *interface{}) {
 	}
 	err := json.Unmarshal(bs, objRefer)
 	log.Error("cannot unmarshal to object", "err", err)
-}
+}*/

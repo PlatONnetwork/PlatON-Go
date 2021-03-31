@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -25,14 +25,9 @@ import (
 // for genesis and plugin test
 type RestrictingInfo struct {
 	NeedRelease     *big.Int
-	StakingAmount   *big.Int
+	AdvanceAmount   *big.Int
 	CachePlanAmount *big.Int
-	//	SlashingMount *big.Int
-
-	//Balance     *big.Int // Balance representation all locked amount
-	//Debt        *big.Int // Debt representation will released amount.
-	//DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
-	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
+	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
 }
 
 func (r *RestrictingInfo) RemoveEpoch(epoch uint64) {
@@ -63,9 +58,3 @@ type Result struct {
 	Entry   []ReleaseAmountInfo `json:"plans"`
 	Pledge  *hexutil.Big        `json:"Pledge"`
 }
-
-//
-//type EpochInfo struct {
-//	Account common.Address
-//	Amount  *big.Int
-//}

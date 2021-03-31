@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@
 package gov
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -35,17 +36,19 @@ type Staking interface {
 	GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error)
 	ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error)
 	GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error)
-	GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error)
-	GetCanBase(blockHash common.Hash, addr common.Address) (*staking.CandidateBase, error)
-	GetCanMutable(blockHash common.Hash, addr common.Address) (*staking.CandidateMutable, error)
+	GetCandidateInfo(blockHash common.Hash, addr common.NodeAddress) (*staking.Candidate, error)
+	GetCanBase(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateBase, error)
+	GetCanMutable(blockHash common.Hash, addr common.NodeAddress) (*staking.CandidateMutable, error)
 	DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error
 }
 
 const (
-	ModuleStaking  = "staking"
-	ModuleSlashing = "slashing"
-	ModuleBlock    = "block"
-	ModuleTxPool   = "txPool"
+	ModuleStaking     = "staking"
+	ModuleSlashing    = "slashing"
+	ModuleBlock       = "block"
+	ModuleTxPool      = "txPool"
+	ModuleReward      = "reward"
+	ModuleRestricting = "restricting"
 )
 
 const (
@@ -59,16 +62,17 @@ const (
 	KeySlashBlocksReward          = "slashBlocksReward"
 	KeyMaxBlockGasLimit           = "maxBlockGasLimit"
 	KeyMaxTxDataLimit             = "maxTxDataLimit"
+	KeyZeroProduceNumberThreshold = "zeroProduceNumberThreshold"
+	KeyZeroProduceCumulativeTime  = "zeroProduceCumulativeTime"
+	KeyRewardPerMaxChangeRange    = "rewardPerMaxChangeRange"
+	KeyRewardPerChangeInterval    = "rewardPerChangeInterval"
+	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
+	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
+	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
 
-const (
-//GenesisTxSize = 1024 * 1024        //  1 MB
-//CeilTxSize    = GenesisTxSize * 10 // 10 MB
-
-)
-
-func GetVersionForStaking(state xcom.StateDB) uint32 {
-	preActiveVersion := GetPreActiveVersion(state)
+func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
+	preActiveVersion := GetPreActiveVersion(blockHash)
 	if preActiveVersion > 0 {
 		return preActiveVersion
 	} else {
@@ -80,13 +84,13 @@ func GetVersionForStaking(state xcom.StateDB) uint32 {
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
-		log.Error("Cannot find active version list")
+		log.Error("Cannot find active version list", "err", err)
 		return 0
 	}
 
 	var version uint32
 	if len(avList) == 0 {
-		log.Error("cannot find current active version")
+		log.Warn("cannot find current active version, The ActiveVersion List is nil")
 		return 0
 	} else {
 		version = avList[0].ActiveVersion
@@ -95,11 +99,11 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // submit a proposal
-func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
-	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
+	if err := proposal.Verify(blockNumber, blockHash, state, chainID); err != nil {
 		if bizError, ok := err.(*common.BizError); ok {
 			return bizError
 		} else {
@@ -287,7 +291,7 @@ func DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declare
 		}
 	} else {
 		log.Debug("there is no version proposal at voting stage")
-		preActiveVersion := GetPreActiveVersion(state)
+		preActiveVersion := GetPreActiveVersion(blockHash)
 		if preActiveVersion <= 0 {
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
@@ -343,7 +347,7 @@ func checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common
 					return err
 				}
 				candidate, err := stk.GetCanMutable(blockHash, nodeAddress)
-				if err != nil {
+				if candidate == nil || err != nil {
 					return VerifierInfoNotFound
 				} else if candidate.IsInvalid() {
 					return VerifierStatusInvalid
@@ -476,15 +480,19 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
+				removed := make([]VoteValue, 0)
 				for _, voteValue := range voteValueList {
 					//if !xutil.InNodeIDList(voteValue.VoteNodeID, punishedVerifiers) {
 					if _, isPunished := punishedVerifierMap[voteValue.VoteNodeID]; !isPunished {
 						voteValueList[idx] = voteValue
 						idx++
+					} else {
+						removed = append(removed, voteValue)
 					}
 				}
-				if idx < len(voteValueList) {
+				if len(removed) > 0 && idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
+					log.Debug(fmt.Sprintf("remove voted value, proposalID:%s, removedVoteValue:%+v", proposalID.Hex(), removed))
 					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}
@@ -508,6 +516,70 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[disc
 	}
 	return nil
 }
+
+func ClearProcessingProposals(blockHash common.Hash, state xcom.StateDB) error {
+	if votingIDList, err := ListVotingProposalID(blockHash); err != nil {
+		return err
+	} else {
+		for _, votingID := range votingIDList {
+			if err := clearProcessingProposal(votingID, true, blockHash, state); err != nil {
+				return err
+			}
+		}
+	}
+
+	if preactiveID, err := GetPreActiveProposalID(blockHash); err != nil {
+		log.Error(" find pre-active proposal ID failed", "blockHash", blockHash)
+		return err
+	} else if preactiveID != common.ZeroHash {
+		if err := clearProcessingProposal(preactiveID, false, blockHash, state); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash common.Hash, state xcom.StateDB) error {
+	if isVoting {
+		if err := MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
+			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
+			return err
+		}
+	} else {
+		if err := MovePreActiveProposalIDToEnd(blockHash, proposalID); err != nil {
+			log.Error("move pre-active proposal ID to end list failed", "proposalID", proposalID, "blockHash", blockHash)
+			return err
+		}
+
+		if err := delPreActiveVersion(blockHash); err != nil {
+			log.Error("delete pre-active version failed", "blockHash", blockHash)
+			return err
+		}
+	}
+
+	if err := ClearVoteValue(proposalID, blockHash); err != nil {
+		log.Error("clear vote values failed", "proposalID", proposalID, "blockHash", blockHash)
+		return err
+	}
+	if err := ClearAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("clear voted verifiers failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
+		return err
+	}
+	tallyResult := &TallyResult{
+		ProposalID:    proposalID,
+		Yeas:          0x0,
+		Nays:          0x0,
+		Abstentions:   0x0,
+		AccuVerifiers: 0x0,
+		Status:        Failed,
+	}
+	if err := SetTallyResult(*tallyResult, state); err != nil {
+		log.Error("save tally result failed", "proposalID", proposalID, "blockHash", blockHash)
+		return err
+	}
+	return nil
+}
+
 func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
 	paramValue := &ParamValue{"", initValue, activeBlockNumber}
 	return addGovernParam(module, name, desc, paramValue, currentBlockHash)
@@ -725,3 +797,100 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, err
 //
 //	return size, nil
 //}
+
+func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceNumberThreshold, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := GetGovernParamValue(ModuleReward, KeyIncreaseIssuanceRatio, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint16(value), nil
+}
+
+func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(value), nil
+}
+
+func GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	valueStr, err := GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
+	if nil != err {
+		return nil, err
+	}
+	value, ok := new(big.Int).SetString(valueStr, 10)
+	if !ok {
+		return nil, errors.New("set KeyRestrictingMinimumAmount to big int fail")
+	}
+
+	return value, nil
+}

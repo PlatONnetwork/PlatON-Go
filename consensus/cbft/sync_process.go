@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
@@ -71,12 +87,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
 					return
 				}
-				start := time.Now()
 				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
 					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 					return
 				}
-				blockExecutedTimer.UpdateSince(start)
 				parentBlock = block
 			}
 
@@ -99,43 +113,58 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 			// Remove local forks that already exist.
 			filteredForkedBlocks := make([]*types.Block, 0)
 			filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
-			localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+			//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+			localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
+
+			if localForkedBlocks != nil && len(localForkedBlocks) > 0 {
+				cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
+			}
+
 			for i, forkedBlock := range blockList.ForkedBlocks {
 				for _, localForkedBlock := range localForkedBlocks {
-					if forkedBlock.Hash() != localForkedBlock.Hash() && forkedBlock.NumberU64() != localForkedBlock.NumberU64() {
+					if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
 						filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
 						filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
 						break
 					}
 				}
 			}
+			if filteredForkedBlocks != nil && len(filteredForkedBlocks) > 0 {
+				cbft.log.Debug("FilteredForkedBlocks", "number", filteredForkedBlocks[0].NumberU64(), "hash", filteredForkedBlocks[0].Hash().TerminalString())
+			}
 
 			// Execution forked block.
-			var forkedParentBlock *types.Block
+			//var forkedParentBlock *types.Block
 			for _, forkedBlock := range filteredForkedBlocks {
 				if forkedBlock.NumberU64() != parentBlock.NumberU64() {
 					cbft.log.Error("Invalid forked block", "lastParentNumber", parentBlock.NumberU64(), "forkedBlockNumber", forkedBlock.NumberU64())
 					break
 				}
-				for _, block := range blockList.Blocks {
-					if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
-						forkedParentBlock = block
-						break
-					}
-				}
-				if forkedParentBlock != nil {
-					break
-				}
+				//for _, block := range blockList.Blocks {
+				//	if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
+				//		forkedParentBlock = block
+				//		break
+				//	}
+				//}
+				//if forkedParentBlock != nil {
+				//	break
+				//}
 			}
 
 			// Verify forked block and execute.
 			for _, forkedBlock := range filteredForkedBlocks {
-				if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
+				parentBlock := cbft.blockTree.FindBlockByHash(forkedBlock.ParentHash())
+				if parentBlock == nil {
 					cbft.log.Debug("Response forked block's is error",
-						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
-						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64())
 					return
 				}
+				//if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
+				//	cbft.log.Debug("Response forked block's is error",
+				//		"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
+				//		"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+				//	return
+				//}
 
 				if err := cbft.blockCacheWriter.Execute(forkedBlock, parentBlock); err != nil {
 					cbft.log.Error("Execute forked block failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
@@ -393,7 +422,16 @@ func (cbft *Cbft) OnGetLatestStatus(id string, msg *protocols.GetLatestStatus) e
 			cbft.log.Debug("Local qcBn is equal the sender's qcBn", "remoteBn", msg.BlockNumber, "localBn", localQCNum, "remoteHash", msg.BlockHash, "localHash", localQCHash)
 			if forkedHash, forkedNum, forked := cbft.blockTree.IsForked(localQCHash, localQCNum); forked {
 				cbft.log.Debug("Local highest QC forked", "forkedQCHash", forkedHash, "forkedQCNumber", forkedNum, "localQCHash", localQCHash, "localQCNumber", localQCNum)
-				cbft.network.Send(id, &protocols.LatestStatus{BlockNumber: forkedNum, BlockHash: forkedHash, LBlockNumber: localLockNum, LBlockHash: localLockHash, LogicType: msg.LogicType})
+				_, qc := cbft.blockTree.FindBlockAndQC(forkedHash, forkedNum)
+				_, lockQC := cbft.blockTree.FindBlockAndQC(localLockHash, localLockNum)
+				cbft.network.Send(id, &protocols.LatestStatus{
+					BlockNumber:  forkedNum,
+					BlockHash:    forkedHash,
+					QuorumCert:   qc,
+					LBlockNumber: localLockNum,
+					LBlockHash:   localLockHash,
+					LQuorumCert:  lockQC,
+					LogicType:    msg.LogicType})
 			}
 			return nil
 		}
@@ -507,7 +545,7 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	if isLastView() {
 		lastViewChangeQC := cbft.state.LastViewChangeQC()
 		if lastViewChangeQC == nil {
-			cbft.log.Error("Not found lastViewChangeQC")
+			cbft.log.Info("Not found lastViewChangeQC")
 			return nil
 		}
 		err := lastViewChangeQC.EqualAll(msg.Epoch, msg.ViewNumber)
@@ -523,9 +561,16 @@ func (cbft *Cbft) OnGetViewChange(id string, msg *protocols.GetViewChange) error
 	// get previous viewChangeQC from wal db
 	if isPreviousView() {
 		if qc, err := cbft.bridge.GetViewChangeQC(msg.Epoch, msg.ViewNumber); err == nil && qc != nil {
-			cbft.network.Send(id, &protocols.ViewChangeQuorumCert{
+			// also inform the local highest view
+			highestqc, _ := cbft.bridge.GetViewChangeQC(localEpoch, localViewNumber-1)
+			viewChangeQuorumCert := &protocols.ViewChangeQuorumCert{
 				ViewChangeQC: qc,
-			})
+			}
+			if highestqc != nil {
+				viewChangeQuorumCert.HighestViewChangeQC = highestqc
+			}
+			cbft.log.Debug("Send previous viewChange quorumCert", "viewChangeQuorumCert", viewChangeQuorumCert.String())
+			cbft.network.Send(id, viewChangeQuorumCert)
 			return nil
 		}
 	}
@@ -547,7 +592,40 @@ func (cbft *Cbft) OnViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuo
 			return &authFailedError{err}
 		}
 	}
+	// if the other party's view is still higher than the local one, continue to synchronize the view
+	cbft.trySyncViewChangeQuorumCert(id, msg)
 	return nil
+}
+
+// Synchronize view one by one according to the highest view notified by the other party
+func (cbft *Cbft) trySyncViewChangeQuorumCert(id string, msg *protocols.ViewChangeQuorumCert) {
+	highestViewChangeQC := msg.HighestViewChangeQC
+	if highestViewChangeQC == nil {
+		return
+	}
+	epoch, viewNumber, _, _, _, _ := highestViewChangeQC.MaxBlock()
+	if cbft.state.Epoch() != epoch {
+		return
+	}
+	if cbft.state.ViewNumber() == viewNumber {
+		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
+			cbft.log.Debug("The highest view is equal to local, change view by highestViewChangeQC directly", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			cbft.tryChangeViewByViewChange(highestViewChangeQC)
+		}
+		return
+	}
+	if cbft.state.ViewNumber() < viewNumber {
+		// if local view lags, synchronize view one by one
+		if err := cbft.verifyViewChangeQC(highestViewChangeQC); err == nil {
+			cbft.log.Debug("Receive future viewChange quorumCert, sync viewChangeQC with fast mode", "localView", cbft.state.ViewString(), "futureView", highestViewChangeQC.String())
+			// request viewChangeQC for the current view
+			cbft.network.Send(id, &protocols.GetViewChange{
+				Epoch:          cbft.state.Epoch(),
+				ViewNumber:     cbft.state.ViewNumber(),
+				ViewChangeBits: utils.NewBitArray(uint32(cbft.currentValidatorLen())),
+			})
+		}
+	}
 }
 
 // OnViewChanges handles the message type of ViewChangesMsg.

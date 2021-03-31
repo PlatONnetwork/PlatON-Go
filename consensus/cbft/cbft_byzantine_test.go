@@ -1,8 +1,24 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -10,11 +26,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
@@ -59,11 +75,13 @@ func MockNodes(t *testing.T, num int) []*TestCBFT {
 
 func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 	result := make(chan *types.Block, 1)
+	complete := make(chan struct{}, 1)
 	parent := nodes[0].chain.Genesis()
 	for i := 0; i < reach; i++ {
 		block := NewBlockWithSign(parent.Hash(), parent.NumberU64()+1, nodes[0])
 		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil)
+		nodes[0].engine.OnSeal(block, result, nil, complete)
+		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
 		select {
@@ -84,6 +102,7 @@ func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
 			parent = b
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }
@@ -133,7 +152,7 @@ func NewBadBlock(parent common.Hash, number uint64, node *TestCBFT) *types.Block
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        big.NewInt(time.Now().UnixNano() / 1e6),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b422")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
@@ -253,7 +272,7 @@ func TestPB03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareBlockEvidence)
 		if ok {
 			assert.Equal(t, lockBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -480,7 +499,7 @@ func TestVT02(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareVoteEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -593,7 +612,7 @@ func TestVC03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicateViewChangeEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, crypto.PubkeyToAddress(nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].Address())
+			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}

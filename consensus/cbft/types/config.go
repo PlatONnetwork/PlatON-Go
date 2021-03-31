@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -25,22 +25,22 @@ import (
 )
 
 type OptionsConfig struct {
-	NodePriKey *ecdsa.PrivateKey
-	NodeID     discover.NodeID
-	BlsPriKey  *bls.SecretKey
-	WalMode    bool
+	NodePriKey *ecdsa.PrivateKey `json:"-"`
+	NodeID     discover.NodeID   `json:"nodeID"`
+	BlsPriKey  *bls.SecretKey    `json:"-"`
+	WalMode    bool              `json:"walMode"`
 
-	PeerMsgQueueSize  uint64
-	EvidenceDir       string
-	MaxPingLatency    int64 // maxPingLatency is the time in milliseconds between Ping and Pong
-	MaxQueuesLimit    int64 // The maximum value that a single node can send a message.
-	BlacklistDeadline int64 // Blacklist expiration time. unit: minute.
+	PeerMsgQueueSize  uint64 `json:"peerMsgQueueSize"`
+	EvidenceDir       string `json:"evidenceDir"`
+	MaxPingLatency    int64  `json:"maxPingLatency"`    // maxPingLatency is the time in milliseconds between Ping and Pong
+	MaxQueuesLimit    int64  `json:"maxQueuesLimit"`    // The maximum value that a single node can send a message.
+	BlacklistDeadline int64  `json:"blacklistDeadline"` // Blacklist expiration time. unit: minute.
 
-	Period uint64
-	Amount uint32
+	Period uint64 `json:"period"`
+	Amount uint32 `json:"amount"`
 }
 
 type Config struct {
-	Sys    *params.CbftConfig
-	Option *OptionsConfig
+	Sys    *params.CbftConfig `json:"sys"`
+	Option *OptionsConfig     `json:"option"`
 }

@@ -18,8 +18,6 @@ package eth
 
 import (
 	"math/big"
-	"os"
-	"os/user"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -29,10 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
-)
-
-const (
-	datadirCbftConfig = "cbft.json" // Path within the datadir to the cbft config
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
@@ -51,17 +45,20 @@ var DefaultConfig = Config{
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
-	TrieCache:     256,
+	TrieCache:     32,
 	TrieTimeout:   60 * time.Minute,
+	TrieDBCache:   512,
 	MinerGasFloor: params.GenesisGasLimit,
 	//MinerGasCeil:  4000 * 21000 * 1.2,
-	DBDisabledGC:  false,
-	DBGCInterval:  86400,
-	DBGCTimeout:   time.Minute,
-	DBGCMpt:       true,
-	DBGCBlock:     10,
-	MinerGasPrice: big.NewInt(params.GVon),
-	MinerRecommit: 3 * time.Second,
+	DBDisabledGC:      false,
+	DBGCInterval:      86400,
+	DBGCTimeout:       time.Minute,
+	DBGCMpt:           true,
+	DBGCBlock:         10,
+	VMWasmType:        "wagon",
+	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
+	MinerGasPrice:     big.NewInt(params.GVon),
+	MinerRecommit:     3 * time.Second,
 
 	MiningLogAtDepth:       7,
 	TxChanSize:             4096,
@@ -93,15 +90,6 @@ var DefaultConfig = Config{
 	//VCPool:  core.DefaultVCPoolConfig,
 }
 
-func init() {
-	home := os.Getenv("HOME")
-	if home == "" {
-		if user, err := user.Current(); err == nil {
-			home = user.HomeDir
-		}
-	}
-}
-
 //go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
 
 type Config struct {
@@ -126,11 +114,16 @@ type Config struct {
 	DatabaseCache      int
 	TrieCache          int
 	TrieTimeout        time.Duration
+	TrieDBCache        int
 	DBDisabledGC       bool
 	DBGCInterval       uint64
 	DBGCTimeout        time.Duration
 	DBGCMpt            bool
-	DBGCBlock          uint64
+	DBGCBlock          int
+
+	// VM options
+	VMWasmType        string
+	VmTimeoutDuration uint64
 
 	// Mining-related options
 	MinerExtraData []byte `toml:",omitempty"`

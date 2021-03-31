@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package evidence
 
 import (
@@ -426,20 +442,4 @@ func TestDuplicateViewChangeEvidence_Validate(t *testing.T) {
 		ViewB: evidenceViewB,
 	}
 	assert.Nil(t, d.Validate())
-}
-
-func TestDuplicateViewChangeEvidence_Address(t *testing.T) {
-	validateNodes, secretKeys := createValidateNode(1)
-
-	vcA := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewA, _ := NewEvidenceView(vcA, validateNodes[0])
-
-	vcB := makeViewChange(1, 1, common.BytesToHash(utils.Rand32Bytes(32)), 1, validateNodes[0].Index, t, secretKeys[0])
-	evidenceViewB, _ := NewEvidenceView(vcB, validateNodes[0])
-
-	d := &DuplicateViewChangeEvidence{
-		ViewA: evidenceViewA,
-		ViewB: evidenceViewB,
-	}
-	assert.Equal(t, validateNodes[0].Address, d.Address())
 }

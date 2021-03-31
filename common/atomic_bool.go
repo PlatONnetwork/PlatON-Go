@@ -24,7 +24,7 @@ func (ab *AtomicBool) IsSet() bool {
 	return atomic.LoadUint32(&ab.value) > 0
 }
 
-// Set sets the value of the bool regardless of ther previous value.
+// Set sets the value of the bool regardless of the previous value.
 func (ab *AtomicBool) Set(value bool) {
 	if value {
 		atomic.StoreUint32(&ab.value, 1)

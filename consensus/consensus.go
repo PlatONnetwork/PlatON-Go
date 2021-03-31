@@ -107,7 +107,7 @@ type Engine interface {
 	//
 	// Note, the method returns immediately and will send the result async. More
 	// than one result may also be returned depending on the consensus algorithm.
-	Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error
+	Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error
 
 	// SealHash returns the hash of a block prior to it being sealed.
 	SealHash(header *types.Header) common.Hash
@@ -125,6 +125,8 @@ type Engine interface {
 
 	GetBlockByHash(hash common.Hash) *types.Block
 
+	GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block
+
 	CurrentBlock() *types.Block
 
 	FastSyncCommitHead(block *types.Block) error
@@ -138,6 +140,8 @@ type Engine interface {
 	Resume()
 
 	DecodeExtra(extra []byte) (common.Hash, uint64, error)
+
+	Syncing() bool
 }
 
 // PoW is a consensus engine based on proof-of-work.

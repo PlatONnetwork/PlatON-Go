@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -17,8 +17,6 @@
 package gov
 
 import (
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -62,6 +60,31 @@ func getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
 	return getProposalIDListByKey(blockHash, KeyVotingProposals())
 }
 
+// Set pre-active version
+func setPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
+	return put(blockHash, KeyPreActiveVersion(), preActiveVersion)
+}
+
+// Get pre-active version
+func getPreActiveVersion(blockHash common.Hash) uint32 {
+	bytes, err := get(blockHash, KeyPreActiveVersion())
+	if snapshotdb.NonDbNotFoundErr(err) {
+		return uint32(0)
+	}
+
+	var activeVersion uint32
+	if len(bytes) > 0 {
+		if err = rlp.DecodeBytes(bytes, &activeVersion); err != nil {
+			return uint32(0)
+		}
+	}
+	return activeVersion
+}
+
+func delPreActiveVersion(blockHash common.Hash) error {
+	return del(blockHash, KeyPreActiveVersion())
+}
+
 func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
 	bytes, err := get(blockHash, KeyPreActiveProposal())
@@ -77,7 +100,6 @@ func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 		}
 	}
 	return proposalID, nil
-
 }
 
 func getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
@@ -209,6 +231,10 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]discover
 	return nil, nil
 }
 
+func delAccuVerifiers(blockHash common.Hash, proposalId common.Hash) error {
+	return del(blockHash, KeyAccuVerifier(proposalId))
+}
+
 func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
 	itemList, err := listGovernParamItem("", blockHash)
 	if err != nil {
@@ -261,7 +287,7 @@ func updateGovernParamValue(module, name, newValue string, activeBlock uint64, b
 		}
 		return nil
 	}
-	return fmt.Errorf("Not found the %s.%s Govern value", module, name)
+	return UnsupportedGovernParam
 }
 
 func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {

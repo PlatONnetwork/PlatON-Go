@@ -172,7 +172,6 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	bn := currentBlock.Number()
 
 	pHead, pBn := peer.Head()
-	//modified by platon
 	diff := new(big.Int).Sub(pBn, bn)
 	if diff.Cmp(big.NewInt(2)) < 0 {
 		return
@@ -200,9 +199,13 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 		}
 	}
 
+	//wn chain is syncing,keep the chain not receive txs
+	if diff.Cmp(big.NewInt(5)) > 0 {
+		atomic.StoreUint32(&pm.acceptTxs, 0)
+	}
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
 	if err := pm.downloader.Synchronise(peer.id, pHead, pBn, mode); err != nil {
-		log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode)
+		log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode, "err", err)
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {

@@ -27,11 +27,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	mapset "github.com/deckarep/golang-set"
 )
 
 var (
@@ -101,24 +102,20 @@ type peer struct {
 	queuedProps        chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns         chan *types.Block         // Queue of blocks to announce to the peer
 	term               chan struct{}             // Termination channel to stop the broadcaster
-	queuedPreBlock     chan *preBlockEvent
-	queuedSignature    chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:            p,
-		rw:              rw,
-		version:         version,
-		id:              fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		knownTxs:        mapset.NewSet(),
-		knownBlocks:     mapset.NewSet(),
-		queuedTxs:       make(chan []*types.Transaction, maxQueuedTxs),
-		queuedProps:     make(chan *propEvent, maxQueuedProps),
-		queuedAnns:      make(chan *types.Block, maxQueuedAnns),
-		term:            make(chan struct{}),
-		queuedPreBlock:  make(chan *preBlockEvent, maxQueuedPreBlock),
-		queuedSignature: make(chan *signatureEvent, maxQueuedSignature),
+		Peer:        p,
+		rw:          rw,
+		version:     version,
+		id:          fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		knownTxs:    mapset.NewSet(),
+		knownBlocks: mapset.NewSet(),
+		queuedTxs:   make(chan []*types.Transaction, maxQueuedTxs),
+		queuedProps: make(chan *propEvent, maxQueuedProps),
+		queuedAnns:  make(chan *types.Block, maxQueuedAnns),
+		term:        make(chan struct{}),
 	}
 }
 
@@ -140,19 +137,6 @@ func (p *peer) broadcast() {
 					return
 				}
 				p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
-
-			case prop := <-p.queuedPreBlock:
-				if err := p.SendPrepareBlock(prop.block); err != nil {
-					return
-				}
-				p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
-
-			case prop := <-p.queuedSignature:
-				signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
-				if err := p.SendSignature(signature); err != nil {
-					return
-				}
-				p.Log().Trace("Propagated block signature", "hash", signature.Hash)
 
 			case <-p.term:
 				return
@@ -235,28 +219,7 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 // SendTransactions sends transactions to the peer and includes the hashes
 // in its transaction hash set for future reference.
 func (p *peer) SendTransactions(txs types.Transactions) error {
-	// send signature first before send tx msg.&& len(txs) > 20
-	if len(p.queuedSignature) != 0 && len(txs) > maxBlockingTxs {
-		var count uint32
-	finish:
-		for {
-			if len(p.queuedSignature) == 0 || count > maxPrioritySigCounts {
-				break finish
-			}
-			select {
-			case prop := <-p.queuedSignature:
-				signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
-				if err := p.SendSignature(signature); err != nil {
-					p.Log().Error("Propagated signature fail::", "hash", signature.Hash)
-				}
-				count++
-				p.Log().Trace("Priority propagated signature success::", "hash", signature.Hash)
-			default:
-				p.Log().Trace("Priority propagated signature timeout")
-				break finish
-			}
-		}
-	}
+
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
@@ -726,23 +689,6 @@ func (p *peer) SendPrepareBlock(block *types.Block) error {
 	return p2p.Send(p.rw, PrepareBlockMsg, []interface{}{block})
 }
 
-func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
-	select {
-	case p.queuedPreBlock <- &preBlockEvent{block: block}:
-		p.Log().Debug("Send prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
-	default:
-		p.Log().Debug("Dropping prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
-	}
-}
-
 func (p *peer) SendSignature(signature *cbfttypes.BlockSignature) error {
 	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature.SignHash, signature.Hash, signature.Number, signature.Signature})
-}
-
-func (p *peer) AsyncSendSignature(signature *cbfttypes.BlockSignature) {
-	select {
-	case p.queuedSignature <- &signatureEvent{SignHash: signature.SignHash, Hash: signature.Hash, Number: signature.Number, Signature: signature.Signature}:
-	default:
-		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
-	}
 }

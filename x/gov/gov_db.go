@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -140,10 +140,10 @@ func UpdateVoteValue(proposalID common.Hash, voteValueList []VoteValue, blockHas
 }
 
 // TallyVoteValue statistics vote option for a proposal
-func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, abstentions uint16, e error) {
-	yes := uint16(0)
-	no := uint16(0)
-	abst := uint16(0)
+func TallyVoteValue(proposalID common.Hash, blockHash common.Hash) (yeas, nays, abstentions uint64, e error) {
+	yes := uint64(0)
+	no := uint64(0)
+	abst := uint64(0)
 
 	voteList, err := ListVoteValue(proposalID, blockHash)
 	if err == nil {
@@ -230,15 +230,13 @@ func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, e
 }
 
 // Set pre-active version
-func SetPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) error {
-	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
-	return nil
+func SetPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
+	return setPreActiveVersion(blockHash, preActiveVersion)
 }
 
 // Get pre-active version
-func GetPreActiveVersion(state xcom.StateDB) uint32 {
-	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
-	return common.BytesToUint32(value)
+func GetPreActiveVersion(blockHash common.Hash) uint32 {
+	return getPreActiveVersion(blockHash)
 }
 
 // Set active version record
@@ -293,19 +291,12 @@ func AddVotingProposalID(blockHash common.Hash, proposalID common.Hash) error {
 	return nil
 }
 
-func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
+func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, preactiveVersion uint32) error {
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
 		return err
 	}
 	voting = remove(voting, proposalID)
-
-	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
-	if err != nil {
-		return common.NewSysError(err.Error())
-	}
-
-	pre = append(pre, proposalID)*/
 
 	err = put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
@@ -314,6 +305,10 @@ func MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Ha
 
 	err = put(blockHash, KeyPreActiveProposal(), proposalID)
 	if err != nil {
+		return err
+	}
+
+	if err := SetPreActiveVersion(blockHash, preactiveVersion); err != nil {
 		return err
 	}
 
@@ -359,12 +354,19 @@ func MoveVotingProposalIDToEnd(proposalID common.Hash, blockHash common.Hash) er
 
 func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
 	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
-	err := put(blockHash, KeyPreActiveProposal(), common.Hash{})
+	err := del(blockHash, KeyPreActiveProposal())
 	if err != nil {
 		return err
 	}
 
+	// add this proposal ID to End list
 	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
+	if err != nil {
+		return err
+	}
+
+	// remove the pre-active version
+	err = delPreActiveVersion(blockHash)
 	if err != nil {
 		return err
 	}
@@ -418,6 +420,14 @@ func ListAccuVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover
 	} else {
 		return l, nil
 	}
+}
+
+func ClearAccuVerifiers(blockHash common.Hash, proposalID common.Hash) error {
+	if err := delAccuVerifiers(blockHash, proposalID); err != nil {
+		log.Error("clear voted verifiers in snapshot db failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
+		return err
+	}
+	return nil
 }
 
 func AddPIPID(pipID string, state xcom.StateDB) error {
