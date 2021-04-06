@@ -52,7 +52,7 @@ const (
 	CeilUnStakeFreezeDuration = 168 * 2
 	CeilMaxEvidenceAge        = CeilUnStakeFreezeDuration - 1
 	// The maximum time range for the cumulative number of zero blocks (No more than 64)
-	maxZeroProduceCumulativeTime uint16 = 50
+	MaxZeroProduceCumulativeTime uint16 = 50
 
 	RewardPerMaxChangeRangeUpperLimit = 2000
 	RewardPerMaxChangeRangeLowerLimit = 1
@@ -63,6 +63,8 @@ const (
 
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
 	ElectionBase = 30
+
+	MainNetECHash = "0x35e759a523156faac43dd0caec95cceed63ae22f250e518657a79d3dc3578ba4"
 )
 
 var (
@@ -430,8 +432,8 @@ func CheckSlashBlocksReward(rewards int) error {
 }
 
 func CheckZeroProduceCumulativeTime(zeroProduceCumulativeTime uint16, zeroProduceNumberThreshold uint16) error {
-	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > maxZeroProduceCumulativeTime {
-		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, maxZeroProduceCumulativeTime))
+	if zeroProduceCumulativeTime < zeroProduceNumberThreshold || zeroProduceCumulativeTime > MaxZeroProduceCumulativeTime {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The ZeroProduceCumulativeTime must be [%d, %d]", zeroProduceNumberThreshold, MaxZeroProduceCumulativeTime))
 	}
 	return nil
 }
@@ -500,6 +502,9 @@ func CheckEconomicModel() error {
 
 	if epochSize < 4 {
 		return errors.New("The settlement period must be more than four times the consensus period")
+	}
+	if MaxZeroProduceCumulativeTime > 64 {
+		return errors.New("MaxZeroProduceCumulativeTime parameter value cannot exceed 64")
 	}
 
 	// additionalCycle Size, how many epoch duration
