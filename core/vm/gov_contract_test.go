@@ -20,10 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"os"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	//"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -290,7 +287,6 @@ func buildGetGovernParamValueInput(module, name string) []byte {
 func setup(t *testing.T) *mock.Chain {
 	t.Log("setup()......")
 	//to turn on log's debug level
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	precompiledContract := PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*GovContract)
@@ -705,7 +701,6 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 }
 
 func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	chain := setup(t)
 	defer clear(chain, t)
@@ -1222,7 +1217,6 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 
 	prepair_sndb(chain, txHashArr[3])
 
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t, gov.PIPIDExist)
 }
 
@@ -1702,7 +1696,6 @@ func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOp
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 	voteCount := len(currentValidatorList)
 	chandler := node.GetCryptoHandler()
-	//log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{
 			ProposalID: pid,

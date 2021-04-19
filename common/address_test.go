@@ -76,7 +76,7 @@ func TestAddressUnmarshalJSON(t *testing.T) {
 		{`"0x00"`, true, nil},
 		{`"0xG000000000000000000000000000000000000000"`, true, nil},
 		{`"lac1flzyluu23zjknw70duwd00z6u9jgx7vug9n7t4"`, true, nil},
-		{`"atx1lkdax58s3m3upsvmsk5wzcg55ydxp2jwu55utq"`, false, byteInt},
+		{`"atp1lkdax58s3m3upsvmsk5wzcg55ydxp2jwkjgkc2"`, false, byteInt},
 	}
 
 	for i, test := range tests {
