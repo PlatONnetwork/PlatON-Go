@@ -64,7 +64,7 @@ const (
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
 	ElectionBase = 30
 
-	MainNetECHash = "0x35e759a523156faac43dd0caec95cceed63ae22f250e518657a79d3dc3578ba4"
+	MainNetECHash = "0x259176769541cdb61bc19806cbf5a3f3489f4829b6b69f804f45f947a0c9c3e9"
 )
 
 var (
@@ -246,9 +246,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.Bech32ToAddressWithoutCheckHrp("lat10spacq8cz76y2n60pl7sg5yazncmjuusdrs9z0"),
+				PlatONFundAccount: common.Bech32ToAddressWithoutCheckHrp("lat1aaczrlrzylnanv57map5lndllkf7mvtnd9h8dj"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.Bech32ToAddressWithoutCheckHrp("lat17tfkaghs4vded6mz6k53xyv5cvqsl63h8c2v5t"),
+				CDFAccount:        common.Bech32ToAddressWithoutCheckHrp("lat1fpccktpn37a94rdj9yxszxp7pt3kae05j6lr9l"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
