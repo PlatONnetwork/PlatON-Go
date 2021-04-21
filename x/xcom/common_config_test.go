@@ -59,6 +59,5 @@ func TestMainNetHash(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(common.RlpHash(bytes).Hex())
 	assert.True(t, common.RlpHash(bytes).Hex() == MainNetECHash)
 }
