@@ -246,9 +246,9 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				MinimumRelease: new(big.Int).Mul(one, new(big.Int).SetInt64(100)),
 			},
 			InnerAcc: innerAccount{
-				PlatONFundAccount: common.Bech32ToAddressWithoutCheckHrp("lat1aaczrlrzylnanv57map5lndllkf7mvtnd9h8dj"),
+				PlatONFundAccount: common.Bech32ToAddressWithoutCheckHrp("lat1ptchnk2k8nh2uavp9nz8mchmmz0lhxgvztue0j"),
 				PlatONFundBalance: new(big.Int).SetInt64(0),
-				CDFAccount:        common.Bech32ToAddressWithoutCheckHrp("lat1fpccktpn37a94rdj9yxszxp7pt3kae05j6lr9l"),
+				CDFAccount:        common.Bech32ToAddressWithoutCheckHrp("lat19au5e52762l3ffsa9uzft9hzhxk5x0g9zmcxdq"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
