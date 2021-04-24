@@ -22,11 +22,10 @@ import (
 	"io"
 	"sort"
 
-	"strings"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
-	"gopkg.in/urfave/cli.v1"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.
@@ -72,10 +71,10 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.KeyStoreDirFlag,
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
+			utils.MainFlag,
 			utils.TestnetFlag,
 			utils.SyncModeFlag,
-			utils.GCModeFlag,
-			utils.EthStatsURLFlag,
+			//	utils.EthStatsURLFlag,
 			utils.IdentityFlag,
 			utils.LightServFlag,
 			utils.LightPeersFlag,
@@ -105,7 +104,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolNoLocalsFlag,
 			utils.TxPoolJournalFlag,
 			utils.TxPoolRejournalFlag,
-			utils.TxPoolPriceLimitFlag,
 			utils.TxPoolPriceBumpFlag,
 			utils.TxPoolAccountSlotsFlag,
 			utils.TxPoolGlobalSlotsFlag,
@@ -113,6 +111,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolGlobalQueueFlag,
 			utils.TxPoolGlobalTxCountFlag,
 			utils.TxPoolLifetimeFlag,
+			utils.TxPoolCacheSizeFlag,
 		},
 	},
 	{
@@ -121,7 +120,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
 			utils.CacheGCFlag,
-			utils.TrieCacheGenFlag,
+			utils.CacheTrieDBFlag,
 		},
 	},
 	{
@@ -193,29 +192,13 @@ var AppHelpFlagGroups = []flagGroup{
 		}, debug.Flags...),
 	},
 	{
-		Name: "METRICS AND STATS",
-		Flags: []cli.Flag{
-			utils.MetricsEnabledFlag,
-			utils.MetricsEnableInfluxDBFlag,
-			utils.MetricsInfluxDBEndpointFlag,
-			utils.MetricsInfluxDBDatabaseFlag,
-			utils.MetricsInfluxDBUsernameFlag,
-			utils.MetricsInfluxDBPasswordFlag,
-			utils.MetricsInfluxDBHostTagFlag,
-		},
+		Name:  "METRICS AND STATS",
+		Flags: metricsFlags,
 	},
 	//{
 	//	Name:  "WHISPER (EXPERIMENTAL)",
 	//	Flags: whisperFlags,
 	//},
-	{
-		Name: "DEPRECATED",
-		Flags: []cli.Flag{
-			utils.MinerLegacyGasTargetFlag,
-			utils.MinerLegacyGasPriceFlag,
-			//	utils.MinerLegacyExtraDataFlag,
-		},
-	},
 	//{
 	//	Name: "MPC COMPUTE",
 	//	Flags: []cli.Flag{
@@ -250,6 +233,13 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DBGCTimeoutFlag,
 			utils.DBGCMptFlag,
 			utils.DBGCBlockFlag,
+		},
+	},
+	{
+		Name: "VM",
+		Flags: []cli.Flag{
+			utils.VMWasmType,
+			utils.VmTimeoutDuration,
 		},
 	},
 	{
@@ -314,9 +304,6 @@ func init() {
 			uncategorized := []cli.Flag{}
 			for _, flag := range data.(*cli.App).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					if strings.HasPrefix(flag.GetName(), "dashboard") {
-						continue
-					}
 					uncategorized = append(uncategorized, flag)
 				}
 			}

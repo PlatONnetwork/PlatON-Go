@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -17,14 +17,12 @@
 package staking
 
 import (
-	"crypto/ecdsa"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -65,43 +63,15 @@ var (
 )
 
 // CanBase ...
-func CanBaseKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
 
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return nil, err
-	} else {
-		addr := crypto.PubkeyToAddress(*pk)
-		return append(CanBaseKeyPrefix, addr.Bytes()...), nil
-	}
-}
-func CanBaseKeyByPubKey(p ecdsa.PublicKey) []byte {
-	addr := crypto.PubkeyToAddress(p)
-	return append(CanBaseKeyPrefix, addr.Bytes()...)
-}
-func CanBaseKeyByAddr(addr common.Address) []byte {
+func CanBaseKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanBaseKeyPrefix, addr.Bytes()...)
 }
 func CanBaseKeyBySuffix(addr []byte) []byte {
 	return append(CanBaseKeyPrefix, addr...)
 }
 
-// CanMutable ...
-func CanMutableKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
-
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return nil, err
-	} else {
-		addr := crypto.PubkeyToAddress(*pk)
-		return append(CanMutableKeyPrefix, addr.Bytes()...), nil
-	}
-}
-
-func CanMutableKeyByPubKey(p ecdsa.PublicKey) []byte {
-	addr := crypto.PubkeyToAddress(p)
-	return append(CanMutableKeyPrefix, addr.Bytes()...)
-}
-
-func CanMutableKeyByAddr(addr common.Address) []byte {
+func CanMutableKeyByAddr(addr common.NodeAddress) []byte {
 	return append(CanMutableKeyPrefix, addr.Bytes()...)
 }
 
@@ -110,7 +80,7 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 }
 
 // the candidate power key
-func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
+func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID discover.NodeID) []byte {
 
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
@@ -121,6 +91,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)
 
+	id := nodeID.Bytes()
+
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
 
@@ -129,7 +101,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	indexVersion := indexPre + len(sortVersion)
 	indexPrio := indexVersion + len(prio)
 	indexNum := indexPrio + len(num)
-	size := indexNum + len(txIndex)
+	indexTxIndex := indexNum + len(txIndex)
+	size := indexTxIndex + len(id)
 
 	// construct key
 	key := make([]byte, size)
@@ -137,8 +110,8 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programV
 	copy(key[indexPre:indexVersion], sortVersion)
 	copy(key[indexVersion:indexPrio], prio)
 	copy(key[indexPrio:indexNum], num)
-	copy(key[indexNum:], txIndex)
-
+	copy(key[indexNum:indexTxIndex], txIndex)
+	copy(key[indexTxIndex:], id)
 	return key
 }
 
@@ -181,6 +154,17 @@ func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNu
 	copy(key[markNodeId:], stakeNumByte)
 
 	return key
+}
+
+//notice this assume key must right
+func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) {
+	delegateKeyPrefixLength := len(DelegateKeyPrefix)
+	delAddrLength := len(delAddr) + delegateKeyPrefixLength
+	nodeIdLength := len(nodeId) + delAddrLength
+	delAddr = common.BytesToAddress(key[delegateKeyPrefixLength:delAddrLength])
+	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
+	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
+	return
 }
 
 func GetDelegateKeyBySuffix(suffix []byte) []byte {

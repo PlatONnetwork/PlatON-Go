@@ -19,11 +19,13 @@ package core
 import (
 	"runtime"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // senderCacher is a concurrent transaction sender recoverer anc cacher.
-var senderCacher = newTxSenderCacher(runtime.NumCPU())
+var SenderCacher = NewTxSenderCacher(runtime.NumCPU())
 
 // txSenderCacherRequest is a request for recovering transaction senders with a
 // specific signature scheme and caching it into the transactions themselves.
@@ -35,6 +37,8 @@ type txSenderCacherRequest struct {
 	signer types.Signer
 	txs    []*types.Transaction
 	inc    int
+	doneCh chan int
+	starts int
 }
 
 // txSenderCacher is a helper structure to concurrently ecrecover transaction
@@ -42,11 +46,12 @@ type txSenderCacherRequest struct {
 type txSenderCacher struct {
 	threads int
 	tasks   chan *txSenderCacherRequest
+	txPool  *TxPool
 }
 
-// newTxSenderCacher creates a new transaction sender background cacher and starts
+//todoewTxSenderCacher creates a new transaction sender background cacher and starts
 // as many processing goroutines as allowed by the GOMAXPROCS on construction.
-func newTxSenderCacher(threads int) *txSenderCacher {
+func NewTxSenderCacher(threads int) *txSenderCacher {
 	cacher := &txSenderCacher{
 		tasks:   make(chan *txSenderCacherRequest, threads),
 		threads: threads,
@@ -57,12 +62,22 @@ func newTxSenderCacher(threads int) *txSenderCacher {
 	return cacher
 }
 
+// if set txpool ,will find from txpool first,if txpool have the tx,will not cal from any more
+func (cacher *txSenderCacher) SetTxPool(txPool *TxPool) {
+	cacher.txPool = txPool
+}
+
 // cache is an infinite loop, caching transaction senders from various forms of
 // data structures.
 func (cacher *txSenderCacher) cache() {
 	for task := range cacher.tasks {
-		for i := 0; i < len(task.txs); i += task.inc {
+		txCal := 0
+		for i := task.starts; i < len(task.txs); i += task.inc {
 			types.Sender(task.signer, task.txs[i])
+			txCal++
+		}
+		if task.doneCh != nil {
+			task.doneCh <- txCal
 		}
 	}
 }
@@ -83,23 +98,51 @@ func (cacher *txSenderCacher) recover(signer types.Signer, txs []*types.Transact
 	for i := 0; i < tasks; i++ {
 		cacher.tasks <- &txSenderCacherRequest{
 			signer: signer,
-			txs:    txs[i:],
+			txs:    txs,
 			inc:    tasks,
+			starts: i,
 		}
 	}
 }
 
-// recoverFromBlocks recovers the senders from a batch of blocks and caches them
+// recoverFromBlock recovers the senders from  block and caches them
 // back into the same data structures. There is no validation being done, nor
 // any reaction to invalid signatures. That is up to calling code later.
-func (cacher *txSenderCacher) recoverFromBlocks(signer types.Signer, blocks []*types.Block) {
-	count := 0
-	for _, block := range blocks {
-		count += len(block.Transactions())
+func (cacher *txSenderCacher) RecoverFromBlock(signer types.Signer, block *types.Block) {
+	count := len(block.Transactions())
+	if count == 0 {
+		return
 	}
 	txs := make([]*types.Transaction, 0, count)
-	for _, block := range blocks {
-		txs = append(txs, block.Transactions()...)
+
+	if cacher.txPool != nil && cacher.txPool.count() >= 200 {
+		for i, tx := range block.Transactions() {
+			if txInPool := cacher.txPool.Get(tx.Hash()); txInPool != nil {
+				block.Transactions()[i].CacheFromAddr(signer, txInPool.FromAddr(signer))
+			} else {
+				txs = append(txs, block.Transactions()[i])
+			}
+		}
+	} else {
+		txs = block.Transactions()
 	}
-	cacher.recover(signer, txs)
+	if len(txs) == 0 {
+		return
+	}
+	// Ensure we have meaningful task sizes and schedule the recoveries
+	tasks := cacher.threads
+	if len(txs) < tasks*4 {
+		tasks = (len(txs) + 3) / 4
+	}
+	log.Trace("Start recover tx FromBlock", "number", block.Number(), "txs", len(txs), "tasks", tasks)
+	block.CalTxFromCH = make(chan int, tasks)
+	for i := 0; i < tasks; i++ {
+		cacher.tasks <- &txSenderCacherRequest{
+			signer: signer,
+			txs:    txs,
+			inc:    tasks,
+			doneCh: block.CalTxFromCH,
+			starts: i,
+		}
+	}
 }

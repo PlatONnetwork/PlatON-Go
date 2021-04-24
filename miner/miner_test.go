@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 )
 
 func minerStart(t *testing.T) *Miner {
-	cbft := cbft.NewFaker()
+	cbft := consensus.NewFaker()
 
 	miner := &Miner{
 		engine:   cbft,
@@ -49,7 +48,7 @@ func TestMiner_Start(t *testing.T) {
 }
 
 func TestMiner_Stop(t *testing.T) {
-	cbft := cbft.NewFaker()
+	cbft := consensus.NewFaker()
 
 	miner := &Miner{
 		engine:      cbft,

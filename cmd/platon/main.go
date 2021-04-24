@@ -28,6 +28,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/panjf2000/ants/v2"
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -39,8 +42,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/elastic/gosigar"
-	"gopkg.in/urfave/cli.v1"
+
+	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 const (
@@ -67,7 +70,6 @@ var (
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
 		utils.TxPoolRejournalFlag,
-		utils.TxPoolPriceLimitFlag,
 		utils.TxPoolPriceBumpFlag,
 		utils.TxPoolAccountSlotsFlag,
 		utils.TxPoolGlobalSlotsFlag,
@@ -75,24 +77,22 @@ var (
 		utils.TxPoolGlobalQueueFlag,
 		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
+		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
-		utils.GCModeFlag,
 		utils.LightServFlag,
 		utils.LightPeersFlag,
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheGCFlag,
-		utils.TrieCacheGenFlag,
+		utils.CacheTrieDBFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
 		utils.MinerGasTargetFlag,
-		utils.MinerLegacyGasTargetFlag,
 		//utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
-		utils.MinerLegacyGasPriceFlag,
 		//	utils.MinerExtraDataFlag,
 		//utils.MinerLegacyExtraDataFlag,
 		utils.NATFlag,
@@ -102,12 +102,12 @@ var (
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		utils.DeveloperPeriodFlag,
+		utils.MainFlag,
 		utils.TestnetFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
 		utils.RPCVirtualHostsFlag,
-		utils.EthStatsURLFlag,
-		utils.MetricsEnabledFlag,
+		//utils.EthStatsURLFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.GpoPercentileFlag,
@@ -135,6 +135,7 @@ var (
 	//}
 
 	metricsFlags = []cli.Flag{
+		utils.MetricsEnabledFlag,
 		utils.MetricsEnableInfluxDBFlag,
 		utils.MetricsInfluxDBEndpointFlag,
 		utils.MetricsInfluxDBDatabaseFlag,
@@ -169,11 +170,16 @@ var (
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
 	}
+
+	vmFlags = []cli.Flag{
+		utils.VMWasmType,
+		utils.VmTimeoutDuration,
+	}
 )
 
 func init() {
-	// Initialize the CLI app and start Geth
-	app.Action = geth
+	// Initialize the CLI app and start PlatON
+	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
@@ -186,11 +192,8 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
-		// See monitorcmd.go:
-		monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
-		walletCommand,
 		// See consolecmd.go:
 		consoleCommand,
 		attachCommand,
@@ -217,6 +220,7 @@ func init() {
 	// for cbft
 	app.Flags = append(app.Flags, cbftFlags...)
 	app.Flags = append(app.Flags, dbFlags...)
+	app.Flags = append(app.Flags, vmFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -231,14 +235,17 @@ func init() {
 		}
 
 		//init wasm logfile
-
-		//if err := debug.SetupWasmLog(ctx); err != nil {
-		//	return err
-		//}
+		if err := debug.SetupWasmLog(ctx); err != nil {
+			return err
+		}
 
 		// Cap the cache allowance and tune the garbage collector
-		var mem gosigar.Mem
-		if err := mem.Get(); err == nil {
+		mem, err := gopsutil.VirtualMemory()
+		if err == nil {
+			if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+				log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+				mem.Total = 2 * 1024 * 1024 * 1024
+			}
 			allowance := int(mem.Total / 1024 / 1024 / 3)
 			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
 				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
@@ -264,6 +271,7 @@ func init() {
 	app.After = func(ctx *cli.Context) error {
 		debug.Exit()
 		console.Stdin.Close() // Resets terminal mode.
+		ants.Release()
 		return nil
 	}
 }
@@ -278,7 +286,7 @@ func main() {
 // platon is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
-func geth(ctx *cli.Context) error {
+func platon(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
@@ -358,10 +366,8 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 		utils.Fatalf("PlatON service not running: %v", err)
 	}
 	// Set the gas price to the limits from the CLI and start mining
-	gasprice := utils.GlobalBig(ctx, utils.MinerLegacyGasPriceFlag.Name)
-	if ctx.IsSet(utils.MinerGasPriceFlag.Name) {
-		gasprice = utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
-	}
+	gasprice := utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+
 	ethereum.TxPool().SetGasPrice(gasprice)
 
 	if err := ethereum.StartMining(); err != nil {

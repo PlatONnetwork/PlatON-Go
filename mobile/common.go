@@ -16,7 +16,7 @@
 
 // Contains all the wrappers from the common package.
 
-package geth
+package platon
 
 import (
 	"encoding/hex"
@@ -183,8 +183,8 @@ func (a *Address) SetHex(address string) error {
 }
 
 // GetHex retrieves the hex string representation of the address.
-func (a *Address) GetHex() string {
-	return a.address.Hex()
+func (a *Address) GetString() string {
+	return a.address.String()
 }
 
 // Addresses represents a slice of addresses.

@@ -31,8 +31,8 @@ import (
 )
 
 var (
-	MainNetAddress = common.HexToAddress("0x314159265dD8dbb310642f98f50C066173C1259b")
-	TestNetAddress = common.HexToAddress("0x112234455c3a32fd11230c42e7bccd4a84e02010")
+	MainNetAddress = common.MustBech32ToAddress("lat1x9q4jfjamrdmxyry97v02rqxv9euzfvmkxwhjf")
+	TestNetAddress = common.MustBech32ToAddress("lax1zy3rg32u8ge06yfrp3pw00xdf2zwqgqshrlnax")
 )
 
 // swarm domain name registry and resolver

@@ -1,13 +1,43 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package mock
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
+	"reflect"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+)
+
+const (
+//MockCodeKey     = "mock_code"
+//MockCodeHashKey = "mock_codeHash"
+//MockNonce       = "mock_nonce"
+//MockSuicided    = "mock_suicided"
 )
 
 type Chain struct {
@@ -16,20 +46,98 @@ type Chain struct {
 	//	headerm  map[common.Hash]*types.Header
 	//	blockm   map[common.Hash]*types.Block
 	//	receiptm map[common.Hash][]*types.Receipt
-	StateDB *MockStateDB
-	SnapDB  snapshotdb.DB
-	h       []*types.Header
+	StateDB          *MockStateDB
+	SnapDB           snapshotdb.DB
+	h                []*types.Header
+	timeGenerate     func(*big.Int) *big.Int
+	coinBaseGenerate func() common.Address
 }
 
+//notic AddBlock will not append snapshotdb
 func (c *Chain) AddBlock() {
-	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
+	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time), c.coinBaseGenerate())
 	c.h = append(c.h, header)
 }
 
 func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
-	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash())
-	c.h = append(c.h, header)
+	c.AddBlock()
 	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
+}
+
+func (c *Chain) SetHeaderTimeGenerate(f func(*big.Int) *big.Int) {
+	c.timeGenerate = f
+}
+
+func (c *Chain) SetCoinbaseGenerate(f func() common.Address) {
+	c.coinBaseGenerate = f
+}
+
+func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error) error {
+	c.AddBlockWithTxHash(txHash)
+	return c.commitWithSnapshotDB(miner, f, nil, nil)
+}
+
+func (c *Chain) execTx(miner bool, f Transaction) error {
+	c.StateDB.TxIndex++
+	c.StateDB.Prepare(f.Hash(), c.CurrentHeader().Hash(), c.StateDB.TxIndex)
+	if miner {
+		return f(common.ZeroHash, c.CurrentHeader(), c.StateDB, c.SnapDB)
+	} else {
+		return f(c.CurrentHeader().Hash(), c.CurrentHeader(), c.StateDB, c.SnapDB)
+	}
+}
+
+type Transaction func(blockHash common.Hash, header *types.Header, statedb *MockStateDB, sdb snapshotdb.DB) error
+
+func (T *Transaction) Hash() (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	if err := rlp.Encode(hw, fmt.Sprint(T)); err != nil {
+		panic(err)
+	}
+	hw.Sum(h[:0])
+	return h
+}
+
+func (c *Chain) commitWithSnapshotDB(miner bool, beforeTxHook, afterTxHook func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error, txs []Transaction) error {
+	var useHash common.Hash
+	if miner {
+		useHash = common.ZeroHash
+	} else {
+		useHash = c.CurrentHeader().Hash()
+	}
+	if err := c.SnapDB.NewBlock(c.CurrentHeader().Number, c.CurrentHeader().ParentHash, useHash); err != nil {
+		return err
+	}
+	if beforeTxHook != nil {
+		if err := beforeTxHook(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
+			return err
+		}
+	}
+
+	for _, tx := range txs {
+		if err := c.execTx(miner, tx); err != nil {
+			return err
+		}
+	}
+	if afterTxHook != nil {
+		if err := afterTxHook(useHash, c.CurrentHeader(), c.SnapDB); err != nil {
+			return err
+		}
+	}
+	if miner {
+		if err := c.SnapDB.Flush(c.CurrentHeader().Hash(), c.CurrentHeader().Number); err != nil {
+			return err
+		}
+	}
+	if err := c.SnapDB.Commit(c.CurrentHeader().Hash()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Chain) AddBlockWithSnapDB(miner bool, beforeTxHook, afterTxHook func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error, txs []Transaction) error {
+	c.AddBlock()
+	return c.commitWithSnapshotDB(miner, beforeTxHook, afterTxHook, txs)
 }
 
 func (c *Chain) CurrentHeader() *types.Header {
@@ -53,34 +161,83 @@ func (c *Chain) GetHeaderByHash(hash common.Hash) *types.Header {
 	return nil
 }
 
+func (c *Chain) GetHeaderByNumber(number uint64) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Number.Uint64() == number {
+			return c.h[i]
+		}
+	}
+	return nil
+}
+
 func NewChain() *Chain {
 	c := new(Chain)
-	header := generateHeader(big.NewInt(0), common.ZeroHash)
+
+	c.timeGenerate = func(b *big.Int) *big.Int {
+		return new(big.Int).SetInt64(time.Now().UnixNano() / 1e6)
+	}
+	c.coinBaseGenerate = func() common.Address {
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			panic(err)
+		}
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+		return addr
+	}
+	header := generateHeader(big.NewInt(0), common.ZeroHash, c.timeGenerate(nil), c.coinBaseGenerate())
 	block := new(types.Block).WithSeal(header)
 
 	c.Genesis = block
 	c.h = make([]*types.Header, 0)
 	c.h = append(c.h, header)
 
-	db := new(MockStateDB)
+	db := NewMockStateDB()
 	db.State = make(map[common.Address]map[string][]byte)
 	db.Balance = make(map[common.Address]*big.Int)
+	db.Logs = make(map[common.Hash][]*types.Log)
+
+	db.Suicided = make(map[common.Address]bool)
+	db.Code = make(map[common.Address][]byte)
+	db.CodeHash = make(map[common.Address][]byte)
+	db.Nonce = make(map[common.Address]uint64)
+
 	c.StateDB = db
 	c.SnapDB = snapshotdb.Instance()
 	return c
 }
 
+func NewMockStateDB() *MockStateDB {
+	db := new(MockStateDB)
+	db.Code = make(map[common.Address][]byte)
+	db.CodeHash = make(map[common.Address][]byte)
+	db.Nonce = make(map[common.Address]uint64)
+	db.Suicided = make(map[common.Address]bool)
+	db.State = make(map[common.Address]map[string][]byte)
+	db.Balance = make(map[common.Address]*big.Int)
+	db.Logs = make(map[common.Hash][]*types.Log)
+	db.Journal = NewJournal()
+	return db
+}
+
 type MockStateDB struct {
+	Code     map[common.Address][]byte
+	CodeHash map[common.Address][]byte
+	Nonce    map[common.Address]uint64
+	Suicided map[common.Address]bool
+
 	Balance      map[common.Address]*big.Int
 	State        map[common.Address]map[string][]byte
-	thash, bhash common.Hash
-	txIndex      int
+	Thash, Bhash common.Hash
+	TxIndex      int
+	logSize      uint
+	Logs         map[common.Hash][]*types.Log
+	Journal      *journal
 }
 
 func (s *MockStateDB) Prepare(thash, bhash common.Hash, ti int) {
-	s.thash = thash
-	s.bhash = bhash
-	s.txIndex = ti
+	s.Thash = thash
+	s.Bhash = bhash
+	s.TxIndex = ti
 }
 
 func (s *MockStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
@@ -89,15 +246,30 @@ func (s *MockStateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 
 func (s *MockStateDB) SubBalance(adr common.Address, amount *big.Int) {
 	if balance, ok := s.Balance[adr]; ok {
+		s.Journal.append(balanceChange{
+			account: &adr,
+			prev:    new(big.Int).Set(balance),
+		})
 		balance.Sub(balance, amount)
 	}
 }
 
 func (s *MockStateDB) AddBalance(adr common.Address, amount *big.Int) {
+
 	if balance, ok := s.Balance[adr]; ok {
+		s.Journal.append(balanceChange{
+			account: &adr,
+			prev:    new(big.Int).Set(balance),
+			newOne:  false,
+		})
 		balance.Add(balance, amount)
 	} else {
-		s.Balance[adr] = amount
+		s.Journal.append(balanceChange{
+			account: &adr,
+			prev:    big.NewInt(0),
+			newOne:  true,
+		})
+		s.Balance[adr] = new(big.Int).Set(amount)
 	}
 }
 
@@ -114,12 +286,24 @@ func (s *MockStateDB) GetState(adr common.Address, key []byte) []byte {
 }
 
 func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
+	preValue := []byte{}
+	if stateVal, ok := s.State[adr]; ok {
+		preValue = stateVal[string(key)]
+	}
+
+	s.Journal.append(storageChange{
+		account:  &adr,
+		key:      key,
+		preValue: preValue,
+	})
+
 	if len(val) == 0 {
 		delete(s.State[adr], string(key))
 	} else {
 		if stateVal, ok := s.State[adr]; ok {
 			stateVal[string(key)] = val
 		} else {
+			s.Journal.append(createObjectChange{account: &adr})
 			stateVal := make(map[string][]byte)
 			stateVal[string(key)] = val
 			s.State[adr] = stateVal
@@ -127,38 +311,69 @@ func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
 	}
 }
 
-func (s *MockStateDB) CreateAccount(common.Address) {
-	return
+func (s *MockStateDB) CreateAccount(addr common.Address) {
+	s.Journal.append(createObjectChange{account: &addr})
+
+	storage, ok := s.State[addr]
+	if !ok {
+		storage = make(map[string][]byte)
+		s.State[addr] = storage
+	}
 }
 
-func (s *MockStateDB) GetNonce(common.Address) uint64 {
-	return 0
+func (s *MockStateDB) GetNonce(addr common.Address) uint64 {
+	nonce, ok := s.Nonce[addr]
+	if !ok {
+		return 0
+	}
+	return nonce
 }
-func (s *MockStateDB) SetNonce(common.Address, uint64) {
-	return
+func (s *MockStateDB) SetNonce(addr common.Address, nonce uint64) {
+
+	_, ok := s.Nonce[addr]
+	s.Journal.append(nonceChange{
+		account: &addr,
+		prev:    s.Nonce[addr],
+		newOne:  !ok,
+	})
+
+	s.Nonce[addr] = nonce
 }
 
-func (s *MockStateDB) GetCodeHash(common.Address) common.Hash {
-	return common.ZeroHash
+func (s *MockStateDB) GetCodeHash(addr common.Address) common.Hash {
+	hash, ok := s.CodeHash[addr]
+	if !ok {
+		return common.ZeroHash
+	}
+	return common.BytesToHash(hash)
 }
-func (s *MockStateDB) GetCode(common.Address) []byte {
-	return nil
+func (s *MockStateDB) GetCode(addr common.Address) []byte {
+	return s.Code[addr]
 }
-func (s *MockStateDB) SetCode(common.Address, []byte) {
-	return
-}
-func (s *MockStateDB) GetCodeSize(common.Address) int {
-	return 0
-}
+func (s *MockStateDB) SetCode(addr common.Address, code []byte) {
 
-func (s *MockStateDB) GetAbiHash(common.Address) common.Hash {
-	return common.ZeroHash
+	_, ok := s.Code[addr]
+
+	s.Journal.append(codeChange{
+		account:  &addr,
+		prevcode: s.Code[addr],
+		newOne:   !ok,
+	})
+
+	s.Code[addr] = code
+
+	var h common.Hash
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, code)
+	hw.Sum(h[:0])
+	s.CodeHash[addr] = h[:]
 }
-func (s *MockStateDB) GetAbi(common.Address) []byte {
-	return nil
-}
-func (s *MockStateDB) SetAbi(common.Address, []byte) {
-	return
+func (s *MockStateDB) GetCodeSize(addr common.Address) int {
+	code, ok := s.Code[addr]
+	if !ok {
+		return 0
+	}
+	return len(code)
 }
 
 func (s *MockStateDB) AddRefund(uint64) {
@@ -178,11 +393,22 @@ func (s *MockStateDB) GetCommittedState(common.Address, []byte) []byte {
 //GetState(common.Address, common.Hash) common.Hash
 //SetState(common.Address, common.Hash, common.Hash)
 
-func (s *MockStateDB) Suicide(common.Address) bool {
+func (s *MockStateDB) Suicide(addr common.Address) bool {
+	s.Journal.append(suicideChange{
+		account:     &addr,
+		prevbalance: new(big.Int).Set(s.Balance[addr]),
+	})
+
+	s.Suicided[addr] = true
+	s.Balance[addr] = new(big.Int)
 	return true
 }
-func (s *MockStateDB) HasSuicided(common.Address) bool {
-	return true
+func (s *MockStateDB) HasSuicided(addr common.Address) bool {
+	suicided, ok := s.Suicided[addr]
+	if !ok {
+		return false
+	}
+	return suicided
 }
 
 // Exist reports whether the given account exists in state.
@@ -197,34 +423,190 @@ func (s *MockStateDB) Empty(common.Address) bool {
 	return true
 }
 
-func (s *MockStateDB) RevertToSnapshot(int) {
-	return
+func (s *MockStateDB) RevertToSnapshot(snapshot int) {
+	s.Journal.revert(s, snapshot)
 }
 func (s *MockStateDB) Snapshot() int {
-	return 0
+	return s.Journal.length()
 }
 
-func (s *MockStateDB) AddLog(*types.Log) {
-	return
+func (s *MockStateDB) AddLog(logInfo *types.Log) {
+	s.Journal.append(addLogChange{txhash: s.Thash})
+
+	logInfo.TxHash = s.Thash
+	logInfo.BlockHash = s.Bhash
+	logInfo.TxIndex = uint(s.TxIndex)
+	logInfo.Index = s.logSize
+	s.Logs[s.Thash] = append(s.Logs[s.Thash], logInfo)
+	s.logSize++
 }
+
+func (s *MockStateDB) GetLogs(hash common.Hash) []*types.Log {
+	return s.Logs[hash]
+}
+
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
 	return
 }
 
-func (s *MockStateDB) ForEachStorage(common.Address, func(common.Hash, common.Hash) bool) {
-	return
+func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) {
+	state, ok := s.State[addr]
+	if !ok {
+		return
+	}
+	for k, v := range state {
+		fn([]byte(k), v)
+	}
 }
 
 func (s *MockStateDB) TxHash() common.Hash {
-	return s.thash
+	return s.Thash
 }
 func (s *MockStateDB) TxIdx() uint32 {
-	return uint32(s.txIndex)
+	return uint32(s.TxIndex)
 }
 
-func generateHeader(num *big.Int, parentHash common.Hash) *types.Header {
+func generateHeader(num *big.Int, parentHash common.Hash, htime *big.Int, coninbase common.Address) *types.Header {
 	h := new(types.Header)
 	h.Number = num
 	h.ParentHash = parentHash
+	h.Coinbase = coninbase
+	h.Time = htime
 	return h
+}
+
+func (s *MockStateDB) MigrateStorage(from, to common.Address) {
+	s.State[to] = s.State[from]
+}
+
+func (s *MockStateDB) Equal(other *MockStateDB) bool {
+	if !reflect.DeepEqual(s.Code, other.Code) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.CodeHash, other.CodeHash) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Nonce, other.Nonce) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Suicided, other.Suicided) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Balance, other.Balance) {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.State, other.State) {
+		return false
+	}
+
+	if s.Thash != other.Thash {
+		return false
+	}
+
+	if s.Bhash != other.Bhash {
+		return false
+	}
+
+	if s.TxIndex != other.TxIndex {
+		return false
+	}
+
+	if s.logSize != other.logSize {
+		return false
+	}
+
+	if !reflect.DeepEqual(s.Logs, other.Logs) {
+		return false
+	}
+
+	return true
+}
+
+func (lhs *MockStateDB) DeepCopy(rhs *MockStateDB) {
+	if nil != rhs.Code {
+		lhs.Code = make(map[common.Address][]byte)
+		for oneAddress, oneCode := range rhs.Code {
+			temp := make([]byte, len(oneCode))
+			copy(temp, oneCode)
+			lhs.Code[oneAddress] = temp
+		}
+	}
+
+	if nil != rhs.CodeHash {
+		lhs.CodeHash = make(map[common.Address][]byte)
+		for oneAddress, oneCodeHash := range rhs.CodeHash {
+			temp := make([]byte, len(oneCodeHash))
+			copy(temp, oneCodeHash)
+			lhs.CodeHash[oneAddress] = temp
+		}
+	}
+
+	if nil != rhs.Nonce {
+		lhs.Nonce = make(map[common.Address]uint64)
+		for oneAddress, oneNonce := range rhs.Nonce {
+			lhs.Nonce[oneAddress] = oneNonce
+		}
+	}
+
+	if nil != rhs.Suicided {
+		lhs.Suicided = make(map[common.Address]bool)
+		for oneAddress, oneSuicided := range rhs.Suicided {
+			lhs.Suicided[oneAddress] = oneSuicided
+		}
+	}
+
+	if nil != rhs.Balance {
+		lhs.Balance = make(map[common.Address]*big.Int)
+		for oneAddress, oneBalance := range rhs.Balance {
+			lhs.Balance[oneAddress] = new(big.Int).Set(oneBalance)
+		}
+	}
+
+	if nil != rhs.State {
+		lhs.State = make(map[common.Address]map[string][]byte)
+		for oneAddress, oneState := range rhs.State {
+			tempKeyValue := make(map[string][]byte)
+			for oneKey, oneValue := range oneState {
+				temp := make([]byte, len(oneValue))
+				copy(temp, oneValue)
+				tempKeyValue[oneKey] = temp
+			}
+			lhs.State[oneAddress] = tempKeyValue
+		}
+	}
+
+	lhs.Thash = rhs.Thash
+
+	lhs.Bhash = rhs.Bhash
+
+	lhs.TxIndex = rhs.TxIndex
+
+	lhs.logSize = rhs.logSize
+
+	if nil != rhs.Logs {
+		lhs.Logs = make(map[common.Hash][]*types.Log)
+		for oneAddress, oneLogs := range rhs.Logs {
+			tempLogs := make([]*types.Log, len(oneLogs))
+			for i, v := range oneLogs {
+				rlpBytes, err := rlp.EncodeToBytes(*v)
+				if nil != err {
+					panic(err)
+				}
+
+				var temp types.Log
+				err = rlp.DecodeBytes(rlpBytes, &temp)
+				if nil != err {
+					panic(err)
+				}
+				tempLogs[i] = &temp
+			}
+
+			lhs.Logs[oneAddress] = tempLogs
+		}
+	}
 }

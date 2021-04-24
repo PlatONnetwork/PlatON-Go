@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"gopkg.in/urfave/cli.v1"
 )
 
 type outputSign struct {
@@ -62,7 +63,7 @@ To sign a message contained in a file, use the --msgfile flag.
 		}
 
 		// Decrypt key with passphrase.
-		passphrase := getPassphrase(ctx)
+		passphrase := getPassphrase(ctx, false)
 		key, err := keystore.DecryptKey(keyjson, passphrase)
 		if err != nil {
 			utils.Fatalf("Error decrypting key: %v", err)
@@ -98,16 +99,24 @@ It is possible to refer to a file containing the message.`,
 	Flags: []cli.Flag{
 		jsonFlag,
 		msgfileFlag,
+		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
+		hrp := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(hrp); err != nil {
+			return err
+		}
 		addressStr := ctx.Args().First()
 		signatureHex := ctx.Args().Get(1)
 		message := getMessage(ctx, 2)
 
-		if !common.IsHexAddress(addressStr) {
+		if !common.IsBech32Address(addressStr) {
 			utils.Fatalf("Invalid address: %s", addressStr)
 		}
-		address := common.HexToAddress(addressStr)
+		address, err := common.Bech32ToAddress(addressStr)
+		if err != nil {
+			utils.Fatalf("decode address fail: %s", addressStr)
+		}
 		signature, err := hex.DecodeString(signatureHex)
 		if err != nil {
 			utils.Fatalf("Signature encoding is not hexadecimal: %v", err)
@@ -124,7 +133,7 @@ It is possible to refer to a file containing the message.`,
 		out := outputVerify{
 			Success:            success,
 			RecoveredPublicKey: hex.EncodeToString(recoveredPubkeyBytes),
-			RecoveredAddress:   recoveredAddress.Hex(),
+			RecoveredAddress:   recoveredAddress.String(),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)

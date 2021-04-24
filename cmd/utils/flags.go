@@ -27,9 +27,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -38,7 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -57,8 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -72,9 +69,11 @@ SUBCOMMANDS:
 {{range $categorized.Flags}}{{"\t"}}{{.}}
 {{end}}
 {{end}}{{end}}`
+	OriginCommandHelpTemplate = ""
 )
 
 func init() {
+	OriginCommandHelpTemplate = cli.CommandHelpTemplate
 	cli.AppHelpTemplate = `{{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
 
 VERSION:
@@ -133,9 +132,17 @@ var (
 		Usage: "Network identifier (integer, 1=Frontier, 2=Morden (disused), 3=Ropsten, 4=Rinkeby)",
 		Value: eth.DefaultConfig.NetworkId,
 	}
+	MainFlag = cli.BoolFlag{
+		Name:  "main",
+		Usage: "Mainnet network: pre-configured main network (default network)",
+	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
 		Usage: "Testnet network: pre-configured test network",
+	}
+	AddressHRPFlag = cli.StringFlag{
+		Name:  "addressHRP",
+		Usage: "set the address hrp,if not set,use default address hrp",
 	}
 	DeveloperPeriodFlag = cli.IntFlag{
 		Name:  "dev.period",
@@ -155,11 +162,6 @@ var (
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
-	}
-	GCModeFlag = cli.StringFlag{
-		Name:  "gcmode",
-		Usage: `Blockchain garbage collection mode ("full", "archive")`,
-		Value: "full",
 	}
 	LightServFlag = cli.IntFlag{
 		Name:  "lightserv",
@@ -193,11 +195,6 @@ var (
 		Name:  "txpool.rejournal",
 		Usage: "Time interval to regenerate the local transaction journal",
 		Value: core.DefaultTxPoolConfig.Rejournal,
-	}
-	TxPoolPriceLimitFlag = cli.Uint64Flag{
-		Name:  "txpool.pricelimit",
-		Usage: "Minimum gas price limit to enforce for acceptance into the pool",
-		Value: eth.DefaultConfig.TxPool.PriceLimit,
 	}
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
@@ -234,6 +231,11 @@ var (
 		Usage: "Maximum amount of time non-executable transaction are queued",
 		Value: eth.DefaultConfig.TxPool.Lifetime,
 	}
+	TxPoolCacheSizeFlag = cli.Uint64Flag{
+		Name:  "txpool.cacheSize",
+		Usage: "After receiving the specified number of transactions from the remote, move the transactions in the queen to pending",
+		Value: eth.DefaultConfig.TxPool.TxCacheSize,
+	}
 	// Performance tuning settings
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
@@ -250,19 +252,14 @@ var (
 		Usage: "Percentage of cache memory allowance to use for trie pruning",
 		Value: 25,
 	}
-	TrieCacheGenFlag = cli.IntFlag{
-		Name:  "trie-cache-gens",
-		Usage: "Number of trie node generations to keep in memory",
-		Value: int(state.MaxTrieCacheGen),
+	CacheTrieDBFlag = cli.IntFlag{
+		Name:  "cache.triedb",
+		Usage: "Megabytes of memory allocated to triedb internal caching",
+		Value: eth.DefaultConfig.TrieDBCache,
 	}
 	MinerGasTargetFlag = cli.Uint64Flag{
 		Name:  "miner.gastarget",
 		Usage: "Target gas floor for mined blocks",
-		Value: eth.DefaultConfig.MinerGasFloor,
-	}
-	MinerLegacyGasTargetFlag = cli.Uint64Flag{
-		Name:  "targetgaslimit",
-		Usage: "Target gas floor for mined blocks (deprecated, use --miner.gastarget)",
 		Value: eth.DefaultConfig.MinerGasFloor,
 	}
 	/*MinerGasLimitFlag = cli.Uint64Flag{
@@ -273,11 +270,6 @@ var (
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.MinerGasPrice,
-	}
-	MinerLegacyGasPriceFlag = BigFlag{
-		Name:  "gasprice",
-		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
 	/*
@@ -390,7 +382,7 @@ var (
 	MaxConsensusPeersFlag = cli.IntFlag{
 		Name:  "maxconsensuspeers",
 		Usage: "Maximum number of network consensus peers (network disabled if set to 0)",
-		Value: 75,
+		Value: 100,
 	}
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",
@@ -479,7 +471,7 @@ var (
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
-		Name:  metrics.MetricsEnabledFlag,
+		Name:  "metrics",
 		Usage: "Enable metrics collection and reporting",
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
@@ -593,10 +585,24 @@ var (
 		Name:  "db.gc_mpt",
 		Usage: "Enables database garbage collection MPT",
 	}
-	DBGCBlockFlag = cli.Uint64Flag{
+	DBGCBlockFlag = cli.IntFlag{
 		Name:  "db.gc_block",
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
+	}
+
+	VMWasmType = cli.StringFlag{
+		Name:   "vm.wasm_type",
+		Usage:  "The actual implementation type of the wasm instance",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VMWasmType,
+	}
+
+	VmTimeoutDuration = cli.Uint64Flag{
+		Name:   "vm.timeout_duration",
+		Usage:  "The VM execution timeout duration (uint: ms)",
+		EnvVar: "",
+		Value:  eth.DefaultConfig.VmTimeoutDuration,
 	}
 )
 
@@ -605,10 +611,10 @@ var (
 // the a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
+
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
-
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -792,17 +798,12 @@ func setIPC(ctx *cli.Context, cfg *node.Config) {
 // makeDatabaseHandles raises out the number of allowed file handles per process
 // for Geth and returns half of the allowance to assign to the database.
 func makeDatabaseHandles() int {
-	limit, err := fdlimit.Current()
+	limit, err := fdlimit.Maximum()
 	if err != nil {
 		Fatalf("Failed to retrieve file descriptor allowance: %v", err)
 	}
-	if limit < 2048 {
-		if err := fdlimit.Raise(2048); err != nil {
-			Fatalf("Failed to raise file descriptor allowance: %v", err)
-		}
-	}
-	if limit > 2048 { // cap database file descriptors even if more is available
-		limit = 2048
+	if err := fdlimit.Raise(uint64(limit)); err != nil {
+		Fatalf("Failed to raise file descriptor allowance: %v", err)
 	}
 	return limit / 2 // Leave half for networking and other stuff
 }
@@ -811,6 +812,9 @@ func makeDatabaseHandles() int {
 // a key index in the key store to an internal account representation.
 func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error) {
 	// If the specified account is a valid address, return it
+	if common.IsBech32Address(account) {
+		return accounts.Account{Address: common.MustBech32ToAddress(account)}, nil
+	}
 	if common.IsHexAddress(account) {
 		return accounts.Account{Address: common.HexToAddress(account)}, nil
 	}
@@ -957,10 +961,10 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolLocalsFlag.Name) {
 		locals := strings.Split(ctx.GlobalString(TxPoolLocalsFlag.Name), ",")
 		for _, account := range locals {
-			if trimmed := strings.TrimSpace(account); !common.IsHexAddress(trimmed) {
+			if trimmed := strings.TrimSpace(account); !common.IsBech32Address(trimmed) {
 				Fatalf("Invalid account in --txpool.locals: %s", trimmed)
 			} else {
-				cfg.Locals = append(cfg.Locals, common.HexToAddress(account))
+				cfg.Locals = append(cfg.Locals, common.MustBech32ToAddress(account))
 			}
 		}
 	}
@@ -972,9 +976,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.GlobalIsSet(TxPoolRejournalFlag.Name) {
 		cfg.Rejournal = ctx.GlobalDuration(TxPoolRejournalFlag.Name)
-	}
-	if ctx.GlobalIsSet(TxPoolPriceLimitFlag.Name) {
-		cfg.PriceLimit = ctx.GlobalUint64(TxPoolPriceLimitFlag.Name)
 	}
 	if ctx.GlobalIsSet(TxPoolPriceBumpFlag.Name) {
 		cfg.PriceBump = ctx.GlobalUint64(TxPoolPriceBumpFlag.Name)
@@ -996,6 +997,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
+	}
+	if ctx.GlobalIsSet(TxPoolCacheSizeFlag.Name) {
+		cfg.TxCacheSize = ctx.GlobalUint64(TxPoolCacheSizeFlag.Name)
 	}
 }
 
@@ -1120,13 +1124,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
 
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
-	cfg.NoPruning = /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true
+	cfg.NoPruning = true
 
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	}
+	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
+		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
 	}
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
@@ -1139,18 +1143,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
 				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
 			}*/
-	if ctx.GlobalIsSet(MinerLegacyGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerLegacyGasTargetFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
 		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
 	}
 	/*if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
 		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
 	}*/
-	if ctx.GlobalIsSet(MinerLegacyGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerLegacyGasPriceFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
@@ -1161,13 +1159,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 103
+			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	}
-	// TODO(fjl): move trie cache generations into config
-	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
-		state.MaxTrieCacheGen = uint16(gen)
 	}
 
 	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
@@ -1183,11 +1177,20 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DBGCMpt = ctx.GlobalBool(DBGCMptFlag.Name)
 	}
 	if ctx.GlobalIsSet(DBGCBlockFlag.Name) {
-		b := ctx.GlobalUint64(DBGCBlockFlag.Name)
+		b := ctx.GlobalInt(DBGCBlockFlag.Name)
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}
 	}
+
+	// vm options
+	if ctx.GlobalIsSet(VMWasmType.Name) {
+		cfg.VMWasmType = ctx.GlobalString(VMWasmType.Name)
+	}
+	if ctx.GlobalIsSet(VmTimeoutDuration.Name) {
+		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
+	}
+
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
@@ -1205,6 +1208,7 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	} else {
 		cfg.BlsPriKey = nodeCfg.BlsKey()
 	}
+	nodeCfg.P2P.BlsPublicKey = *(cfg.BlsPriKey.GetPublicKey())
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.WalMode = !ctx.GlobalBool(CbftWalDisabledFlag.Name)
@@ -1310,7 +1314,7 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
 		name = "lightchaindata"
 	}
-	chainDb, err := stack.OpenDatabase(name, cache, handles)
+	chainDb, err := stack.OpenDatabase(name, cache, handles, "")
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
@@ -1330,19 +1334,23 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
 	//todo: Merge confirmation.
-	engine = cbft.NewFaker()
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
+	engine = consensus.NewFaker()
+
 	cache := &core.CacheConfig{
-		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		Disabled:        true,
 		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
@@ -1367,9 +1375,15 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeCfg *node.Config) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
-
-	config, _, err := core.SetupGenesisBlock(chainDb, stack.ResolvePath(snapshotdb.DBPath), MakeGenesis(ctx))
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
 	if err != nil {
+		Fatalf("%v", err)
+	}
+	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
@@ -1378,11 +1392,8 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		engine = eth.CreateConsensusEngine(sc, config, false, chainDb, &cfg.CbftConfig, stack.EventMux())
 	}
 
-	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
-	}
 	cache := &core.CacheConfig{
-		Disabled:        ctx.GlobalString(GCModeFlag.Name) == "archive",
+		Disabled:        true,
 		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
@@ -1443,20 +1454,43 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
-	var networkId int8
+// CheckExclusive verifies that only a single instance of the provided flags was
+// set by the user. Each flag might optionally be followed by a string type to
+// specialize it further.
+func CheckExclusive(ctx *cli.Context, args ...interface{}) {
+	set := make([]string, 0, 1)
+	for i := 0; i < len(args); i++ {
+		// Make sure the next argument is a flag and skip if not set
+		flag, ok := args[i].(cli.Flag)
+		if !ok {
+			panic(fmt.Sprintf("invalid argument, not cli.Flag type: %T", args[i]))
+		}
+		// Check if next arg extends current and expand its name if so
+		name := flag.GetName()
 
-	// Override any default Economic configs for hard coded networks.
-	switch {
-	case ctx.GlobalBool(TestnetFlag.Name):
-		networkId = xcom.DefaultTestNet // Test Net: --testnet
-	default:
-		networkId = xcom.DefaultMainNet // main net
+		if i+1 < len(args) {
+			switch option := args[i+1].(type) {
+			case string:
+				// Extended flag check, make sure value set doesn't conflict with passed in option
+				if ctx.GlobalString(flag.GetName()) == option {
+					name += "=" + option
+					set = append(set, "--"+name)
+				}
+				// shift arguments and continue
+				i++
+				continue
+
+			case cli.Flag:
+			default:
+				panic(fmt.Sprintf("invalid argument, not cli.Flag or string extension: %T", args[i+1]))
+			}
+		}
+		// Mark the flag if it's set
+		if ctx.GlobalIsSet(flag.GetName()) {
+			set = append(set, "--"+name)
+		}
 	}
-
-	if model := xcom.GetEc(networkId); model == nil {
-		panic("get economic model failed")
-	} else {
-		return model
+	if len(set) > 1 {
+		Fatalf("Flags %v can't be used at the same time", strings.Join(set, ", "))
 	}
 }

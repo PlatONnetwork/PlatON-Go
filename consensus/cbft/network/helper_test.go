@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/mattn/go-colorable"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -44,7 +43,7 @@ func newFakePrepareBlock() *protocols.PrepareBlock {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
+		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     big.NewInt(1426516743),
@@ -167,7 +166,7 @@ func newFakeQCBlockList() *protocols.QCBlockList {
 	block := types.NewBlockWithHeader(&types.Header{
 		GasLimit: uint64(3141592),
 		GasUsed:  uint64(21000),
-		Coinbase: common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
+		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
 		Time:     big.NewInt(1426516743),
@@ -281,9 +280,6 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, disco
 }
 
 func Test_InitializePeers(t *testing.T) {
-
-	log.PrintOrigins(true)
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
 
 	// Randomly generated ID.
 	nodeIds := RandomID()

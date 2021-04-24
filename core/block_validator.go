@@ -19,11 +19,10 @@ package core
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -121,10 +120,8 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64) uint64 {
 		gasFloor = gasCeil
 	}
 
-	// contrib = (parentGasUsed * 3 / 2) / 256
 	contrib := (parent.GasUsed() + parent.GasUsed()/2) / params.GasLimitBoundDivisor
 
-	// decay = parentGasLimit / 256 -1
 	decay := parent.GasLimit()/params.GasLimitBoundDivisor - 1
 
 	/*

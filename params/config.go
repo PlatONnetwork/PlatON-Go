@@ -27,8 +27,8 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
-	TestnetGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	MainnetGenesisHash = common.HexToHash("0x7c76759a423eadfe7513055efb726679be07875a81e10ea6445238caf0f34a23")
+	TestnetGenesisHash = common.HexToHash("0x47c7f3dea852b28c45d5fee6c950321486780065745179c7a296934e493f18e1")
 )
 
 var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
@@ -39,69 +39,46 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 var (
 	initialMainNetConsensusNodes = []initNode{
 		{
-			"enode://a84f5047c13a01b01b1f5c8be63c360d1d9d49d4d0f0c55deacade344bd3f1d12033b1334d8e42646f7eaf4a46ab325e6e02d020f4ac157ac71a4d202cd5ccea@13.69.9.245:16789", //TEST-SEA
-			"6af3f69120080ea55fc803fbe5fc659a2274d413b8c6162fbd8ab6b1bb88de7e01c395977a3a64f91f04132104041c0035b13fa36251672e10820c043d2fdd09798120527682df31f57a4cd57030ecb084f84fa1c5b78d1272c162b001d20280",
+			"enode://d2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f@mf1.a4f9.platon.network:16789",
+			"a776f354346f1363c40afa949822a3831798cba0950a71e8cbbc1c396abcf0d65ac534518fbb96338a51708bf773af0cfd3f285374259c3edc22eaed9c270b9255596be5f6dc75c4df62defd6587259c8df123635706a8eddfeca9616f012881",
 		},
 		{
-			"enode://01fd4af4c8cdf5d7b934c0ad955d0b7b44114555457f49032d2eccf838abe18eff5a336be7d0fd93cb50359192d1a4c063eaad4b395f6c5b6b6dc3fda64ccfbb@207.46.233.122:16789", //TEST-SG
-			"ac7f88010a1838b23c60c075d83f1cbf412e833187dd838d18c560e4e6f1cd17672695f31262578b580501804177e70c9c0fff88f7dcd257848f7af8e9a39921db378547e6f8e7111d1de2651261ce03d2a4a1821e7774bae25acd28d5f09a0b",
+			"enode://8dae13a4b3417a3443ce8e552974cc5119ed2a0796b81773d2a1457fdae767f2c0698c0f71849fe708e9b2a2b2e326944f56bce11f3d6048660bd8aae7ff0fb3@mf2.8cd2.platon.network:16789",
+			"7c157fa27e7491d166115580bece75aeb7b1efc5968f495cfb7dbfc32701462c7d0cbe7010a79bc2cf3861612d58c40957bc46bf255acf177f13efe2d5de76b32442baa902617dfd56294bb768e65b29f4525018972cc99eb80eba258310cd11",
 		},
 		{
-			"enode://a2b436b09818b678c38983c51e80de7e564a42c5f875ad0a7e6dddddbd6b3b0396ba02fa1f19542765b03c74ffb33774f67fb13615e59bb31c451a44e9678117@52.142.166.24:16789", //TEST-NA
-			"4e76bff3d7487cc8ee2f47ba09c997df386d3a06e9771067023ecb1f7dbcc8123ff59af9b6fd7814cc793e4e11d4420890532ae6d63fddb5a0e56b019567a5f6181d4ad14bc3e5771a285738c8def864526246cccb7fa6ee3cbdef3083e08009",
+			"enode://0e9b9887bec136c6eeb551072c4ce6c7caf5d68051b6a7c12f39637468e288e2bf4258cc907296f14dce1fc7cc01ab5cef51f7ce9ac4de3a9d4c6d4aa8dd166d@mf3.f9ec.platon.network:16789",
+			"3795f3da2ea48578040becfa208b13b7a7d35ea110f1bf092c99486d893028170a531b530df6c7a8e53ceb21f7114a03a2cc31b6528daba17dce9c3c7262d19d0ea0c131353213172c41f81f3d65ad0404b23d9bb0763e3b90c4de697888df90",
 		},
 		{
-			"enode://f32160f10265d2273e4a625c9795564689ac80aa40a75f7f2e93aa31f214a0459a47c6813079355504928f1f521f86a70f1a31d4db607ee128df72825f967dd8@52.143.129.153:16789", //TEST-US
-			"b96ddc93537ef7ec25626d272be4f2ba445fdedb5b40fbf4b8ea519c9144df309e862e8e64f6871cdbfb6cb1b8583d1960f4781358999b283c66b096fc16b596c81392f912a9905f0b6df3eb7cdf7a044eba2ef3efd046cd039b7bc85553130b",
+			"enode://8568e4fa62b17c80befe49b27c1a4ba61d4b683d7ec59c568c5023cc8f14c87c756439d52b9a15af2750407e006e5fda515e0b68c5092eab297194e3699e936d@mf4.add3.platon.network:16789",
+			"67a10e82707b65824333eab1a234b9ff4a171c51be0063acdc5a7cc79708ab7853f03cf13daff0bab6de17908dc64e132e5112e6273b55a1733cac31823279179a5e717b2ec0003e74356deb01c2d28f5ab451bc7dfdd5bc39f80a3cd1423485",
 		},
 		{
-			"enode://4f4946d376233ed5a0440c0a68fbf9a0dd926e276a7c88715e889ce2029f1f8c25d5a7abb9dfcb155cf0a73888e2e2b79e07ac10f3c4a810ec57201f2fbd2389@52.63.239.155:16789", //TEST-US
-			"81e4458fe917b277378b6de409244973c9d1a27d8bc0b18e7230edee30dc69e4575d2d732fa662cc43021ce8f3c20901be367e7b3596405d28181beea68be83d3a4e9a627b9ffb6cbd098859e62ac3fc778a2cd4b3e70d1eafb9edef06dc1d09",
+			"enode://e5a06147d5e33cb935fff7d31a78422583d3cf0438c045da0ef6581c48e2ca1597687400adc35f2d79a93125d3d249e6aa3b881d163331e4c405e6e2b5293036@mf5.0354.platon.network:16789",
+			"12849c388b4dc0e94dcc240484d157203403df06dfbd5912554fc5c0b06cfd18eef4dec0cfd66f0144b2cca658d18208f002d546fb9c8d02bbfcd64d5d5bbf00d80867241329e4b3609319c0165109f0cdedaeb2d1246857ef3ea29951948098",
 		},
 		{
-			"enode://53c2582db1d5397dab9c079e9d03a3fd81b5332eda145f3c10e62df365f3fea828a880f8d39803e6555f9df84453cbf27d2bf80b27c09727f0909044da5d560c@35.182.73.204:16789", //TEST-US
-			"455582d7d02884c3aa9a8d8b3173b88a76248853cc4ee1e973b3bd0a192f28834d8121f99cdba1dcee06e8437b9fc60b6d88f5e5c662d2dd24be4469be209c20a07f0b9cb210ff5a8b99d8a2b4a90d7d3ed8b60c73b8727e109be2f803abe811",
+			"enode://e88cea24d93efe84f34a0edbe62a844aa4a15c560f1fc7c832170625aa93a9320c9c906bdf579de4c605ffe680734f7a26133f8196eff297089905e42955571b@mf6.9e2c.platon.network:16789",
+			"1d0adc463850d70a5f664fad1107bb8e646422e2e93e9dd4c5438c96e14aa44e3c36e9fd762b5ad2fbefbf0bfb088612d4b2daa3a15ddc6a895ea2c1d768b395379c629768a54f27d53a0e517662fa2753607d6a59c4f520e8ef020c558f2d93",
 		},
 		{
-			"enode://61241ed97c11ffb8843b6f62263b63eb2d47b73e1ccc7ca474fd3e8f212c56d3e1687f4fe380ce122a478773ba70b5f893ee4baece836513d3b68a88a2977631@3.122.68.59:16789", //TEST-US
-			"0c722bbee6314348218648cb63244364c490ca8e04e8cfbc6f38d2ec90a8b33be65c987692e84aae5fe47926f4e0a00c7e08f3a1ccc36e5576b684b7fda2b34646723ffdd8a841d4ad9e8c1b228073fba4ddf6e03620ecdd8f6c07b158103289",
+			"enode://b6bb715a59ecc00220b0b4db038f51a586b43542d2063c0096b5c864da0057a47899d6e594094df428d52a52f68d1db9e9c172e8c0f2c4ed659ab74dcd5cfd6c@mf7.e1dd.platon.network:16789",
+			"d3635a29e275a570049431953f7693a8c8ad444c3282267042f837f1b31403dd079e952f52d7f5ab5c48a6a1052530035b6a31a91114458676fbb925c20c34e73cb5cffb40d0ef80e48abf5359ecdfa7b69815fb8beb9c46d364004ba2d28500",
 		},
 	}
 
 	initialTestnetConsensusNodes = []initNode{
 		{
-			"enode://e0c521bc365d6e4be8e7c57eef4d82c41fa679f3531f4860a0a9bd10f1d03772a600f293f36baa037f2378a32aeed015b8781c17ca80eb93b33d15f0b8d6b0eb@137.135.187.49:16789", //TEST-SEA
-			"1fae6a56386e6ca3f9bc3727105adff78c4822c5cdca8594edac3d5f4e145b3ee6b3fe995072cdf3bf40e7decfb35013d330676ac516e09d74695d8a5248a585279172447e1855bc28e04efea1efc7ae54a60ac4445dd168d3be3836d4ecb304",
-		},
-		{
-			"enode://6d53868800442172dad019e11e46f2c311e82fa43d8b6673800d1ba96b4ccdfc79d2ed0e76bc2f3adc79e92ea2d66123bb8ff7229a0a62b3dacd2fe3f292f237@52.236.129.246:16789", //TEST-SG
-			"7638475108d18c280516ab0afd8991bb7d300e174cefa568530c7812158a29906009a63a37b590904f1639919bbeb909f5e871efd062aa11444dfe8f28ef3646fe260d91d8b27087884f6b678309bf4c639a4e3f7ce6fbbb2c247f3515c2750e",
-		},
-		{
-			"enode://3241190f8f9cc4daa6ad82b703719a9c374d681e99f74085f86c1ee7f8a8d2ec7ca2a691182441c250a376917d4e41342bb168f7172b2b73d24cd2d1cbaaa13c@52.228.38.97:16789", //TEST-NA
-			"2cf585988d27aca716e33f30eeb2b5f7f5d146aca2f1a854e4667bb305bc0b8e73f756c6e81ac5c90690b36ecab89f15621ff49cdcaadcdfa6c78f28aeda0c498cc3502f1a59d0366e4bf767801649a1ca96cfe8eb663147721ca98840a43300",
-		},
-		{
-			"enode://8823be50eeaec8b4091b1e6874d0ca62b339d10e4fffb2bb335910bad1461818b10e121ede9cc76d7ecc666f70037ba8538a893c4c41f031577745cd281ce4cd@51.105.52.194:16789", //TEST-US
-			"2db52bc9ec0ab826fb64aafb179284fe5b2a5a2263d95a9a44cf7d5bf81e913aca4e745d109a02e44612f04c633d350f4f3992ddd250901487618f9534178949859c1fbdf40af2959161de73ef48abf3adb7b6ebcdc0890f76c9447ed10d6b8a",
-		},
-		{
-			"enode://3da6f3dd87b6ab69933df5c8c7ce3384f96e31993b31120f6dd60e48f5454b1deeedf65708617b7b7aa3b4d2852379197ece293ae2d37bf80488bbf8305f9538@3.120.24.72:16789", //TEST-US
-			"e5c17a1ec1dbbc0805086e7e3b47ec7356726b5afffc827d3ddbbd4021d8b5c7301b9a6316ea99c713bc42edad77ae0e625be6dad67558f638891b093051b963608b58b831732916f9973a65f18fdb65429c39a0ce7b96d6d86ac14d333fdf91",
-		},
-		{
-			"enode://c51941700cda66534a951d54431c81bbc2859a17bf6fd2dd5be9dbc0e1d6b2858146a3919b8ab3ef2eeb7b6c89e632616537d94301f8dd4a3f7d9d0cb15eabf8@13.126.189.133:16789", //TEST-US
-			"f9374427202567be87a1397cb018e66b1d695453bd9fba4b7e4ab13d4a730b83251ed48bdc0e35e581715ee1dcc7d00cef04ab4e02acfef826c8c130989461063a324f68f10610dd6c6edd03293c7b082dad41c1d8941b2ad28f85cb70fc5594",
-		},
-		{
-			"enode://93bdcf7dd8e579e61bf1d8d1c6be9ffdfc492b9828321ea41d61c3f00f1f6d957310b63abf4b93f03738b7ce9cf141637ce8eaefcbd12e06a528dd9233ac8bc5@18.140.124.104:16789", //TEST-US
-			"5135e6790ed70084f74f8daa8ad3a84980d8571c8b793ee19d634677571716e4cf42af46f3af53e3eea342440c62e60586751c7d2a86d59f3e09adab6b76399db1e3200afe315043ee895f5ad963fa6bfbebd8739b7d3a0f19ad60903a4b9793",
+			"enode://b7f1f7757a900cce7ce4caf8663ecf871205763ac201c65f9551d5b841731a9cd9550bc05f3a16fbc2ef589c9faeef74d4500b60d76047939e2ba7fa4a5915aa@127.0.0.1:16789",
+			"f1735bac863706b49809a4e635fe0c2e224aef5ad549f18ba3f2f6b61c0c9d0005f12d497a301ba26a8aaf009c90e4198301875002984c5cd9bd614cd2fbcb81c57f6355a8400d56c20804e1dfb34782c1f2eadda82c8b226aa4a71bfa60be8c",
 		},
 	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(100),
+		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -110,7 +87,7 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -122,9 +99,10 @@ var (
 		BloomRoot:    common.HexToHash("0xd38be1a06aabd568e10957fee4fcc523bc64996bcf31bae3f55f86e0a583919f"),
 	}
 
-	// TestnetChainConfig contains the chain parameters to run a node on the test network.
+	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(103),
+		ChainID:     big.NewInt(104),
+		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
 		Cbft: &CbftConfig{
@@ -133,7 +111,7 @@ var (
 			ValidatorMode: "ppos",
 			Period:        20000,
 		},
-		VMInterpreter: "wasm",
+		GenesisVersion: GenesisVersion,
 	}
 
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the test network.
@@ -146,21 +124,23 @@ var (
 	}
 
 	GrapeChainConfig = &ChainConfig{
+		AddressHRP:  "lat",
 		ChainID:     big.NewInt(304),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
+		GenesisVersion: GenesisVersion,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -182,6 +162,7 @@ type TrustedCheckpoint struct {
 // set of configuration options.
 type ChainConfig struct {
 	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	AddressHRP  string   `json:"addressHRP"`
 	EmptyBlock  string   `json:"emptyBlock"`
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
 	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
@@ -189,8 +170,7 @@ type ChainConfig struct {
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
-	// Various vm interpreter
-	VMInterpreter string `json:"interpreter,omitempty"`
+	GenesisVersion uint32 `json:"genesisVersion"`
 }
 
 type CbftNode struct {
@@ -254,7 +234,7 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 //
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
-	return GasTableHomestead
+	return GasTableConstantinople
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -338,28 +318,6 @@ func newCompatError(what string, storedblock, newblock *big.Int) *ConfigCompatEr
 
 func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
-}
-
-// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
-// that do not have or require information about the block.
-//
-// Rules is a one time interface meaning that it shouldn't be used in between transition
-// phases.
-type Rules struct {
-	ChainID  *big.Int
-	IsEIP155 bool
-}
-
-// Rules ensures c's ChainID is not nil.
-func (c *ChainConfig) Rules(num *big.Int) Rules {
-	chainID := c.ChainID
-	if chainID == nil {
-		chainID = new(big.Int)
-	}
-	return Rules{
-		ChainID:  new(big.Int).Set(chainID),
-		IsEIP155: c.IsEIP155(num),
-	}
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {

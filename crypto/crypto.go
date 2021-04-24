@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -40,6 +41,14 @@ var (
 )
 
 var errInvalidPubkey = errors.New("invalid secp256k1 public key")
+
+// KeccakState wraps sha3.state. In addition to the usual hash methods, it also supports
+// Read to get a variable amount of data from the hash state. Read is faster than Sum
+// because it doesn't copy the internal state, but also modifies the internal state.
+type KeccakState interface {
+	hash.Hash
+	Read([]byte) (int, error)
+}
 
 // Keccak256 calculates and returns the Keccak256 hash of the input data.
 func Keccak256(data ...[]byte) []byte {
@@ -78,8 +87,8 @@ func CreateAddress(b common.Address, nonce uint64) common.Address {
 
 // CreateAddress2 creates an ethereum address given the address bytes, initial
 // contract code and a salt.
-func CreateAddress2(b common.Address, salt [32]byte, code []byte) common.Address {
-	return common.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes(), salt[:], Keccak256(code))[12:])
+func CreateAddress2(b common.Address, salt [32]byte, inithash []byte) common.Address {
+	return common.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes(), salt[:], inithash)[12:])
 }
 
 // ToECDSA creates a private key with the given D value.
@@ -212,6 +221,11 @@ func ValidateSignatureValues(v byte, r, s *big.Int, homestead bool) bool {
 func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
 	pubBytes := FromECDSAPub(&p)
 	return common.BytesToAddress(Keccak256(pubBytes[1:])[12:])
+}
+
+func PubkeyToNodeAddress(p ecdsa.PublicKey) common.NodeAddress {
+	pubBytes := FromECDSAPub(&p)
+	return common.NodeAddress(common.BytesToAddress(Keccak256(pubBytes[1:])[12:]))
 }
 
 func zeroBytes(bytes []byte) {

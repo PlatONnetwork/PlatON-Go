@@ -17,7 +17,10 @@
 package node
 
 import (
+	"crypto/ecdsa"
 	"reflect"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -34,6 +37,7 @@ type ServiceContext struct {
 	services       map[reflect.Type]Service // Index of the already constructed services
 	EventMux       *event.TypeMux           // Event multiplexer used for decoupled notifications
 	AccountManager *accounts.Manager        // Account manager created by the node.
+	serverConfig   p2p.Config
 }
 
 func NewServiceContext(config *Config, services map[reflect.Type]Service, EventMux *event.TypeMux, AccountManager *accounts.Manager) *ServiceContext {
@@ -48,11 +52,11 @@ func NewServiceContext(config *Config, services map[reflect.Type]Service, EventM
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
-func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int) (ethdb.Database, error) {
+func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int, namespace string) (ethdb.Database, error) {
 	if ctx.config.DataDir == "" {
-		return ethdb.NewMemDatabase(), nil
+		return rawdb.NewMemoryDatabase(), nil
 	}
-	db, err := ethdb.NewLDBDatabase(ctx.config.ResolvePath(name), cache, handles)
+	db, err := rawdb.NewLevelDBDatabase(ctx.config.ResolvePath(name), cache, handles, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +70,10 @@ func (ctx *ServiceContext) ResolvePath(path string) string {
 	return ctx.config.ResolvePath(path)
 }
 
+func (ctx *ServiceContext) GenesisPath() string {
+	return ctx.config.GenesisPath()
+}
+
 // Service retrieves a currently running service registered of a specific type.
 func (ctx *ServiceContext) Service(service interface{}) error {
 	element := reflect.ValueOf(service).Elem()
@@ -74,6 +82,10 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 		return nil
 	}
 	return ErrServiceUnknown
+}
+
+func (ctx *ServiceContext) NodePriKey() *ecdsa.PrivateKey {
+	return ctx.serverConfig.PrivateKey
 }
 
 // ServiceConstructor is the function signature of the constructors needed to be

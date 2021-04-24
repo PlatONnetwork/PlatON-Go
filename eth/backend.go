@@ -21,8 +21,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -124,13 +127,81 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
 	}
 	// Assemble the Ethereum object
-	chainDb, err := CreateDB(ctx, config, "chaindata")
+	chainDb, err := ctx.OpenDatabase("chaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, ctx.ResolvePath(snapshotdb.DBPath), config.Genesis)
+	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+	if err != nil {
+		return nil, err
+	}
+
+	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
+	log.Debug("read header number from chain db", "height", height)
+	if height != nil && *height > 0 {
+		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
+		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
+
+		// systemError
+		if err != nil && err != snapshotdb.ErrNotFound {
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
+			return nil, err
+		}
+		//if find sync status,this means last syncing not finish,should clean all db to reinit
+		//if not find sync status,no need init chain
+		if err == nil {
+
+			// Just commit the new block if there is no stored genesis block.
+			stored := rawdb.ReadCanonicalHash(chainDb, 0)
+
+			log.Info("last fast sync is fail,init  db", "status", status, "prichain", config.Genesis == nil)
+			chainDb.Close()
+			if err := snapshotBaseDB.Close(); err != nil {
+				return nil, err
+			}
+			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
+				return nil, err
+			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
+				return nil, err
+			}
+
+			if err := os.RemoveAll(ctx.ResolvePath(snapshotdb.DBPath)); err != nil {
+				return nil, err
+			}
+
+			chainDb, err = ctx.OpenDatabase("chaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
+			if err != nil {
+				return nil, err
+			}
+
+			snapshotBaseDB, err = snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+			if err != nil {
+				return nil, err
+			}
+
+			//only private net  need InitGenesisAndSetEconomicConfig
+			if stored != params.MainnetGenesisHash && config.Genesis == nil {
+				// private net
+				config.Genesis = new(core.Genesis)
+				if err := config.Genesis.InitGenesisAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
+					return nil, err
+				}
+			}
+			log.Info("last fast sync is fail,init  db finish")
+		}
+	}
+
+	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+
+	if err := snapshotBaseDB.Close(); err != nil {
+		return nil, err
+	}
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -169,11 +240,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	var (
 		vmConfig = vm.Config{
 			ConsoleOutput: config.Debug,
+			WasmType:      vm.Str2WasmType(config.VMWasmType),
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory, DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
+			TriesInMemory: config.TriesInMemory, TrieDBCache: config.TrieDBCache,
+			DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
 		}
 
@@ -207,27 +280,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
-	// mpcPool deal with mpc transactions
-	// modify By J
-	//if config.MPCPool.Journal != "" {
-	//	config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
-	//} else {
-	//	config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
-	//}
-	//if config.MPCPool.Rejournal == 0 {
-	//	config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
-	//}
-	//if config.MPCPool.Lifetime == 0 {
-	//	config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
-	//}
-	//eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
-	//eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
-
-	// modify by platon remove consensusCache
-	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	core.SenderCacher.SetTxPool(eth.txPool)
 
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
@@ -243,17 +298,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
-		config.MinerGasFloor /*config.MinerGasCeil,*/, eth.isLocalBlock, blockChainCache)
+		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
-	//extra data for each block will be set by worker.go
-	//eth.miner.SetExtra(makeExtraData(eth.blockchain, config.MinerExtraData))
-
-	reactor := core.NewBlockChainReactor(eth.EventMux())
-	node.GetCryptoHandler().SetPrivateKey(config.CbftConfig.NodePriKey)
+	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
+	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
-
 		var agency consensus.Agency
+		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig, eth.txPool)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
@@ -272,7 +324,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
-			reactor.SetPrivateKey(config.CbftConfig.NodePriKey)
+			reactor.SetPrivateKey(ctx.NodePriKey())
 			handlePlugin(reactor)
 			agency = reactor
 
@@ -326,18 +378,6 @@ func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	return nil
 }
 
-// CreateDB creates the chain database.
-func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Database, error) {
-	db, err := ctx.OpenDatabase(name, config.DatabaseCache, config.DatabaseHandles)
-	if err != nil {
-		return nil, err
-	}
-	if db, ok := db.(*ethdb.LDBDatabase); ok {
-		db.Meter("eth/db/chaindata/")
-	}
-	return db, nil
-}
-
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
 	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
@@ -388,9 +428,19 @@ func (s *Ethereum) APIs() []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateDebugAPI(s.chainConfig, s),
 		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   xplugin.NewPublicPPOSAPI(),
+		}, {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
+			Public:    true,
+		},
+		{
+			Namespace: "txgen",
+			Version:   "1.0",
+			Service:   NewTxGenAPI(s),
 			Public:    true,
 		},
 	}...)
@@ -566,15 +616,19 @@ func (s *Ethereum) Stop() error {
 
 // RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor) {
+	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
+
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+
+	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	// set rule order
-	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
-	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
+	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
+	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
 
 }

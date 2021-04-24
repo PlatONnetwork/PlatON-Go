@@ -32,6 +32,9 @@ var (
 	// headHeaderKey tracks the latest know header's hash.
 	headHeaderKey = []byte("LastHeader")
 
+	// chain address prefix key
+	AddressHRPKey = []byte("address-hrp-key-")
+
 	// headBlockKey tracks the latest know full block's hash.
 	headBlockKey = []byte("LastBlock")
 
@@ -82,6 +85,11 @@ func encodeBlockNumber(number uint64) []byte {
 // headerKey = headerPrefix + num (uint64 big endian) + hash
 func headerKey(number uint64, hash common.Hash) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
+}
+
+// headerKeyPrefix = headerPrefix + num (uint64 big endian)
+func headerKeyPrefix(number uint64) []byte {
+	return append(headerPrefix, encodeBlockNumber(number)...)
 }
 
 // headerHashKey = headerPrefix + num (uint64 big endian) + headerHashSuffix

@@ -18,13 +18,19 @@
 package types
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"math/big"
 	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -34,6 +40,8 @@ import (
 
 var (
 	EmptyRootHash = DeriveSha(Transactions{})
+	// Extra field in the block header, maximum length
+	ExtraMaxSize = 97
 )
 
 // BlockNonce is an 81-byte vrf proof containing random numbers
@@ -79,7 +87,9 @@ type Header struct {
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
 	// caches
-	sealHash atomic.Value `json:"-" rlp:"-"`
+	sealHash  atomic.Value `json:"-" rlp:"-"`
+	hash      atomic.Value `json:"-" rlp:"-"`
+	publicKey atomic.Value `json:"-" rlp:"-"`
 }
 
 // field type overrides for gencodec
@@ -98,37 +108,63 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
-// SealHash returns the keccak256 seal hash of b's header.
-// The seal hash is computed on the first call and cached thereafter.
-func (header *Header) SealHash() (hash common.Hash) {
-	if sealHash := header.sealHash.Load(); sealHash != nil {
-		return sealHash.(common.Hash)
+func (h *Header) CacheHash() common.Hash {
+	if hash := h.hash.Load(); hash != nil {
+		return hash.(common.Hash)
 	}
-	v := header._sealHash()
-	header.sealHash.Store(v)
+	v := rlpHash(h)
+	h.hash.Store(v)
 	return v
 }
 
-func (header *Header) _sealHash() (hash common.Hash) {
-	extra := header.Extra
+func (h *Header) CachePublicKey() *ecdsa.PublicKey {
+	if pk := h.publicKey.Load(); pk != nil {
+		return pk.(*ecdsa.PublicKey)
+	}
+
+	sign := h.Extra[32:97]
+	sealhash := h.SealHash().Bytes()
+
+	pk, err := crypto.SigToPub(sealhash, sign)
+	if err != nil {
+		log.Error("cache publicKey fail,sigToPub fail", "err", err)
+		return nil
+	}
+	h.publicKey.Store(pk)
+	return pk
+}
+
+// SealHash returns the keccak256 seal hash of b's header.
+// The seal hash is computed on the first call and cached thereafter.
+func (h *Header) SealHash() (hash common.Hash) {
+	if sealHash := h.sealHash.Load(); sealHash != nil {
+		return sealHash.(common.Hash)
+	}
+	v := h._sealHash()
+	h.sealHash.Store(v)
+	return v
+}
+
+func (h *Header) _sealHash() (hash common.Hash) {
+	extra := h.Extra
 
 	hasher := sha3.NewKeccak256()
-	if len(header.Extra) > 32 {
-		extra = header.Extra[0:32]
+	if len(h.Extra) > 32 {
+		extra = h.Extra[0:32]
 	}
 	rlp.Encode(hasher, []interface{}{
-		header.ParentHash,
-		header.Coinbase,
-		header.Root,
-		header.TxHash,
-		header.ReceiptHash,
-		header.Bloom,
-		header.Number,
-		header.GasLimit,
-		header.GasUsed,
-		header.Time,
+		h.ParentHash,
+		h.Coinbase,
+		h.Root,
+		h.TxHash,
+		h.ReceiptHash,
+		h.Bloom,
+		h.Number,
+		h.GasLimit,
+		h.GasUsed,
+		h.Time,
 		extra,
-		header.Nonce,
+		h.Nonce,
 	})
 
 	hasher.Sum(hash[:0])
@@ -146,13 +182,34 @@ func (h *Header) Signature() []byte {
 	if len(h.Extra) < 32 {
 		return []byte{}
 	}
-	return h.Extra[32:]
+	return h.Extra[32:97]
+}
+
+func (h *Header) ExtraData() []byte {
+	if len(h.Extra) < 32 {
+		return []byte{}
+	}
+	return h.Extra[:32]
+}
+
+// Check whether the Extra field exceeds the limit size
+func (h *Header) IsInvalid() bool {
+	return len(h.Extra) > ExtraMaxSize
+}
+
+// hasherPool holds Keccak hashers.
+var hasherPool = sync.Pool{
+	New: func() interface{} {
+		return sha3.NewKeccak256()
+	},
 }
 
 func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
+	sha := hasherPool.Get().(crypto.KeccakState)
+	defer hasherPool.Put(sha)
+	sha.Reset()
+	rlp.Encode(sha, x)
+	sha.Read(h[:])
 	return h
 }
 
@@ -177,6 +234,8 @@ type Block struct {
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
 	extraData    []byte
+
+	CalTxFromCH chan int
 }
 
 // [deprecated by eth/63]
@@ -233,6 +292,16 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 // will not affect the block.
 func NewBlockWithHeader(header *Header) *Block {
 	return &Block{header: CopyHeader(header)}
+}
+
+// NewSimplifiedBlock creates a block with the given number and hash data.
+func NewSimplifiedBlock(number uint64, hash common.Hash) *Block {
+	header := &Header{
+		Number: big.NewInt(int64(number)),
+	}
+	block := NewBlockWithHeader(header)
+	block.hash.Store(hash)
+	return block
 }
 
 // CopyHeader creates a deep copy of a block header to prevent side effects from

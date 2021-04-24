@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleStaking, KeyStakeThreshold,
-				fmt.Sprintf("minimum amount of stake, range：[%d, %d) ", xcom.MillionLAT, xcom.TenMillionLAT)},
+				fmt.Sprintf("minimum amount of stake, range: [%d, %d]", xcom.StakeLowerLimit, xcom.StakeUpperLimit)},
 			ParamValue: &ParamValue{"", xcom.StakeThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -72,7 +72,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyOperatingThreshold,
-				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range：[%d, %d) ", xcom.TenLAT, xcom.TenThousandLAT)},
+				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range: [%d, %d]", xcom.DelegateLowerLimit, xcom.DelegateUpperLimit)},
 			ParamValue: &ParamValue{"", xcom.OperatingThreshold().String(), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -92,7 +92,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyMaxValidators,
-				fmt.Sprintf("maximum amount of validator, range：[%d, %d]", xcom.MaxConsensusVals(), xcom.CeilMaxValidators)},
+				fmt.Sprintf("maximum amount of validator, range: [%d, %d]", xcom.MaxConsensusVals(), xcom.CeilMaxValidators)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.MaxValidators())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -112,7 +112,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleStaking, KeyUnStakeFreezeDuration,
-				fmt.Sprintf("quantity of epoch for skake withdrawal, range：(MaxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
+				fmt.Sprintf("quantity of epoch for skake withdrawal, range: (MaxEvidenceAge, %d]", xcom.CeilUnStakeFreezeDuration)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.UnStakeFreezeDuration())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -121,9 +121,15 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed UnStakeFreezeDuration is failed: %v", err)
 				}
 
-				age, _ := GovernMaxEvidenceAge(blockNumber, blockHash)
-
-				if err := xcom.CheckUnStakeFreezeDuration(num, int(age)); nil != err {
+				age, err := GovernMaxEvidenceAge(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				epochNumber, err := GovernZeroProduceFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckUnStakeFreezeDuration(num, int(age), int(epochNumber)); nil != err {
 					return err
 				}
 
@@ -138,7 +144,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashFractionDuplicateSign,
-				fmt.Sprintf("quantity of base point(1BP=1‱). Node's stake will be deducted(BPs*staking amount*1‱) it the node sign block duplicatlly, range：(%d, %d]", xcom.Zero, xcom.TenThousand)},
+				fmt.Sprintf("quantity of base point(1BP=1‱). Node's stake will be deducted(BPs*staking amount*1‱) it the node sign block duplicatlly, range: (%d, %d]", xcom.Zero, xcom.TenThousand)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.SlashFractionDuplicateSign())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -157,7 +163,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeyDuplicateSignReportReward,
-				fmt.Sprintf("quantity of base point(1bp=1%%). Bonus(BPs*deduction amount for sign block duplicatlly*%%) to the node who reported another's duplicated-signature, range：(%d, %d]", xcom.Zero, xcom.Eighty)},
+				fmt.Sprintf("quantity of base point(1bp=1%%). Bonus(BPs*deduction amount for sign block duplicatlly*%%) to the node who reported another's duplicated-signature, range: (%d, %d]", xcom.Zero, xcom.Eighty)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.DuplicateSignReportReward())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -176,7 +182,7 @@ func initParam() []*GovernParam {
 
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeyMaxEvidenceAge,
-				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range：(%d, UnStakeFreezeDuration)", xcom.Zero)},
+				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range: (%d, UnStakeFreezeDuration)", xcom.Zero)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.MaxEvidenceAge())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -185,8 +191,10 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxEvidenceAge is failed: %v", err)
 				}
 
-				duration, _ := GovernUnStakeFreezeDuration(blockNumber, blockHash)
-
+				duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
 				if err := xcom.CheckMaxEvidenceAge(age, int(duration)); nil != err {
 					return err
 				}
@@ -197,7 +205,7 @@ func initParam() []*GovernParam {
 		},
 		{
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashBlocksReward,
-				fmt.Sprintf("quantity of block, the total bonus amount for these blocks will be deducted from a inefficient node's stake, range：[%d, %d)", xcom.Zero, xcom.CeilBlocksReward)},
+				fmt.Sprintf("quantity of block, the total bonus amount for these blocks will be deducted from a inefficient node's stake, range: [%d, %d)", xcom.Zero, xcom.CeilBlocksReward)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.SlashBlocksReward())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -219,7 +227,7 @@ func initParam() []*GovernParam {
 		About Block module
 		*/
 		{
-			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range：[%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
+			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range: [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasCeil)), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -228,7 +236,7 @@ func initParam() []*GovernParam {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
 				}
 
-				// (4712388<= x < =21000 0000)
+				// (4712388<= x <=21000 0000)
 				if gasLimit < int(params.GenesisGasLimit) || gasLimit > int(params.MaxGasCeil) {
 					return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxBlockGasLimit must be [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil)))
 				}
@@ -236,51 +244,184 @@ func initParam() []*GovernParam {
 				return nil
 			},
 		},
+		{
 
-		/**
-		About TxPool module
-		*/
-		//{
-		//	ParamItem:  &ParamItem{ModuleTxPool, KeyMaxTxDataLimit, fmt.Sprintf("maximum data length per transaction, range：(%d, %d]", xcom.Zero, CeilTxSize)},
-		//	ParamValue: &ParamValue{"", strconv.Itoa(GenesisTxSize), 0},
-		//	ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
-		//
-		//		txSize, err := strconv.Atoi(value)
-		//		if nil != err {
-		//			return fmt.Errorf("Parsed MaxTxDataLimit is failed: %v", err)
-		//		}
-		//
-		//		// (0, 10MB]
-		//		if txSize > CeilTxSize {
-		//			return common.InvalidParameter.Wrap(fmt.Sprintf("The MaxTxDataLimit must be (%d, %d]", xcom.Zero, CeilTxSize))
-		//		}
-		//
-		//		return nil
-		//	},
-		//},
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
+				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [ZeroProduceNumberThreshold, %d]", xcom.MaxZeroProduceCumulativeTime)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceCumulativeTime())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				roundNumber, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceCumulativeTime is failed")
+				}
+
+				numberThreshold, err := GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceCumulativeTime(uint16(roundNumber), numberThreshold); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
+				fmt.Sprintf("Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed ZeroProduceNumberThreshold is failed")
+				}
+
+				roundNumber, err := GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+				if err := xcom.CheckZeroProduceNumberThreshold(roundNumber, uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerMaxChangeRange,
+				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [%d, %d]", xcom.RewardPerMaxChangeRangeLowerLimit, xcom.RewardPerMaxChangeRangeUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerMaxChangeRange())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed RewardPerMaxChangeRange is failed")
+				}
+
+				if err := xcom.CheckRewardPerMaxChangeRange(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerChangeInterval,
+				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [%d, %d]", xcom.RewardPerChangeIntervalLowerLimit, xcom.RewardPerChangeIntervalUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.RewardPerChangeInterval())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed RewardPerChangeInterval is failed")
+				}
+
+				if err := xcom.CheckRewardPerChangeInterval(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleReward, KeyIncreaseIssuanceRatio,
+				fmt.Sprintf("Increase the ratio of issuance, range: [%d, %d]", xcom.IncreaseIssuanceRatioLowerLimit, xcom.IncreaseIssuanceRatioUpperLimit)},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.IncreaseIssuanceRatio())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed IncreaseIssuanceRatio is failed")
+				}
+
+				if err := xcom.CheckIncreaseIssuanceRatio(uint16(number)); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceFreezeDuration,
+				fmt.Sprintf("Zero production frozen time, range: [1, UnStakeFreezeDuration)")},
+			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceFreezeDuration())), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+
+				number, err := strconv.Atoi(value)
+				if nil != err {
+					return fmt.Errorf("parsed KeyZeroProduceFreezeDuration is failed")
+				}
+
+				epochNumber, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				if nil != err {
+					return err
+				}
+
+				if err := xcom.CheckZeroProduceFreezeDuration(uint64(number), epochNumber); nil != err {
+					return err
+				}
+				return nil
+			},
+		},
+		{
+
+			ParamItem: &ParamItem{ModuleRestricting, KeyRestrictingMinimumAmount,
+				fmt.Sprintf("minimum restricting amount to be released in each epoch, range: [%d, %d]",
+					xcom.FloorMinimumRelease, xcom.CeilMinimumRelease)},
+			ParamValue: &ParamValue{"", xcom.RestrictingMinimumRelease().String(), 0},
+			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+				v, ok := new(big.Int).SetString(value, 10)
+				if !ok {
+					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
+				}
+				if err := xcom.CheckMinimumRelease(v); err != nil {
+					return err
+				}
+				return nil
+			},
+		},
 	}
 }
 
 var ParamVerifierMap = make(map[string]ParamVerifier)
 
-func InitGenesisGovernParam(snapDB snapshotdb.DB) error {
+func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, genesisVersion uint32) (common.Hash, error) {
 	var paramItemList []*ParamItem
-	for _, param := range queryInitParam() {
+
+	initParamList := queryInitParam()
+
+	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
+		if err := snapDB.PutBaseDB(key, val); nil != err {
+			return common.ZeroHash, err
+		}
+		newHash := common.GenerateKVHash(key, val, hash)
+		return newHash, nil
+	}
+
+	var lastHash = prevHash
+	var err error
+	for _, param := range initParamList {
 		paramItemList = append(paramItemList, param.ParamItem)
 
 		key := KeyParamValue(param.ParamItem.Module, param.ParamItem.Name)
 		value := common.MustRlpEncode(param.ParamValue)
-		if err := snapDB.PutBaseDB(key, value); err != nil {
-			return err
+		lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+		if nil != err {
+			return lastHash, fmt.Errorf("failed to Store govern parameter: PutBaseDB failed. ParamItem:%s, ParamValue:%s, error:%s", param.ParamItem.Module, param.ParamItem.Name, err.Error())
 		}
 	}
 
 	key := KeyParamItems()
 	value := common.MustRlpEncode(paramItemList)
-	if err := snapDB.PutBaseDB(key, value); err != nil {
-		return err
+	lastHash, err = putBasedb_genKVHash_Fn(key, value, lastHash)
+	if nil != err {
+		return lastHash, fmt.Errorf("failed to Store govern parameter list: PutBaseDB failed. error:%s", err.Error())
 	}
-	return nil
+
+	//stateDB.SetState(vm.GovContractAddr, KeyGovernHASHKey(), lastHash.Bytes())
+	return lastHash, nil
 }
 
 func RegisterGovernParamVerifiers() {

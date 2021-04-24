@@ -17,16 +17,17 @@
 package types
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"container/heap"
 	"errors"
 	"io"
 	"math/big"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -41,6 +42,9 @@ type Transaction struct {
 	hash atomic.Value
 	size atomic.Value
 	from atomic.Value
+
+	//for parallel executor only
+	intrinsicGas uint64
 }
 
 type txdata struct {
@@ -153,9 +157,15 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
 func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
 func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) CheckNonce() bool   { return true }
+func (tx *Transaction) GasPriceCmp(other *Transaction) int {
+	return tx.data.Price.Cmp(other.data.Price)
+}
+func (tx *Transaction) GasPriceIntCmp(other *big.Int) int {
+	return tx.data.Price.Cmp(other)
+}
+func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }
+func (tx *Transaction) CheckNonce() bool { return true }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -232,6 +242,41 @@ func (tx *Transaction) Cost() *big.Int {
 
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
+}
+
+func (tx *Transaction) CacheFromAddr(signer Signer, addr common.Address) {
+	tx.from.Store(sigCache{signer: signer, from: addr})
+}
+
+func (tx *Transaction) FromAddr(signer Signer) common.Address {
+	if sc := tx.from.Load(); sc != nil {
+		sigCache := sc.(sigCache)
+		return sigCache.from
+		/*
+			// If the signer used to derive from in a previous
+			// call is not the same as used current, invalidate
+			// the cache.
+			if sigCache.signer.Equal(signer) {
+				return sigCache.from
+			}
+		*/
+	}
+
+	addr, err := signer.Sender(tx)
+	if err != nil {
+		return common.Address{}
+	}
+	//log.Debug("Sender cache2", "add", addr, "hash", tx.Hash(), "poi", fmt.Sprintf("%p", tx))
+	tx.from.Store(sigCache{signer: signer, from: addr})
+	return addr
+}
+
+func (tx *Transaction) SetIntrinsicGas(intrinsicGas uint64) {
+	tx.intrinsicGas = intrinsicGas
+}
+
+func (tx *Transaction) GetIntrinsicGas() uint64 {
+	return tx.intrinsicGas
 }
 
 // Transactions is a Transaction slice type for basic sorting.

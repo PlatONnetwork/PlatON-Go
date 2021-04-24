@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -29,9 +29,10 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func TestCommitZeroBlock(t *testing.T) {
@@ -821,8 +822,8 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 	t.Run("get from unRecognized", func(t *testing.T) {
 		var lastkvhash common.Hash
 		kvhash := ch.db.GetLastKVHash(common.ZeroHash)
-		lastkvhash = ch.db.generateKVHash(arr[0], arr[0], lastkvhash)
-		lastkvhash = ch.db.generateKVHash(arr[1], arr[1], lastkvhash)
+		lastkvhash = generateKVHash(arr[0], arr[0], lastkvhash)
+		lastkvhash = generateKVHash(arr[1], arr[1], lastkvhash)
 		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
@@ -830,8 +831,8 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 	t.Run("get from recognized", func(t *testing.T) {
 		var lastkvhash common.Hash
 		kvhash := ch.db.GetLastKVHash(recognizedHash)
-		lastkvhash = ch.db.generateKVHash(arr[2], arr[2], lastkvhash)
-		lastkvhash = ch.db.generateKVHash(arr[3], arr[3], lastkvhash)
+		lastkvhash = generateKVHash(arr[2], arr[2], lastkvhash)
+		lastkvhash = generateKVHash(arr[3], arr[3], lastkvhash)
 		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
@@ -917,7 +918,7 @@ func TestSnapshotDB_Compaction222222(t *testing.T) {
 			return
 		}
 	}
-	ch.db.journalSync.Wait()
+	ch.db.walSync.Wait()
 	t.Run("a block kv>2000,commit 1", func(t *testing.T) {
 		err := ch.db.Compaction()
 		if err != nil {

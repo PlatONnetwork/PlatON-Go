@@ -1,10 +1,28 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -13,7 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -37,6 +54,7 @@ type BlockChainReactor struct {
 	NodeId        discover.NodeID           // The nodeId of current node
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
+	chainID       *big.Int
 }
 
 var (
@@ -44,13 +62,14 @@ var (
 	bcr     *BlockChainReactor
 )
 
-func NewBlockChainReactor(mux *event.TypeMux) *BlockChainReactor {
+func NewBlockChainReactor(mux *event.TypeMux, chainId *big.Int) *BlockChainReactor {
 	bcrOnce.Do(func() {
 		log.Info("Init BlockChainReactor ...")
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
 			exitCh:        make(chan chan struct{}),
+			chainID:       chainId,
 		}
 	})
 	return bcr
@@ -76,6 +95,10 @@ func (bcr *BlockChainReactor) Close() {
 		})
 	}
 	log.Info("blockchain_reactor closed")
+}
+
+func (bcr *BlockChainReactor) GetChainID() *big.Int {
+	return bcr.chainID
 }
 
 // Getting the global bcr single instance
@@ -197,7 +220,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 		}
 		header.Coinbase = can.BenefitAddress
 		log.Info("SetWorkerCoinBase Successfully", "blockNumber", header.Number,
-			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.Hex())
+			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
 	}
 
 }
@@ -223,13 +246,11 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			header.Nonce = types.EncodeNonce(value)
 		}
 	} else {
-		blockHash = header.Hash()
+		blockHash = header.CacheHash()
 		// Verify vrf proof
-		sign := header.Extra[32:97]
-		sealHash := header.SealHash().Bytes()
-		pk, err := crypto.SigToPub(sealHash, sign)
-		if nil != err {
-			return err
+		pk := header.CachePublicKey()
+		if pk == nil {
+			return errors.New("failed to get the public key of the block producer")
 		}
 		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
@@ -237,7 +258,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
-		"hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
+		"hash", blockHash, "parentHash", header.ParentHash)
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
 			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
@@ -255,8 +276,8 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 
 	// This must not be deleted
 	root := state.IntermediateRoot(true)
-	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash().Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
@@ -274,7 +295,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	blockHash := common.ZeroHash
 
 	if !xutil.IsWorker(header.Extra) {
-		blockHash = header.Hash()
+		blockHash = header.CacheHash()
 	}
 
 	// Store the previous vrf random number
@@ -298,25 +319,28 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
-		log.Debug("Store ppos hash", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(),
+		log.Debug("Store ppos hash", "blockHash", blockHash, "blockNumber", header.Number.Uint64(),
 			"pposHash", hex.EncodeToString(pposHash))
 	}
 
 	// This must not be deleted
 	root := state.IntermediateRoot(true)
-	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash.Hex(), "blockNumber",
-		header.Number.Uint64(), "root", root.Hex(), "pointer", fmt.Sprintf("%p", state))
+	log.Debug("EndBlock StateDB root, end", "blockHash", blockHash, "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
 
 	return nil
 }
 
 func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
 
-	if _, ok := vm.PlatONPrecompiledContracts[to]; !ok {
+	if !vm.IsPlatONPrecompiledContract(to) {
 		return nil
 	}
 
 	input := tx.Data()
+	if len(input) == 0 {
+		return nil
+	}
 
 	var contract vm.PlatONPrecompiledContract
 	switch to {
@@ -336,6 +360,7 @@ func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address)
 		// pass if the contract is validatorInnerContract
 		return nil
 	}
+	// verify the ppos contract tx.data
 	if contract != nil {
 		if fcode, _, _, err := plugin.VerifyTxData(input, contract.FnSigns()); nil != err {
 			return err
@@ -373,9 +398,9 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 }
 
 func (bcr *BlockChainReactor) Flush(header *types.Header) error {
-	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
+	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", header.Hash())
 	if err := snapshotdb.Instance().Flush(header.Hash(), header.Number); nil != err {
-		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
+		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", header.Hash(), "err", err)
 		return err
 	}
 	return nil

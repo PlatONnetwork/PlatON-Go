@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
@@ -33,7 +49,7 @@ var (
 // As a bridge layer for cbft and wal.
 type Bridge interface {
 	UpdateChainState(qcState, lockState, commitState *protocols.State)
-	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC)
+	ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64)
 	SendViewChange(view *protocols.ViewChange)
 	SendPrepareBlock(pb *protocols.PrepareBlock)
 	SendPrepareVote(block *types.Block, vote *protocols.PrepareVote)
@@ -49,7 +65,7 @@ type emptyBridge struct {
 func (b *emptyBridge) UpdateChainState(qcState, lockState, commitState *protocols.State) {
 }
 
-func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+func (b *emptyBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64) {
 }
 
 func (b *emptyBridge) SendViewChange(view *protocols.ViewChange) {
@@ -162,8 +178,9 @@ func (b *baseBridge) addQCState(qc *protocols.State, chainState *protocols.Chain
 // ConfirmViewChange tries to update ConfirmedViewChange consensus msg to wal.
 // at the same time we will record the current fileID and fileSequence.
 // the next time the platon node restart, we will recovery the msg from this check point.
-func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
+func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC, preEpoch, preViewNumber uint64) {
 	tStart := time.Now()
+	// save the identity location of the wal message in the file system
 	meta := &wal.ViewChangeMessage{
 		Epoch:      epoch,
 		ViewNumber: viewNumber,
@@ -171,6 +188,7 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if err := b.cbft.wal.UpdateViewChange(meta); err != nil {
 		panic(fmt.Sprintf("update viewChange meta error, err:%s", err.Error()))
 	}
+	// save ConfirmedViewChange message, the viewChangeQC is last viewChangeQC
 	vc := &protocols.ConfirmedViewChange{
 		Epoch:        epoch,
 		ViewNumber:   viewNumber,
@@ -181,8 +199,9 @@ func (b *baseBridge) ConfirmViewChange(epoch, viewNumber uint64, block *types.Bl
 	if err := b.cbft.wal.WriteSync(vc); err != nil {
 		panic(fmt.Sprintf("write confirmed viewChange error, err:%s", err.Error()))
 	}
+	// save last viewChangeQC, for viewChangeQC synchronization
 	if viewChangeQC != nil {
-		b.cbft.wal.UpdateViewChangeQC(epoch, viewNumber, viewChangeQC)
+		b.cbft.wal.UpdateViewChangeQC(preEpoch, preViewNumber, viewChangeQC)
 	}
 	log.Debug("Success to confirm viewChange", "confirmedViewChange", vc.String(), "elapsed", time.Since(tStart))
 }

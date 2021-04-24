@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -36,6 +52,7 @@ type Ppos_1000 struct {
 	Website            string
 	Details            string
 	Amount             *big.Int
+	RewardPer          uint16
 	ProgramVersion     uint32
 	ProgramVersionSign common.VersionSign
 	BlsPubKey          bls.PublicKeyHex
@@ -46,6 +63,7 @@ type Ppos_1000 struct {
 type Ppos_1001 struct {
 	BenefitAddress common.Address
 	NodeId         discover.NodeID
+	RewardPer      uint16
 	ExternalId     string
 	NodeName       string
 	Website        string
@@ -59,7 +77,7 @@ type Ppos_1002 struct {
 	Amount *big.Int
 }
 
-// withdrewCandidate
+// withdrewStaking
 type Ppos_1003 struct {
 	NodeId discover.NodeID
 }
@@ -99,7 +117,6 @@ type Ppos_1105 struct {
 type Ppos_2000 struct {
 	Verifier discover.NodeID
 	PIPID    string
-	//EndVotingRounds uint64
 }
 
 // submitVersion
@@ -129,14 +146,6 @@ type Ppos_2005 struct {
 
 // vote
 type Ppos_2003 struct {
-	Verifier       discover.NodeID
-	ProposalID     common.Hash
-	Option         uint8
-	ProgramVersion uint32
-	VersionSign    common.VersionSign
-}
-
-type Ppos_20031 struct {
 	Verifier       discover.NodeID
 	ProposalID     common.Hash
 	Option         uint8
@@ -188,7 +197,8 @@ type Ppos_2106 struct {
 
 // reportDuplicateSign
 type Ppos_3000 struct {
-	Data string
+	DupType uint8
+	Data    string
 }
 
 // checkDuplicateSign
@@ -209,34 +219,43 @@ type Ppos_4100 struct {
 	Account common.Address
 }
 
+// withdrawDelegateReward
+type Ppos_5000 struct {
+}
+
+type Ppos_5100 struct {
+	Addr    common.Address
+	NodeIDs []discover.NodeID
+}
+
 type decDataConfig struct {
-	P1000  Ppos_1000
-	P1001  Ppos_1001
-	P1002  Ppos_1002
-	P1003  Ppos_1003
-	P1004  Ppos_1004
-	P1005  Ppos_1005
-	P1103  Ppos_1103
-	P1104  Ppos_1104
-	P1105  Ppos_1105
-	P2000  Ppos_2000
-	P2001  Ppos_2001
-	P2002  Ppos_2002
-	P2005  Ppos_2005
-	P2003  Ppos_2003
-	P20031 []Ppos_20031
-	P2004  Ppos_2004
-	P2100  Ppos_2100
-	P2101  Ppos_2101
-	P2102  Ppos_2102
-	P2103  Ppos_2103
-	P2104  Ppos_2104
-	P2105  Ppos_2105
-	P2106  Ppos_2106
-	P3000  Ppos_3000
-	P3001  Ppos_3001
-	P4000  Ppos_4000
-	P4100  Ppos_4100
+	P1000 Ppos_1000
+	P1001 Ppos_1001
+	P1002 Ppos_1002
+	P1003 Ppos_1003
+	P1004 Ppos_1004
+	P1005 Ppos_1005
+	P1103 Ppos_1103
+	P1104 Ppos_1104
+	P1105 Ppos_1105
+	P2000 Ppos_2000
+	P2001 Ppos_2001
+	P2002 Ppos_2002
+	P2005 Ppos_2005
+	P2003 Ppos_2003
+	P2004 Ppos_2004
+	P2100 Ppos_2100
+	P2101 Ppos_2101
+	P2102 Ppos_2102
+	P2103 Ppos_2103
+	P2104 Ppos_2104
+	P2105 Ppos_2105
+	P2106 Ppos_2106
+	P3000 Ppos_3000
+	P3001 Ppos_3001
+	P4000 Ppos_4000
+	P4100 Ppos_4100
+	P5100 Ppos_5100
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
@@ -278,6 +297,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			website, _ := rlp.EncodeToBytes(cfg.P1000.Website)
 			details, _ := rlp.EncodeToBytes(cfg.P1000.Details)
 			amount, _ := rlp.EncodeToBytes(cfg.P1000.Amount)
+			rewardPer, _ := rlp.EncodeToBytes(cfg.P1000.RewardPer)
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
 			programVersionSign, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersionSign)
 			blsPubKey, _ := rlp.EncodeToBytes(cfg.P1000.BlsPubKey)
@@ -291,6 +311,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, website)
 			params = append(params, details)
 			params = append(params, amount)
+			params = append(params, rewardPer)
 			params = append(params, programVersion)
 			params = append(params, programVersionSign)
 			params = append(params, blsPubKey)
@@ -300,6 +321,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		{
 			benefitAddress, _ := rlp.EncodeToBytes(cfg.P1001.BenefitAddress.Bytes())
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1001.NodeId)
+			rewardPer, _ := rlp.EncodeToBytes(cfg.P1001.RewardPer)
 			externalId, _ := rlp.EncodeToBytes(cfg.P1001.ExternalId)
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1001.NodeName)
 			website, _ := rlp.EncodeToBytes(cfg.P1001.Website)
@@ -307,6 +329,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 
 			params = append(params, benefitAddress)
 			params = append(params, nodeId)
+			params = append(params, rewardPer)
 			params = append(params, externalId)
 			params = append(params, nodeName)
 			params = append(params, website)
@@ -370,14 +393,16 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1105.NodeId)
 			params = append(params, nodeId)
 		}
+
+	case 1200:
+	case 1201:
+	case 1202:
 	case 2000:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2000.Verifier)
 			pipID, _ := rlp.EncodeToBytes(cfg.P2000.PIPID)
-			//endVotingRounds, _ := rlp.EncodeToBytes(cfg.P2000.EndVotingRounds)
 			params = append(params, verifier)
 			params = append(params, pipID)
-			//params = append(params, endVotingRounds)
 		}
 	case 2001:
 		{
@@ -428,35 +453,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, programVersion)
 			params = append(params, versionSign)
 		}
-	case 20031:
-		{
-			for i := 0; i < len(cfg.P20031); i++ {
-				fnType, _ := rlp.EncodeToBytes(uint16(2003))
-				verifier, _ := rlp.EncodeToBytes(cfg.P20031[i].Verifier)
-				proposalID, _ := rlp.EncodeToBytes(cfg.P20031[i].ProposalID.Bytes())
-				op, _ := rlp.EncodeToBytes(cfg.P20031[i].Option)
-				programVersion, _ := rlp.EncodeToBytes(cfg.P20031[i].ProgramVersion)
-				versionSign, _ := rlp.EncodeToBytes(cfg.P20031[i].VersionSign)
-				params = make([][]byte, 0)
-				params = append(params, fnType)
-				params = append(params, verifier)
-				params = append(params, proposalID)
-				params = append(params, op)
-				params = append(params, programVersion)
-				params = append(params, versionSign)
-
-				buf := new(bytes.Buffer)
-				err := rlp.Encode(buf, params)
-				if err != nil {
-					panic(fmt.Errorf("%d encode rlp data fail: %v", funcType, err))
-				} else {
-					rlpData = hexutil.Encode(buf.Bytes())
-					fmt.Printf("RLP= %s\n", rlpData)
-				}
-			}
-			return ""
-		}
-
 	case 2004:
 		{
 			verifier, _ := rlp.EncodeToBytes(cfg.P2004.Verifier)
@@ -499,7 +495,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 3000:
 		{
+			dupType, _ := rlp.EncodeToBytes(cfg.P3000.DupType)
 			data, _ := rlp.EncodeToBytes(cfg.P3000.Data)
+			params = append(params, dupType)
 			params = append(params, data)
 		}
 	case 3001:
@@ -522,6 +520,14 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		{
 			account, _ := rlp.EncodeToBytes(cfg.P4100.Account.Bytes())
 			params = append(params, account)
+		}
+	case 5000:
+	case 5100:
+		{
+			addr, _ := rlp.EncodeToBytes(cfg.P5100.Addr.Bytes())
+			nodeIds, _ := rlp.EncodeToBytes(cfg.P5100.NodeIDs)
+			params = append(params, addr)
+			params = append(params, nodeIds)
 		}
 	default:
 		{

@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 )
 
@@ -35,6 +34,15 @@ func ToHex(b []byte) string {
 		hex = "0"
 	}
 	return "0x" + hex
+}
+
+// ToHexArray creates a array of hex-string based on []byte
+func ToHexArray(b [][]byte) []string {
+	r := make([]string, len(b))
+	for i := range b {
+		r[i] = ToHex(b[i])
+	}
+	return r
 }
 
 // FromHex returns the bytes represented by the hexadecimal string s.
@@ -90,10 +98,9 @@ func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
-func Bytes2Hex0x(d []byte) string {
+/*func Bytes2Hex0x(d []byte) string {
 	return hexutil.Encode(d)
-}
-
+}*/
 
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
 func Hex2Bytes(str string) []byte {
@@ -101,13 +108,12 @@ func Hex2Bytes(str string) []byte {
 	return h
 }
 
-func Hex0x2Bytes(str string) []byte {
+/*func Hex0x2Bytes(str string) []byte {
 	h, _ := hexutil.Decode(str)
 	return h
-}
+}*/
 
-
-// Hex2BytesFixed returns bytes of a specified fixed length flen.
+/*// Hex2BytesFixed returns bytes of a specified fixed length flen.
 func Hex2BytesFixed(str string, flen int) []byte {
 	h, _ := hex.DecodeString(str)
 	if len(h) == flen {
@@ -119,7 +125,7 @@ func Hex2BytesFixed(str string, flen int) []byte {
 	hh := make([]byte, flen)
 	copy(hh[flen-len(h):flen], h)
 	return hh
-}
+}*/
 
 // RightPadBytes zero-pads slice to the right up to length l.
 func RightPadBytes(slice []byte, l int) []byte {
@@ -145,9 +151,9 @@ func LeftPadBytes(slice []byte, l int) []byte {
 	return padded
 }
 
-func BytesCombine(pBytes ...[]byte) []byte {
+/*func BytesCombine(pBytes ...[]byte) []byte {
 	return bytes.Join(pBytes, []byte(""))
-}
+}*/
 
 func Int32ToBytes(n int32) []byte {
 	tmp := int32(n)
@@ -201,21 +207,21 @@ func BytesToFloat64(bytes []byte) float64 {
 	return math.Float64frombits(bits)
 }
 
-func PaddingLeft(src []byte, bytes int) []byte {
+/*func PaddingLeft(src []byte, bytes int) []byte {
 	if len(src) >= bytes {
 		return src
 	}
 	dst := make([]byte, bytes)
 	copy(dst, src)
 	return reverse(dst)
-}
+}*/
 
-func reverse(s []byte) []byte {
+/*func reverse(s []byte) []byte {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
-}
+}*/
 
 func BytesToUint32(b []byte) uint32 {
 	b = append(make([]byte, 4-len(b)), b...)
@@ -226,7 +232,6 @@ func BytesToUint64(b []byte) uint64 {
 	b = append(make([]byte, 8-len(b)), b...)
 	return binary.BigEndian.Uint64(b)
 }
-
 
 func Uint32ToBytes(val uint32) []byte {
 	buf := make([]byte, 4)
@@ -246,7 +251,7 @@ func Uint16ToBytes(val uint16) []byte {
 	return buf[:]
 }
 
-func BytesToUint16(b []byte) uint16 {
+/*func BytesToUint16(b []byte) uint16 {
 	b = append(make([]byte, 2-len(b)), b...)
 	return binary.BigEndian.Uint16(b)
-}
+}*/

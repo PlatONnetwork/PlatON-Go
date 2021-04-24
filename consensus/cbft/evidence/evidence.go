@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package evidence
 
 import (
@@ -82,7 +98,7 @@ func (opb *NumberOrderPrepareBlock) Add(pb *EvidencePrepare) error {
 }
 
 // find tries to find the same prepare evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (opb NumberOrderPrepareBlock) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidencePrepare {
 	for _, v := range opb {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -161,7 +177,7 @@ func (opv *NumberOrderPrepareVote) Add(pv *EvidenceVote) error {
 }
 
 // find tries to find the same vote evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (opv NumberOrderPrepareVote) find(epoch uint64, viewNumber uint64, blockNumber uint64) *EvidenceVote {
 	for _, v := range opv {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber && v.BlockNumber == blockNumber {
@@ -240,7 +256,7 @@ func (ovc *NumberOrderViewChange) Add(vc *EvidenceView) error {
 }
 
 // find tries to find the same view evidence
-// the same epoch,viewNumber,blockNumber,node address and different blockHash
+// the same epoch,viewNumber,blockNumber and different blockHash
 func (ovc NumberOrderViewChange) find(epoch uint64, viewNumber uint64) *EvidenceView {
 	for _, v := range ovc {
 		if v.Epoch == epoch && v.ViewNumber == viewNumber {

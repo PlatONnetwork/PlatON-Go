@@ -1,6 +1,23 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
+	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -14,7 +31,7 @@ type Status struct {
 
 // API defines an exposed API function interface.
 type API interface {
-	Status() *Status
+	Status() []byte
 	Evidences() string
 	GetPrepareQC(number uint64) *types.QuorumCert
 	GetSchnorrNIZKProve() (*bls.SchnorrProof, error)
@@ -34,7 +51,13 @@ func NewPublicConsensusAPI(engine API) *PublicConsensusAPI {
 
 // ConsensusStatus returns the status data of the consensus engine.
 func (s *PublicConsensusAPI) ConsensusStatus() *Status {
-	return s.engine.Status()
+	b := s.engine.Status()
+	var status Status
+	err := json.Unmarshal(b, &status)
+	if err == nil {
+		return &status
+	}
+	return nil
 }
 
 // Evidences returns the relevant data of the verification.

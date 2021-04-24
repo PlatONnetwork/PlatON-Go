@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -29,13 +29,13 @@ func newTestchain(path string) *testchain {
 	os.RemoveAll(path)
 	ch := new(testchain)
 	ch.path = path
-	db, err := open(path, 0, 0)
+	db, err := open(path, 0, 0, false)
 	if err != nil {
 		panic(err)
 	}
 	ch.db = db
 	SetDBBlockChain(ch)
-	go ch.db.loopWriteJournal()
+	go ch.db.loopWriteWal()
 
 	return ch
 }
@@ -47,12 +47,12 @@ type testchain struct {
 }
 
 func (c *testchain) reOpenSnapshotDB() {
-	db, err := open(c.path, 0, 0)
+	db, err := open(c.path, 0, 0, false)
 	if err != nil {
 		panic(err)
 	}
 	c.db = db
-	go c.db.loopWriteJournal()
+	go c.db.loopWriteWal()
 
 }
 
@@ -103,6 +103,15 @@ func (c *testchain) currentForkHeader() *types.Header {
 func (c *testchain) GetHeaderByHash(hash common.Hash) *types.Header {
 	for i := len(c.h) - 1; i >= 0; i-- {
 		if c.h[i].Hash() == hash {
+			return c.h[i]
+		}
+	}
+	return nil
+}
+
+func (c *testchain) GetHeaderByNumber(number uint64) *types.Header {
+	for i := len(c.h) - 1; i >= 0; i-- {
+		if c.h[i].Number.Uint64() == number {
 			return c.h[i]
 		}
 	}

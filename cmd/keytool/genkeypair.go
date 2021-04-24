@@ -1,18 +1,35 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+
 	"gopkg.in/urfave/cli.v1"
+
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 type outputGenkeypair struct {
-	Address      string
-	PrivateKey   string
-	PublicKey 	 string
+	PrivateKey string
+	PublicKey  string
 }
 
 var commandGenkeypair = cli.Command{
@@ -38,14 +55,12 @@ Generate a new private key pair.
 
 		// Output some information.
 		out := outputGenkeypair{
-			Address: crypto.PubkeyToAddress(privateKey.PublicKey).Hex(),
-			PublicKey: hex.EncodeToString(crypto.FromECDSAPub(&privateKey.PublicKey)[1:]),
+			PublicKey:  hex.EncodeToString(crypto.FromECDSAPub(&privateKey.PublicKey)[1:]),
 			PrivateKey: hex.EncodeToString(crypto.FromECDSA(privateKey)),
 		}
 		if ctx.Bool(jsonFlag.Name) {
 			mustPrintJSON(out)
 		} else {
-			fmt.Println("Address   : ", out.Address)
 			fmt.Println("PrivateKey: ", out.PrivateKey)
 			fmt.Println("PublicKey : ", out.PublicKey)
 		}

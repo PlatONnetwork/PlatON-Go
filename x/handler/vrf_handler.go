@@ -1,4 +1,4 @@
-// Copyright 2018-2019 The PlatON Network Authors
+// Copyright 2018-2020 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -96,7 +96,7 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	blockHash common.Hash, proof []byte) error {
 	// Verify VRF Proof
 	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
-		"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+		"current hash", blockHash, "parentHash", parentBlockHash,
 		"proof", hex.EncodeToString(proof))
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentBlockHash)
 	if nil != err {
@@ -114,19 +114,19 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 		return ErrInvalidVrfProve
 	}
 	log.Info("Vrf proves successful verification", "current blockNumber", currentBlockNumber.Uint64(),
-		"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+		"current hash", blockHash, "parentHash", parentBlockHash,
 		"proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
 	return nil
 }
 
 func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, blockHash common.Hash, nonce []byte) error {
 	log.Debug("Storage previous nonce", "blockNumber", blockNumber.Uint64(), "parentHash",
-		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "nonce", hex.EncodeToString(nonce))
+		parentHash, "current hash", blockHash, "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
 
-	maxVlidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
+	maxValidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
 	if nil != err {
-		log.Error("Failed to Storage VRF nonce", "err", err)
+		log.Error("Failed to Storage VRF nonce", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 		return err
 	}
 
@@ -137,10 +137,12 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 			nonces = make([][]byte, len(value))
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", blockNumber.Uint64(), "parentHash",
-				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()), "valueLength",
-				len(value), "MaxValidators", maxVlidatorsNum)
-			if uint64(len(nonces)) == maxVlidatorsNum {
+				parentHash, "current hash", blockHash, "valueLength",
+				len(value), "MaxValidators", maxValidatorsNum)
+			if uint64(len(nonces)) == maxValidatorsNum {
 				nonces = nonces[1:]
+			} else if uint64(len(nonces)) > maxValidatorsNum {
+				nonces = nonces[uint64(len(nonces)+1)-maxValidatorsNum:]
 			}
 		}
 	}
@@ -158,8 +160,8 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 			return err
 		}
 		log.Info("Storage previous nonce Success", "current blockNumber", blockNumber.Uint64(),
-			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(blockHash.Bytes()),
-			"valueLength", len(nonces), "MaxValidators", maxVlidatorsNum, "nonce", hex.EncodeToString(nonce),
+			"parentHash", parentHash, "current hash", blockHash,
+			"valueLength", len(nonces), "MaxValidators", maxValidatorsNum, "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil

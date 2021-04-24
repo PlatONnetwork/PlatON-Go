@@ -1,11 +1,28 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -160,7 +177,7 @@ func (cbft *Cbft) OnViewTimeout() {
 	cbft.log.Info("Current view timeout", "view", cbft.state.ViewString())
 	node, err := cbft.isCurrentValidator()
 	if err != nil {
-		cbft.log.Error("ViewTimeout local node is not validator")
+		cbft.log.Info("ViewTimeout local node is not validator")
 		return
 	}
 
@@ -319,6 +336,11 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 				cbft.state.SetExecuting(index, true)
 				if cbft.executeFinishHook != nil {
 					cbft.executeFinishHook(index)
+				}
+				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+				if err != nil {
+					cbft.log.Debug("Current node is not validator,no need to sign block", "err", err, "hash", s.Hash, "number", s.Number)
+					return
 				}
 				if err := cbft.signBlock(block.Hash(), block.NumberU64(), index); err != nil {
 					cbft.log.Error("Sign block failed", "err", err, "hash", s.Hash, "number", s.Number)
@@ -479,7 +501,7 @@ func (cbft *Cbft) findQCBlock() {
 			cbft.insertQCBlock(block, qc)
 			cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 			// metrics
-			blockQCCollectedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+			blockQCCollectedGauage.Update(block.Time().Int64())
 			cbft.trySendPrepareVote()
 		}
 	}
@@ -588,7 +610,7 @@ func (cbft *Cbft) tryChangeView() {
 func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 	node, err := cbft.isCurrentValidator()
 	if err != nil {
-		cbft.log.Error("Local node is not validator")
+		cbft.log.Info("Local node is not validator")
 		return
 	}
 	hadSend := cbft.state.ViewChangeByIndex(uint32(node.Index))
@@ -714,6 +736,10 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 		}
 		return viewNumber - minuend + 1
 	}
+	// last epoch and last viewNumber
+	// when cbft is started or fast synchronization ends, the preEpoch, preViewNumber defaults to 0, 0
+	// but cbft is now in the loading state and lastViewChangeQC is nil, does not save the lastViewChangeQC
+	preEpoch, preViewNumber := cbft.state.Epoch(), cbft.state.ViewNumber()
 	// syncingCache is belong to last view request, clear all sync cache
 	cbft.syncingCache.Purge()
 	cbft.csPool.Purge(epoch, viewNumber)
@@ -729,7 +755,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {
-		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC)
+		cbft.bridge.ConfirmViewChange(epoch, viewNumber, block, qc, viewChangeQC, preEpoch, preViewNumber)
 	}
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)

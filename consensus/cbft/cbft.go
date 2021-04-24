@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package cbft
 
 import (
@@ -13,8 +29,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"reflect"
 	"sync"
@@ -52,6 +69,14 @@ const (
 	maxStatQueuesSize      = 200
 	syncCacheTimeout       = 200 * time.Millisecond
 	checkBlockSyncInterval = 100 * time.Millisecond
+)
+
+var (
+	ErrorUnKnowBlock  = errors.New("unknown block")
+	ErrorEngineBusy   = errors.New("cbft engine busy")
+	ErrorNotRunning   = errors.New("cbft is not running")
+	ErrorNotValidator = errors.New("current node not a validator")
+	ErrorTimeout      = errors.New("timeout")
 )
 
 type HandleError interface {
@@ -194,12 +219,6 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 	return cbft
 }
 
-func NewFaker() consensus.Engine {
-	c := new(consensus.BftMock)
-	c.Blocks = make([]*types.Block, 0)
-	return c
-}
-
 // Start starts consensus engine.
 func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.log.Info("~ Start cbft consensus")
@@ -284,7 +303,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 // there is a loop that will distribute the incoming message.
 func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	if !cbft.running() {
-		cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
+		//cbft.log.Trace("Cbft not running, stop process message", "fecthing", utils.True(&cbft.fetching), "syncing", utils.True(&cbft.syncing))
 		return nil
 	}
 
@@ -306,14 +325,14 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	err := cbft.recordMessage(msg)
 	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
-		cbft.log.Error("ReceiveMessage failed", "err", err)
+		cbft.log.Warn("ReceiveMessage failed", "err", err)
 		return err
 	}
 
 	// Repeat filtering on consensus messages.
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
+		//cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
@@ -322,7 +341,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	case cbft.peerMsgCh <- msg:
 		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.String(), "peerMsgCh", len(cbft.peerMsgCh))
 	case <-cbft.exitCh:
-		cbft.log.Error("Cbft exit")
+		cbft.log.Warn("Cbft exit")
 	default:
 		cbft.log.Debug("peerMsgCh is full, discard", "peerMsgCh", len(cbft.peerMsgCh))
 	}
@@ -336,7 +355,7 @@ func (cbft *Cbft) recordMessage(msg *ctypes.MsgInfo) error {
 	defer cbft.queuesLock.Unlock()
 	count := cbft.queues[msg.PeerID] + 1
 	if int64(count) > cbft.config.Option.MaxQueuesLimit {
-		log.Error("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
+		log.Warn("Discarded message, exceeded allowance for the layer of cbft", "peer", msg.PeerID, "msgHash", msg.Msg.MsgHash().TerminalString())
 		// Need further confirmation.
 		// todo: Is the program exiting or dropping the message here?
 		return fmt.Errorf("execeed max queues limit")
@@ -407,9 +426,16 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 // Possible message types are:
 //  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
+	// If the node is synchronizing the block, discard sync msg directly and do not count the msg
+	// When the syncMsgCh channel is congested, it is easy to cause a message backlog
+	if utils.True(&cbft.syncing) {
+		cbft.log.Debug("Currently syncing, consensus message pause, discard sync msg")
+		return nil
+	}
+
 	err := cbft.recordMessage(msg)
 	if err != nil {
-		cbft.log.Error("ReceiveMessage failed", "err", err)
+		cbft.log.Warn("ReceiveMessage failed", "err", err)
 		return err
 	}
 
@@ -421,7 +447,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	case cbft.syncMsgCh <- msg:
 		cbft.log.Debug("Receive synchronization related messages from peer", "peer", msg.PeerID, "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "BHash", msg.Msg.BHash(), "msg", msg.Msg.String(), "syncMsgCh", len(cbft.syncMsgCh))
 	case <-cbft.exitCh:
-		cbft.log.Error("Cbft exit")
+		cbft.log.Warn("Cbft exit")
 	default:
 		cbft.log.Debug("syncMsgCh is full, discard", "syncMsgCh", len(cbft.syncMsgCh))
 	}
@@ -476,7 +502,7 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.RemovePeer(msg.PeerID)
 			}
 		} else {
-			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+			//cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
 		}
 		cbft.forgetMessage(msg.PeerID)
 	}
@@ -613,13 +639,18 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
 	if header.Number == nil {
 		cbft.log.Error("Verify header fail, unknown block")
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 
-	cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
+	//cbft.log.Trace("Verify header", "number", header.Number, "hash", header.Hash, "seal", seal)
 	if len(header.Extra) < consensus.ExtraSeal+int(params.MaximumExtraDataSize) {
 		cbft.log.Error("Verify header fail, missing signature", "number", header.Number, "hash", header.Hash)
 		return fmt.Errorf("verify header fail, missing signature, number:%d, hash:%s", header.Number.Uint64(), header.Hash().String())
+	}
+
+	if header.IsInvalid() {
+		cbft.log.Error("Verify header fail, Extra field is too long", "number", header.Number, "hash", header.CacheHash())
+		return fmt.Errorf("verify header fail, Extra field is too long, number:%d, hash:%s", header.Number.Uint64(), header.CacheHash().String())
 	}
 
 	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
@@ -631,7 +662,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 
 // VerifyHeaders is used to verify the validity of block headers in batch.
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	cbft.log.Trace("Verify headers", "total", len(headers))
+	//cbft.log.Trace("Verify headers", "total", len(headers))
 
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
@@ -653,9 +684,9 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
+	//cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
 	if header.Number.Uint64() == 0 {
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 	return nil
 }
@@ -689,11 +720,11 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // Seal is used to generate a block, and block data is
 // passed to the execution channel.
-func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
 	header := block.Header()
 	if block.NumberU64() == 0 {
-		return errors.New("unknown block")
+		return ErrorUnKnowBlock
 	}
 
 	sign, err := cbft.signFn(header.SealHash().Bytes())
@@ -707,13 +738,15 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results 
 	sealBlock := block.WithSeal(header)
 
 	cbft.asyncCallCh <- func() {
-		cbft.OnSeal(sealBlock, results, stop)
+		cbft.OnSeal(sealBlock, results, stop, complete)
 	}
 	return nil
 }
 
 // OnSeal is used to process the blocks that have already been generated.
-func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}) {
+func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) {
+	// When the seal ends, the completion signal will be passed to the goroutine of worker
+	defer func() { complete <- struct{}{} }()
 
 	if cbft.state.HighestExecutedBlock().Hash() != block.ParentHash() {
 		cbft.log.Warn("Futile block cause highest executed block changed", "number", block.Number(), "parentHash", block.ParentHash(),
@@ -787,7 +820,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	minedCounter.Inc(1)
 	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
 	if preBlock != nil {
-		blockMinedTimer.UpdateSince(time.Unix(preBlock.Time().Int64(), 0))
+		blockMinedGauage.Update(common.Millis(time.Now()) - preBlock.Time().Int64())
 	}
 	go func() {
 		select {
@@ -881,7 +914,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	err = cbft.blockCacheWriter.Execute(block, parent)
 	if err != nil {
-		cbft.log.Error("Execting block fail", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash())
+		cbft.log.Error("Executing block failed", "number", block.Number(), "hash", block.Hash(), "parent", parent.Hash(), "parentHash", block.ParentHash(), "err", err)
 		return errors.New("failed to executed block")
 	}
 
@@ -925,15 +958,16 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 }
 
 // Status returns the status data of the consensus engine.
-func (cbft *Cbft) Status() *Status {
-	status := make(chan *Status, 1)
+func (cbft *Cbft) Status() []byte {
+	status := make(chan []byte, 1)
 	cbft.asyncCallCh <- func() {
 		s := &Status{
 			Tree:      cbft.blockTree,
 			State:     cbft.state,
 			Validator: cbft.IsConsensusNode(),
 		}
-		status <- s
+		b, _ := json.Marshal(s)
+		status <- b
 	}
 	return <-status
 }
@@ -963,6 +997,34 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 			}
 		}
 		result <- block
+	}
+	return <-result
+}
+
+// GetBlockByHash get the specified block by hash and number.
+func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
+
+	callBlock := func() *types.Block {
+		// First extract from the confirmed block.
+		block := cbft.blockTree.FindBlockByHash(hash)
+		if block == nil {
+			// Extract from view state.
+			block = cbft.state.FindBlock(hash, number)
+		}
+		if block == nil {
+			header := cbft.blockChain.GetHeaderByHash(hash)
+			if header != nil {
+				block = cbft.blockChain.GetBlock(header.Hash(), header.Number.Uint64())
+			}
+		}
+		return block
+	}
+	if !cbft.isStart() {
+		return callBlock()
+	}
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		result <- callBlock()
 	}
 	return <-result
 }
@@ -1039,7 +1101,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {
-		cbft.log.Trace("Should seal fail, cbft not running", "curTime", common.Beautiful(curTime))
+		//cbft.log.Trace("Should seal fail, cbft not running", "curTime", common.Beautiful(curTime))
 		return false, nil
 	}
 
@@ -1052,12 +1114,12 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 		if err == nil {
 			masterCounter.Inc(1)
 		}
-		cbft.log.Trace("Should seal", "curTime", common.Beautiful(curTime), "err", err)
+		//cbft.log.Trace("Should seal", "curTime", common.Beautiful(curTime), "err", err)
 		return err == nil, err
 	case <-time.After(50 * time.Millisecond):
-		result <- errors.New("timeout")
-		cbft.log.Trace("Should seal timeout", "curTime", common.Beautiful(curTime), "asyncCallCh", len(cbft.asyncCallCh))
-		return false, errors.New("CBFT engine busy")
+		result <- ErrorTimeout
+		//cbft.log.Trace("Should seal timeout", "curTime", common.Beautiful(curTime), "asyncCallCh", len(cbft.asyncCallCh))
+		return false, ErrorEngineBusy
 	}
 }
 
@@ -1072,7 +1134,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	if !cbft.running() {
-		result <- errors.New("cbft is not running")
+		result <- ErrorNotRunning
 		return
 	}
 
@@ -1082,7 +1144,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
 	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID) {
-		result <- errors.New("current node not a validator")
+		result <- ErrorNotValidator
 		return
 	}
 
@@ -1527,9 +1589,14 @@ func (cbft *Cbft) Pause() {
 	cbft.log.Info("Pause cbft consensus")
 	utils.SetTrue(&cbft.syncing)
 }
+
 func (cbft *Cbft) Resume() {
 	cbft.log.Info("Resume cbft consensus")
 	utils.SetFalse(&cbft.syncing)
+}
+
+func (cbft *Cbft) Syncing() bool {
+	return utils.True(&cbft.syncing)
 }
 
 func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ctypes.QuorumCert {

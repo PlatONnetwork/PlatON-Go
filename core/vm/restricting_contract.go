@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
@@ -24,10 +40,16 @@ type RestrictingContract struct {
 }
 
 func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
+	if checkInputEmpty(input) {
+		return 0
+	}
 	return params.RestrictingPlanGas
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
+	if checkInputEmpty(input) {
+		return nil, nil
+	}
 	return execPlatonContract(input, rc.FnSigns())
 }
 
@@ -64,19 +86,16 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
 		return nil, ErrOutOfGas
 	}
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
 
-	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), plans, state)
+	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state, txHash)
 	switch err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
-			"", TxCreateRestrictingPlan, int(common.NoErr.Code)), nil
+			"", TxCreateRestrictingPlan, common.NoErr)
 	case *common.BizError:
 		bizErr := err.(*common.BizError)
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "createRestrictingPlan",
-			bizErr.Error(), TxCreateRestrictingPlan, int(bizErr.Code)), nil
+			bizErr.Error(), TxCreateRestrictingPlan, bizErr)
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)

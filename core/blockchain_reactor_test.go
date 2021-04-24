@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -12,12 +28,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
-func TestBlockChainReactor_Close(t *testing.T) {
+func TestBlockChainReactorClose(t *testing.T) {
 	t.Run("close after commit", func(t *testing.T) {
 		eventmux := new(event.TypeMux)
-		reacter := NewBlockChainReactor(eventmux)
-		reacter.bftResultSub = eventmux.Subscribe(cbfttypes.CbftResult{})
-		go func() { reacter.loop() }()
+		reacter := NewBlockChainReactor(eventmux, big.NewInt(100))
+		reacter.Start(common.PPOS_VALIDATOR_MODE)
 		var parenthash common.Hash
 		cbftress := make(chan cbfttypes.CbftResult, 5)
 		go func() {

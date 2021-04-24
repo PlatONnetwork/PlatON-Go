@@ -1,3 +1,19 @@
+// Copyright 2018-2020 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
+//
+// The PlatON-Go library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The PlatON-Go library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 package vm
 
 import (
@@ -27,15 +43,15 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if nil != err {
 		t.Fatal(err)
 	}
-	addr := common.HexToAddress("0x195667cdefcad94c521bdff0bf85079761e0f8f3")
+	addr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
 	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
 	build_staking_data(genesis.Hash())
 	newKey := staking.GetRoundValAddrArrKey(1)
-	newValue := make([]common.Address, 0, 1)
-	newValue = append(newValue, addr)
+	newValue := make([]common.NodeAddress, 0, 1)
+	newValue = append(newValue, common.NodeAddress(addr))
 	if err := staking.NewStakingDB().StoreRoundValidatorAddrs(blockHash, newKey, newValue); nil != err {
 		t.Fatal(err)
 	}
@@ -65,7 +81,6 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "blockData": "0x45b20c5ba595be254943aa57cc80562e84f1fb3bafbf4a414e30570c93a39579",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -80,7 +95,6 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
            "blockData": "0xd630e96d127f55319392f20d4fd917e3e7cba19ad366c031b9dff05e056d9420",
            "validateNode": {
             "index": 0,
-            "address": "0x195667cdefcad94c521bdff0bf85079761e0f8f3",
             "nodeId": "51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483",
             "blsPubKey": "752fe419bbdc2d2222009e450f2932657bbc2370028d396ba556a49439fe1cc11903354dcb6dac552a124e0b3db0d90edcd334d7aabda0c3f1ade12ca22372f876212ac456d549dbbd04d2c8c8fb3e33760215e114b4d60313c142f7b8bbfd87"
            },
@@ -138,7 +152,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber2, blockHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(state, common.ZeroHash, blockNumber2, can.Shares, 0, common.NodeAddress(addr), can); nil != err {
 		t.Fatal(err)
 	}
 	runContract(contract, buf.Bytes(), t)
@@ -159,14 +173,18 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
+	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	if nil != err {
+		t.Fatal(err)
+	}
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
 	typ, _ := rlp.EncodeToBytes(uint8(1))
-	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x9e3e0f0f366b26b965f3aa3ed67603fb480b1257"))
+	enNodeId, _ := rlp.EncodeToBytes(nodeId)
 	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
 	params = append(params, fnType)
 	params = append(params, typ)
-	params = append(params, addr)
+	params = append(params, enNodeId)
 	params = append(params, blockNumber)
 
 	buf := new(bytes.Buffer)

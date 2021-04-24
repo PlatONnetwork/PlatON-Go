@@ -32,25 +32,25 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp7pn3ep":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000002":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp7pn3ep":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000003":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdyjj2v":{
             "balance":"200000000000000000000000000"
         },
-        "1000000000000000000000000000000000000004":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyva9ztf":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000005":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq93t3hkm":{
             "balance":"0"
         },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+        "lat1vr8v48qjjrh9dwvdfctqauz98a7yp5se3mm5yk":{
             "balance":"8050000000000000000000000000"
         },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+        "lat12klaf9rjl4qjz929kqt382wr49a00zc9ng995w":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -64,7 +64,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -75,28 +74,28 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
     },
-    "coinbase":"0x0000000000000000000000000000000000000000",
+    "coinbase":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a",
     "extraData":"",
     "gasLimit":"0x2fefd8",
     "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
@@ -123,25 +122,25 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp7pn3ep":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000002":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp7pn3ep":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000003":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdyjj2v":{
             "balance":"200000000000000000000000000"
         },
-        "1000000000000000000000000000000000000004":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyva9ztf":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000005":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq93t3hkm":{
             "balance":"0"
         },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+        "lat1vr8v48qjjrh9dwvdfctqauz98a7yp5se3mm5yk":{
             "balance":"8050000000000000000000000000"
         },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+        "lat12klaf9rjl4qjz929kqt382wr49a00zc9ng995w":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -155,7 +154,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -166,28 +164,28 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
     },
-    "coinbase":"0x0000000000000000000000000000000000000000",
+    "coinbase":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a",
     "extraData":"",
     "gasLimit":"0x2fefd8",
     "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
@@ -214,25 +212,25 @@ var customGenesisTests = []struct {
 	{
 		genesis: `{
     "alloc":{
-        "1000000000000000000000000000000000000001":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp7pn3ep":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000002":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzsjx8h7":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000003":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdyjj2v":{
             "balance":"200000000000000000000000000"
         },
-        "1000000000000000000000000000000000000004":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqyva9ztf":{
             "balance":"0"
         },
-        "1000000000000000000000000000000000000005":{
+        "lat1zqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq93t3hkm":{
             "balance":"0"
         },
-        "60ceca9c1290ee56b98d4e160ef0453f7c40d219":{
+        "lat1vr8v48qjjrh9dwvdfctqauz98a7yp5se3mm5yk":{
             "balance":"8050000000000000000000000000"
         },
-        "55bfd49472fd41211545b01713a9c3a97af78b05":{
+        "lat12klaf9rjl4qjz929kqt382wr49a00zc9ng995w":{
             "balance":"2000000000000000000000000000"
         }
     },
@@ -246,7 +244,6 @@ var customGenesisTests = []struct {
             "stakeThreshold": 1000000000000000000000000,
             "operatingThreshold": 10000000000000000000,
             "maxValidators": 30,
-            "hesitateRatio": 1,
             "unStakeFreezeDuration": 2
         },
         "slashing":{
@@ -257,28 +254,28 @@ var customGenesisTests = []struct {
         },
          "gov": {
             "versionProposalVoteDurationSeconds": 160,
-            "versionProposalSupportRate": 0.667,
+            "versionProposalSupportRate": 6670,
             "textProposalVoteDurationSeconds": 160,
-            "textProposalVoteRate": 0.5,
-            "textProposalSupportRate": 0.667,          
-            "cancelProposalVoteRate": 0.50,
-            "cancelProposalSupportRate": 0.667,
+            "textProposalVoteRate": 5000,
+            "textProposalSupportRate": 6670,          
+            "cancelProposalVoteRate": 5000,
+            "cancelProposalSupportRate": 6670,
             "paramProposalVoteDurationSeconds": 160,
-            "paramProposalVoteRate": 0.50,
-            "paramProposalSupportRate": 0.667      
+            "paramProposalVoteRate": 5000,
+            "paramProposalSupportRate": 6670      
         },
         "reward":{
             "newBlockRate": 50,
             "platonFoundationYear": 10 
         },
         "innerAcc":{
-            "platonFundAccount": "0x493301712671ada506ba6ca7891f436d29185821",
+            "platonFundAccount": "lat1fyeszufxwxk62p46djncj86rd553skppy4qgz4",
             "platonFundBalance": 0,
-            "cdfAccount": "0xc1f330b214668beac2e6418dd651b09c759a4bf5",
+            "cdfAccount": "lat1c8enpvs5v6974shxgxxav5dsn36e5jl4r0hwhh",
             "cdfBalance": 331811981000000000000000000
         }
     },
-    "coinbase":"0x0000000000000000000000000000000000000000",
+    "coinbase":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a",
     "extraData":"",
     "gasLimit":"0x2fefd8",
     "nonce":"0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
@@ -306,7 +303,7 @@ var customGenesisTests = []struct {
 	},
 }
 
-// Tests that initializing Geth with a custom genesis block and chain definitions
+// Tests that initializing PlatON with a custom genesis block and chain definitions
 // work properly.
 func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {
@@ -319,15 +316,15 @@ func TestCustomGenesis(t *testing.T) {
 		if err := ioutil.WriteFile(json, []byte(tt.genesis), 0600); err != nil {
 			t.Fatalf("test %d: failed to write genesis file: %v", i, err)
 		}
-		runGeth(t, "--datadir", datadir, "init", json).WaitExit()
+		runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
 
 		// Query the custom genesis block
-		geth := runGeth(t,
+		platon := runPlatON(t,
 			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
-			"--nodiscover", "--nat", "none", "--ipcdisable",
+			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)
-		geth.ExpectRegexp(tt.result)
-		geth.ExpectExit()
+		platon.ExpectRegexp(tt.result)
+		platon.ExpectExit()
 	}
 }
