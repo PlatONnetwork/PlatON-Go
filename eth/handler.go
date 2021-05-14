@@ -54,7 +54,7 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
-	numBroadcastTxPeers    = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastTxPeers    = 50 // Maximum number of peers for broadcast transactions
 	numBroadcastBlockPeers = 5 // Maximum number of peers for broadcast new block
 
 	defaultTxsCacheSize      = 20
