@@ -14,18 +14,19 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.13
+          go-version: ^1.16
         id: go
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
@@ -33,6 +34,12 @@ jobs:
 
       - name: Build
         run: make platon
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+          args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --skip-dirs="tests" --skip-dirs-use-default=true --disable-all --enable=govet  --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen
 
       - name: Test
         run: go test -tags=test -covermode=count -coverprofile=coverage.out  `go list ./...|grep -v life|grep -v swarm|grep -v tests|grep -v bn256|grep -v mobile`
