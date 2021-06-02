@@ -118,7 +118,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			return err
 		}
 	}
-	//委托用户奖励，包括接的（质押奖励+出块奖励）*委托分红比例
+	//委托用户奖励，包括节点（质押奖励+出块奖励）*委托分红比例
 	//分配出块奖励
 	if err := rmp.AllocatePackageBlock(blockHash, head, packageReward, state); err != nil {
 		return err
@@ -549,7 +549,8 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 		log.Error("AllocatePackageBlock IsCurrVerifier fail", "err", err, "blockNumber", head.Number, "blockHash", blockHash)
 		return err
 	}
-	//stats,
+	//stats,当前结算周期的最后一个选举块上，确定了下一个结算周期开始的第一个共识轮的23个出块节点；
+	//但是到了当前结算周期末，才确定下一个结算周期的101人；那么下一个结算周期第一轮出块时，出块节点可能不再在下一个结算周期的101里了。此时，它出的块，出块奖励不分红，都是它的出块奖励。
 	//tddo:跟踪系统需要知道coinBase/minerAddress和nodeId的对应关系
 	blockReward := big.NewInt(0).Set(reward)
 	if currVerifier {

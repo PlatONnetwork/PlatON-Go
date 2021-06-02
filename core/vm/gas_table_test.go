@@ -18,12 +18,13 @@ package vm
 
 import (
 	"context"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math/big"
-	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 
@@ -96,7 +97,7 @@ func TestEIP2200(t *testing.T) {
 		}
 		vmenv := NewEVM(vmctx, nil, statedb, params.AllEthashProtocolChanges, Config{})
 
-		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
+		_, gas, err := vmenv.Call(false, AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {
 			t.Errorf("test %d: failure mismatch: have %v, want %v", i, err, tt.failure)
 		}

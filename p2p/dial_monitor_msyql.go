@@ -87,7 +87,9 @@ func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 	for idx, nodeId := range nodeIdList {
 		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.String()}
 	}
-	MonitorDB().Create(&epochList)
+	if result := MonitorDB().Create(&epochList); result.Error != nil {
+		log.Error("failed to insert into tb_epoch", "err", result.Error)
+	}
 }
 
 func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
@@ -96,20 +98,29 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 	for idx, nodeId := range nodeIdList {
 		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.String(), StatBlockQty: 0}
 	}
-	MonitorDB().Create(&consensusList)
+	if result := MonitorDB().Create(&consensusList); result.Error != nil {
+		log.Error("failed to insert into tb_consensus", "err", result.Error)
+	}
+
 }
 
 func InitNodePing(nodeIdList []discover.NodeID) {
 	log.Info("InitNodePing", "nodeIdList", nodeIdList)
 	for _, nodeId := range nodeIdList {
 		var nodePing TbNodePing
-		MonitorDB().Find(&nodePing, "node_id=?", nodeId.String())
+		if result := MonitorDB().Find(&nodePing, "node_id=?", nodeId.String()); result.Error != nil {
+			log.Error("failed to query tb_node_ping", "err", result.Error)
+		}
 		if nodePing.NodeId == "" {
 			nodePing = TbNodePing{NodeId: nodeId.String(), Status: 0}
-			MonitorDB().Create(&nodePing)
+			if result := MonitorDB().Create(&nodePing); result.Error != nil {
+				log.Error("failed to insert into tb_node_ping", "err", result.Error)
+			}
 		} else {
 			//nodePing.Status = 0
-			MonitorDB().Save(&nodePing)
+			if result := MonitorDB().Save(&nodePing); result.Error != nil {
+				log.Error("failed to update tb_node_ping", "err", result.Error)
+			}
 		}
 	}
 }
@@ -118,14 +129,18 @@ func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
 	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, status)
 
 	var nodePing TbNodePing
-	MonitorDB().Find(&nodePing, "node_id=?", nodeId.String())
+	if result := MonitorDB().Find(&nodePing, "node_id=?", nodeId.String()); result.Error != nil {
+		log.Error("failed to query tb_node_ping", "err", result.Error)
+	}
 	if strings.TrimSpace(nodePing.NodeId) != "" {
 		nodePing.Addr = addr
 		nodePing.Status = status
 		if status == 1 {
 			nodePing.ReplyTime = time.Now().Unix()
 		}
-		MonitorDB().Save(&nodePing)
+		if result := MonitorDB().Save(&nodePing); result.Error != nil {
+			log.Error("failed to update tb_node_ping", "err", result.Error)
+		}
 	}
 
 	/*var nodePing = TbNodePing{NodeId: nodeId, Ip: ip, Port: port, Status: status, ReplyTime: time.Now().Unix(), UpdateTime: time.Now().Unix()}

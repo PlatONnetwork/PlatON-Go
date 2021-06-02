@@ -422,6 +422,7 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 }
 
 // ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
+// 把质押金返回锁仓合约。返回后，要锁仓合约有处理欠释放的情况
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 	amountCompareWithZero := amount.Cmp(common.Big0)
 	if amountCompareWithZero == 0 {

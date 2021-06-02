@@ -2273,6 +2273,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	lazyCalcStakeAmount(epoch, can.CandidateMutable)
 
 	// Balance that can only be effective for Slash
+	//惩罚，只影响有效期质押金
 	total := new(big.Int).Add(can.Released, can.RestrictingPlan)
 
 	if slashItem.Amount != nil && total.Cmp(slashItem.Amount) < 0 {
@@ -2363,10 +2364,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 	// need remove from verifierList
 	needInvalid, needRemove, needReturnHes, changeStatus := handleSlashTypeFn(blockNumber, blockHash, slashItem.SlashType, calcCandidateTotalAmount(can))
 
-	log.Debug("Call SlashCandidates: the status", "needInvalid", needInvalid,
+	log.Debug("Call SlashCandidates: the status", "blockNumber", blockNumber, "needInvalid", needInvalid,
 		"needRemove", needRemove, "needReturnHes", needReturnHes, "current can.Status", can.Status, "need to superpose status", changeStatus)
 
-	//stats:如果节点要被踢出验证人列表，则要把本结算周期积累的委托收益都转移给节点（相当于本结算周期的有效委托，将不会有委托收益）
+	//stats:如果节点要被踢出验证人列表（只要犯错，都会被踢出），则要把本结算周期积累的委托收益都转移给节点（相当于本结算周期的有效委托，将不会有委托收益）
 	if needRemove {
 		if err := rm.ReturnDelegateReward(can.BenefitAddress, can.CurrentEpochDelegateReward, state); err != nil {
 			log.Error("Call SlashCandidates:return delegateReward", "err", err)
@@ -2376,14 +2377,18 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	// Only when the staking is released, the staking-related information needs to be emptied.
 	// When penalizing the low block rate first, and then report double signing, the pledged deposit in the period of hesitation should be returned
-	if needReturnHes { //解质押
+	if needReturnHes { //解质押，0出块惩罚后，如果剩余质押金（包括犹豫期的） < 治理的质押金的最低阈值，则把犹豫期的质押金原路退回
 		// Return the pledged deposit during the hesitation period
+		// 退回犹豫期的质押金（来自自有金额）
 		if can.ReleasedHes.Cmp(common.Big0) > 0 {
 			state.AddBalance(can.StakingAddress, can.ReleasedHes)
 			state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
 			can.ReleasedHes = new(big.Int).SetInt64(0)
 		}
+
+		// 退回犹豫期的质押金（来自锁仓合约）
 		if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+			// 把质押金返回锁仓合约
 			err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 			if nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: call Restricting ReturnLockFunds() is failed",
@@ -2500,6 +2505,7 @@ func (sk *StakingPlugin) removeFromVerifiers(blockNumber uint64, blockHash commo
 	return nil
 }
 
+// remain : 所有质押金（包括犹豫期的）
 func handleSlashTypeFn(blockNumber uint64, blockHash common.Hash, slashType staking.CandidateStatus, remain *big.Int) (bool, bool, bool, staking.CandidateStatus) {
 
 	var needInvalid, needRemove, needReturnHes bool // need invalid candidate status And need remove from verifierList,Refund of pledged deposits during hesitation period
