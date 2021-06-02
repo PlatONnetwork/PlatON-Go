@@ -515,16 +515,20 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
 
-	generalAddr := common.MustBech32ToAddress("lat1dl93r6fr022ca5yjqe6cgkg06er9pyqfwkwwdg")
+	generalAddr := common.MustBech32ToAddress("lat1sy6kxgpfgx7axrl86a368mj6r6fnagctqem69g")
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
 	rewardMgrPoolIssue, _ := new(big.Int).SetString("200000000000000000000000000", 10)
 
+	manifesto := `"τῆς ἄνω ὁδοῦ ἀεὶ ἑξόμεθα καὶ δικαιοσύνην μετὰ φρονήσεως παντὶ τρόπῳ ἐπιτηδεύσομεν."
+"We shall always keep to the upper road and practice justice with prudence in every way."
+"让我们永远坚持走向上的路，全力以审慎践行正义。"`
+
 	genesis := Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x024c6378c176ef6c717cd37a74c612c9abd615d13873ff6651e3d352b31cb0b2e1"),
-		Timestamp: 0,
-		ExtraData: []byte("Let us compute"),
+		Timestamp: 1619324940000,
+		ExtraData: []byte(manifesto),
 		GasLimit:  params.GenesisGasLimit,
 		Alloc: map[common.Address]GenesisAccount{
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
