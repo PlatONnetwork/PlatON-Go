@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -177,13 +179,13 @@ type Downloading interface {
 // param: epoch 结算周期。从1开始计算。创世块可以认为是0
 // param: verifierList
 // param: downloading
-func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, verifierList []*staking.Validator, downloading Downloading) {
-	nodeIdList := ConvertToNodeIdList(verifierList)
+func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, nodeIdList []common.NodeID, downloading Downloading) {
+	//nodeIdList := ConvertToNodeIdList(verifierList)
 	//nodeIdStringList := xcom.ConvertToNodeIdStringList(verifierList)
 	//MONITOR，保存这一轮结算周期的新101名单
 	log.Info("PostMonitorNodeEvent", "blockNumber", blockNumber, "epoch", epoch, "nodeIdList", nodeIdList)
 
-	SaveEpochElection(epoch, nodeIdList)
+	//SaveEpochElection(epoch, nodeIdList)
 
 	if blockNumber == 0 {
 		log.Info("current block is genesis block")
@@ -230,6 +232,14 @@ func ConvertToNodeIdList(verifierList []*staking.Validator) []discover.NodeID {
 	nodeIdList := make([]discover.NodeID, len(verifierList))
 	for i, verifier := range verifierList {
 		nodeIdList[i] = verifier.NodeId
+	}
+	return nodeIdList
+}
+
+func ConvertToCommonNodeIdList(verifierList []*staking.Validator) []common.NodeID {
+	nodeIdList := make([]common.NodeID, len(verifierList))
+	for i, verifier := range verifierList {
+		nodeIdList[i] = common.NodeID(verifier.NodeId)
 	}
 	return nodeIdList
 }

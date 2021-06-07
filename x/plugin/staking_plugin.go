@@ -1291,8 +1291,12 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+
+	nodeIdList := p2p.ConvertToCommonNodeIdList(queue)
+	//stats
+	common.CollectEpochElection(blockNumber, nodeIdList)
 	//monitor, 发送事件，需要监控的备选节点列表
-	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, queue, downloading)
+	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, nodeIdList, downloading)
 
 	log.Debug("Call ElectNextVerifierList  Next verifiers", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"list length", len(queue), "list", newVerifierArr)
@@ -2063,7 +2067,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	//MONITOR,保存下一个共识论的25节点
-	p2p.SaveConsensusElection(xutil.CalculateRound(blockNumber)+1, p2p.ConvertToNodeIdList(next.Arr))
+	//p2p.SaveConsensusElection(xutil.CalculateRound(blockNumber) + 1)
+	common.CollectConsensusElection(blockNumber, p2p.ConvertToCommonNodeIdList(next.Arr))
 
 	// 处理 低出块率的状态 用
 	//  (现有的 代码逻辑 基本不会进入这个)

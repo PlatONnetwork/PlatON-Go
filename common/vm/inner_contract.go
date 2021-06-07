@@ -27,6 +27,7 @@ var (
 	GovContractAddr            = common.HexToAddress("0x1000000000000000000000000000000000000005") // The PlatON Precompiled contract addr for governance
 	DelegateRewardPoolAddr     = common.HexToAddress("0x1000000000000000000000000000000000000006") // The PlatON Precompiled contract addr for delegate reward
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
+	TempContractAddr           = common.HexToAddress("0x0000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 )
 
 type PrecompiledContractCheck interface {

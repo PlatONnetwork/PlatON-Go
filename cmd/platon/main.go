@@ -28,6 +28,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -394,8 +396,11 @@ func startMonitor(ethereum *eth.Ethereum) {
 
 	//在第一个结算周期，验证人数=备选节点人数，就是genesis_data中内置的节点
 	//保存初始的验证人名单，第一个共识轮周期从1开始计算
-	p2p.SaveConsensusElection(1, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	//p2p.SaveConsensusElection(1, p2p.ConvertToNodeIdList(genesisValidatorQueue))
+	nodeList := p2p.ConvertToCommonNodeIdList(genesisValidatorQueue)
+	common.CollectConsensusElection(0, nodeList)
+	common.CollectEpochElection(0, nodeList)
 	//发送monitor事件
 	log.Info("main.PostMonitorNodeEvent.eventMux", "mux", ethereum.EventMux())
-	p2p.PostMonitorNodeEvent(ethereum.EventMux(), 0, 1, genesisValidatorQueue, ethereum.Downloader())
+	p2p.PostMonitorNodeEvent(ethereum.EventMux(), 0, 1, nodeList, ethereum.Downloader())
 }

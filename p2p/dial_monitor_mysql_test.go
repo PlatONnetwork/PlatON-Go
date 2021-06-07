@@ -63,14 +63,14 @@ func TestNodeIDToString(t *testing.T) {
 	t.Log(nodeIdArr[0].HexPrefixString())
 }
 
-func TestSaveEpochElection(t *testing.T) {
+/*func TestSaveEpochElection(t *testing.T) {
 	SaveEpochElection(1, nodeIdArr)
-}
+}*/
 
-func TestSaveConsensusElection(t *testing.T) {
+/*func TestSaveConsensusElection(t *testing.T) {
 	SaveConsensusElection(31323, nodeIdArr)
 }
-
+*/
 func TestInitNodePing(t *testing.T) {
 	InitNodePing(nodeIdArr)
 }

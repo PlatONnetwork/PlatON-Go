@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -104,7 +106,7 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 
 }
 
-func InitNodePing(nodeIdList []discover.NodeID) {
+func InitNodePing(nodeIdList []common.NodeID) {
 	log.Info("InitNodePing", "nodeIdList", nodeIdList)
 	for _, nodeId := range nodeIdList {
 		var nodePing TbNodePing
@@ -126,7 +128,7 @@ func InitNodePing(nodeIdList []discover.NodeID) {
 }
 
 func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
-	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, status)
+	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, "status", status)
 
 	var nodePing TbNodePing
 	if result := MonitorDB().Find(&nodePing, "node_id=?", nodeId.String()); result.Error != nil {

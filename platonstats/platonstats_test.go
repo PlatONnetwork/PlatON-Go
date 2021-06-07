@@ -16,6 +16,15 @@ var (
 	address = common.MustBech32ToAddress("lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj")
 )
 
+func makeReceipt(addr common.Address) *types.Receipt {
+	receipt := types.NewReceipt(nil, false, 0)
+	receipt.Logs = []*types.Log{
+		{Address: addr},
+	}
+	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
+	return receipt
+}
+
 func Test_blockJson(t *testing.T) {
 
 	/*header := &types.Header{GasLimit: 9424776, Number: big.NewInt(236500), GasUsed: 0, Time: big.NewInt(1614686649157)}
@@ -56,11 +65,11 @@ func Test_statsBlockExt(t *testing.T) {
 	}
 	statsBlockExt := &StatsBlockExt{
 		BlockType:   brief.BlockType,
-		EpochNo:     brief.EpochNo,
+		Epoch:       brief.Epoch,
 		NodeID:      brief.NodeID,
 		NodeAddress: brief.NodeAddress,
-		//Block:        convertBlock(block),
-		Block: blockJsonMapping,
+		Receipts:    []*types.Receipt{makeReceipt(address)},
+		Block:       blockJsonMapping,
 	}
 
 	jsonBytes, err := json.Marshal(statsBlockExt)

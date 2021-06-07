@@ -45,6 +45,11 @@ func (n NodeID) TerminalString() string {
 	return hex.EncodeToString(n[:8])
 }
 
+// NodeID prints as a long hexadecimal number.
+func (n NodeID) String() string {
+	return fmt.Sprintf("%x", n[:])
+}
+
 var inputT = reflect.TypeOf(Input{})
 
 // MarshalText returns the hex representation of a.
@@ -288,6 +293,8 @@ type ExeBlockData struct {
 	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"`    //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
 	WithdrawDelegationList        []*WithdrawDelegation          `json:"withdrawDelegationList,omitempty"` //当委托用户撤回节点的全部委托时，需要的统计信息（由于Alaya在运行中，只能兼容Alaya的bug）
 	AutoStakingMap                map[Hash]*AutoStakingTx        `json:"autoStakingTxMap,omitempty"`
+	EpochElection                 []NodeID                       `json:"epochElection,omitempty"`
+	ConsensusElection             []NodeID                       `json:"consensusElection,omitempty"`
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -406,5 +413,18 @@ func CollectAutoStakingTx(blockNumber uint64, txHash Hash, restrictingAmount *bi
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectAutoStakingTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "restrictingAmount", restrictingAmount.String(), "balanceAmount", balanceAmount.String())
 		exeBlockData.AutoStakingMap[txHash] = &AutoStakingTx{RestrictingAmount: restrictingAmount, BalanceAmount: balanceAmount}
+	}
+}
+
+func CollectEpochElection(blockNumber uint64, nodeIdList []NodeID) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectEpochElection", "blockNumber", blockNumber, "nodeIdList", nodeIdList)
+		exeBlockData.EpochElection = nodeIdList
+	}
+}
+func CollectConsensusElection(blockNumber uint64, nodeIdList []NodeID) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectConsensusElection", "blockNumber", blockNumber, "nodeIdList", nodeIdList)
+		exeBlockData.ConsensusElection = nodeIdList
 	}
 }
