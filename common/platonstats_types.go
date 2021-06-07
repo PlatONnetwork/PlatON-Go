@@ -139,6 +139,8 @@ type GenesisData struct {
 	StakingItemList           []*StakingItem     `json:"stakingItemList,omitempty"`
 	RestrictingCreateItemList []*RestrictingItem `json:"restrictingCreateItemList,omitempty"`
 	InitFundItemList          []*InitFundItem    `json:"initFundItemList,omitempty"`
+	EpochElection             []NodeID           `json:"epochElection,omitempty"`
+	ConsensusElection         []NodeID           `json:"consensusElection,omitempty"`
 }
 type AllocItem struct {
 	Address Address  `json:"address,omitempty"`
