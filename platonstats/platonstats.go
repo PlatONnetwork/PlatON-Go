@@ -389,7 +389,7 @@ func readBlockNumber() (uint64, error) {
 			log.Warn("Failed to read PlatON stats service log", "error", err)
 			return 0, errors.New("Failed to read PlatON stats service log")
 		} else {
-			log.Warn("Success to read PlatON stats service log", "blockNumber", blockNumber)
+			log.Info("Success to read PlatON stats service log", "blockNumber", blockNumber)
 			return blockNumber, nil
 		}
 	}
@@ -397,7 +397,9 @@ func readBlockNumber() (uint64, error) {
 
 func writeStatsLog(blockNumber uint64) {
 	if err := common.WriteFile(statsLogFile, []byte(strconv.FormatUint(blockNumber, 10)), statsLogFlag, os.ModePerm); err != nil {
-		log.Error("Failed to log stats block number", "blockNumber", blockNumber)
+		log.Error("Failed to log stats block number", "file", statsLogFile, "blockNumber", blockNumber, "err", err)
+	} else {
+		log.Debug("Success to log stats block number", "file", statsLogFile, "blockNumber", blockNumber)
 	}
 }
 
