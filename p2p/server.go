@@ -192,7 +192,7 @@ type Server struct {
 	removeconsensus       chan *discover.Node
 	addtrusted            chan *discover.Node
 	removetrusted         chan *discover.Node
-	rescheduleNodeMonitor chan []discover.NodeID
+	rescheduleNodeMonitor chan []common.NodeID
 	posthandshake         chan *conn
 	addpeer               chan *conn
 	delpeer               chan peerDrop
@@ -386,7 +386,7 @@ func (srv *Server) RemoveTrustedPeer(node *discover.Node) {
 	}
 }
 
-func (srv *Server) MonitorNodeIdList(nodeIdList []discover.NodeID) {
+func (srv *Server) MonitorNodeIdList(nodeIdList []common.NodeID) {
 	select {
 	case srv.rescheduleNodeMonitor <- nodeIdList:
 	case <-srv.quit:
@@ -509,7 +509,7 @@ func (srv *Server) Start() (err error) {
 	srv.addtrusted = make(chan *discover.Node)
 	srv.removetrusted = make(chan *discover.Node)
 
-	srv.rescheduleNodeMonitor = make(chan []discover.NodeID)
+	srv.rescheduleNodeMonitor = make(chan []common.NodeID)
 
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
@@ -788,7 +788,7 @@ running:
 			log.Info("p2p.server.rescheduleNodeMonitor", "nodeIdList", nodeIdList)
 			dialstate.clearMonitorScheduler()
 			for _, nodeId := range nodeIdList {
-				node := discover.NewNode(nodeId, nil, 0, 0)
+				node := discover.NewNode(discover.NodeID(nodeId), nil, 0, 0)
 				dialstate.addMonitorTask(node)
 				monitorNodes[node.ID] = true
 				if p, ok := peers[node.ID]; ok {
