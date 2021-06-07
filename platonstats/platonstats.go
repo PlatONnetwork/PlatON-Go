@@ -277,6 +277,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 			log.Error("cannot read genesis data", "err", err)
 			return errors.New("cannot read genesis data")
 		}
+		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
