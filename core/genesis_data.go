@@ -60,6 +60,7 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash commo
 
 	//stats
 	nodeList := ConvertToCommonNodeIdList(initQueue)
+	log.Debug("init genesis validators", "idList", nodeList)
 	genesisDataCollector.ConsensusElection = nodeList
 	genesisDataCollector.EpochElection = nodeList
 
