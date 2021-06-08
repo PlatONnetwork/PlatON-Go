@@ -375,7 +375,7 @@ func collectBrief(block *types.Block) *Brief {
 func (s *PlatonStatsService) filterContract(blockNumber uint64, txs types.Transactions) []*common.Address {
 	contractTxList := make([]*common.Address, 0)
 	for _, tx := range txs {
-		if tx.To() != nil && s.isContract(*tx.To(), blockNumber) {
+		if tx.To() != nil && !vm.IsPrecompiledContract(*tx.To()) && !vm.IsPlatONPrecompiledContract(*tx.To()) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
 			contractTxList = append(contractTxList, tx.To())
 		}
 	}
@@ -541,7 +541,7 @@ func (s *PlatonStatsService) getCode(to common.Address, blockNumber uint64) ([]b
 }
 
 func (s *PlatonStatsService) isContract(to common.Address, blockNumber uint64) bool {
-	if code, err := s.getCode(to, blockNumber); err == nil && len(code) > 0 {
+	if code, err := s.getCode(to, blockNumber); err == nil && len(code) >= 4 {
 		return vm.CanUseEVMInterp(code) || vm.CanUseWASMInterp(code)
 	}
 	return false
