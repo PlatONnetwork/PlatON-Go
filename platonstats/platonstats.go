@@ -128,7 +128,7 @@ type StatsBlockExt struct {
 	Receipts     []*types.Receipt       `json:"receipts,omitempty"`
 	ExeBlockData *common.ExeBlockData   `json:"exeBlockData,omitempty"`
 	GenesisData  *common.GenesisData    `json:"GenesisData,omitempty"`
-	ContractList []*common.Address      `json:"ContractList,omitempty"`
+	ContractList []common.Address       `json:"ContractList,omitempty"`
 }
 
 type PlatonStatsService struct {
@@ -284,7 +284,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 
 	brief := collectBrief(block)
-	contractList := s.filterContract(block.NumberU64(), block.Transactions())
+	contractList := s.filterDistinctContract(block.NumberU64(), block.Transactions())
 
 	blockJsonMapping, err := jsonBlock(block)
 	if err != nil {
@@ -372,14 +372,20 @@ func collectBrief(block *types.Block) *Brief {
 	return brief
 }
 
-func (s *PlatonStatsService) filterContract(blockNumber uint64, txs types.Transactions) []*common.Address {
-	contractTxList := make([]*common.Address, 0)
+func (s *PlatonStatsService) filterDistinctContract(blockNumber uint64, txs types.Transactions) []common.Address {
+	contractAddrMap := make(map[common.Address]interface{})
 	for _, tx := range txs {
-		if tx.To() != nil && !vm.IsPrecompiledContract(*tx.To()) && !vm.IsPlatONPrecompiledContract(*tx.To()) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
-			contractTxList = append(contractTxList, tx.To())
+		if tx.To() != nil {
+			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To()) && !vm.IsPlatONPrecompiledContract(*tx.To()) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
+				contractAddrMap[*tx.To()] = nil
+			}
 		}
 	}
-	return contractTxList
+	var contractAddrList []common.Address
+	for addr, _ := range contractAddrMap {
+		contractAddrList = append(contractAddrList, addr)
+	}
+	return contractAddrList
 }
 
 func readBlockNumber() (uint64, error) {
