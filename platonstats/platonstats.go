@@ -375,7 +375,7 @@ func collectBrief(block *types.Block) *Brief {
 func (s *PlatonStatsService) filterContract(blockNumber uint64, txs types.Transactions) []*common.Address {
 	contractTxList := make([]*common.Address, 0)
 	for _, tx := range txs {
-		if s.isContract(*tx.To(), blockNumber) {
+		if tx.To() != nil && s.isContract(*tx.To(), blockNumber) {
 			contractTxList = append(contractTxList, tx.To())
 		}
 	}
