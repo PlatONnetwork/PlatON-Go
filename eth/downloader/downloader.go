@@ -438,9 +438,6 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "head", hash, "bn", bn, "mode", d.mode)
 	defer func(start time.Time) {
-		if d.mode == FastSync {
-			d.setFastSyncStatus(FastSyncDel)
-		}
 		log.Debug("Synchronisation terminated", "elapsed", time.Since(start))
 	}(time.Now())
 
@@ -521,7 +518,15 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	} else if d.mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
-	return d.spawnSync(fetchers)
+	if err := d.spawnSync(fetchers); err != nil {
+		return err
+	}
+	if d.mode == FastSync {
+		if err := d.setFastSyncStatus(FastSyncDel); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // origin is the this chain  current block header ,compare remote  the same num of header in remote,
