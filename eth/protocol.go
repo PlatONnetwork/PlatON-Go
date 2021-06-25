@@ -32,16 +32,17 @@ import (
 const (
 	eth62 = 62
 	eth63 = 63
+	eth65 = 65
 )
 
 // ProtocolName is the official short name of the protocol used during capability negotiation.
 var ProtocolName = "platon"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
-var ProtocolVersions = []uint{eth63, eth62}
+var ProtocolVersions = []uint{eth65, eth63, eth62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{23, 8}
+var ProtocolLengths = []uint64{40, 23, 8}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -71,6 +72,11 @@ const (
 	GetOriginAndPivotMsg = 0x13
 	OriginAndPivotMsg    = 0x14
 	PPOSInfoMsg          = 0x15
+
+	// For transaction fetcher
+	NewPooledTransactionHashesMsg = 0x16
+	GetPooledTransactionsMsg      = 0x17
+	PooledTransactionsMsg         = 0x18
 )
 
 type errCode int
@@ -105,7 +111,24 @@ var errorToString = map[int]string{
 	ErrSuspendedPeer:           "Suspended peer",
 }
 
+// NewPooledTransactionHashesPacket represents a transaction announcement packet.
+type NewPooledTransactionHashesPacket []common.Hash
+
+// GetPooledTransactionsPacket represents a transaction query.
+type GetPooledTransactionsPacket []common.Hash
+
+// PooledTransactionsPacket is the network packet for transaction distribution.
+type PooledTransactionsPacket []*types.Transaction
+
 type txPool interface {
+	// Has returns an indicator whether txpool has a transaction
+	// cached with the given hash.
+	Has(hash common.Hash) bool
+
+	// Get retrieves the transaction from local txpool with given
+	// tx hash.
+	Get(hash common.Hash) *types.Transaction
+
 	// AddRemotes should add the given transactions to the pool.
 	AddRemotes([]*types.Transaction) []error
 
