@@ -180,6 +180,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
+	if currentBlock.NumberU64() > 0 {
+		log.Info("Blockchain not empty, auto disabling fast sync")
+		atomic.StoreUint32(&pm.fastSync, 0)
+	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
 		mode = downloader.FastSync
