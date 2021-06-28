@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -305,8 +304,6 @@ type TxPool struct {
 	reorgShutdownCh chan struct{} // requests shutdown of scheduleReorgLoop
 
 	cacheAccountNeedPromoted *accountSet
-
-	addTxCh chan []*types.Transaction
 }
 
 type txpoolResetRequest struct {
@@ -340,8 +337,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		queueTxEventCh:  make(chan *types.Transaction),
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
-		//Maintain a redundant transaction cache in the channel
-		addTxCh: make(chan []*types.Transaction, runtime.NumCPU()+3),
 	}
 
 	pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
@@ -373,10 +368,6 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Start the event loop and return
 	pool.wg.Add(1)
 	go pool.loop()
-
-	for i := 0; i < runtime.NumCPU(); i++ {
-		go pool.parallelAddTx()
-	}
 
 	return pool
 }
@@ -951,8 +942,7 @@ func (pool *TxPool) Has(hash common.Hash) bool {
 // This method is used to add transactions from the p2p network and does not wait for pool
 // reorganization and internal event propagation.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	pool.addTxCh <- txs
-	return nil
+	return pool.addTxs(txs, false, false)
 }
 
 // This is like AddRemotes, but waits for pool reorganization. Tests use this method.
@@ -971,14 +961,8 @@ func (pool *TxPool) addRemoteSync(tx *types.Transaction) error {
 //
 // Deprecated: use AddRemotes
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	errs := pool.addTxs([]*types.Transaction{tx}, false, true)
+	errs := pool.AddRemotes([]*types.Transaction{tx})
 	return errs[0]
-}
-
-func (pool *TxPool) parallelAddTx() {
-	for task := range pool.addTxCh {
-		pool.addTxs(task, false, false)
-	}
 }
 
 // addTxs attempts to queue a batch of transactions if they are valid.
@@ -1046,6 +1030,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 			nilSlot++
 		}
 		errs[nilSlot] = err
+		nilSlot++
 	}
 
 	if request {
