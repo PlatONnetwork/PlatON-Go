@@ -321,7 +321,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
-		chain:       chain,
+		chain:      chain,
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
@@ -462,7 +462,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 	if newBlock != nil {
 		//	pool.mu.Lock()
-		pool.requestReset(pool.resetHead.Header(), newBlock.Header())
+		<-pool.requestReset(pool.resetHead.Header(), newBlock.Header())
 		pool.resetHead = newBlock
 
 		//	pool.mu.Unlock()
