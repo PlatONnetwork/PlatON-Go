@@ -462,7 +462,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 	if newBlock != nil {
 		//	pool.mu.Lock()
-		pool.requestReset(pool.resetHead.Header(), newBlock.Header())
+		<-pool.requestReset(pool.resetHead.Header(), newBlock.Header())
 		pool.resetHead = newBlock
 
 		//	pool.mu.Unlock()
