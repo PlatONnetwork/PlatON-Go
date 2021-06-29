@@ -313,7 +313,7 @@ type txpoolResetRequest struct {
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
 //func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
-func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *BlockChainCache) *TxPool {
+func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoolBlockChain) *TxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
@@ -321,7 +321,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain *Bloc
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
-		chain:       NewTxPoolBlockChain(chain),
+		chain:      chain,
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
