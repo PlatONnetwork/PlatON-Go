@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -38,38 +37,13 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
-	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var (
 	statsLogFile = "./platonstats.log"
 	statsLogFlag = os.O_RDWR | os.O_CREATE | os.O_TRUNC
-
-	checkingErrFile = "./checkingerr.log"
-	checkingErrFlag = os.O_RDWR | os.O_CREATE | os.O_APPEND
 )
-
-type platonStats interface {
-	SubscribeSampleEvent(ch chan<- SampleEvent) event.Subscription
-}
-
-type blockdata struct {
-	Number       uint64             `json:"number"    gencodec:"required"`
-	Hash         common.Hash        `json:"hash"    gencodec:"required"`
-	ParentHash   common.Hash        `json:"parentHash"    gencodec:"required"`
-	LogsBloom    types.Bloom        `json:"logsBloom"    gencodec:"required"`
-	StateRoot    common.Hash        `json:"stateRoot"    gencodec:"required"`
-	ReceiptsRoot common.Hash        `json:"receiptsRoot"    gencodec:"required"`
-	TxHash       common.Hash        `json:"transactionsRoot" gencodec:"required"`
-	Miner        common.Address     `json:"miner"    gencodec:"required"`
-	ExtraData    ExtraData          `json:"extraData"    gencodec:"required"`
-	GasLimit     uint64             `json:"gasLimit"    gencodec:"required"`
-	GasUsed      uint64             `json:"gasUsed"    gencodec:"required"`
-	Timestamp    uint64             `json:"timestamp"    gencodec:"required"`
-	Transactions types.Transactions `json:"transactions"    gencodec:"required"`
-	Nonce        Nonce              `json:"nonce"    gencodec:"required"`
-}
 
 type ExtraData []byte
 
@@ -89,25 +63,6 @@ func jsonBlock(block *types.Block) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return fields, nil
-}
-
-func convertBlock(block *types.Block) *blockdata {
-	blk := new(blockdata)
-	blk.Number = block.NumberU64()
-	blk.Hash = block.Hash()
-	blk.ParentHash = block.ParentHash()
-	blk.LogsBloom = block.Bloom()
-	blk.StateRoot = block.Root()
-	blk.ReceiptsRoot = block.ReceiptHash()
-	blk.TxHash = block.TxHash()
-	blk.Miner = block.Coinbase()
-	blk.ExtraData = ExtraData(block.Extra())
-	blk.GasLimit = block.GasLimit()
-	blk.GasUsed = block.GasUsed()
-	blk.Timestamp = block.Time().Uint64()
-	blk.Transactions = block.Transactions()
-	blk.Nonce = block.Nonce()
-	return blk
 }
 
 type Brief struct {
@@ -132,50 +87,36 @@ type StatsBlockExt struct {
 }
 
 type PlatonStatsService struct {
-	server                    *p2p.Server //Peer-to-peer server to retrieve networking infos
-	kafkaUrl                  string
-	kafkaBlockTopic           string        //统计数据消息Topic
-	kafkaAccountCheckingTopic string        //对账请求消息Topic
-	kafkaAccountCheckingGroup string        //对账请求消息Group
-	eth                       *eth.Ethereum // Full Ethereum service if monitoring a full node
-	datadir                   string
-	kafkaClient               *ConfluentKafkaClient
-	/*blockProducer             sarama.SyncProducer
-	msgProducer               sarama.AsyncProducer
-	checkingConsumer          *cluster.Consumer*/
-	stopSampleMsg chan struct{}
-	stopBlockMsg  chan struct{}
-	stopOnce      sync.Once
+	server          *p2p.Server //Peer-to-peer server to retrieve networking infos
+	kafkaUrl        string
+	kafkaBlockTopic string        //统计数据消息Topic
+	eth             *eth.Ethereum // Full Ethereum service if monitoring a full node
+	datadir         string
+	kafkaClient     *ConfluentKafkaClient
+	stopSampleMsg   chan struct{}
+	stopBlockMsg    chan struct{}
+	stopOnce        sync.Once
 }
 
 var (
-	//platonStatsServiceOnce sync.Once
 	platonStatsService *PlatonStatsService
 )
 
-func New(kafkaUrl, kafkaBlockTopic, kafkaAccountCheckingTopic, kafkaAccountCheckingGroup string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
-	log.Info("new PlatON stats service", "kafkaUrl", kafkaUrl, "kafkaBlockTopic", kafkaBlockTopic, "kafkaAccountCheckingTopic", kafkaAccountCheckingTopic, "kafkaAccountCheckingGroup", kafkaAccountCheckingGroup)
+func New(kafkaUrl, kafkaBlockTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
+	log.Info("new PlatON stats service", "kafkaUrl", kafkaUrl, "kafkaBlockTopic", kafkaBlockTopic)
 
 	platonStatsService = &PlatonStatsService{
-		kafkaUrl:                  kafkaUrl,
-		kafkaBlockTopic:           kafkaBlockTopic,
-		kafkaAccountCheckingTopic: kafkaAccountCheckingTopic,
-		kafkaAccountCheckingGroup: kafkaAccountCheckingGroup,
-		eth:                       ethServ,
-		datadir:                   datadir,
+		kafkaUrl:        kafkaUrl,
+		kafkaBlockTopic: kafkaBlockTopic,
+		eth:             ethServ,
+		datadir:         datadir,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
-		checkingErrFile = filepath.Join(datadir, checkingErrFile)
 	}
 	log.Debug("PlatON stats log file", "datadir", datadir)
 	log.Debug("PlatON stats log file", "statsLogFile", statsLogFile)
-	log.Debug("PlatON stats log file", "checkingErrFile", checkingErrFile)
 	return platonStatsService, nil
-}
-
-func GetPlatonStatsService() *PlatonStatsService {
-	return platonStatsService
 }
 
 func (s *PlatonStatsService) BlockChain() *core.BlockChain {
@@ -198,31 +139,11 @@ func (s *PlatonStatsService) APIs() []rpc.API { return nil }
 func (s *PlatonStatsService) Start(server *p2p.Server) error {
 	log.Info("PlatON stats server starting....")
 	s.server = server
-	//urls := []string{s.kafkaUrl}
 
-	//s.kafkaClient = NewKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
-	s.kafkaClient = NewConfluentKafkaClient(s.kafkaUrl, s.kafkaBlockTopic, s.kafkaAccountCheckingTopic, s.kafkaAccountCheckingGroup)
+	s.kafkaClient = NewConfluentKafkaClient(s.kafkaUrl, s.kafkaBlockTopic)
 
-	/*if msgProducer, err := sarama.NewAsyncProducer(urls, msgProducerConfig()); err != nil {
-		log.Error("Failed to init msg Kafka async producer....", "err", err)
-		return err
-	} else {
-		log.Info("Success to init msg Kafka async producer....")
-		s.msgProducer = msgProducer
-	}
-
-	if blockProducer, err := sarama.NewSyncProducer(urls, blockProducerConfig()); err != nil {
-		log.Error("Failed to init msg Kafka sync producer....", "err", err)
-		return err
-	} else {
-		log.Info("Success to init msg Kafka sync producer....")
-		s.blockProducer = blockProducer
-	}
-	*/
 	go s.blockMsgLoop()
-	//go s.sampleMsgLoop()
 
-	go s.accountCheckingLoop()
 	log.Info("PlatON stats daemon started")
 	return nil
 }
@@ -292,12 +213,11 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		return err
 	}
 	statsBlockExt := &StatsBlockExt{
-		BlockType:   brief.BlockType,
-		Epoch:       brief.Epoch,
-		ConsensusNo: brief.ConsensusNo,
-		NodeID:      brief.NodeID,
-		NodeAddress: brief.NodeAddress,
-		//Block:        convertBlock(block),
+		BlockType:    brief.BlockType,
+		Epoch:        brief.Epoch,
+		ConsensusNo:  brief.ConsensusNo,
+		NodeID:       brief.NodeID,
+		NodeAddress:  brief.NodeAddress,
 		Block:        blockJsonMapping,
 		Receipts:     receipts,
 		ExeBlockData: exeBlockData,
@@ -342,16 +262,6 @@ func collectBrief(block *types.Block) *Brief {
 	if bn == 0 {
 		brief.BlockType = common.GenesisBlock
 		return brief
-		/*
-			} else if yes, err := xcom.IsYearEnd(common.ZeroHash, bn); err != nil {
-				panic(err)
-			} else if yes {
-				brief.BlockType = common.EndOfYear
-				} else if xutil.IsElection(bn) {
-				brief.BlockType = common.ConsensusElectionBlock
-					} else if xutil.IsBeginOfConsensus(bn) {
-					brief.BlockType = common.ConsensusBeginBlock
-		*/
 	} else if xutil.IsBeginOfConsensus(bn) && !xutil.IsBeginOfEpoch(bn) {
 		brief.BlockType = common.ConsensusBeginBlock
 	} else if xutil.IsElection(bn) {
@@ -428,115 +338,6 @@ func (s *PlatonStatsService) sampleMsgLoop() {
 	}
 }
 
-func (s *PlatonStatsService) accountCheckingLoop() {
-	for {
-		msg, err := s.kafkaClient.consumer.ReadMessage(-1)
-		if err == nil {
-			key := string(msg.Key)
-			value := string(msg.Value)
-			log.Debug("received account-checking message by group consumer", "key", key, "value", value)
-
-			if len(key) > 0 {
-				checkingNumber, err := strconv.ParseUint(key, 10, 64)
-				if err != nil {
-					log.Error("Failed to parse block number", "key", key, "err", err)
-					panic(err)
-				}
-
-				for {
-					currentNumber := s.eth.BlockChain().CurrentBlock().NumberU64()
-					log.Debug("current block number of block chain", "blockNumber", currentNumber)
-					if currentNumber >= checkingNumber {
-						break
-					} else {
-						time.Sleep(1 * time.Second)
-					}
-				}
-			}
-
-			err := s.accountChecking(key, msg.Value)
-			if err != nil {
-				log.Crit("Failed to check account balance", "err", err)
-				//panic(err)
-			} else {
-				log.Debug("Success to check account balance", "key", key)
-			}
-
-		} else {
-			// The client will automatically try to recover from all errors.
-			log.Error("Consumer error", "msg", msg, "err", err)
-		}
-	}
-}
-
-var (
-	ErrKey             = errors.New("account checking: cannot convert key to block number")
-	ErrValue           = errors.New("account checking: cannot unmarshal value to message struct")
-	ErrKeyValue        = errors.New("account checking: key is not matched to value")
-	ErrChain           = errors.New("account checking: failed to get account chain balance")
-	ErrAccountNotFound = errors.New("account checking: failed to find account in current block chain")
-	ErrAccountChecking = errors.New("account checking: Account chain and tracking balances are not equal")
-)
-
-func (s *PlatonStatsService) accountChecking(key string, value []byte) error {
-	keyNumber, err := strconv.ParseInt(key, 10, 64)
-	if err != nil {
-		log.Error("Failed to convert key to block number", "key", key, "err", err)
-		return ErrKey
-	}
-
-	var message AccountCheckingMessage
-	if len(value) > 0 {
-		err := json.Unmarshal(value, &message)
-		if err != nil {
-			log.Error("Failed to unmarshal value to accountCheckingMessage", "value", string(value), "err", err)
-			return ErrValue
-		}
-	}
-
-	accountCheckingError := false
-	if message.BlockNumber == uint64(keyNumber) {
-		for _, item := range message.AccountList {
-			bech32 := item.Addr.Bech32()
-			chainBalance, err := getBalance(s.eth.APIBackend, item.Addr, rpc.BlockNumber(keyNumber))
-			if err != nil {
-				log.Error("Failed to get account chain balance", "blockNumber", keyNumber, "address", bech32, "err", err)
-				return ErrChain
-			}
-			//the current stateDB's block number is higher than checking request.
-			//so, the account must exists in current stateDB.
-			if chainBalance == nil {
-				log.Error("Failed to find account in current block chain", "blockNumber", keyNumber, "address", bech32)
-				return ErrAccountNotFound
-			}
-
-			log.Debug("account checking", "blockNumber", keyNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", item.Balance)
-			if item.Balance.Cmp(chainBalance) != 0 {
-				writeCheckingErr(bech32, message.BlockNumber, chainBalance, item.Balance)
-				accountCheckingError = true
-			}
-		}
-	} else {
-		log.Error("Block number of Kafka message is invalid", "key", keyNumber, "blockNumber", message.BlockNumber)
-		return ErrKeyValue
-	}
-
-	if accountCheckingError {
-		return ErrAccountChecking
-	} else {
-		return nil
-	}
-}
-
-func getBalance(backend *eth.EthAPIBackend, address common.Address, blockNr rpc.BlockNumber) (*big.Int, error) {
-	state, _, err := backend.StateAndHeaderByNumber(nil, blockNr)
-	if state == nil || err != nil {
-		return nil, err
-	}
-	state.ClearParentReference()
-	return state.GetBalance(address), state.Error()
-}
-
 func (s *PlatonStatsService) getCode(to common.Address, blockNumber uint64) ([]byte, error) {
 	state, _, err := s.eth.APIBackend.StateAndHeaderByNumber(nil, rpc.BlockNumber(blockNumber))
 	if state == nil || err != nil {
@@ -552,39 +353,3 @@ func (s *PlatonStatsService) isContract(to common.Address, blockNumber uint64) b
 	}
 	return false
 }
-
-func writeCheckingErr(bech32 string, blockNumber uint64, chainBalance, trackingBalance *big.Int) {
-	log.Error("Account chain and tracking balances are not equal", "blockNumber", blockNumber, "address", bech32, "chainBalance", chainBalance, "trackingBalance", trackingBalance)
-	content := fmt.Sprintf("blockNumber=%d    account=%s    chainBalance=%d    trackingBalance=%d\n", blockNumber, bech32, chainBalance, trackingBalance)
-	err := common.WriteFile(checkingErrFile, []byte(content), checkingErrFlag, os.ModePerm)
-	if err != nil {
-		log.Error("Failed to log account-checking-error", "content", content)
-	}
-}
-
-type AccountCheckingMessage struct {
-	BlockNumber uint64
-	AccountList []*AccountItem
-}
-
-type AccountItem struct {
-	Addr    common.Address
-	Balance *big.Int
-}
-
-/*func convertTxs(transactions types.Transactions) []*Tx {
-	txs := make([]*Tx, transactions.Len())
-	for idx, t := range transactions {
-		tx := new(Tx)
-		tx.Hash = t.Hash()
-		tx.Nonce = tx.Nonce
-		tx.From = t.GetFromAddr()
-		tx.To = t.To()
-		tx.Value = t.Value().Uint64()
-		tx.gas = t.Gas()
-		tx.GasPrice = t.GasPrice().Uint64()
-		tx.Input = t.Data()
-		txs[idx] = tx
-	}
-	return txs
-}*/

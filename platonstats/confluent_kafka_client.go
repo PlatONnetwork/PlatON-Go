@@ -10,41 +10,25 @@ import (
 const (
 	// historyUpdateRange is the number of blocks a node should report upon login or
 	// history request.
-	sampleEventChanSize                      = 50
-	defaultKafkaBlockTopic                   = "platon-block"
-	defaultKafkaAccountCheckingConsumerGroup = "platon-account-checking-group"
-	defaultKafkaAccountCheckingTopic         = "platon-account-checking"
+	sampleEventChanSize    = 50
+	defaultKafkaBlockTopic = "platon-block"
 )
 
 type ConfluentKafkaClient struct {
-	brokers                      string
-	blockTopic                   string
-	accountCheckingTopic         string
-	AccountCheckingConsumerGroup string
-	producer                     *kafka.Producer
-	consumer                     *kafka.Consumer
+	brokers    string
+	blockTopic string
+	producer   *kafka.Producer
 }
 
-func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGroup string) *ConfluentKafkaClient {
-	//brokers := strings.Split(urls, ",")
+func NewConfluentKafkaClient(urls, blockTopic string) *ConfluentKafkaClient {
 
 	if len(blockTopic) == 0 {
 		blockTopic = defaultKafkaBlockTopic
 	}
 
-	if len(checkingTopic) == 0 {
-		checkingTopic = defaultKafkaAccountCheckingTopic
-	}
-
-	if len(checkingConsumerGroup) == 0 {
-		checkingConsumerGroup = defaultKafkaAccountCheckingConsumerGroup
-	}
-
 	client := &ConfluentKafkaClient{
-		brokers:                      urls,
-		blockTopic:                   blockTopic,
-		accountCheckingTopic:         checkingTopic,
-		AccountCheckingConsumerGroup: checkingConsumerGroup,
+		brokers:    urls,
+		blockTopic: blockTopic,
 	}
 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
@@ -76,27 +60,6 @@ func NewConfluentKafkaClient(urls, blockTopic, checkingTopic, checkingConsumerGr
 
 	client.producer = p
 
-	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":       urls,
-		"group.id":                checkingConsumerGroup,
-		"auto.offset.reset":       "earliest",
-		"fetch.message.max.bytes": 6000000,
-	})
-
-	if err != nil {
-		log.Error("Failed to create Kafka consumer")
-		panic(err)
-	}
-
-	err = c.Subscribe(checkingTopic, nil)
-	if err != nil {
-		log.Error("Failed to subscribe consumer topic")
-		panic(err)
-	} else {
-		log.Info("Success to create Kafka consumer", "urls", urls, "checkingTopic", checkingTopic, "group.id", checkingConsumerGroup)
-	}
-
-	client.consumer = c
 	fmt.Printf("Success to connect to Kafka")
 	return client
 }
@@ -105,10 +68,5 @@ func (kc *ConfluentKafkaClient) Close() {
 
 	if kc.producer != nil {
 		kc.producer.Close()
-	}
-	if kc.consumer != nil {
-		if err := kc.consumer.Close(); err != nil {
-			log.Error("Failed to close consumer", "err", err)
-		}
 	}
 }
