@@ -95,11 +95,11 @@ COMMANDS:
      getVerifierList          1100,query the validator queue of the current settlement epoch
      getValidatorList         1101,query the list of validators in the current consensus round
      getCandidateList         1102,Query the list of all real-time candidates
-     getRelatedListByDelAddr  1103,Query the NodeID and pledge Id of the node entrusted by the current account address,parameter:add
+     getRelatedListByDelAddr  1103,Query the NodeID and staking Id of the node entrusted by the current account address,parameter:add
      getDelegateInfo          1104,Query the delegation information of the current single node,parameter:stakingBlock,address,nodeid
-     getCandidateInfo         1105,Query the pledge information of the current node,parameter:nodeid
+     getCandidateInfo         1105,Query the staking information of the current node,parameter:nodeid
      getPackageReward         1200,query the block reward of the current settlement epoch
-     getStakingReward         1201,query the pledge reward of the current settlement epoch
+     getStakingReward         1201,query the staking reward of the current settlement epoch
      getAvgPackTime           1202,average time to query packaged blocks
 
 
