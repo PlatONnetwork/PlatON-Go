@@ -19,6 +19,7 @@ package vm
 import (
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -31,6 +32,7 @@ import (
 const (
 	TxCreateRestrictingPlan = 4000
 	QueryRestrictingInfo    = 4100
+	QueryRestrictingBalance = 4101
 )
 
 type RestrictingContract struct {
@@ -59,7 +61,8 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 		TxCreateRestrictingPlan: rc.createRestrictingPlan,
 
 		// Get
-		QueryRestrictingInfo: rc.getRestrictingInfo,
+		QueryRestrictingInfo:    rc.getRestrictingInfo,
+		QueryRestrictingBalance: rc.getRestrictingBalance,
 	}
 }
 
@@ -112,4 +115,41 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	result, err := rc.Plugin.GetRestrictingInfo(account, state)
 	return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingInfo, account: %s", account.String()),
 		result, err), nil
+}
+
+func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, error) {
+
+	accountList := strings.Split(accounts, ";")
+	if len(accountList) == 0 {
+		log.Error("getRestrictingBalance accountList empty", "accountList:", len(accountList))
+		return nil, nil
+	}
+
+	txHash := rc.Evm.StateDB.TxHash()
+	currNumber := rc.Evm.BlockNumber
+	state := rc.Evm.StateDB
+
+	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
+
+	rs := make([]restricting.BalanceResult, len(accountList))
+	for i, account := range accountList {
+		address, err := common.Bech32ToAddress(account)
+		if err != nil {
+			log.Error("Call getRestrictingBalance of RestrictingContract Bech32ToAddress Error", "account", account, "err", err)
+			continue
+		}
+		result, err := rc.Plugin.GetRestrictingBalance(address, state)
+		if err != nil {
+			rb := restricting.BalanceResult{
+				Account: address,
+			}
+			rs[i] = rb
+			log.Error("getRestrictingBalance err", "account:", account, ";err", err)
+		} else {
+			rs[i] = result
+		}
+	}
+
+	return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingBalance, account: %s", accounts),
+		rs, nil), nil
 }

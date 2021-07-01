@@ -17,6 +17,7 @@
 package restricting
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -58,4 +59,10 @@ type Result struct {
 	Debt    *hexutil.Big        `json:"debt"`
 	Entry   []ReleaseAmountInfo `json:"plans"`
 	Pledge  *hexutil.Big        `json:"Pledge"`
+}
+type BalanceResult struct {
+	Account       common.Address `json:"account"`
+	FreeBalance   *hexutil.Big   `json:"freeBalance"`
+	LockBalance   *hexutil.Big   `json:"lockBalance"`
+	PledgeBalance *hexutil.Big   `json:"pledgeBalance"`
 }
