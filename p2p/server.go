@@ -733,7 +733,7 @@ running:
 					p.rw.set(dynDialedConn, true)
 				}
 				srv.log.Debug("Remove consensus flag", "peer", n.ID, "consensus", srv.consensus)
-				if len(peers) > srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
+				if (len(peers) > srv.MaxPeers || srv.numConsensusPeer(peers) >= srv.MaxConsensusPeers) && !p.rw.is(staticDialedConn|trustedConn) {
 					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID, "flags", p.rw.flags, "peers", len(peers), "consensus", srv.consensus)
 					p.Disconnect(DiscRequested)
 				}
@@ -857,9 +857,19 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 	return srv.encHandshakeChecks(peers, inboundCount, c)
 }
 
+func (srv *Server) numConsensusPeer(peers map[discover.NodeID]*Peer) int {
+	c := 0
+	for _, p := range peers {
+		if p.rw.is(consensusDialedConn) {
+			c++
+		}
+	}
+	return c
+}
+
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	// Disconnect over limit non-consensus node.
-	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) {
+	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && srv.numConsensusPeer(peers) < srv.MaxConsensusPeers {
 		for _, p := range peers {
 			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
 				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
@@ -870,6 +880,10 @@ func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCo
 	}
 
 	switch {
+	case c.is(consensusDialedConn) && srv.numConsensusPeer(peers) >= srv.MaxConsensusPeers:
+		return DiscTooManyConsensusPeers
+	case !srv.consensus && c.is(consensusDialedConn) && len(peers) >= srv.MaxPeers:
+		return DiscTooManyPeers
 	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
 	case !c.is(trustedConn|consensusDialedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():

@@ -418,6 +418,7 @@ func TestServerAtCap(t *testing.T) {
 
 	// Try inserting a consensus connection.
 	consensusID := randomID()
+	srv.consensus = true
 	srv.AddConsensusPeer(&discover.Node{ID: consensusID})
 	c = newconn(consensusID)
 	if err := srv.checkpoint(c, srv.posthandshake); err != nil {
