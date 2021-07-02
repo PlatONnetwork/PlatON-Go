@@ -56,8 +56,9 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
-	numBroadcastTxPeers    = 8 // Maximum number of peers for broadcast transactions
-	numBroadcastBlockPeers = 5 // Maximum number of peers for broadcast new block
+	numBroadcastTxPeers     = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastTxHashPeers = 5 // Maximum number of peers for broadcast transactions hash
+	numBroadcastBlockPeers  = 5 // Maximum number of peers for broadcast new block
 
 	defaultTxsCacheSize      = 20
 	defaultBroadcastInterval = 100 * time.Millisecond
@@ -943,13 +944,19 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 			}
 		} else {
 			indexes := rand.Perm(len(peers))
-			for i, c := 0, 0; i < len(peers); i, c = i+1, c+1 {
+			numAnnos := int(math.Sqrt(float64(len(peers) - numBroadcastTxPeers)))
+			countAnnos := 0
+			if numAnnos > numBroadcastTxHashPeers {
+				numAnnos = numBroadcastTxHashPeers
+			}
+			for i, c := 0, 0; i < len(peers) && countAnnos < numAnnos; i, c = i+1, c+1 {
 				peer := peers[indexes[i]]
 				if c < numBroadcastTxPeers {
 					txset[peer] = append(txset[peer], tx)
 				} else {
 					// For the remaining peers, send announcement only
 					annos[peer] = append(annos[peer], tx.Hash())
+					countAnnos++
 				}
 			}
 		}

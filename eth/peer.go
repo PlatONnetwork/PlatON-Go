@@ -577,7 +577,7 @@ func (ps *peerSet) Register(p *peer) error {
 	ps.peers[p.id] = p
 	go p.broadcast()
 	go p.broadcastTransactions()
-	if p.version >= eth65{
+	if p.version >= eth65 {
 		go p.announceTransactions()
 	}
 
