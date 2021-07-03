@@ -733,7 +733,7 @@ running:
 					p.rw.set(dynDialedConn, true)
 				}
 				srv.log.Debug("Remove consensus flag", "peer", n.ID, "consensus", srv.consensus)
-				if (len(peers) > srv.MaxPeers || srv.numConsensusPeer(peers) >= srv.MaxConsensusPeers) && !p.rw.is(staticDialedConn|trustedConn) {
+				if len(peers) > srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
 					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID, "flags", p.rw.flags, "peers", len(peers), "consensus", srv.consensus)
 					p.Disconnect(DiscRequested)
 				}

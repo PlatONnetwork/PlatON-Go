@@ -428,6 +428,13 @@ func TestServerAtCap(t *testing.T) {
 		t.Error("Server did not set consensus flag")
 	}
 
+	// An InboundConn connection was broken in the previous step, and an InboundConn connection is added
+	time.Sleep(time.Second) // Waiting remove peer
+	c = newconn(randomID())
+	if err := srv.checkpoint(c, srv.addpeer); err != nil {
+		t.Fatalf("could not add conn: %v", err)
+	}
+
 	// Remove from consensus set and try again
 	srv.RemoveConsensusPeer(&discover.Node{ID: consensusID})
 	c = newconn(consensusID)
@@ -443,6 +450,13 @@ func TestServerAtCap(t *testing.T) {
 	}
 	if !c.is(consensusDialedConn) {
 		t.Error("Server did not set consensus flag")
+	}
+
+	// An InboundConn connection was broken in the previous step, and an InboundConn connection is added
+	time.Sleep(time.Second) // Waiting remove peer
+	c = newconn(randomID())
+	if err := srv.checkpoint(c, srv.addpeer); err != nil {
+		t.Fatalf("could not add conn: %v", err)
 	}
 
 	// Removing non-consensus connection
