@@ -32,7 +32,7 @@ import (
 const (
 	TxCreateRestrictingPlan = 4000
 	QueryRestrictingInfo    = 4100
-	QueryRestrictingBalance = 4101
+	QueryFreeBalance        = 4102
 )
 
 type RestrictingContract struct {
@@ -61,8 +61,8 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 		TxCreateRestrictingPlan: rc.createRestrictingPlan,
 
 		// Get
-		QueryRestrictingInfo:    rc.getRestrictingInfo,
-		QueryRestrictingBalance: rc.getRestrictingBalance,
+		QueryRestrictingInfo: rc.getRestrictingInfo,
+		QueryFreeBalance:     rc.getFreeBalance,
 	}
 }
 
@@ -117,7 +117,7 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 		result, err), nil
 }
 
-func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, error) {
+func (rc *RestrictingContract) getFreeBalance(accounts string) ([]byte, error) {
 
 	accountList := strings.Split(accounts, ";")
 	if len(accountList) == 0 {
@@ -131,16 +131,16 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 
 	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 
-	rs := make([]restricting.BalanceResult, len(accountList))
+	rs := make([]restricting.FreeBalanceResult, len(accountList))
 	for i, account := range accountList {
 		address, err := common.Bech32ToAddress(account)
 		if err != nil {
 			log.Error("Call getRestrictingBalance of RestrictingContract Bech32ToAddress Error", "account", account, "err", err)
 			continue
 		}
-		result, err := rc.Plugin.GetRestrictingBalance(address, state)
+		result, err := rc.Plugin.GetFreeBalance(address, state)
 		if err != nil {
-			rb := restricting.BalanceResult{
+			rb := restricting.FreeBalanceResult{
 				Account: address,
 			}
 			rs[i] = rb

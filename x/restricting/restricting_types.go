@@ -60,9 +60,8 @@ type Result struct {
 	Entry   []ReleaseAmountInfo `json:"plans"`
 	Pledge  *hexutil.Big        `json:"Pledge"`
 }
-type BalanceResult struct {
-	Account       common.Address `json:"account"`
-	FreeBalance   *hexutil.Big   `json:"freeBalance"`
-	LockBalance   *hexutil.Big   `json:"lockBalance"`
-	PledgeBalance *hexutil.Big   `json:"pledgeBalance"`
+
+type FreeBalanceResult struct {
+	Account     common.Address `json:"account"`
+	FreeBalance *hexutil.Big   `json:"freeBalance"`
 }

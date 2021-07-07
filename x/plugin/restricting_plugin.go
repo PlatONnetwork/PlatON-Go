@@ -688,25 +688,15 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	return rp.getRestrictingInfoToReturn(account, state)
 }
 
-func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state xcom.StateDB) (restricting.BalanceResult, error) {
+func (rp *RestrictingPlugin) GetFreeBalance(account common.Address, state xcom.StateDB) (restricting.FreeBalanceResult, error) {
 
 	log.Debug("begin to GetRestrictingBalance", "account", account.String())
 
 	var (
-		result restricting.BalanceResult
+		result restricting.FreeBalanceResult
 	)
 	result.Account = account
 	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
-	result.LockBalance = (*hexutil.Big)(big.NewInt(0))
-	result.PledgeBalance = (*hexutil.Big)(big.NewInt(0))
-	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
-	if err != nil {
-		log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", info)
-		return result, nil
-	}
-
-	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
-	result.PledgeBalance = (*hexutil.Big)(info.AdvanceAmount)
 
 	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
 	return result, nil
