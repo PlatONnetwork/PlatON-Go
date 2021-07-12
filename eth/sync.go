@@ -135,7 +135,9 @@ func (pm *ProtocolManager) txsyncLoop() {
 func (pm *ProtocolManager) syncer() {
 	// Start and ensure cleanup of sync mechanisms
 	pm.fetcher.Start()
+	pm.txFetcher.Start()
 	defer pm.fetcher.Stop()
+	defer pm.txFetcher.Stop()
 	defer pm.downloader.Terminate()
 
 	// Wait for different events to fire synchronisation operations
@@ -178,6 +180,10 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
+	if currentBlock.NumberU64() > 0 {
+		log.Info("Blockchain not empty, auto disabling fast sync")
+		atomic.StoreUint32(&pm.fastSync, 0)
+	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
 		// Fast sync was explicitly requested, and explicitly granted
 		mode = downloader.FastSync

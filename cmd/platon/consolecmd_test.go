@@ -41,7 +41,7 @@ func TestConsoleWelcome(t *testing.T) {
 	datadir := tmpdir(t)
 	defer os.RemoveAll(datadir)
 	platon := runPlatON(t,
-		"--datadir", datadir, "--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "0", "--nodiscover", "--nat", "none", "console")
+		"--datadir", datadir, "--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "console")
 
 	// Gather all the infos the welcome message needs to contain
 	platon.SetTemplateFunc("goos", func() string { return runtime.GOOS })
@@ -77,7 +77,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 		ipc = filepath.Join(ws, "platon.ipc")
 	}
 	platon := runPlatON(t,
-		"--port", "0", "--testnet", "--maxpeers", "0", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
+		"--port", "0", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
 	testAttachWelcome(t, platon, "ipc:"+ipc, ipcAPIs)
@@ -89,7 +89,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 	platon := runPlatON(t,
-		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--rpc", "--rpcport", port)
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
@@ -103,7 +103,7 @@ func TestWSAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 
 	platon := runPlatON(t,
-		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "0", "--nodiscover", "--nat", "none",
+		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--ws", "--wsport", port /*, "--testnet"*/)
 
 	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open

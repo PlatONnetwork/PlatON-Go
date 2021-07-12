@@ -18,6 +18,7 @@
 package state
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -25,11 +26,13 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 type revision struct {
@@ -1100,4 +1103,40 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 
 func (self *StateDB) IncreaseTxIdx() {
 	self.txIndex++
+}
+
+// Obtain version information maintained by governance
+func (self *StateDB) ListActiveVersion() ([]gov.ActiveVersionValue, error) {
+	//avListBytes := self.GetState(vm.GovContractAddr, gov.KeyActiveVersions())
+	var avListBytes []byte
+	stateObject := self.getStateObject(vm.GovContractAddr)
+	if stateObject != nil {
+		avListBytes = stateObject.removePrefixValue(stateObject.GetState(self.db, gov.KeyActiveVersions()))
+	}
+
+	if len(avListBytes) == 0 {
+		return nil, nil
+	}
+	var avList []gov.ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		return nil, err
+	}
+	return avList, nil
+}
+
+func (self *StateDB) GetCurrentActiveVersion() uint32 {
+	avList, err := self.ListActiveVersion()
+	if err != nil {
+		log.Error("Cannot find active version list", "err", err)
+		return 0
+	}
+
+	var version uint32
+	if len(avList) == 0 {
+		log.Warn("cannot find current active version, The ActiveVersion List is nil")
+		return 0
+	} else {
+		version = avList[0].ActiveVersion
+	}
+	return version
 }

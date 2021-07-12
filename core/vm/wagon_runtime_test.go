@@ -5,12 +5,16 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"encoding/json"
 	"hash/fnv"
 	"io/ioutil"
 	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -167,8 +171,26 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
-			contract: &Contract{caller: AccountRef{1, 2, 3}}},
+			contract: &Contract{caller: &AccountRef{1, 2, 3}},
+			evm: &EVM{Context: Context{
+				BlockNumber: big.NewInt(99),
+				GetHash: func(u uint64) common.Hash {
+					return common.Hash{1, 2, 3}
+				}},
+				StateDB: &mock.MockStateDB{
+					Balance: make(map[common.Address]*big.Int),
+					State:   make(map[common.Address]map[string][]byte),
+					Journal: mock.NewJournal(),
+				},
+			},
+		},
 		funcName: "platon_caller_test",
+		init: func(self *Case, t *testing.T) {
+			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_0_11_0, ActiveBlock: 1}
+			avList := []gov.ActiveVersionValue{curAv}
+			avListBytes, _ := json.Marshal(avList)
+			self.ctx.evm.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), avListBytes)
+		},
 		check: func(self *Case, err error) bool {
 			addr := addr1
 			return bytes.Equal(addr[:], self.ctx.Output)

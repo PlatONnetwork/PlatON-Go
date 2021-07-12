@@ -47,15 +47,18 @@ import (
 )
 
 const (
-	softResponseLimit = 2 * 1024 * 1024 // Target maximum size of returned blocks, headers or node data.
-	estHeaderRlpSize  = 500             // Approximate size of an RLP encoded block header
+	// softResponseLimit is the target maximum size of replies to data retrievals.
+	softResponseLimit = 2 * 1024 * 1024
+
+	estHeaderRlpSize = 500 // Approximate size of an RLP encoded block header
 
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
-	numBroadcastTxPeers    = 5 // Maximum number of peers for broadcast transactions
-	numBroadcastBlockPeers = 5 // Maximum number of peers for broadcast new block
+	numBroadcastTxPeers     = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastTxHashPeers = 5 // Maximum number of peers for broadcast transactions hash
+	numBroadcastBlockPeers  = 5 // Maximum number of peers for broadcast new block
 
 	defaultTxsCacheSize      = 20
 	defaultBroadcastInterval = 100 * time.Millisecond
@@ -83,6 +86,7 @@ type ProtocolManager struct {
 
 	downloader *downloader.Downloader
 	fetcher    *fetcher.Fetcher
+	txFetcher  *fetcher.TxFetcher
 	peers      *peerSet
 
 	SubProtocols []p2p.Protocol
@@ -202,6 +206,15 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 	manager.fetcher = fetcher.New(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer, decodeExtra)
 
+	fetchTx := func(peer string, hashes []common.Hash) error {
+		p := manager.peers.Peer(peer)
+		if p == nil {
+			return errors.New("unknown peer")
+		}
+		return p.RequestTxs(hashes)
+	}
+	manager.txFetcher = fetcher.NewTxFetcher(manager.txpool.Has, manager.txpool.AddRemotes, fetchTx)
+
 	return manager, nil
 }
 
@@ -215,6 +228,7 @@ func (pm *ProtocolManager) removePeer(id string) {
 
 	// Unregister the peer from the downloader and PlatON peer set
 	pm.downloader.UnregisterPeer(id)
+	pm.txFetcher.Drop(id)
 	if err := pm.peers.Unregister(id); err != nil {
 		log.Error("Peer removal failed", "peer", id, "err", err)
 	}
@@ -279,7 +293,7 @@ func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *p
 // this function terminates, the peer is disconnected.
 func (pm *ProtocolManager) handle(p *peer) error {
 	// Ignore maxPeers if this is a trusted peer
-	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted && !p.Peer.Info().Network.Consensus {
+	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted && !p.Peer.Info().Network.Static {
 		return p2p.DiscTooManyPeers
 	}
 	p.Log().Debug("PlatON peer connected", "name", p.Name())
@@ -798,7 +812,57 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			p.MarkTransaction(tx.Hash())
 		}
 
-		pm.txpool.AddRemotes(txs)
+		if p.version < eth65 {
+			go pm.txpool.AddRemotes(txs)
+		} else {
+			// PooledTransactions and Transactions are all handled by txFetcher
+			return pm.txFetcher.Enqueue(p.id, txs, false)
+		}
+
+	case p.version >= eth65 && msg.Code == NewPooledTransactionHashesMsg:
+		ann := new(NewPooledTransactionHashesPacket)
+		if err := msg.Decode(ann); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Schedule all the unknown hashes for retrieval
+		for _, hash := range *ann {
+			p.MarkTransaction(hash)
+		}
+		return pm.txFetcher.Notify(p.id, *ann)
+
+	case p.version >= eth65 && msg.Code == GetPooledTransactionsMsg:
+		// Decode the pooled transactions retrieval message
+		var query GetPooledTransactionsPacket
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		log.Trace("Handler Receive GetPooledTransactions", "peer", p.id, "hashes", len(query))
+		hashes, txs := pm.answerGetPooledTransactions(query, p)
+		if len(txs) > 0 {
+			log.Trace("Handler Send PooledTransactions", "peer", p.id, "txs", len(txs))
+			return p.SendPooledTransactionsRLP(hashes, txs)
+		}
+
+	case p.version >= eth65 && msg.Code == PooledTransactionsMsg:
+		// Transactions arrived, make sure we have a valid and fresh chain to handle them
+		// if txmaker is started,the chain should not accept RemoteTxs,to reduce produce tx cost
+		if atomic.LoadUint32(&pm.acceptTxs) == 0 || atomic.LoadUint32(&pm.acceptRemoteTxs) == 1 {
+			break
+		}
+		// Transactions can be processed, parse all of them and deliver to the pool
+		var txs PooledTransactionsPacket
+		if err := msg.Decode(&txs); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		for i, tx := range txs {
+			// Validate and mark the remote transaction
+			if tx == nil {
+				return errResp(ErrDecode, "transaction %d is nil", i)
+			}
+			p.MarkTransaction(tx.Hash())
+		}
+		log.Trace("Handler Receive PooledTransactions", "peer", p.id, "txs", len(txs))
+		return pm.txFetcher.Enqueue(p.id, txs, true)
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
@@ -859,8 +923,16 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
-	var txset = make(map[*peer]types.Transactions)
+	var (
+		annoCount   int // Count of announcements made
+		annoPeers   int
+		directCount int // Count of the txs sent directly to peers
+		directPeers int // Count of the peers that were sent transactions directly
 
+		txset = make(map[*peer]types.Transactions) // Set peer->transaction to transfer directly
+		annos = make(map[*peer][]common.Hash)      // Set peer->hash to announce
+
+	)
 	rand.Seed(time.Now().UnixNano())
 
 	// Broadcast transactions to a batch of peers not knowing about it
@@ -872,18 +944,67 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 			}
 		} else {
 			indexes := rand.Perm(len(peers))
-			for i := 0; i < numBroadcastTxPeers; i++ {
+			numAnnos := int(math.Sqrt(float64(len(peers) - numBroadcastTxPeers)))
+			countAnnos := 0
+			if numAnnos > numBroadcastTxHashPeers {
+				numAnnos = numBroadcastTxHashPeers
+			}
+			for i, c := 0, 0; i < len(peers) && countAnnos < numAnnos; i, c = i+1, c+1 {
 				peer := peers[indexes[i]]
-				txset[peer] = append(txset[peer], tx)
+				if c < numBroadcastTxPeers {
+					txset[peer] = append(txset[peer], tx)
+				} else {
+					// For the remaining peers, send announcement only
+					annos[peer] = append(annos[peer], tx.Hash())
+					countAnnos++
+				}
 			}
 		}
-		//log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 
-	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
 	for peer, txs := range txset {
+		directPeers++
+		directCount += len(txs)
 		peer.AsyncSendTransactions(txs)
 	}
+	for peer, hashes := range annos {
+		annoPeers++
+		annoCount += len(hashes)
+		if peer.version >= eth65 {
+			peer.AsyncSendPooledTransactionHashes(hashes)
+		}
+	}
+	log.Trace("Transaction broadcast", "txs", len(txs),
+		"transaction packs", directPeers, "broadcast transaction", directCount,
+		"announce packs", annoPeers, "announced hashes", annoCount)
+}
+
+func (pm *ProtocolManager) answerGetPooledTransactions(query GetPooledTransactionsPacket, peer *peer) ([]common.Hash, []rlp.RawValue) {
+	// Gather transactions until the fetch or network limits is reached
+	var (
+		bytes  int
+		hashes []common.Hash
+		txs    []rlp.RawValue
+	)
+	for _, hash := range query {
+		if bytes >= softResponseLimit {
+			break
+		}
+		// Retrieve the requested transaction, skipping if unknown to us
+		tx := pm.txpool.Get(hash)
+		if tx == nil {
+			continue
+		}
+		// If known, encode and queue for response packet
+		if encoded, err := rlp.EncodeToBytes(tx); err != nil {
+			log.Error("Failed to encode transaction", "err", err)
+		} else {
+			hashes = append(hashes, hash)
+			txs = append(txs, encoded)
+			bytes += len(encoded)
+		}
+	}
+	return hashes, txs
 }
 
 // Mined broadcast loop

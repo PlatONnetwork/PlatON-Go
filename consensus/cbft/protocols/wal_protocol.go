@@ -88,7 +88,7 @@ type ConfirmedViewChange struct {
 	Epoch        uint64
 	ViewNumber   uint64
 	Block        *types.Block
-	QC           *ctypes.QuorumCert
+	QC           *ctypes.QuorumCert   `rlp:"nil"`
 	ViewChangeQC *ctypes.ViewChangeQC `rlp:"nil"`
 }
 
