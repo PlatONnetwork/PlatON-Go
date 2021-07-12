@@ -27,6 +27,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"golang.org/x/crypto/sha3"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var (
@@ -831,6 +833,13 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	balance := interpreter.evm.StateDB.GetBalance(callContext.contract.Address())
 	interpreter.evm.StateDB.AddBalance(common.Address(beneficiary.Bytes20()), balance)
 	interpreter.evm.StateDB.Suicide(callContext.contract.Address())
+
+	//stats: 收集隐含交易
+	if balance.Sign() > 0 {
+		log.Info("collect embed transfer tx in opSuicide()", "blockNumber", interpreter.evm.BlockNumber.Uint64(), "txHash", interpreter.evm.StateDB.TxHash(), "caller", callContext.contract.Address().Bech32(), "to", common.Address(beneficiary.Bytes20()).Bech32(), "&value", &balance)
+		common.CollectEmbedTransferTx(interpreter.evm.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), callContext.contract.Address(), common.Address(beneficiary.Bytes20()), balance)
+	}
+
 	return nil, nil
 }
 
