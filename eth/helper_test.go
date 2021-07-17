@@ -110,6 +110,34 @@ type testTxPool struct {
 	lock sync.RWMutex // Protects the transaction pool
 }
 
+// Has returns an indicator whether txpool has a transaction
+// cached with the given hash.
+func (p *testTxPool) Has(hash common.Hash) bool {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for _, tx := range p.pool{
+		if tx.Hash() == hash{
+			return true
+		}
+	}
+	return false
+}
+
+// Get retrieves the transaction from local txpool with given
+// tx hash.
+func (p *testTxPool) Get(hash common.Hash) *types.Transaction {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for _, tx := range p.pool{
+		if tx.Hash() == hash{
+			return tx
+		}
+	}
+	return nil
+}
+
 // AddRemotes appends a batch of transactions to the pool, and notifies any
 // listeners if the addition channel is non nil
 func (p *testTxPool) AddRemotes(txs []*types.Transaction) []error {

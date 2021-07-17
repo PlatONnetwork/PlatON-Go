@@ -511,6 +511,15 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 //	return nil
 //}
 
+// ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
+func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
+	// if current block is at or past the EIP-155 replay-protection fork block, return chainID from config
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		return (*hexutil.Big)(config.ChainID), nil
+	}
+	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
+}
+
 // BlockNumber returns the block number of the chain head.
 func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber) // latest header should always be available

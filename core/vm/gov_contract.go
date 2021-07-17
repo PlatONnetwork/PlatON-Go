@@ -131,12 +131,11 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 		return nil, ErrOutOfGas
 	}
 
-	if gc.Evm.GasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
-		return nil, ErrUnderPrice
-	}
-
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+	if gc.Evm.GasPrice.Cmp(params.SubmitTextProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	p := &gov.TextProposal{
@@ -171,12 +170,12 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 		return nil, ErrOutOfGas
 	}
 
-	if gc.Evm.GasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
-		return nil, ErrUnderPrice
-	}
-
 	if txHash == common.ZeroHash {
 		return nil, nil
+	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitVersionProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
 	}
 
 	p := &gov.VersionProposal{
@@ -212,12 +211,14 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 		return nil, ErrOutOfGas
 	}
 
-	if gc.Evm.GasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
-		return nil, ErrUnderPrice
-	}
 	if txHash == common.ZeroHash {
 		return nil, nil
 	}
+
+	if gc.Evm.GasPrice.Cmp(params.SubmitCancelProposalGasPrice) < 0 {
+		return nil, ErrUnderPrice
+	}
+
 	p := &gov.CancelProposal{
 		PIPID:           pipID,
 		EndVotingRounds: endVotingRounds,
@@ -251,13 +252,14 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 		return nil, ErrOutOfGas
 	}
 
+	if txHash == common.ZeroHash {
+		return nil, nil
+	}
+
 	if gc.Evm.GasPrice.Cmp(params.SubmitParamProposalGasPrice) < 0 {
 		return nil, ErrUnderPrice
 	}
 
-	if txHash == common.ZeroHash {
-		return nil, nil
-	}
 	p := &gov.ParamProposal{
 		PIPID:        pipID,
 		ProposalType: gov.Param,

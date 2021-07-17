@@ -1761,17 +1761,17 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	_, err = StakingInstance().WithdrewDelegate(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+	_, err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
 
-	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
 	}
-	t.Log("Finish WithdrewDelegate ~~", del)
+	t.Log("Finish WithdrewDelegation ~~", del)
 	can, err = getCandidate(blockHash2, index)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to getCandidate: %v", err))
@@ -1806,10 +1806,10 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	expectedIssueIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
-	issueIncome, err := StakingInstance().WithdrewDelegate(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+	issueIncome, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
 
-	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegate: %v", err)) {
+	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
 	}
 

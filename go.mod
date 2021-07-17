@@ -8,7 +8,6 @@ require (
 	github.com/PlatONnetwork/wagon v0.6.1-0.20200422074910-d2bccc71e673
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7
-	github.com/aristanetworks/goarista v0.0.0-20170210015632-ea17b1a17847
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/cespare/cp v0.1.0
@@ -26,7 +25,6 @@ require (
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls v0.0.0-20200610053137-1f4204f8b9be
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v0.0.0-20161224104101-679507af18f3
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883

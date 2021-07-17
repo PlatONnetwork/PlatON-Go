@@ -81,8 +81,8 @@ type dialstate struct {
 	randomNodes   []*discover.Node // filled from Table
 	static        map[discover.NodeID]*dialTask
 	//consensus     map[discover.NodeID]*dialTask
-	consensus	  *dialedTasks
-	hist          *dialHistory
+	consensus *dialedTasks
+	hist      *dialHistory
 
 	start     time.Time        // time when the dialer was first used
 	bootnodes []*discover.Node // default dials when there are no peers
@@ -138,7 +138,7 @@ func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab disc
 		netrestrict: netrestrict,
 		static:      make(map[discover.NodeID]*dialTask),
 		//consensus:	 make(map[discover.NodeID]*dialTask),
-		consensus:   NewDialedTasks(maxConsensusPeers, nil),
+		consensus:   NewDialedTasks(maxConsensusPeers*2, nil),
 		dialing:     make(map[discover.NodeID]connFlag),
 		bootnodes:   make([]*discover.Node, len(bootnodes)),
 		randomNodes: make([]*discover.Node, maxdyn/2),

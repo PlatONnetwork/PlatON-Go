@@ -165,7 +165,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
 
-			log.Info("last fast sync is fail,init  db", "status", status, "prichain", config.Genesis == nil)
+			log.Info("last fast sync is fail,init  db", "status", common.BytesToUint32(status), "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := snapshotBaseDB.Close(); err != nil {
 				return nil, err
@@ -288,7 +288,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, core.NewTxPoolBlockChain(blockChainCache))
 
 	core.SenderCacher.SetTxPool(eth.txPool)
 

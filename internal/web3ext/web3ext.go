@@ -428,6 +428,11 @@ web3._extend({
 	property: 'platon',
 	methods: [
 		new web3._extend.Method({
+		name: 'chainId',
+			call: 'platon_chainId',
+			params: 0
+		}),
+		new web3._extend.Method({
 			name: 'setActor',
 			call: 'platon_setActor',
 			params: 1,
@@ -552,7 +557,7 @@ web3._extend({
 			params: 2
 		}),
 		//new web3._extend.Method({
-		//	name: 'deriveAccount',	
+		//	name: 'deriveAccount',
 		//	call: 'personal_deriveAccount',
 		//	params: 3
 		//}),
