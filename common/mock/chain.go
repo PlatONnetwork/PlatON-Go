@@ -17,6 +17,7 @@
 package mock
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -30,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -609,4 +611,24 @@ func (lhs *MockStateDB) DeepCopy(rhs *MockStateDB) {
 			lhs.Logs[oneAddress] = tempLogs
 		}
 	}
+}
+
+type ActiveVersionValue struct {
+	ActiveVersion uint32 `json:"ActiveVersion"`
+	ActiveBlock   uint64 `json:"ActiveBlock"`
+}
+
+func (state *MockStateDB) GetCurrentActiveVersion() uint32 {
+
+	avListBytes := state.GetState(vm.GovContractAddr, []byte("ActVers"))
+	if len(avListBytes) == 0 {
+		panic("Cannot find active version list")
+	}
+	var avList []ActiveVersionValue
+	if err := json.Unmarshal(avListBytes, &avList); err != nil {
+		panic("invalid active version information")
+	}
+
+	return avList[0].ActiveVersion
+
 }

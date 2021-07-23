@@ -19,6 +19,7 @@ package gov
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
 
@@ -70,6 +71,14 @@ const (
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 	KeyRestrictingMinimumAmount   = "minimumRelease"
 )
+
+func Gte110VersionState(state xcom.StateDB) bool {
+	return Gte110Version(GetCurrentActiveVersion(state))
+}
+
+func Gte110Version(version uint32) bool {
+	return version >= params.FORKVERSION_1_1_0
+}
 
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(blockHash)

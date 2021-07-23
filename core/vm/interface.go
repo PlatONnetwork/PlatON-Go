@@ -74,6 +74,8 @@ type StateDB interface {
 	TxIdx() uint32
 
 	IntermediateRoot(deleteEmptyObjects bool) common.Hash
+
+	GetCurrentActiveVersion() uint32
 }
 
 // MerkleProof
