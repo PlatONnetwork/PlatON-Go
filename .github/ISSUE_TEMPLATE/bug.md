@@ -1,6 +1,10 @@
-Hi there,
-
-please note that this is an issue tracker reserved for bug reports and feature requests.
+---
+name: Report a bug
+about: Something with PlatON is not working as expected
+title: ''
+labels: 'type:bug'
+assignees: ''
+---
 
 #### System information
 
@@ -22,3 +26,5 @@ Commit hash : (if `develop`)
 ````
 [backtrace]
 ````
+
+When submitting logs: please submit them as text and not screenshots.
