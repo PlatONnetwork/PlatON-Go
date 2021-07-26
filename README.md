@@ -140,7 +140,7 @@ For more information, please visit our [Docs](https://devdocs.platon.network/doc
 
 ## Contributing to PlatON-Go
 
-All of codes for PlatON-Go are open source and contributing are very welcome! Before beginning, please take a look at our contributing [guidelines](https://github.com/PlatONnetwork/PlatON-Go/blob/master/.github/CONTRIBUTING.md). You can also open an issue by clicking [here](https://github.com/PlatONnetwork/PlatON-Go/issues/new).
+All of codes for PlatON-Go are open source and contributing are very welcome! Before beginning, please take a look at our contributing [guidelines](https://github.com/PlatONnetwork/PlatON-Go/blob/develop/.github/CONTRIBUTING.md). You can also open an issue by clicking [here](https://github.com/PlatONnetwork/PlatON-Go/issues/new/choose).
 
 ## Support
 If you have any questions or suggestions please contact us at support@platon.network.

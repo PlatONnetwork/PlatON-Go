@@ -39,7 +39,7 @@ Guidelines for bug reports:
 
 A good bug report shouldn't leave others needing to chase you up for more information. Be sure to include the details of your environment and relevant tests that demonstrate the failure.
 
-[Report a bug](https://github.com/PlatONnetwork/PlatON-Go/issues/new?assignees=&labels=type%3Abug&template=bug.md&title=)
+[Report a bug](https://github.com/PlatONnetwork/PlatON-Go/issues/new?assignees=&labels=bug&template=bug.md&title=)
 
 ### Feature Requests
 

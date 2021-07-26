@@ -2,7 +2,7 @@
 name: Report a bug
 about: Something with PlatON is not working as expected
 title: ''
-labels: 'type:bug'
+labels: 'bug'
 assignees: ''
 ---
 
