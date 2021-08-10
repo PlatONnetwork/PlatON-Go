@@ -32,7 +32,7 @@ jobs:
 
 
       - name: Build
-        run: make platon
+        run: make all
 
       - name: Test
         run: go test -tags=test -covermode=count -coverprofile=coverage.txt  `go list ./...`
