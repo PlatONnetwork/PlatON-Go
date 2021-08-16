@@ -817,7 +817,7 @@ func (self *StateDB) Copy() *StateDB {
 		refund:             self.refund,
 		logs:               make(map[common.Hash][]*types.Log, len(self.logs)),
 		logSize:            self.logSize,
-		preimages:          make(map[common.Hash][]byte),
+		preimages:          make(map[common.Hash][]byte, len(self.preimages)),
 		journal:            newJournal(),
 		clearReferenceFunc: make([]func(), 0),
 		originRoot:         self.originRoot,
