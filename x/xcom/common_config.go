@@ -64,6 +64,8 @@ const (
 	// When electing consensus nodes, it is used to calculate the P value of the binomial distribution
 	ElectionBase = 30
 
+	ElectionBasePIP3 = 43
+
 	MainNetECHash = "0x259176769541cdb61bc19806cbf5a3f3489f4829b6b69f804f45f947a0c9c3e9"
 )
 
@@ -823,4 +825,8 @@ func EconomicString() string {
 // Parameter: The total weight of the election
 func CalcP(totalWeight float64, sqrtWeight float64) float64 {
 	return float64(ElectionBase) / sqrtWeight
+}
+
+func CalcPV110(sqrtWeight float64) float64 {
+	return float64(ElectionBasePIP3) / sqrtWeight
 }
