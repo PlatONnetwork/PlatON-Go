@@ -21,14 +21,13 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"golang.org/x/crypto/sha3"
 )
 
 var (
-	errExecutionReverted     = errors.New("execution reverted")
+	errExecutionReverted = errors.New("execution reverted")
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
