@@ -123,7 +123,7 @@ func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 		// account to the others means the state is modified and should also
 		// return with an error.
 		if operation.writes || (op == CALL && stack.Back(2).BitLen() > 0) {
-			return errWriteProtection
+			return ErrWriteProtection
 		}
 	}
 	return nil
@@ -143,7 +143,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			// shutdown vm, change th vm.abort mark
 			in.evm.Cancel()
 		}
-
 	}(in.evm.Ctx)
 
 	// Increment the call depth which is restricted to 1024
@@ -151,7 +150,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	defer func() { in.evm.depth-- }()
 
 	// Make sure the readOnly is only set if we aren't in readOnly yet.
-	// This makes also sure that the readOnly flag isn't removed for child calls.
+	// This also makes sure that the readOnly flag isn't removed for child calls.
 	if readOnly && !in.readOnly {
 		in.readOnly = true
 		defer func() { in.readOnly = false }()
@@ -163,7 +162,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 	//// Don't bother with the execution if there's no code.
 	//if len(contract.Code) == 0 {
-	//	return nil, nil
+	//      return nil, nil
 	//}
 
 	var (
@@ -236,7 +235,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		} else if sLen > operation.maxStack {
 			return nil, &ErrStackOverflow{stackLen: sLen, limit: operation.maxStack}
 		}
-		// If the operation is valid, enforce and write restrictions
+		// If the operation is valid, enforce write restrictions
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
 			// state-modifying operation is performed. The 3rd stack item
@@ -291,7 +290,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 
 		// execute the operation
 		res, err = operation.execute(&pc, in, callContext)
-
 		// if the operation clears the return data (e.g. it has returning data)
 		// set the last return to the result of the operation.
 		if operation.returns {
