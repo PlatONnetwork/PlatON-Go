@@ -840,6 +840,7 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 	if num >= lower && num < upper {
 		blockHash = ctx.evm.GetHash(num)
 	}
+
 	_, err := proc.WriteAt(blockHash.Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
@@ -1296,6 +1297,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
@@ -1362,6 +1364,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
@@ -1429,6 +1432,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 	} else {
 		status = 0
 	}
+
 	if err == nil || err == errExecutionReverted {
 		ctx.CallOut = ret
 	}
@@ -1626,7 +1630,7 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 
 	// Assign err if contract code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
-		err = errMaxCodeSizeExceeded
+		err = ErrMaxCodeSizeExceeded
 	}
 	ctx.contract.Gas += contract.Gas
 	if nil != err {
@@ -2254,7 +2258,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 
 	// Assign err if contract code size exceeds the max while the err is still empty.
 	if maxCodeSizeExceeded && err == nil {
-		err = errMaxCodeSizeExceeded
+		err = ErrMaxCodeSizeExceeded
 	}
 	ctx.contract.Gas += contract.Gas
 	if nil != err {
