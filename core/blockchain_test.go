@@ -17,7 +17,6 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -65,13 +64,6 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *B
 	headers := makeHeaderChain(genesis.Header(), n, engine, db, canonicalSeed)
 	_, err := blockchain.InsertHeaderChain(headers, 1)
 	return db, blockchain, err
-}
-
-func printChain(bc *BlockChain) {
-	for i := bc.CurrentBlock().Number().Uint64(); i > 0; i-- {
-		b := bc.GetBlockByNumber(uint64(i))
-		fmt.Printf("\t%x \n", b.Hash())
-	}
 }
 
 // testBlockChainImport tries to process a chain of blocks, writing them into
@@ -125,15 +117,6 @@ func testHeaderChainImport(chain []*types.Header, blockchain *BlockChain) error 
 		blockchain.mu.Unlock()
 	}
 	return nil
-}
-
-func insertChain(done chan bool, blockchain *BlockChain, chain types.Blocks, t *testing.T) {
-	_, err := blockchain.InsertChain(chain)
-	if err != nil {
-		fmt.Println(err)
-		t.FailNow()
-	}
-	done <- true
 }
 
 func TestLastBlock(t *testing.T) {
