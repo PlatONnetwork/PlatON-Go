@@ -85,7 +85,7 @@ Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
 - You must NEVER share the secret key with anyone! The key controls access to your funds!
 - You must BACKUP your key file! Without the key, it's impossible to access account funds!
 - You must REMEMBER your password! Without the password, it's impossible to decrypt the key!
-	`)
+`)
 }
 
 func TestAccountNewBadRepeat(t *testing.T) {
