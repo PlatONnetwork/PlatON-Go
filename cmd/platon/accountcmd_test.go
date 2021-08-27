@@ -80,6 +80,7 @@ Your new key was generated
 	platon.ExpectRegexp(`
 Public address of the key: lat1[0-9a-z]{38}
 Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
+
 - You can share your public address with anyone. Others need it to interact with you.
 - You must NEVER share the secret key with anyone! The key controls access to your funds!
 - You must BACKUP your key file! Without the key, it's impossible to access account funds!
