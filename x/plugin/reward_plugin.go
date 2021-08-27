@@ -344,13 +344,19 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 
 			//查看是否有新的委托分红比例生效。
 			//清除节点的当前结算周期的委托分红金额；如果有新的委托分红比例生效，就切换到新的委托分红比例。
-			verifier.PrepareNextEpoch()
+			changed := verifier.PrepareNextEpoch()
 			canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
 			if nil != err {
 				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: nodeId parse addr failed",
 					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
 				return err
 			}
+
+			if changed {
+				//stats
+				common.CollectCandidateChanged(blockNumber, canAddr)
+			}
+
 			//为下个结算周期保存节点新的新信息（累计委托分红，新周期累计分红，新的分红比例）
 			//todo:lvxiaoyi，这个逻辑放到PrepareNextEpoch()中，作为一个整体逻辑
 			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {

@@ -430,3 +430,113 @@ func CollectConsensusElection(blockNumber uint64, nodeIdList []NodeID) {
 		exeBlockData.ConsensusElection = nodeIdList
 	}
 }
+
+type DelCandidate struct {
+	NodeId          NodeID `json:"nodeId"`
+	StakingBlockNum uint64 `json:"stakingBlockNum"`
+	StakingTxIndex  uint32 `json:"stakingTxIndex"`
+}
+
+type Candidate struct {
+	NodeId              NodeID   `json:"nodeId"`
+	StakingBlockNum     uint64   `json:"stakingBlockNum"`
+	StakingTxIndex      uint32   `json:"stakingTxIndex"`
+	StakingAddress      Address  `json:"stakingAddress,omitempty"`
+	BenefitAddress      Address  `json:"benefitAddress,omitempty"`
+	RewardPer           uint16   `json:"rewardPer,omitempty"`
+	NextRewardPer       uint16   `json:"nextRewardPer,omitempty"`
+	ProgramVersion      uint32   `json:"programVersion,omitempty"`
+	Status              uint32   `json:"status"`
+	Shares              *big.Int `json:"shares,omitempty"`
+	Released            *big.Int `json:"released,omitempty"`
+	ReleasedHes         *big.Int `json:"releasedHes,omitempty"`
+	RestrictingPlan     *big.Int `json:"restrictingPlan,omitempty"`
+	RestrictingPlanHes  *big.Int `json:"restrictingPlanHes,omitempty"`
+	ExternalId          string   `json:"externalId,omitempty"`
+	NodeName            string   `json:"nodeName,omitempty"`
+	Website             string   `json:"website,omitempty"`
+	Details             string   `json:"details,omitempty"`
+	DelegateTotal       *big.Int `json:"delegateTotal,omitempty"`
+	DelegateTotalHes    *big.Int `json:"delegateTotalHes,omitempty"`
+	DelegateRewardTotal *big.Int `json:"delegateRewardTotal,omitempty"`
+}
+
+type Put struct {
+	Candidate []*Candidate `json:"candidate"`
+}
+
+type Delete struct {
+	Candidate []*DelCandidate `json:"candidate"`
+}
+
+type void struct{}
+
+var member void
+
+type StatData struct {
+	Put              *Put                          `json:"put"`    // 接口返回数据
+	Delete           *Delete                       `json:"delete"` // 接口返回数据
+	CandidateChanged map[NodeAddress]void          `json:"-"`      // 采集的中间数据
+	CandidateDeleted map[NodeAddress]*DelCandidate `json:"-"`      // 采集的中间数据
+	BlockHash        Hash                          `json:"-"`      // 采集的中间数据
+}
+
+var StatDataCollector = make(map[uint64]*StatData)
+
+func CreateStatData() *StatData {
+	putList := &Put{
+		Candidate: make([]*Candidate, 0),
+	}
+
+	deleteList := &Delete{
+		Candidate: make([]*DelCandidate, 0),
+	}
+
+	statData := &StatData{
+		Put:    putList,
+		Delete: deleteList,
+	}
+	return statData
+}
+
+func InitStatData(blockNumber uint64, blockHash Hash) {
+	putList := &Put{
+		Candidate: make([]*Candidate, 0),
+	}
+
+	deleteList := &Delete{
+		Candidate: make([]*DelCandidate, 0),
+	}
+
+	statData := &StatData{
+		Put:              putList,
+		Delete:           deleteList,
+		CandidateChanged: make(map[NodeAddress]void),
+		CandidateDeleted: make(map[NodeAddress]*DelCandidate),
+		BlockHash:        blockHash,
+	}
+
+	StatDataCollector[blockNumber] = statData
+}
+
+func PopStatData(blockNumber uint64) *StatData {
+	if statData, ok := StatDataCollector[blockNumber]; ok && statData != nil {
+		delete(StatDataCollector, blockNumber)
+		return statData
+	}
+	return nil
+}
+
+func CollectCandidateChanged(blockNumber uint64, nodeAddress NodeAddress) {
+	if statData, ok := StatDataCollector[blockNumber]; ok && statData != nil {
+		log.Debug("CollectCandidateChanged", "blockNumber", blockNumber, "nodeAddress", nodeAddress)
+		statData.CandidateChanged[nodeAddress] = member
+	}
+}
+
+func CollectCandidateDeleted(blockNumber uint64, nodeAddress NodeAddress, canBase *DelCandidate) {
+	if statData, ok := StatDataCollector[blockNumber]; ok && statData != nil {
+		log.Debug("CollectCandidateDeleted", "blockNumber", blockNumber, "nodeAddress", nodeAddress)
+		statData.CandidateDeleted[nodeAddress] = canBase
+	}
+}

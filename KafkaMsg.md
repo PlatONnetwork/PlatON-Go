@@ -207,39 +207,36 @@
 		"put":{
 			"candidate":[
 				{
-					"NodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
-					"StakingAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-					"BenefitAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-					"RewardPer": 100,
-					"NextRewardPer": 100,
-					"RewardPerChangeEpoch": 1,
-		            "StakingTxIndex": 11,
-					"ProgramVersion": 1000,
-					"Status": 2,
-					"StakingEpoch": 1,
-				    "StakingBlockNum": 1000,
-					"Shares": 10000,
-					"Released": 10000,
-					"ReleasedHes": 10000,
-					"RestrictingPlan": 10000,
-					"RestrictingPlanHes": 10000,
-					"DelegateEpoch": 11,
-					"DelegateTotal": 1000,
-					"DelegateTotalHes": 10000,
-					"DelegateRewardTotal": 1000,
-					"ExternalId": "",
-					"NodeName": "",
-					"Website": "",
-					"Details": ""
+					"nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
+					"stakingAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+					"benefitAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+					"rewardPer": 100,
+					"nextRewardPer": 100,
+					"stakingTxIndex": 11,
+					"programVersion": 1000,
+					"status": 2,
+					"stakingBlockNum": 1000,
+					"shares": 10000,
+					"released": 10000,
+					"releasedHes": 10000,
+					"restrictingPlan": 10000,
+					"restrictingPlanHes": 10000,
+					"externalId": "",
+					"nodeName": "",
+					"website": "",
+					"details": "",
+					"delegateTotal": 1000,
+					"delegateTotalHes": 10000,
+					"delegateRewardTotal": 1000
 				}
 			]
-		}
+		},
 		"delete": {
 			"candidate":[
 				{
-					"NodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
-					"StakingBlockNum": 1000,
-					"StakingTxIndex": 11
+					"nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
+					"stakingBlockNum": 1000,
+					"stakingTxIndex": 11
 				}
 			]
 			
@@ -465,28 +462,27 @@
 3. candidate 定义
 ```
 {
-	"NodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 节点id
-	"StakingAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 质押地址
-	"BenefitAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 收益地址
-	"RewardPer": 100,                     // 当前结算周期奖励分成比例，采用BasePoint 1BP=0.01%
-	"NextRewardPer": 100,                 // 下一个结算周期奖励分成比例，采用BasePoint 1BP=0.01%   
-    "StakingTxIndex": 11,                 // 发起质押时的交易索引
-	"ProgramVersion": 1000,               // 被质押节点的PlatON进程的真实版本号(获取版本号的接口由治理提供)
-	"Status": 2,                          // 候选人的状态(状态是根据uint32的32bit来放置的，可同时存在多个状态，值为多个同时存在的状态值相加【0: 节点可用 (32个bit全为0)； 1: 节点不可用 (只有最后一bit为1)； 2： 节点零出块需要锁定但无需解除质押(只有倒数第二bit为1)； 4： 节点的von不足最低质押门槛(只有倒数第三bit为1)； 8：节点被举报双签(只有倒数第四bit为1)); 16: 节点零出块需要锁定并解除质押(倒数第五位bit为1); 32: 节点主动发起撤销(只有倒数第六位bit为1)】
-	"StakingEpoch": 1,                    // 当前变更质押金额时的结算周期
-    "StakingBlockNum": 1000,              // 发起质押时的区块高度
-	"Shares": 10000,                      // 当前候选人总共质押加被委托的von数目,
-	"Released": 10000,                    // 发起质押账户的自由金额的锁定期质押的von
-	"ReleasedHes": 10000,                 // 发起质押账户的自由金额的犹豫期质押的von
-	"RestrictingPlan": 10000,             // 发起质押账户的锁仓金额的锁定期质押的von
-	"RestrictingPlanHes": 10000,          // 发起质押账户的锁仓金额的犹豫期质押的von
-	"ExternalId": "",                     // 外部Id(有长度限制，给第三方拉取节点描述的Id)
-	"NodeName": "",                       // 被质押节点的名称(有长度限制，表示该节点的名称)
-	"Website": "",                        // 节点的第三方主页(有长度限制，表示该节点的主页)
-	"Details": ""	                      // 节点的描述(有长度限制，表示该节点的描述)
-	"DelegateEpoch": 11,                  // 节点最后一次被委托的结算周期数
-	"DelegateTotal": 1000,                // 节点被委托的生效总数量
-	"DelegateTotalHes": 10000             // 节点被委托的未生效的总数量
+	"nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 节点id
+	"stakingAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 质押地址
+	"benefitAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 收益地址
+	"rewardPer": 100,                     // 当前结算周期奖励分成比例，采用BasePoint 1BP=0.01%
+	"nextRewardPer": 100,                 // 下一个结算周期奖励分成比例，采用BasePoint 1BP=0.01%   
+	"stakingTxIndex": 11,                 // 发起质押时的交易索引
+	"programVersion": 1000,               // 被质押节点的PlatON进程的真实版本号(获取版本号的接口由治理提供)
+	"status": 2,                          // 候选人的状态(状态是根据uint32的32bit来放置的，可同时存在多个状态，值为多个同时存在的状态值相加【0: 节点可用 (32个bit全为0)； 1: 节点不可用 (只有最后一bit为1)； 2： 节点零出块需要锁定但无需解除质押(只有倒数第二bit为1)； 4： 节点的von不足最低质押门槛(只有倒数第三bit为1)； 8：节点被举报双签(只有倒数第四bit为1)); 16: 节点零出块需要锁定并解除质押(倒数第五位bit为1); 32: 节点主动发起撤销(只有倒数第六位bit为1)】
+	"stakingBlockNum": 1000,              // 发起质押时的区块高度
+	"shares": 10000,                      // 当前候选人总共质押加被委托的von数目,
+	"released": 10000,                    // 发起质押账户的自由金额的锁定期质押的von
+	"releasedHes": 10000,                 // 发起质押账户的自由金额的犹豫期质押的von
+	"restrictingPlan": 10000,             // 发起质押账户的锁仓金额的锁定期质押的von
+	"restrictingPlanHes": 10000,          // 发起质押账户的锁仓金额的犹豫期质押的von
+	"externalId": "",                     // 外部Id(有长度限制，给第三方拉取节点描述的Id)
+	"nodeName": "",                       // 被质押节点的名称(有长度限制，表示该节点的名称)
+	"website": "",                        // 节点的第三方主页(有长度限制，表示该节点的主页)
+	"details": "",	                      // 节点的描述(有长度限制，表示该节点的描述)
+	"delegateTotal": 1000,                // 节点被委托的生效总数量
+	"delegateTotalHes": 10000,            // 节点被委托的未生效的总数量
+	"delegateRewardTotal": 1000           // 节点当前已发放的总委托奖励
 }
 ```
 
