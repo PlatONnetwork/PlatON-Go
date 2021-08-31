@@ -297,6 +297,7 @@ type ExeBlockData struct {
 	AutoStakingMap                map[Hash]*AutoStakingTx        `json:"autoStakingTxMap,omitempty"`
 	EpochElection                 []NodeID                       `json:"epochElection,omitempty"`
 	ConsensusElection             []NodeID                       `json:"consensusElection,omitempty"`
+	EpochNumber                   uint64                         `json:"epochNumber,omitempty"` //当前增发周期的结算周期数
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -428,6 +429,13 @@ func CollectConsensusElection(blockNumber uint64, nodeIdList []NodeID) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectConsensusElection", "blockNumber", blockNumber, "nodeIdList", nodeIdList)
 		exeBlockData.ConsensusElection = nodeIdList
+	}
+}
+
+func CollectEpochNumber(blockNumber uint64, epochNumber uint64) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectActiveVersion", "blockNumber", blockNumber, "epochNumber", epochNumber)
+		exeBlockData.EpochNumber = epochNumber
 	}
 }
 

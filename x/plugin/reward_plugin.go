@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 	"math"
 	"math/big"
 	"sort"
@@ -92,6 +93,16 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // of year, increasing issuance.
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB, downloading Downloading) error {
 	blockNumber := head.Number.Uint64()
+
+	//stats 计算当前增发周期中结算周期数
+	if xutil.IsEndOfEpoch(head.Number.Uint64()) || head.Number.Uint64() == common.Big1.Uint64() {
+		err := rmp.calculateEpochNumber(blockHash, head.Number.Uint64(), head)
+		if err != nil {
+			log.Error("Stats failed calculateEpochNumber",
+				"blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+	}
 
 	// 待分配的出块奖励金额，每个结算周期可能不一样
 	packageReward := new(big.Int)
@@ -1122,4 +1133,60 @@ func LoadChainYearNumber(hash common.Hash, snapshotDB snapshotdb.DB) (uint32, er
 		return 0, err
 	}
 	return common.BytesToUint32(chainYearNumberByte), nil
+}
+
+func (rmp *RewardMgrPlugin) calculateEpochNumber(blockHash common.Hash, blockNumber uint64, header *types.Header) error {
+
+	if blockNumber == common.Big1.Uint64() {
+		statsdb.Instance().WritePerIssuanceEpoch(uint64(0))
+		return nil
+	}
+
+	pastEpoch, remainEpoch := uint64(0), uint64(0)
+
+	// 已经过去的周期数（如果当前区块高度为增发周期区块时， 查询到的值已经替换为当前增发周期值，非上个周期值）
+	incIssuanceNumber, err := xcom.LoadIncIssuanceNumber(blockHash, rmp.db)
+	if nil != err {
+		log.Error("Failed to LoadIncIssuanceNumber on calculateEpochNumber", "err", err)
+		return err
+	}
+
+	incIssuanceEpoch := xutil.CalculateEpoch(incIssuanceNumber)
+	curEpoch := xutil.CalculateEpoch(blockNumber)
+
+	if incIssuanceNumber == blockNumber {
+		perIssuanceEpoch := statsdb.Instance().ReadPerIssuanceEpoch()
+		statsdb.Instance().WritePerIssuanceEpoch(curEpoch)
+
+		common.CollectEpochNumber(blockNumber, curEpoch-perIssuanceEpoch)
+		return nil
+	}
+
+	pastEpoch = uint64(curEpoch - incIssuanceEpoch)
+
+	// 剩余的周期数
+	incIssuanceTime, err := xcom.LoadIncIssuanceTime(blockHash, rmp.db)
+	if nil != err {
+		log.Error("Failed to LoadIncIssuanceTime on calculateEpochNumber", "err", err)
+		return err
+	}
+
+	avgPackTime, err := xcom.LoadCurrentAvgPackTime()
+	if nil != err {
+		log.Error("Failed to LoadCurrentAvgPackTime on calculateEpochNumber", "err", err)
+		return err
+	}
+
+	remainTime := incIssuanceTime - header.Time.Int64()
+	remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
+	epochBlocks := xutil.CalcBlocksEachEpoch()
+	if remainBlocks > float64(epochBlocks) {
+		remainEpoch = uint64(math.Ceil(remainBlocks / float64(epochBlocks)))
+	} else {
+		remainEpoch = uint64(1)
+	}
+
+	common.CollectEpochNumber(blockNumber, pastEpoch+remainEpoch)
+
+	return nil
 }

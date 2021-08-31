@@ -36,6 +36,8 @@ var (
 	ErrNotFound = errors.New("statsDB: not found")
 
 	StatKeyPrefix = []byte("statKey")
+
+	PerIssuanceEpochPrefix = []byte("pieKey")
 )
 
 type StatsDB struct {
@@ -142,6 +144,24 @@ func (db *StatsDB) ReadStatData(blockNumber *big.Int) *common.StatData {
 		return nil
 	}
 	return &data
+}
+
+func (db *StatsDB) WritePerIssuanceEpoch(epoch uint64) {
+	if err := db.PutLevelDB(PerIssuanceEpochPrefix, common.Uint64ToBytes(epoch)); err != nil {
+		log.Crit("Failed to write PerIssuanceEpoch", "epoch", epoch, "err", err)
+	} else {
+		log.Info("WritePerIssuanceEpoch", "epoch", epoch)
+	}
+}
+
+func (db *StatsDB) ReadPerIssuanceEpoch() uint64 {
+	bytes, _ := db.GetLevelDB(PerIssuanceEpochPrefix)
+
+	log.Info("ReadPerIssuanceEpoch", "dataLength", len(bytes))
+	if len(bytes) == 0 {
+		return uint64(0)
+	}
+	return common.BytesToUint64(bytes)
 }
 
 func (db *StatsDB) PutLevelDB(key, value []byte) error {

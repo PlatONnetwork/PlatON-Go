@@ -162,7 +162,8 @@
 		],
 		"consensusElection": [
 			"0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f"
-		]
+		],
+		"epochNumber": 149
 	},
 	"GenesisData": {
 		"allocItemList": [
@@ -271,132 +272,134 @@
 
 1. activeVersion 如果当前块有升级提案生效，则填写新版本,0.14.0
 2. additionalIssuanceData 增发数据, blockType = 6 时可能存在
-	```
-	{
-		"additionalNo": 1,              // 增加周期轮数， 从1开始，创世块增发不包含在其中       
-		"additionalBase": 1000000,      // 增发基数
-		"additionalRate": 100,          // 增发比例 单位：万分之一
-		"additionalAmount": 1000,       // 增发金额
-		"issuanceItemList": [           // 增发分配
-			{
-				"address": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 增发金额分配地址
-				"amount": 1000000                                         // 增发金额
-			}
-		]
-	}
-	```
+    ```
+    {
+        "additionalNo": 1,              // 增加周期轮数， 从1开始，创世块增发不包含在其中       
+        "additionalBase": 1000000,      // 增发基数
+        "additionalRate": 100,          // 增发比例 单位：万分之一
+        "additionalAmount": 1000,       // 增发金额
+        "issuanceItemList": [           // 增发分配
+            {
+                "address": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  // 增发金额分配地址
+                "amount": 1000000                                         // 增发金额
+            }
+        ]
+    }
+    ```
 3. rewardData 分配奖励，包括出块奖励，质押奖励
     ```
-	{
-		"blockRewardAmount": 1000,        // 出块奖励，每个块都有
-		"delegatorReward": true,          // 出块奖励中，是否分配给委托人的奖励，每个块都有
-		"stakingRewardAmount": 1000,      // 一结算周期内所有101节点的质押奖励，blockType = 6 时存在
-		"candidateInfoList": [            // 备选节点信息，blockType = 6 时存在
-			{
-				"nodeId":"0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 备选节点ID
-				"minerAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9"  // 备选节点的矿工地址（收益地址）
-			}
-		]
-	}
+    {
+        "blockRewardAmount": 1000,        // 出块奖励，每个块都有
+        "delegatorReward": true,          // 出块奖励中，是否分配给委托人的奖励，每个块都有
+        "stakingRewardAmount": 1000,      // 一结算周期内所有101节点的质押奖励，blockType = 6 时存在
+        "candidateInfoList": [            // 备选节点信息，blockType = 6 时存在
+            {
+                "nodeId":"0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 备选节点ID
+                "minerAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9"  // 备选节点的矿工地址（收益地址）
+            }
+        ]
+    }
     ```
 4. zeroSlashingItemList 零出块惩罚节点明细 blockType = 3 时可能存在
 
-	```
-	[
-		{
-			"nodeID": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 备选节点ID
-			"slashingAmount": 100  // 0出块处罚金(先从已生效的自有质押扣除，不够在从已生效的锁仓质押扣除)
-		}
-	]
-	```
+    ```
+    [
+        {
+            "nodeID": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",   // 备选节点ID
+            "slashingAmount": 100  // 0出块处罚金(先从已生效的自有质押扣除，不够在从已生效的锁仓质押扣除)
+        }
+    ]
+    ```
 5. duplicatedSignSlashingSetting 双签惩罚明细设置，双签交易时存在
-	```
-	{
-		"penaltyRatioByValidStakings": 10,  // 罚金 = 有效质押 * PenaltyRatioByValidStakings / 10000
-		"rewardRatioByPenalties": 10        // 给举报人的赏金=罚金 * RewardRatioByPenalties / 100
-	}
-	```	
+    ```
+    {
+        "penaltyRatioByValidStakings": 10,  // 罚金 = 有效质押 * PenaltyRatioByValidStakings / 10000
+        "rewardRatioByPenalties": 10        // 给举报人的赏金=罚金 * RewardRatioByPenalties / 100
+    }
+    ```	
 6. stakingSetting 质押合约设置，解除委托时存在
-	```
-	{
-		"operatingThreshold": 10            //委托要求的最小数量；当减持委托时，委托数量少于该值，则全部减持。
-	}
-	```	
+    ```
+    {
+        "operatingThreshold": 10            //委托要求的最小数量；当减持委托时，委托数量少于该值，则全部减持。
+    }
+    ```	
 7. stakingFrozenItemList 质押冻结信息。 在解除质押、 零出块惩罚、 双签惩罚、 锁定恢复（blockType = 6）时可能存在。
-	```
-	[
-		{
-			"nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
-			"nodeAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-			"frozenEpochNo": 100,
-			"recovery": true
-		}
-	]
-	```
+    ```
+    [
+        {
+            "nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",
+            "nodeAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+            "frozenEpochNo": 100,
+            "recovery": true
+        }
+    ]
+    ```
 8. restrictingReleaseItemList 锁仓释放明细, 创世块锁仓释放（blockType = 6）、 普通锁仓释放（blockType = 6）、
-	```
-	[
-		{
-			"destAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  //释放地址
-			"releaseAmount": 10000,                                       //释放金额
-			"lackingAmount": 10000                                        //欠释放金额，该释放但是因为质押无法按时释放的资金
-		}
-	]
-	```
+    ```
+    [
+        {
+            "destAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",  //释放地址
+            "releaseAmount": 10000,                                       //释放金额
+            "lackingAmount": 10000                                        //欠释放金额，该释放但是因为质押无法按时释放的资金
+        }
+    ]
+    ```
 9. embedTransferTxList 一个显式交易引起的内置转账交易, 合约内部转账、 存在金额合约自毁时存在，需要结合交易回执中状态处理，如果交易失败则忽略。
-	```
-	[
-		{
-			"txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",
-			"from": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-			"to": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-			"amount": 1000
-		}
-	]
-	```
+    ```
+    [
+        {
+            "txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",
+            "from": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+            "to": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+            "amount": 1000
+        }
+    ]
+    ```
 10. embedContractTxList 一个显式交易引起的内置合约交易，需要结合交易回执中状态处理，如果交易失败则忽略。
-	```
-	[
-		{
-			"txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",
-			"from": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-			"contractAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
-			"input": "0xd3fc98640000000000000000000000007c7b4da6a8d60632d072a64181766b6b752c358100000000000000000000000000000000000000000000000000000000013461510000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000005c68747470733a2f2f697066732e696f2f697066732f516d653963434a6b7461547055644a7332783176414b68744c3537534b48583541586536436a31753335705a42533f66696c656e616d653d5469636b6574303030312e6a736f6e00000000"
-		}
-	]
-	```
+    ```
+    [
+        {
+            "txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",
+            "from": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+            "contractAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",
+            "input": "0xd3fc98640000000000000000000000007c7b4da6a8d60632d072a64181766b6b752c358100000000000000000000000000000000000000000000000000000000013461510000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000005c68747470733a2f2f697066732e696f2f697066732f516d653963434a6b7461547055644a7332783176414b68744c3537534b48583541586536436a31753335705a42533f66696c656e616d653d5469636b6574303030312e6a736f6e00000000"
+        }
+    ]
+    ```
 11. withdrawDelegationList 解除委托时，存在奖励时
-	```
-	[
-		{
-			"txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",    // 委托用户撤销节点的全部委托的交易HASH
-			"delegateAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",            // 委托用户地址
-			"nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",  // 委托用户委托的节点ID
-			"rewardAmount": 10000    // 委托用户从此节点获取的全部委托奖励
-		}
-	]
-	```
+    ```
+    [
+        {
+            "txHash": "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862",    // 委托用户撤销节点的全部委托的交易HASH
+            "delegateAddress": "lat153qkj3uk04yyagkgmplx7rhsagpy5n3k9gkwn9",            // 委托用户地址
+            "nodeId": "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f",  // 委托用户委托的节点ID
+            "rewardAmount": 10000    // 委托用户从此节点获取的全部委托奖励
+        }
+    ]
+    ```
 12. autoStakingTxMap 混合质押时存在
-	```
-	{
-		"0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862": {   // 交易hash
-			"restrictingAmount": 10000,    // 质押中锁仓金额
-			"balanceAmount": 10000         // 质押中自有金额
-		}
-	}
-	```
+    ```
+    {
+        "0x9c8411715dec897a6ae653f859f8aea6940d0a144de9206659d0e97fe5c0e862": {   // 交易hash
+            "restrictingAmount": 10000,    // 质押中锁仓金额
+            "balanceAmount": 10000         // 质押中自有金额
+        }
+    }
+    ```
 13. epochElection 结算周期验证人， blockType = 6 时存在
-	```
-	[
-		"0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f"  
-	]
-	```
+    ```
+    [
+        "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f"  
+    ]
+    ```
 14. consensusElection 共识周期验证人， blockType = 3 时存在
-	```
-	[
-		"0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f"  
-	]
-	```
+    ```
+    [
+        "0xd2d670c64375d958ae15030d2e7979a369a1142a8981f41cb6aa31727c90a6af79ea7b8d07284736eec4c690e501d5e638a7dc87a646b0245631afc84f1d0c1f"  
+    ]
+     ```
+15. epochNumber 当前增发周期内可能共识周期数， blockType = 6 时存在
+
 ##### 1.3 GenesisData 定义 blockType = 0 时存在
 
 1. allocItemList 初始分配的金额，创世文件中 alloc 和 innerAcc中地址及金额。 

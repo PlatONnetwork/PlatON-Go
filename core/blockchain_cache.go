@@ -327,7 +327,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		processStatData(block.Number(), statData)
 		statDataJson, _ := json.Marshal(statData)
 
-		log.Error("Execute block finished, write StatData", "number", block.NumberU64(), "statData", string(statDataJson))
+		log.Debug("Execute block finished, write StatData", "number", block.NumberU64(), "statData", string(statDataJson))
 		statsdb.Instance().WriteStatData(block.Number(), statData)
 
 	} else {
