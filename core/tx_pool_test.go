@@ -86,6 +86,7 @@ func setupTxPool() (*TxPool, *ecdsa.PrivateKey) {
 
 	key, _ := crypto.GenerateKey()
 	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
+	evictionInterval = time.Minute * 20
 	return pool, key
 }
 
@@ -555,6 +556,7 @@ func TestTransactionDropping(t *testing.T) {
 func newTestTxPool(config TxPoolConfig, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
 	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+	evictionInterval = time.Minute * 20
 	return NewTxPool(config, chainconfig, blockchain)
 }
 
@@ -860,7 +862,6 @@ func TestTransactionQueueTimeLimitingNoLocals(t *testing.T) {
 func testTransactionQueueTimeLimiting(t *testing.T, nolocals bool) {
 	// Reduce the eviction interval to a testable amount
 	defer func(old time.Duration) { evictionInterval = old }(evictionInterval)
-	evictionInterval = time.Millisecond * 100
 
 	// Create the pool to test the non-expiration enforcement
 	config := testTxPoolConfig
@@ -868,6 +869,7 @@ func testTransactionQueueTimeLimiting(t *testing.T, nolocals bool) {
 	config.NoLocals = nolocals
 
 	pool := newTestTxPool(config, params.TestChainConfig)
+	evictionInterval = time.Millisecond * 100
 	defer pool.Stop()
 
 	// Create two test accounts to ensure remotes expire but locals do not
