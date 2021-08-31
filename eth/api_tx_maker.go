@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"hash/fnv"
 	"math/big"
 	"math/rand"
@@ -16,8 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -625,19 +624,19 @@ func (s *TxMakeManger) pickTxReceive() common.Address {
 
 var (
 	evmErc20Hash = func() []byte {
-		prifix := sha3.NewKeccak256()
+		prifix := sha3.NewLegacyKeccak256()
 		prifix.Write([]byte("transfer(address,uint256)"))
 		return prifix.Sum(nil)
 	}()
 
 	evmKVHash = func() []byte {
-		prifix := sha3.NewKeccak256()
+		prifix := sha3.NewLegacyKeccak256()
 		prifix.Write([]byte("SetKV(uint256,uint256)"))
 		return prifix.Sum(nil)
 	}()
 
 	evmKVHashAddr = func() []byte {
-		prifix := sha3.NewKeccak256()
+		prifix := sha3.NewLegacyKeccak256()
 		prifix.Write([]byte("SetKV(uint256)"))
 		return prifix.Sum(nil)
 	}()

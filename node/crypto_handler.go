@@ -19,9 +19,9 @@ package node
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
+	"golang.org/x/crypto/sha3"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -87,7 +87,7 @@ func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, no
 }
 
 func RlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
