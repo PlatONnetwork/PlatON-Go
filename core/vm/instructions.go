@@ -18,6 +18,7 @@ package vm
 
 import (
 	"errors"
+
 	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

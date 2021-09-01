@@ -116,6 +116,10 @@ var (
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString{node.DefaultDataDir()},
 	}
+	AncientFlag = DirectoryFlag{
+		Name:  "datadir.ancient",
+		Usage: "Data directory for ancient chain segments (default = inside chaindata)",
+	}
 	KeyStoreDirFlag = DirectoryFlag{
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
@@ -289,6 +293,10 @@ var (
 		Name:  "password",
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
+	}
+	RPCGlobalGasCap = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in eth_call/estimateGas",
 	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
@@ -671,11 +679,13 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 
 	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
 	for _, url := range urls {
-		node, err := discover.ParseNode(url)
-		if err != nil {
-			log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+		if url != "" {
+			node, err := discover.ParseNode(url)
+			if err != nil {
+				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
+			}
+			cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 		}
-		cfg.BootstrapNodes = append(cfg.BootstrapNodes, node)
 	}
 }
 
@@ -1125,6 +1135,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
+	if ctx.GlobalIsSet(AncientFlag.Name) {
+		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
+	}
 
 	cfg.NoPruning = true
 
@@ -1316,7 +1329,7 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node) ethdb.Database {
 	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
 		name = "lightchaindata"
 	}
-	chainDb, err := stack.OpenDatabase(name, cache, handles, "")
+	chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "")
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
@@ -1353,7 +1366,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 
 	cache := &core.CacheConfig{
 		Disabled:        true,
-		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
+		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
 		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
@@ -1362,7 +1375,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
@@ -1396,7 +1409,7 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 
 	cache := &core.CacheConfig{
 		Disabled:        true,
-		TrieNodeLimit:   eth.DefaultConfig.TrieCache,
+		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
 		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
@@ -1405,7 +1418,7 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{}
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)

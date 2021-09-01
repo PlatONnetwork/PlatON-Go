@@ -70,7 +70,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		defer node.Stop()
+		defer node.Close()
 
 		for node.Server().NodeInfo().Ports.Listener == 0 {
 			time.Sleep(250 * time.Millisecond)
@@ -187,7 +187,7 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 			NoDiscovery: true,
 			MaxPeers:    25,
 		},
-		NoUSB: true,
+		NoUSB:       true,
 		KeyStoreDir: "D:\\goprojects\\data\\keystore",
 	}
 	// Start the node and configure a full Ethereum node on it

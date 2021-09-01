@@ -175,6 +175,32 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
 		return genesis.Config, block.Hash(), err
 	}
+
+	// We have the genesis block in database(perhaps in ancient database)
+	// but the corresponding state is missing.
+	header := rawdb.ReadHeader(db, stored, 0)
+	if _, err := state.New(header.Root, state.NewDatabaseWithCache(db, 0)); err != nil {
+		if genesis == nil {
+			genesis = DefaultGenesisBlock()
+		}
+		if err := common.SetAddressHRP(genesis.Config.AddressHRP); err != nil {
+			return nil, common.Hash{}, err
+		}
+
+		// check EconomicModel configuration
+		if err := xcom.CheckEconomicModel(); nil != err {
+			log.Error("Failed to check economic config", "err", err)
+			return nil, common.Hash{}, err
+		}
+		// Ensure the stored genesis matches with the given one.
+		hash := genesis.ToBlock(nil, snapshotBaseDB).Hash()
+		if hash != stored {
+			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
+		}
+		block, err := genesis.Commit(db, snapshotBaseDB)
+		return genesis.Config, block.Hash(), err
+	}
+
 	// Check whether the genesis block is already written.
 	if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
@@ -404,7 +430,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
 		Nonce:      types.EncodeNonce(g.Nonce),
-		Time:       new(big.Int).SetUint64(g.Timestamp),
+		Time:       g.Timestamp,
 		ParentHash: g.ParentHash,
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,

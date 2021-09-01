@@ -39,7 +39,7 @@ func TestBlockChainReactorClose(t *testing.T) {
 			for i := 1; i < 11; i++ {
 				header := new(types.Header)
 				header.Number = big.NewInt(int64(i))
-				header.Time = big.NewInt(int64(i))
+				header.Time = uint64(i)
 				header.ParentHash = parenthash
 				block := types.NewBlock(header, nil, nil)
 				snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, block.Hash())

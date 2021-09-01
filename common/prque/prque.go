@@ -11,14 +11,20 @@ type Prque struct {
 	cont *sstack
 }
 
-// Creates a new priority queue.
-func New(setIndex setIndexCallback) *Prque {
+// New creates a new priority queue.
+func New(setIndex SetIndexCallback) *Prque {
 	return &Prque{newSstack(setIndex)}
 }
 
 // Pushes a value with a given priority into the queue, expanding if necessary.
 func (p *Prque) Push(data interface{}, priority int64) {
 	heap.Push(p.cont, &item{data, priority})
+}
+
+// Peek returns the value with the greates priority but does not pop it off.
+func (p *Prque) Peek() (interface{}, int64) {
+	item := p.cont.blocks[0][0]
+	return item.value, item.priority
 }
 
 // Pops the value with the greates priority off the stack and returns it.

@@ -65,6 +65,7 @@ var (
 		utils.BootnodesV4Flag,
 		//	utils.BootnodesV5Flag,
 		utils.DataDirFlag,
+		utils.AncientFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
@@ -106,8 +107,6 @@ var (
 		utils.MainFlag,
 		utils.TestnetFlag,
 		utils.NetworkIdFlag,
-		utils.RPCCORSDomainFlag,
-		utils.RPCVirtualHostsFlag,
 		//utils.EthStatsURLFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
@@ -127,6 +126,7 @@ var (
 		utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
+		utils.RPCGlobalGasCap,
 	}
 
 	//whisperFlags = []cli.Flag{
@@ -193,6 +193,7 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
+		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
