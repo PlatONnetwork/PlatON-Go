@@ -19,6 +19,7 @@ package bind
 import (
 	"crypto/ecdsa"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"io"
 	"io/ioutil"
 
@@ -59,4 +60,22 @@ func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
 			return tx.WithSignature(signer, signature)
 		},
 	}
+}
+
+// NewKeystoreTransactor is a utility method to easily create a transaction signer from
+// an decrypted key from a keystore
+func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
+	return &TransactOpts{
+		From: account.Address,
+		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != account.Address {
+				return nil, errors.New("not authorized to sign this account")
+			}
+			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}, nil
 }

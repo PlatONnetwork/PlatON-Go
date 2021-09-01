@@ -21,6 +21,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -112,12 +113,14 @@ func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transac
 }
 
 func (m *txSortedMap) reheap() {
+	start := time.Now()
 	*m.index = make([]uint64, 0, len(m.items))
 	for nonce := range m.items {
 		*m.index = append(*m.index, nonce)
 	}
 	heap.Init(m.index)
 	m.cache = nil
+	reheapTimer.Update(time.Since(start))
 }
 
 // filter is identical to Filter, but **does not** regenerate the heap. This method
@@ -537,7 +540,7 @@ func (l *txPricedList) Underpriced(tx *types.Transaction, local *accountSet) boo
 
 // Discard finds a number of most underpriced transactions, removes them from the
 // priced list and returns them for further removal from the entire pool.
-func (l *txPricedList) Discard(slots int, local *accountSet) types.Transactions {
+func (l *txPricedList) Discard(slots int, local *accountSet) (types.Transactions, bool) {
 	// If we have some local accountset, those will not be discarded
 	if !local.empty() {
 		// In case the list is filled to the brim with 'local' txs, we do this
@@ -557,7 +560,7 @@ func (l *txPricedList) Discard(slots int, local *accountSet) types.Transactions 
 		}
 	}
 	if slots == 0 {
-		return nil
+		return nil, false
 	}
 	drop := make(types.Transactions, 0, slots)               // Remote underpriced transactions to drop
 	save := make(types.Transactions, 0, len(*l.items)-slots) // Local underpriced transactions to keep
@@ -580,5 +583,5 @@ func (l *txPricedList) Discard(slots int, local *accountSet) types.Transactions 
 	for _, tx := range save {
 		heap.Push(l.items, tx)
 	}
-	return drop
+	return drop, true
 }
