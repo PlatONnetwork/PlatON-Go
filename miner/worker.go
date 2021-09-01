@@ -204,13 +204,13 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *co
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
 
 	worker := &worker{
-		config:       config,
-		chainConfig:  chainConfig,
-		miningConfig: miningConfig,
-		engine:       engine,
-		eth:          eth,
-		mux:          mux,
-		chain:        eth.BlockChain(),
+		config:             config,
+		chainConfig:        chainConfig,
+		miningConfig:       miningConfig,
+		engine:             engine,
+		eth:                eth,
+		mux:                mux,
+		chain:              eth.BlockChain(),
 		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
