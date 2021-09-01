@@ -290,6 +290,10 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
+	InsecureUnlockAllowedFlag = cli.BoolFlag{
+		Name:  "allow-insecure-unlock",
+		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
 		Name:  "ethstats",
@@ -947,6 +951,9 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(NoUSBFlag.Name) {
 		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
+	}
+	if ctx.GlobalIsSet(InsecureUnlockAllowedFlag.Name) {
+		cfg.InsecureUnlockAllowed = ctx.GlobalBool(InsecureUnlockAllowedFlag.Name)
 	}
 }
 

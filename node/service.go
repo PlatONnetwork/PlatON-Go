@@ -88,6 +88,12 @@ func (ctx *ServiceContext) NodePriKey() *ecdsa.PrivateKey {
 	return ctx.serverConfig.PrivateKey
 }
 
+// ExtRPCEnabled returns the indicator whether node enables the external
+// RPC(http, ws or graphql).
+func (ctx *ServiceContext) ExtRPCEnabled() bool {
+	return ctx.config.ExtRPCEnabled()
+}
+
 // ServiceConstructor is the function signature of the constructors needed to be
 // registered for service instantiation.
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)

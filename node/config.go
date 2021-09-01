@@ -88,6 +88,9 @@ type Config struct {
 	// scrypt KDF at the expense of security.
 	UseLightweightKDF bool `toml:",omitempty"`
 
+	// InsecureUnlockAllowed allows user to unlock accounts in unsafe http environment.
+	InsecureUnlockAllowed bool `toml:",omitempty"`
+
 	// NoUSB disables hardware wallet monitoring and connectivity.
 	NoUSB bool `toml:",omitempty"`
 
@@ -154,6 +157,20 @@ type Config struct {
 	// *WARNING* Only set this if the node is running in a trusted network, exposing
 	// private APIs to untrusted users is a major security risk.
 	WSExposeAll bool `toml:",omitempty"`
+
+	// GraphQLCors is the Cross-Origin Resource Sharing header to send to requesting
+	// clients. Please be aware that CORS is a browser enforced security, it's fully
+	// useless for custom HTTP clients.
+	GraphQLCors []string `toml:",omitempty"`
+
+	// GraphQLVirtualHosts is the list of virtual hostnames which are allowed on incoming requests.
+	// This is by default {'localhost'}. Using this prevents attacks like
+	// DNS rebinding, which bypasses SOP by simply masquerading as being within the same
+	// origin. These attacks do not utilize CORS, since they are not cross-domain.
+	// By explicitly checking the Host-header, the server will not allow requests
+	// made against the server with a malicious host domain.
+	// Requests using ip address directly are not affected
+	GraphQLVirtualHosts []string `toml:",omitempty"`
 
 	// Logger is a custom logger to use with the p2p.Server.
 	Logger log.Logger `toml:",omitempty"`
@@ -236,6 +253,12 @@ func (c *Config) WSEndpoint() string {
 func DefaultWSEndpoint() string {
 	config := &Config{WSHost: DefaultWSHost, WSPort: DefaultWSPort}
 	return config.WSEndpoint()
+}
+
+// ExtRPCEnabled returns the indicator whether node enables the external
+// RPC(http, ws or graphql).
+func (c *Config) ExtRPCEnabled() bool {
+	return c.HTTPHost != "" || c.WSHost != ""
 }
 
 // NodeName returns the devp2p node identifier.
@@ -482,7 +505,7 @@ func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
 			backends = append(backends, trezorhub)
 		}
 	}
-	return accounts.NewManager(backends...), ephemeral, nil
+	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed}, backends...), ephemeral, nil
 }
 
 var warnLock sync.Mutex
