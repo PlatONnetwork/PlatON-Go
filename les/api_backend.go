@@ -42,8 +42,9 @@ import (
 )
 
 type LesApiBackend struct {
-	eth *LightEthereum
-	gpo *gasprice.Oracle
+	extRPCEnabled bool
+	eth           *LightEthereum
+	gpo           *gasprice.Oracle
 }
 
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
@@ -127,6 +128,10 @@ func (b *LesApiBackend) GetPoolTransaction(txHash common.Hash) *types.Transactio
 	return b.eth.txPool.GetTransaction(txHash)
 }
 
+func (b *LesApiBackend) GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error) {
+	return nil, common.ZeroHash, 0, 0, nil
+}
+
 func (b *LesApiBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
 	return b.eth.txPool.GetNonce(ctx, addr)
 }
@@ -185,6 +190,10 @@ func (b *LesApiBackend) EventMux() *event.TypeMux {
 
 func (b *LesApiBackend) AccountManager() *accounts.Manager {
 	return b.eth.accountManager
+}
+
+func (b *LesApiBackend) ExtRPCEnabled() bool {
+	return b.extRPCEnabled
 }
 
 func (b *LesApiBackend) RPCGasCap() *big.Int {

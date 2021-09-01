@@ -120,9 +120,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.MinerGasPrice == nil || config.MinerGasPrice.Cmp(common.Big0) <= 0 {
-		log.Warn("Sanitizing invalid miner gas price", "provided", config.MinerGasPrice, "updated", DefaultConfig.MinerGasPrice)
-		config.MinerGasPrice = new(big.Int).Set(DefaultConfig.MinerGasPrice)
+	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
+		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
 	}
 	// Assemble the Ethereum object
 	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
@@ -213,17 +213,17 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	eth := &Ethereum{
-		config:            config,
-		chainDb:           chainDb,
-		chainConfig:       chainConfig,
-		eventMux:          ctx.EventMux,
-		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, config.MinerNoverify, chainDb, &config.CbftConfig, ctx.EventMux),
+		config:         config,
+		chainDb:        chainDb,
+		chainConfig:    chainConfig,
+		eventMux:       ctx.EventMux,
+		accountManager: ctx.AccountManager,
+		engine:         CreateConsensusEngine(ctx, chainConfig, config.MinerNoverify, chainDb, &config.CbftConfig, ctx.EventMux),
 		closeBloomHandler: make(chan struct{}),
-		networkID:         config.NetworkId,
-		gasPrice:          config.MinerGasPrice,
-		bloomRequests:     make(chan chan *bloombits.Retrieval),
-		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		networkID:      config.NetworkId,
+		gasPrice:       config.Miner.GasPrice,
+		bloomRequests:  make(chan chan *bloombits.Retrieval),
+		bloomIndexer:   NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 	}
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -298,13 +298,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		log.Error("Failed to query gasCeil from snapshotdb", "err", err)
 		return nil, err
 	}
-	if config.MinerGasFloor > uint64(gasCeil) {
-		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.MinerGasFloor, "gasCeil", gasCeil)
-		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.MinerGasFloor, gasCeil)
+	if config.Miner.GasFloor > uint64(gasCeil) {
+		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.Miner.GasFloor, "gasCeil", gasCeil)
+		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
 	}
 
-	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
-		config.MinerGasFloor, eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
+	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
+		eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
@@ -354,10 +354,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
 		return nil, err
 	}
-	eth.APIBackend = &EthAPIBackend{eth, nil}
+
+	eth.APIBackend = &EthAPIBackend{ctx.ExtRPCEnabled(), eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
-		gpoParams.Default = config.MinerGasPrice
+		gpoParams.Default = config.Miner.GasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
