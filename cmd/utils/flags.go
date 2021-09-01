@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -257,28 +258,13 @@ var (
 	MinerGasTargetFlag = cli.Uint64Flag{
 		Name:  "miner.gastarget",
 		Usage: "Target gas floor for mined blocks",
-		Value: eth.DefaultConfig.MinerGasFloor,
+		Value: eth.DefaultConfig.Miner.GasFloor,
 	}
-	/*MinerGasLimitFlag = cli.Uint64Flag{
-		Name:  "miner.gaslimit",
-		Usage: "Target gas ceiling for mined blocks",
-		Value: eth.DefaultConfig.MinerGasCeil,
-	}*/
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.MinerGasPrice,
+		Value: eth.DefaultConfig.Miner.GasPrice,
 	}
-	/*
-		MinerExtraDataFlag = cli.StringFlag{
-			Name:  "miner.extradata",
-			Usage: "Block extra data set by the miner (default = client version)",
-		}
-		MinerLegacyExtraDataFlag = cli.StringFlag{
-			Name:  "extradata",
-			Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
-		}
-	*/
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -1052,15 +1038,14 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 //
 //}
 
-// SetShhConfig applies shh-related command line flags to the config.
-//func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
-//	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
-//		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
-//	}
-//	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
-//		cfg.RestrictConnectionBetweenLightClients = true
-//	}
-//}
+func setMiner(ctx *cli.Context, cfg *miner.Config) {
+	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
+		cfg.GasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
+	}
+	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
+		cfg.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
+	}
+}
 
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
@@ -1105,23 +1090,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(DocRootFlag.Name) {
 		cfg.DocRoot = ctx.GlobalString(DocRootFlag.Name)
-	}
-	/*
-		if ctx.GlobalIsSet(MinerLegacyExtraDataFlag.Name) {
-			cfg.MinerExtraData = []byte(ctx.GlobalString(MinerLegacyExtraDataFlag.Name))
-		}
-
-			if ctx.GlobalIsSet(MinerExtraDataFlag.Name) {
-				cfg.MinerExtraData = []byte(ctx.GlobalString(MinerExtraDataFlag.Name))
-			}*/
-	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
-		cfg.MinerGasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
-	}
-	/*if ctx.GlobalIsSet(MinerGasLimitFlag.Name) {
-		cfg.MinerGasCeil = ctx.GlobalUint64(MinerGasLimitFlag.Name)
-	}*/
-	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
-		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 
 	// Override any default configs for hard coded networks.
