@@ -137,6 +137,7 @@ var (
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnabledFlag,
+		utils.MetricsEnabledExpensiveFlag,
 		utils.MetricsEnableInfluxDBFlag,
 		utils.MetricsInfluxDBEndpointFlag,
 		utils.MetricsInfluxDBDatabaseFlag,
