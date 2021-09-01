@@ -151,14 +151,13 @@ type Downloader struct {
 	cancelWg   sync.WaitGroup // Make sure all fetcher goroutines have exited.
 
 	quitCh   chan struct{} // Quit channel to signal termination
-	quitLock sync.RWMutex  // Lock to prevent double closes
+	quitLock sync.Mutex    // Lock to prevent double closes
 
 	// Testing hooks
 	syncInitHook     func(uint64, uint64)  // Method to call upon initiating a new sync run
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
-	running          int32                 // The indicator whether the Downloader is running or not.
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -408,14 +407,11 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.Int) (err error) {
 	d.mux.Post(StartEvent{})
-	d.start()
 	defer func() {
 		// reset on error
 		if err != nil {
-			d.stop()
 			d.mux.Post(FailedEvent{err})
 		} else {
-			d.stop()
 			d.mux.Post(DoneEvent{})
 		}
 	}()
@@ -1935,16 +1931,4 @@ func (d *Downloader) requestTTL() time.Duration {
 		ttl = ttlLimit
 	}
 	return ttl
-}
-
-func (d *Downloader) start() {
-	atomic.StoreInt32(&d.running, 1)
-}
-
-func (d *Downloader) stop() {
-	atomic.StoreInt32(&d.running, 0)
-}
-
-func (d *Downloader) IsRunning() bool {
-	return atomic.LoadInt32(&d.running) == 1
 }
