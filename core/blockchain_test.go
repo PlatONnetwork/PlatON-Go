@@ -95,10 +95,10 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 		//	blockchain.reportBlock(block, receipts, err)
 		//	return err
 		//}
-		blockchain.mu.Lock()
+		blockchain.chainmu.Lock()
 		rawdb.WriteBlock(blockchain.db, block)
 		//statedb.Commit(false)
-		blockchain.mu.Unlock()
+		blockchain.chainmu.Unlock()
 	}
 	return nil
 }
@@ -112,9 +112,9 @@ func testHeaderChainImport(chain []*types.Header, blockchain *BlockChain) error 
 			return err
 		}
 		// Manually insert the header into the database, but don't reorganise (allows subsequent testing)
-		blockchain.mu.Lock()
+		blockchain.chainmu.Lock()
 		rawdb.WriteHeader(blockchain.db, header)
-		blockchain.mu.Unlock()
+		blockchain.chainmu.Unlock()
 	}
 	return nil
 }

@@ -222,7 +222,7 @@ func NewSignerAPI(chainID int64, ksLocation string, noUSB bool, ui SignerUI, abi
 			log.Debug("Trezor support enabled")
 		}
 	}
-	return &SignerAPI{big.NewInt(chainID), accounts.NewManager(backends...), ui, NewValidator(abidb)}
+	return &SignerAPI{big.NewInt(chainID), accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: false}, backends...), ui, NewValidator(abidb)}
 }
 
 // List returns the set of wallet this signer manages. Each wallet can contain

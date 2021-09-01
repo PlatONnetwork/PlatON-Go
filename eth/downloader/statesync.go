@@ -310,7 +310,23 @@ func (s *stateSync) loop() (err error) {
 				// 2 items are the minimum requested, if even that times out, we've no use of
 				// this peer at the moment.
 				log.Warn("Stalling state sync, dropping peer", "peer", req.peer.id)
-				s.d.dropPeer(req.peer.id)
+				if s.d.dropPeer == nil {
+					// The dropPeer method is nil when `--copydb` is used for a local copy.
+					// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
+					req.peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", req.peer.id)
+				} else {
+					s.d.dropPeer(req.peer.id)
+
+					// If this peer was the master peer, abort sync immediately
+					s.d.cancelLock.RLock()
+					master := req.peer.id == s.d.cancelPeer
+					s.d.cancelLock.RUnlock()
+
+					if master {
+						s.d.cancel()
+						return errTimeout
+					}
+				}
 			}
 			// Process all the received blobs and check for stale delivery
 			delivered, err := s.process(req)

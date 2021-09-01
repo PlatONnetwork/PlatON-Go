@@ -56,6 +56,11 @@ var (
 	// Test transactions
 	pendingTxs []*types.Transaction
 	newTxs     []*types.Transaction
+
+	testConfig = &Config{
+		Recommit: time.Second,
+		GasFloor: params.GenesisGasLimit,
+	}
 )
 
 func init() {
@@ -153,7 +158,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
-	w := newWorker(chainConfig, miningConfig, engine, backend, event, time.Second, params.GenesisGasLimit, nil, backend.chainCache, 0)
+	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
 	go func() {
 
 		for {

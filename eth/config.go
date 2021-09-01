@@ -17,12 +17,12 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -48,8 +48,6 @@ var DefaultConfig = Config{
 	TrieCache:     32,
 	TrieTimeout:   60 * time.Minute,
 	TrieDBCache:   512,
-	MinerGasFloor: params.GenesisGasLimit,
-	//MinerGasCeil:  4000 * 21000 * 1.2,
 	DBDisabledGC:      false,
 	DBGCInterval:      86400,
 	DBGCTimeout:       time.Minute,
@@ -57,8 +55,11 @@ var DefaultConfig = Config{
 	DBGCBlock:         10,
 	VMWasmType:        "wagon",
 	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
-	MinerGasPrice:     big.NewInt(params.GVon),
-	MinerRecommit:     3 * time.Second,
+	Miner: miner.Config{
+		GasFloor: params.GenesisGasLimit,
+		GasPrice: big.NewInt(params.GVon),
+		Recommit: 3 * time.Second,
+	},
 
 	MiningLogAtDepth:       7,
 	TxChanSize:             4096,
@@ -90,7 +91,7 @@ var DefaultConfig = Config{
 	//VCPool:  core.DefaultVCPoolConfig,
 }
 
-//go:generate gencodec -type Config -field-override configMarshaling -formats toml -out gen_config.go
+//go:generate gencodec -type Config -formats toml -out gen_config.go
 
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
@@ -125,13 +126,8 @@ type Config struct {
 	VMWasmType        string
 	VmTimeoutDuration uint64
 
-	// Mining-related options
-	MinerExtraData []byte `toml:",omitempty"`
-	MinerGasFloor  uint64
-	//MinerGasCeil   uint64
-	MinerGasPrice *big.Int
-	MinerRecommit time.Duration
-	MinerNoverify bool
+	// Mining options
+	Miner	miner.Config
 	// minning conig
 	MiningLogAtDepth       uint          // miningLogAtDepth is the number of confirmations before logging successful mining.
 	TxChanSize             int           // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.
@@ -169,8 +165,4 @@ type Config struct {
 	//MPCPool core.MPCPoolConfig
 	//VCPool  core.VCPoolConfig
 	Debug bool
-}
-
-type configMarshaling struct {
-	MinerExtraData hexutil.Bytes
 }
