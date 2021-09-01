@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"golang.org/x/crypto/sha3"
 	"io"
 	"math/big"
 	"time"
