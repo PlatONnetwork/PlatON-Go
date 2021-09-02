@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"math/big"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -29,6 +30,8 @@ import (
 // Tests that fast sync gets disabled as soon as a real block is successfully
 // imported into the blockchain.
 func TestFastSyncDisabling(t *testing.T) {
+	t.Parallel()
+
 	// Create a pristine protocol manager, check that fast sync is left enabled
 	// TODO test
 	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
@@ -47,7 +50,14 @@ func TestFastSyncDisabling(t *testing.T) {
 	go pmEmpty.handle(pmEmpty.newPeer(63, p2p.NewPeer(discover.NodeID{}, "full", nil), io1))
 
 	time.Sleep(250 * time.Millisecond)
-	pmEmpty.synchronise(pmEmpty.peers.BestPeer())
+	bestPeer := pmEmpty.peers.BestPeer()
+	peerHead, pBn := bestPeer.Head()
+	currentBlock := pmEmpty.engine.CurrentBlock()
+
+	op := &chainSyncOp{mode: downloader.FastSync, peer: bestPeer, bn: pBn, head: peerHead, diff: new(big.Int).Sub(pBn, currentBlock.Number())}
+	if err := pmEmpty.doSync(op); err != nil {
+		t.Fatal("sync failed:", err)
+	}
 
 	// Check that fast sync was disabled
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 1 {

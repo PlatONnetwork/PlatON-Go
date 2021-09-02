@@ -259,7 +259,7 @@ func makePrepareQC(epoch, viewNumber uint64, parent *types.Block, blockIndex uin
 	header := &types.Header{
 		Number:      big.NewInt(int64(parent.NumberU64() + 1)),
 		ParentHash:  parent.Hash(),
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 		Root:        common.BytesToHash(utils.Rand32Bytes(32)),

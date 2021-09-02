@@ -536,7 +536,7 @@ func TestValidatorPoolVerify(t *testing.T) {
 		ParentHash: common.Hash{},
 		Root:       common.Hash{},
 		Number:     big.NewInt(0),
-		Time:       big.NewInt(time.Now().Unix()),
+		Time:       uint64(time.Now().Unix()),
 		Extra:      make([]byte, 32+consensus.ExtraSeal),
 	}
 	sig, err := crypto.Sign(header.SealHash().Bytes(), priKey)

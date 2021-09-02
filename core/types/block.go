@@ -20,6 +20,7 @@ package types
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"math/big"
 	"sort"
@@ -34,7 +35,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -82,7 +82,7 @@ type Header struct {
 	Number      *big.Int       `json:"number"           gencodec:"required"`
 	GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
 	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
-	Time        *big.Int       `json:"timestamp"        gencodec:"required"`
+	Time        uint64         `json:"timestamp"        gencodec:"required"`
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
@@ -97,7 +97,7 @@ type headerMarshaling struct {
 	Number   *hexutil.Big
 	GasLimit hexutil.Uint64
 	GasUsed  hexutil.Uint64
-	Time     *hexutil.Big
+	Time     hexutil.Uint64
 	Extra    hexutil.Bytes
 	Hash     common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
@@ -148,7 +148,7 @@ func (h *Header) SealHash() (hash common.Hash) {
 func (h *Header) _sealHash() (hash common.Hash) {
 	extra := h.Extra
 
-	hasher := sha3.NewKeccak256()
+	hasher := sha3.NewLegacyKeccak256()
 	if len(h.Extra) > 32 {
 		extra = h.Extra[0:32]
 	}
@@ -174,7 +174,7 @@ func (h *Header) _sealHash() (hash common.Hash) {
 // Size returns the approximate memory used by all internal contents. It is used
 // to approximate and limit the memory consumption of various caches.
 func (h *Header) Size() common.StorageSize {
-	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Number.BitLen()+h.Time.BitLen())/8)
+	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Number.BitLen())/8)
 }
 
 // Signature returns the signature of seal hash from extra.
@@ -200,7 +200,7 @@ func (h *Header) IsInvalid() bool {
 // hasherPool holds Keccak hashers.
 var hasherPool = sync.Pool{
 	New: func() interface{} {
-		return sha3.NewKeccak256()
+		return sha3.NewLegacyKeccak256()
 	},
 }
 
@@ -308,9 +308,6 @@ func NewSimplifiedBlock(number uint64, hash common.Hash) *Block {
 // modifying a header variable.
 func CopyHeader(h *Header) *Header {
 	cpy := *h
-	if cpy.Time = new(big.Int); h.Time != nil {
-		cpy.Time.Set(h.Time)
-	}
 	if cpy.Number = new(big.Int); h.Number != nil {
 		cpy.Number.Set(h.Number)
 	}
@@ -369,7 +366,7 @@ func (b *Block) ExtraData() []byte             { return b.extraData }
 func (b *Block) Number() *big.Int              { return new(big.Int).Set(b.header.Number) }
 func (b *Block) GasLimit() uint64              { return b.header.GasLimit }
 func (b *Block) GasUsed() uint64               { return b.header.GasUsed }
-func (b *Block) Time() *big.Int                { return new(big.Int).Set(b.header.Time) }
+func (b *Block) Time() uint64                  { return b.header.Time }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) Nonce() []byte            { return b.header.Nonce[:] }

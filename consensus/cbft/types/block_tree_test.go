@@ -33,7 +33,7 @@ func newBlock(parent common.Hash, number uint64) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
 		ParentHash:  parent,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       nil,
 		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 	}

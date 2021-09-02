@@ -501,7 +501,7 @@ func (cbft *Cbft) findQCBlock() {
 			cbft.insertQCBlock(block, qc)
 			cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 			// metrics
-			blockQCCollectedGauage.Update(block.Time().Int64())
+			blockQCCollectedGauage.Update(int64(block.Time()))
 			cbft.trySendPrepareVote()
 		}
 	}
@@ -751,7 +751,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	// metrics.
 	viewNumberGauage.Update(int64(viewNumber))
 	epochNumberGauage.Update(int64(epoch))
-	viewChangedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+	viewChangedTimer.UpdateSince(time.Unix(int64(block.Time()), 0))
 
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {

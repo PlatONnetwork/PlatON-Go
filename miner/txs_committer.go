@@ -38,7 +38,7 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 	}
 
 	var coalescedLogs []*types.Log
-	var bftEngine = w.config.Cbft != nil
+	var bftEngine = w.chainConfig.Cbft != nil
 
 	for {
 		now := time.Now()
@@ -86,8 +86,8 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 		from, _ := types.Sender(w.current.signer, tx)
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
-		if !w.config.IsEIP155(w.current.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.config.EIP155Block)
+		if !w.chainConfig.IsEIP155(w.current.header.Number) {
+			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.chainConfig.EIP155Block)
 
 			txs.Pop()
 			continue

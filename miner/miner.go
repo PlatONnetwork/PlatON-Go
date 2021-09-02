@@ -18,6 +18,8 @@
 package miner
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -37,6 +39,15 @@ type Backend interface {
 	TxPool() *core.TxPool
 }
 
+// Config is the configuration parameters of mining.
+type Config struct {
+	ExtraData hexutil.Bytes  `toml:",omitempty"` // Block extra data set by the miner
+	GasFloor  uint64         // Target gas floor for mined blocks.
+	GasPrice  *big.Int       // Minimum gas price for mining a transaction
+	Recommit  time.Duration  // The time interval for miner to re-create mining work.
+	Noverify  bool           // Disable remote mining solution verification(only useful in ethash).
+}
+
 // Miner creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux    *event.TypeMux
@@ -49,15 +60,15 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(eth Backend, config *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
-	engine consensus.Engine, recommit time.Duration, gasFloor uint64, isLocalBlock func(block *types.Block) bool,
+func New(eth Backend,  config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
+	engine consensus.Engine, isLocalBlock func(block *types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
 	miner := &Miner{
 		eth:      eth,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, miningConfig, engine, eth, mux, recommit, gasFloor, isLocalBlock, blockChainCache, vmTimeout),
+		worker:   newWorker(config, chainConfig, miningConfig, engine, eth, mux, isLocalBlock, blockChainCache, vmTimeout),
 		canStart: 1,
 	}
 	go miner.update()

@@ -274,13 +274,13 @@ func ImportPreimages(db ethdb.Database, fn string) error {
 		// Accumulate the preimages and flush when enough ws gathered
 		preimages[crypto.Keccak256Hash(blob)] = common.CopyBytes(blob)
 		if len(preimages) > 1024 {
-			rawdb.WritePreimages(db, 0, preimages)
+			rawdb.WritePreimages(db, preimages)
 			preimages = make(map[common.Hash][]byte)
 		}
 	}
 	// Flush the last batch preimage data
 	if len(preimages) > 0 {
-		rawdb.WritePreimages(db, 0, preimages)
+		rawdb.WritePreimages(db, preimages)
 	}
 	return nil
 }
@@ -304,6 +304,8 @@ func ExportPreimages(db ethdb.Database, fn string) error {
 	}
 	// Iterate over the preimages and export them
 	it := db.NewIteratorWithPrefix([]byte("secure-key-"))
+	defer it.Release()
+
 	for it.Next() {
 		if err := rlp.Encode(writer, it.Value()); err != nil {
 			return err
