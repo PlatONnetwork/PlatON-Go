@@ -167,6 +167,9 @@ func testOdr(t *testing.T, protocol int, expFail uint64, fn odrTestFn) {
 	client.pm.synchronise(client.rPeer)
 
 	test := func(expFail uint64) {
+		// Mark this as a helper to put the failures at the correct lines
+		t.Helper()
+
 		for i := uint64(0); i <= server.pm.blockchain.CurrentHeader().Number.Uint64(); i++ {
 			bhash := rawdb.ReadCanonicalHash(server.db, i)
 			b1 := fn(light.NoOdr, server.db, server.pm.chainConfig, server.pm.blockchain.(*core.BlockChain), nil, bhash)
@@ -178,10 +181,10 @@ func testOdr(t *testing.T, protocol int, expFail uint64, fn odrTestFn) {
 			eq := bytes.Equal(b1, b2)
 			exp := i < expFail
 			if exp && !eq {
-				t.Errorf("odr mismatch")
+				t.Fatalf("odr mismatch: have %x, want %x", b2, b1)
 			}
 			if !exp && eq {
-				t.Errorf("unexpected odr match")
+				t.Fatalf("unexpected odr match")
 			}
 		}
 	}

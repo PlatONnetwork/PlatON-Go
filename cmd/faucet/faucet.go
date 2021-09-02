@@ -291,7 +291,7 @@ func newFaucet(genesis *core.Genesis, port int, enodes []*discv5.Node, network u
 
 // close terminates the Ethereum connection and tears down the faucet.
 func (f *faucet) close() error {
-	return f.stack.Stop()
+	return f.stack.Close()
 }
 
 // listenAndServe registers the HTTP handlers for the faucet and boots it up
@@ -592,7 +592,7 @@ func (f *faucet) loop() {
 	go func() {
 		for head := range update {
 			// New chain head arrived, query the current stats and stream to clients
-			timestamp := time.Unix(head.Time.Int64(), 0)
+			timestamp := time.Unix(int64(head.Time), 0)
 			if time.Since(timestamp) > time.Hour {
 				log.Warn("Skipping faucet refresh, head too old", "number", head.Number, "hash", head.Hash(), "age", common.PrettyAge(timestamp))
 				continue
