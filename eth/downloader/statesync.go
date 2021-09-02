@@ -18,6 +18,7 @@ package downloader
 
 import (
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"hash"
 	"sync"
 	"time"
@@ -25,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -240,8 +240,8 @@ type stateTask struct {
 func newStateSync(d *Downloader, root common.Hash) *stateSync {
 	return &stateSync{
 		d:       d,
+		keccak:  sha3.NewLegacyKeccak256(),
 		sched:   state.NewStateSync(root, d.stateDB, d.stateBloom),
-		keccak:  sha3.NewKeccak256(),
 		tasks:   make(map[common.Hash]*stateTask),
 		deliver: make(chan *stateReq),
 		cancel:  make(chan struct{}),
