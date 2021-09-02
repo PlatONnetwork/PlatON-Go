@@ -98,11 +98,12 @@ func (e *ExecAdapter) NewNode(config *NodeConfig) (Node, error) {
 		Node:  config,
 	}
 	conf.Stack.DataDir = filepath.Join(dir, "data")
+	// these parameters are crucial for execadapter node to run correctly
 	conf.Stack.WSHost = "127.0.0.1"
 	conf.Stack.WSPort = 0
 	conf.Stack.WSOrigins = []string{"*"}
 	conf.Stack.WSExposeAll = true
-	conf.Stack.P2P.EnableMsgEvents = false
+	conf.Stack.P2P.EnableMsgEvents = config.EnableMsgEvents
 	conf.Stack.P2P.NoDiscovery = true
 	conf.Stack.P2P.NAT = nil
 	conf.Stack.NoUSB = true

@@ -627,7 +627,7 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 	if !action.noAddr {
 		nameargs = append(nameargs, addr.String())
 	}
-	for _, i := range action.args {
+	for i := range action.args {
 		action.args[i] = rand.Int63n(100)
 		nameargs = append(nameargs, fmt.Sprint(action.args[i]))
 	}

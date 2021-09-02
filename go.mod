@@ -3,9 +3,10 @@ module github.com/PlatONnetwork/PlatON-Go
 go 1.14
 
 require (
+	github.com/AlayaNetwork/Alaya-Go v0.16.0
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
 	github.com/Azure/azure-storage-blob-go v0.0.0-20180712005634-eaae161d9d5e
-	github.com/PlatONnetwork/wagon v0.6.1-0.20200422074910-d2bccc71e673
+	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/VictoriaMetrics/fastcache v1.5.7
 	github.com/btcsuite/btcd v0.20.1-beta
@@ -16,6 +17,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
 	github.com/edsrzf/mmap-go v1.0.1-0.20190108065903-904c4ced31cd // indirect
+	github.com/elastic/gosigar v0.14.1
 	github.com/fatih/color v1.3.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
 	github.com/go-errors/errors v1.0.2-0.20180813162953-d98b870cc4e0
@@ -49,6 +51,8 @@ require (
 	github.com/rs/cors v0.0.0-20160617231935-a62a804a8a00
 	github.com/rs/xhandler v0.0.0-20160618193221-ed27b6fd6521 // indirect
 	github.com/shirou/gopsutil v2.20.5+incompatible
+	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
+	github.com/steakknife/hamming v0.0.0-20180906055917-c99c65617cd3 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/tealeg/xlsx v1.0.5

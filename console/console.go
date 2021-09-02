@@ -157,7 +157,7 @@ func (c *Console) init(preload []string) error {
 		return fmt.Errorf("namespace flattening: %v", err)
 	}
 	// Initialize the global name register (disabled for now)
-	//c.jsre.Run(`var GlobalRegistrar = eth.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
+	//c.jsre.Run(`var GlobalRegistrar = platon.contract(` + registrar.GlobalRegistrarAbi + `);   registrar = GlobalRegistrar.at("` + registrar.GlobalRegistrarAddr + `");`)
 
 	// If the console is in interactive mode, instrument password related methods to query the user
 	if c.prompter != nil {
@@ -252,7 +252,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 		return "", nil, ""
 	}
 	// Chunck data to relevant part for autocompletion
-	// E.g. in case of nested lines eth.getBalance(eth.coinb<tab><tab>
+	// E.g. in case of nested lines platon.getBalance(platon.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
@@ -271,16 +271,22 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	return line[:start], c.jsre.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
-// Welcome show summary of current Geth instance and some metadata about the
+// Welcome show summary of current PlatON instance and some metadata about the
 // console's available modules.
 func (c *Console) Welcome() {
-	// Print some generic Geth metadata
-	fmt.Fprintf(c.printer, "Welcome to the PlatON JavaScript console!\n\n")
-	c.jsre.Run(`
-		console.log("instance: " + web3.version.node);
-		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
-		console.log(" datadir: " + admin.datadir);
-	`)
+	message := "Welcome to the PlatON JavaScript console!\n\n"
+
+	// Print some generic Alaya metadata
+	if res, err := c.jsre.Run(`
+		var message = "instance: " + web3.version.node + "\n";
+		message += "at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")\n";
+		try {
+			message += " datadir: " + admin.datadir + "\n";
+		} catch (err) {}
+		message
+	`); err == nil {
+		message += res.String()
+	}
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))
@@ -288,9 +294,9 @@ func (c *Console) Welcome() {
 			modules = append(modules, fmt.Sprintf("%s:%s", api, version))
 		}
 		sort.Strings(modules)
-		fmt.Fprintln(c.printer, " modules:", strings.Join(modules, " "))
+		message += " modules: " + strings.Join(modules, " ") + "\n"
 	}
-	fmt.Fprintln(c.printer)
+	fmt.Fprintln(c.printer, message)
 }
 
 // Evaluate executes code and pretty prints the result to the specified output
