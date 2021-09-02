@@ -153,8 +153,8 @@ func (b *BlockGen) PrevBlock(index int) *types.Block {
 // associated difficulty. It's useful to test scenarios where forking is not
 // tied to chain length directly.
 func (b *BlockGen) OffsetTime(seconds int64) {
-	b.header.Time.Add(b.header.Time, new(big.Int).SetInt64(seconds))
-	if b.header.Time.Cmp(b.parent.Header().Time) <= 0 {
+	b.header.Time += uint64(seconds)
+	if b.header.Time <= b.parent.Header().Time {
 		panic("block time out of range")
 	}
 }
@@ -224,7 +224,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 	}
 	cacheConfig := &CacheConfig{
 		Disabled:        true,
-		TrieNodeLimit:   256 * 1024 * 1024,
+		TrieDirtyLimit:  256 * 1024 * 1024,
 		TrieTimeLimit:   5 * time.Minute,
 		BodyCacheLimit:  256,
 		BlockCacheLimit: 256,
@@ -278,7 +278,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 	}
 	cacheConfig := &CacheConfig{
 		Disabled:        true,
-		TrieNodeLimit:   256 * 1024 * 1024,
+		TrieDirtyLimit:  256 * 1024 * 1024,
 		TrieTimeLimit:   5 * time.Minute,
 		BodyCacheLimit:  256,
 		BlockCacheLimit: 256,
@@ -323,11 +323,11 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 	return blockchain
 }
 func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB, engine consensus.Engine) *types.Header {
-	var time *big.Int
-	if parent.Time() == nil {
-		time = big.NewInt(10)
+	var time uint64
+	if parent.Time() == 0 {
+		time = 10
 	} else {
-		time = new(big.Int).Add(parent.Time(), big.NewInt(10)) // block time is fixed at 10 seconds
+		time = parent.Time() + 10 // block time is fixed at 10 seconds
 	}
 
 	return &types.Header{

@@ -201,7 +201,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case res := <-blockQCCh:
 				txm.blockProduceTime = time.Now()
 				ttf, latency, sendTime := int64(0), int64(0), int64(0)
-				headerTime := common.MillisToTime(res.Header().Time.Int64()).UnixNano()
+				headerTime := common.MillisToTime(int64(res.Header().Time)).UnixNano()
 				currentTime := txm.blockProduceTime.UnixNano()
 				length := 0
 

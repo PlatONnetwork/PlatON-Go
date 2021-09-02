@@ -40,7 +40,7 @@ func newBlock(blockNumber int64) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(blockNumber),
 		ParentHash:  common.BytesToHash(utils.Rand32Bytes(32)),
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 		Root:        common.BytesToHash(utils.Rand32Bytes(32)),

@@ -29,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -132,8 +131,8 @@ type announceBlock struct {
 
 // announceData is the network packet for the block announcements.
 type announceData struct {
-	Hash       common.Hash // Hash of one particular block being announced
-	Number     uint64      // Number of one particular block being announced
+	Hash   common.Hash // Hash of one particular block being announced
+	Number uint64      // Number of one particular block being announced
 	//Td         *big.Int    // Total difficulty of one particular block being announced
 	ReorgDepth uint64
 	Update     keyValueList
@@ -152,8 +151,8 @@ func (a *announceData) checkSignature(pubKey *ecdsa.PublicKey) error {
 	if err := a.Update.decode().get("sign", &sig); err != nil {
 		return err
 	}
-	rlp, _ := rlp.EncodeToBytes(announceBlock{a.Hash, a.Number,})
-	recPubkey, err := secp256k1.RecoverPubkey(crypto.Keccak256(rlp), sig)
+	rlp, _ := rlp.EncodeToBytes(announceBlock{a.Hash, a.Number})
+	recPubkey, err := crypto.Ecrecover(crypto.Keccak256(rlp), sig)
 	if err != nil {
 		return err
 	}
@@ -223,6 +222,6 @@ type proofsData [][]rlp.RawValue
 
 type txStatus struct {
 	Status core.TxStatus
-	Lookup *rawdb.TxLookupEntry `rlp:"nil"`
+	Lookup *rawdb.LegacyTxLookupEntry `rlp:"nil"`
 	Error  string
 }

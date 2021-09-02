@@ -25,13 +25,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
@@ -75,10 +76,12 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 }
 
 func TestCleaner(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "platon")
-	assert.Nil(t, err)
-	defer os.RemoveAll(tmpDir)
-	db, err := leveldb.New(tmpDir, 100, 1024, "")
+	frdir, err := ioutil.TempDir("", "platon")
+	if err != nil {
+		t.Fatalf("failed to create temp freezer dir: %v", err)
+	}
+	defer os.Remove(frdir)
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)
@@ -131,10 +134,12 @@ func TestCleaner(t *testing.T) {
 }
 
 func TestStopCleaner(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "platon")
-	defer os.RemoveAll(tmpDir)
-
-	db, err := leveldb.New(tmpDir, 100, 1024, "")
+	frdir, err := ioutil.TempDir("", "platon")
+	if err != nil {
+		t.Fatalf("failed to create temp freezer dir: %v", err)
+	}
+	defer os.Remove(frdir)
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)
