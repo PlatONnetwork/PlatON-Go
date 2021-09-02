@@ -1388,6 +1388,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	}
 	bc.BlockFeed.Send(block)
 
+	// Update the metrics touched during block processing
+	accountReadTimer.Update(state.AccountReads)     // Account reads are complete, we can mark them
+	storageReadTimer.Update(state.StorageReads)     // Storage reads are complete, we can mark them
+	accountUpdateTimer.Update(state.AccountUpdates) // Account updates are complete, we can mark them
+	storageUpdateTimer.Update(state.StorageUpdates) // Storage updates are complete, we can mark them
+	accountHashTimer.Update(state.AccountHashes)    // Account hashes are complete, we can mark them
+	storageHashTimer.Update(state.StorageHashes)    // Storage hashes are complete, we can mark them
+	accountCommitTimer.Update(state.AccountCommits) // Account commits are complete, we can mark them
+	storageCommitTimer.Update(state.StorageCommits) // Storage commits are complete, we can mark them
+
 	return status, nil
 }
 
