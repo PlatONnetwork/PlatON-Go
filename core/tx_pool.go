@@ -402,7 +402,7 @@ func (pool *TxPool) loop() {
 			close(pool.reorgShutdownCh)
 			return
 
-			// Handle stats reporting ticks
+		// Handle stats reporting ticks
 		case <-report.C:
 			pool.mu.RLock()
 			pending, queued := pool.stats()
@@ -422,7 +422,7 @@ func (pool *TxPool) loop() {
 				return true
 			})
 
-			// Handle inactive account transaction eviction
+		// Handle inactive account transaction eviction
 		case <-evict.C:
 			pool.mu.Lock()
 			for addr := range pool.queue {
@@ -441,7 +441,7 @@ func (pool *TxPool) loop() {
 			}
 			pool.mu.Unlock()
 
-			// Handle local transaction journal rotation
+		// Handle local transaction journal rotation
 		case <-journal.C:
 			if pool.journal != nil {
 				pool.mu.Lock()
