@@ -3,7 +3,6 @@ module github.com/PlatONnetwork/PlatON-Go
 go 1.14
 
 require (
-	github.com/AlayaNetwork/Alaya-Go v0.16.0
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
 	github.com/Azure/azure-storage-blob-go v0.0.0-20180712005634-eaae161d9d5e
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96

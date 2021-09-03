@@ -88,7 +88,6 @@ func NewDatabaseWithCache(db ethdb.Database, cache int) Database {
 type cachingDB struct {
 	db            *trie.Database
 	mu            sync.Mutex
-	pastTries     []*trie.SecureTrie
 	codeSizeCache *lru.Cache
 }
 
