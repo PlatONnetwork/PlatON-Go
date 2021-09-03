@@ -20,7 +20,6 @@ package types
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"io"
 	"math/big"
 	"sort"
@@ -28,6 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -362,14 +363,14 @@ func (b *Block) Transaction(hash common.Hash) *Transaction {
 	return nil
 }
 func (b *Block) SetExtraData(extraData []byte) { b.extraData = extraData }
-func (b *Block) ExtraData() []byte             { return b.extraData }
+func (b *Block) ExtraData() []byte             { return common.CopyBytes(b.extraData) }
 func (b *Block) Number() *big.Int              { return new(big.Int).Set(b.header.Number) }
 func (b *Block) GasLimit() uint64              { return b.header.GasLimit }
 func (b *Block) GasUsed() uint64               { return b.header.GasUsed }
 func (b *Block) Time() uint64                  { return b.header.Time }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
-func (b *Block) Nonce() []byte            { return b.header.Nonce[:] }
+func (b *Block) Nonce() []byte            { return common.CopyBytes(b.header.Nonce.Bytes()) }
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 func (b *Block) Root() common.Hash        { return b.header.Root }
