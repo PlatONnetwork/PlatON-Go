@@ -78,7 +78,7 @@ func getDataBig(data []byte, start *big.Int, size *big.Int) []byte {
 // bigUint64 returns the integer casted to a uint64 and returns whether it
 // overflowed in the process.
 func bigUint64(v *big.Int) (uint64, bool) {
-	return v.Uint64(), v.BitLen() > 64
+	return v.Uint64(), !v.IsUint64()
 }
 
 // toWordSize returns the ceiled word size required for memory expansion.

@@ -18,12 +18,10 @@ package vm
 
 import (
 	"errors"
-
-	"github.com/holiman/uint256"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 )
 

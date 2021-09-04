@@ -25,25 +25,6 @@ func (account) ReturnGas(*big.Int)                                         {}
 func (account) SetCode(common.Hash, []byte)                                {}
 func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
-func TestEnforceRestrictions(t *testing.T) {
-	var (
-		env            = NewEVM(Context{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
-	)
-	evmInterpreter.readOnly = true
-	varstore := operation{
-		execute:    opSstore,
-		dynamicGas: gasSStore,
-		minStack:   minStack(2, 0),
-		maxStack:   maxStack(2, 0),
-		writes:     true,
-	}
-	err := evmInterpreter.enforceRestrictions(SSTORE, varstore, nil)
-	if err == nil {
-		t.Errorf("Test enforceRestrictions error")
-	}
-}
-
 func TestRun(t *testing.T) {
 	var (
 		env            = NewEVM(Context{Ctx: context.TODO()}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
