@@ -31,14 +31,12 @@ require (
 	github.com/huin/goupnp v0.0.0-20161224104101-679507af18f3
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
-	github.com/json-iterator/go v1.1.11
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/karalabe/hid v0.0.0-20170821103837-f00545f9f374
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.0.8-0.20170210172801-5411d3eea597
 	github.com/mattn/go-isatty v0.0.0-20170209175615-281032e84ae0 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/modern-go/reflect2 v1.0.1
 	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
