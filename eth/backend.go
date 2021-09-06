@@ -72,8 +72,7 @@ type LesServer interface {
 
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
-	config      *Config
-	chainConfig *params.ChainConfig
+	config *Config
 
 	// Handlers
 	txPool          *core.TxPool
@@ -215,7 +214,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
-		chainConfig:       chainConfig,
 		eventMux:          ctx.EventMux,
 		accountManager:    ctx.AccountManager,
 		engine:            CreateConsensusEngine(ctx, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, ctx.EventMux),
@@ -266,7 +264,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +284,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, core.NewTxPoolBlockChain(blockChainCache))
+	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, core.NewTxPoolBlockChain(blockChainCache))
 
 	core.SenderCacher.SetTxPool(eth.txPool)
 
@@ -306,12 +304,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
 		eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
-	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.chainConfig.ChainID)
+	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.blockchain.Config().ChainID)
 	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
-		core.NewExecutor(eth.chainConfig, eth.blockchain, vmConfig, eth.txPool)
+		core.NewExecutor(eth.blockchain.Config(), eth.blockchain, vmConfig, eth.txPool)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
@@ -351,7 +349,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
-	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
+	if eth.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
 		return nil, err
 	}
 
@@ -434,7 +432,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPrivateDebugAPI(s.chainConfig, s),
+			Service:   NewPrivateDebugAPI(s),
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
@@ -585,7 +583,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		if flag := cbftEngine.IsConsensusNode(); flag {
-			for _, n := range s.chainConfig.Cbft.InitialNodes {
+			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
 				// todo: Mock point.
 				if !node.FakeNetEnable {
 					srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
