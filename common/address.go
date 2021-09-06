@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"strings"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/btcsuite/btcutil/bech32"
 
@@ -217,6 +218,10 @@ func (a Address) MarshalText() ([]byte, error) {
 		return nil, err
 	}
 	return []byte(v), nil
+}
+
+func (a Address) MarshalText2() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
 }
 
 // UnmarshalText parses a hash in hex syntax.
