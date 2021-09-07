@@ -47,7 +47,6 @@ require (
 	github.com/pborman/uuid v0.0.0-20170112150404-1b00554d8222
 	github.com/peterh/liner v1.0.1-0.20170902204657-a37ad3984311
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/prometheus v1.7.2-0.20170814170113-3101606756c5
 	github.com/prometheus/tsdb v0.10.0
 	github.com/rjeczalik/notify v0.9.1
 	github.com/robertkrimen/otto v0.0.0-20170205013659-6a77b7cbc37d
