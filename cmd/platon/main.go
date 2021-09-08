@@ -202,7 +202,6 @@ func init() {
 		attachCommand,
 		javascriptCommand,
 		versionCommand,
-		bugCommand,
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
