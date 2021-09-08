@@ -30,6 +30,8 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -91,6 +93,40 @@ type Header struct {
 	sealHash  atomic.Value `json:"-" rlp:"-"`
 	hash      atomic.Value `json:"-" rlp:"-"`
 	publicKey atomic.Value `json:"-" rlp:"-"`
+}
+
+// MarshalJSON2 marshals as JSON.
+func (h Header) MarshalJSON2() ([]byte, error) {
+	type Header struct {
+		ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
+		Coinbase    common.Address `json:"miner"            gencodec:"required"`
+		Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
+		TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
+		ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+		Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+		Number      *hexutil.Big   `json:"number"           gencodec:"required"`
+		GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
+		GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
+		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
+		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+		Hash        common.Hash    `json:"hash"`
+	}
+	var enc Header
+	enc.ParentHash = h.ParentHash
+	enc.Coinbase = h.Coinbase
+	enc.Root = h.Root
+	enc.TxHash = h.TxHash
+	enc.ReceiptHash = h.ReceiptHash
+	enc.Bloom = h.Bloom
+	enc.Number = (*hexutil.Big)(h.Number)
+	enc.GasLimit = hexutil.Uint64(h.GasLimit)
+	enc.GasUsed = hexutil.Uint64(h.GasUsed)
+	enc.Time = hexutil.Uint64(h.Time)
+	enc.Extra = h.Extra
+	enc.Nonce = h.Nonce
+	enc.Hash = h.Hash()
+	return json2.Marshal(&enc)
 }
 
 // field type overrides for gencodec

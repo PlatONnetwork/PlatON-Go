@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 )
 
 //func TestEmptyAddress(t *testing.T) {
@@ -136,8 +136,6 @@ func TestJsonEncodeWithEIP55(t *testing.T) {
 
 	defaultJsonAddr, _ := json.Marshal(a)
 
-	json2 := jsoniter.ConfigCompatibleWithStandardLibrary
-	json2.RegisterExtension(&AddressExtension{})
 	json2Addr, err1 := json2.Marshal(a)
 	if err1 != nil {
 		t.Error(err1)

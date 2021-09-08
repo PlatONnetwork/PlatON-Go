@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -130,4 +132,38 @@ func checkError(t *testing.T, testname string, got, want error) bool {
 		t.Errorf("test %q: got error %q, want %q", testname, got, want)
 	}
 	return false
+}
+
+var marshalLogTests = struct {
+	input *Log
+	want  string
+	want2 string
+}{
+	input: &Log{
+		Address:     common.MustBech32ToAddress("lat1anu0sluppm852z2qe8mqqe4557jsr448jq8h34"),
+		BlockHash:   common.HexToHash("0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056"),
+		BlockNumber: 2019236,
+		Data:        hexutil.MustDecode("0x000000000000000000000000000000000000000000000001a055690d9db80000"),
+		Index:       2,
+		TxIndex:     3,
+		TxHash:      common.HexToHash("0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e"),
+		Topics: []common.Hash{
+			common.HexToHash("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"),
+			common.HexToHash("0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"),
+		},
+	},
+	want:  `{"address":"lat1anu0sluppm852z2qe8mqqe4557jsr448jq8h34","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"data":"0x000000000000000000000000000000000000000000000001a055690d9db80000","blockNumber":"0x1ecfa4","transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","logIndex":"0x2","removed":false}`,
+	want2: `{"address":"0xecf8f87f810ecf450940c9f60066b4a7a501d6a7","topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x00000000000000000000000080b2c9d7cbbf30a1b0fc8983c647d754c6525615"],"data":"0x000000000000000000000000000000000000000000000001a055690d9db80000","blockNumber":"0x1ecfa4","transactionHash":"0x3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e","transactionIndex":"0x3","blockHash":"0x656c34545f90a730a19008c0e7a7cd4fb3895064b48d6d69761bd5abad681056","logIndex":"0x2","removed":false}`,
+}
+
+func TestLogMarshal(t *testing.T) {
+	data, _ := json.Marshal(marshalLogTests.input)
+	if string(data) != marshalLogTests.want {
+		t.Errorf("test log marshal: unexpected error,want %v,have %v", marshalLogTests.want, string(data))
+	}
+
+	data2, _ := json2.Marshal(marshalLogTests.input)
+	if string(data) != marshalLogTests.want {
+		t.Errorf("test log marshal2: unexpected error,want %v,have %v", marshalLogTests.want, string(data2))
+	}
 }
