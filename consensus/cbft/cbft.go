@@ -851,19 +851,19 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 		{
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewDebugConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewPublicPlatonConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "admin",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewPublicAdminConsensusAPI(cbft),
 			Public:    true,
 		},
 	}
