@@ -1,6 +1,6 @@
 module github.com/PlatONnetwork/PlatON-Go
 
-go 1.14
+go 1.16
 
 require (
 	github.com/Azure/azure-pipeline-go v0.2.3 // indirect

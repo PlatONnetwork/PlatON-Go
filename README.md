@@ -16,7 +16,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 The requirements to build PlatON-Go are:
 
 - OS:Windows10/Ubuntu18.04
-- [Golang](https://golang.org/doc/install) :version 1.14+
+- [Golang](https://golang.org/doc/install) :version 1.16+
 - [cmake](https://cmake.org/) :version 3.0+
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > 'cmake' and 'gcc&g++' are usually built-in with Ubuntu
@@ -127,10 +127,10 @@ OK, it seems that the chain is running correctly, we can check it as follow:
 platon attach http://127.0.0.1:6789
 Welcome to the PlatON JavaScript console!
 
-instance: PlatONnetwork/platon/v0.7.3-unstable/linux-amd64/go1.10.4
+instance: PlatONnetwork/platon/v0.7.3-unstable/linux-amd64/go1.17
 at block: 26 (Wed, 15 Dec 51802 20:22:44 CST)
- datadir: /home/jht/node1/data
- modules: admin:1.0 debug:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 web3:1.0
+ datadir: /home/develop/platon/data
+ modules: admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0
 
 > platon.blockNumber
 29
