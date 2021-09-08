@@ -164,6 +164,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
+			if config.DatabaseFreezer != "" {
+				if err := os.RemoveAll(ctx.ResolveFreezerPath("chaindata", config.DatabaseFreezer)); err != nil {
+					return nil, err
+				}
+			}
+
 			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
 				return nil, err
 			}
