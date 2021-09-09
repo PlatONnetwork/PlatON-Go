@@ -80,6 +80,17 @@ func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, cache int, handl
 	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
 }
 
+func (ctx *ServiceContext) ResolveFreezerPath(name string, freezer string) string {
+	root := ctx.config.ResolvePath(name)
+	switch {
+	case freezer == "":
+		freezer = filepath.Join(root, "ancient")
+	case !filepath.IsAbs(freezer):
+		freezer = ctx.config.ResolvePath(freezer)
+	}
+	return freezer
+}
+
 // ResolvePath resolves a user path into the data directory if that was relative
 // and if the user actually uses persistent storage. It will return an empty string
 // for emphemeral storage and the user's own input for absolute paths.
