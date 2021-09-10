@@ -382,7 +382,7 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 
 	if total.Cmp(amount) < 0 {
 		rp.log.Warn("Balance of restricting and free not enough", "totalAmount",
-			restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.AdvanceAmount, "free", canStakingFree, "funds", amount)
+			restrictInfo.CachePlanAmount, "stakingAmount", restrictInfo.AdvanceAmount, "free", canStakingFree, "funds", amount)
 		return nil, nil, restricting.ErrRestrictBalanceAndFreeNotEnough
 	}
 
