@@ -3,6 +3,7 @@
 package eth
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -25,6 +26,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		SkipBcVersionCheck       bool `toml:"-"`
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
+		DatabaseFreezer          string
 		TrieCache                int
 		TrieTimeout              time.Duration
 		TrieDBCache              int
@@ -60,6 +62,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
+		RPCGasCap                *big.Int `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -72,6 +75,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
+	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
 	enc.TrieDBCache = c.TrieDBCache
@@ -107,6 +111,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.DocRoot = c.DocRoot
 	enc.Debug = c.Debug
+	enc.RPCGasCap = c.RPCGasCap
 	return &enc, nil
 }
 
@@ -123,6 +128,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		SkipBcVersionCheck       *bool `toml:"-"`
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
+		DatabaseFreezer          *string
 		TrieCache                *int
 		TrieTimeout              *time.Duration
 		TrieDBCache              *int
@@ -158,6 +164,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
+		RPCGasCap                *big.Int `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -192,6 +199,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
+	}
+	if dec.DatabaseFreezer != nil {
+		c.DatabaseFreezer = *dec.DatabaseFreezer
 	}
 	if dec.TrieCache != nil {
 		c.TrieCache = *dec.TrieCache
@@ -297,6 +307,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.Debug != nil {
 		c.Debug = *dec.Debug
+	}
+	if dec.RPCGasCap != nil {
+		c.RPCGasCap = dec.RPCGasCap
 	}
 	return nil
 }
