@@ -14,41 +14,26 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-package ppos
+package core
 
 import (
-	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
 
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
-	RestrictingCmd = cli.Command{
-		Name:  "restricting",
-		Usage: "use for restricting",
-		Subcommands: []cli.Command{
-			getRestrictingInfoCmd,
-		},
-	}
-	getRestrictingInfoCmd = cli.Command{
-		Name:   "getRestrictingInfo",
-		Usage:  "4100,get restricting info,parameter:address",
-		Before: netCheck,
-		Action: getRestrictingInfo,
-		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
+	AnalyzeStressTestCmd = cli.Command{
+		Name:   "analyzeStressTest",
+		Usage:  "analyze the tx stress test source file to generate  result data",
+		Action: analyzeStressTest,
+		Flags:  txStressFlags,
 	}
 )
 
-func getRestrictingInfo(c *cli.Context) error {
-	addstring := c.String(addFlag.Name)
-	if addstring == "" {
-		return errors.New("The locked position release to the account account is not set")
-	}
-	add, err := common.Bech32ToAddress(addstring)
-	if err != nil {
-		return err
-	}
-	return query(c, 4100, add)
+func analyzeStressTest(c *cli.Context) error {
+	configPaths := c.StringSlice(TxStressSourceFilesPathFlag.Name)
+	t := c.Int(TxStressStatisticTimeFlag.Name)
+	output := c.String(TxStressOutPutFileFlag.Name)
+	return eth.AnalyzeStressTest(configPaths, output, t)
 }
