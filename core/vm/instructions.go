@@ -17,16 +17,11 @@
 package vm
 
 import (
-	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
-)
-
-var (
-	errExecutionReverted = errors.New("execution reverted")
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {

@@ -164,7 +164,7 @@ func (engine *wagonEngine) exec(index int64) (ret []byte, err error) {
 
 	switch {
 	case ctx.Revert:
-		return nil, errExecutionReverted
+		return nil, ErrExecutionReverted
 	case engine.vm.Abort():
 		return nil, ErrAbort
 	}
