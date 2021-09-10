@@ -133,13 +133,13 @@ const (
 
 	// PlatONPrecompiled contract gas
 
-	StakingGas          uint64 = 6000  // Gas needed for precompiled contract: stakingContract
-	CreateStakeGas      uint64 = 32000 // Gas needed for createStaking
-	EditCandidatGas     uint64 = 12000 // Gas needed for editCandidate
-	IncStakeGas         uint64 = 20000 // Gas needed for increaseStaking
-	WithdrewStakeGas    uint64 = 20000 // Gas needed for withdrewStaking
-	DelegateGas         uint64 = 16000 // Gas needed for delegate
-	WithdrewDelegateGas uint64 = 8000  // Gas needed for withdrewDelegate
+	StakingGas            uint64 = 6000  // Gas needed for precompiled contract: stakingContract
+	CreateStakeGas        uint64 = 32000 // Gas needed for createStaking
+	EditCandidateGas      uint64 = 12000 // Gas needed for editCandidate
+	IncStakeGas           uint64 = 20000 // Gas needed for increaseStaking
+	WithdrewStakeGas      uint64 = 20000 // Gas needed for withdrewStaking
+	DelegateGas           uint64 = 16000 // Gas needed for delegate
+	WithdrewDelegationGas uint64 = 8000  // Gas needed for withdrewDelegate
 
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText
