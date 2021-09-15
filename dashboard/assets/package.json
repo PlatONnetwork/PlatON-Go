@@ -38,7 +38,7 @@
         "react-fa": "^5.0.0",
         "react-transition-group": "^2.2.1",
         "recharts": "^1.0.0-beta.9",
-        "set-value": "^2.0.1",
+        "set-value": "^4.0.1",
         "style-loader": "^0.19.1",
         "url": "^0.11.0",
         "url-loader": "^0.6.2",
