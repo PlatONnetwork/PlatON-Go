@@ -61,7 +61,6 @@ var (
 		utils.IdentityFlag,
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
-		utils.InsecureUnlockAllowedFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
 		//	utils.BootnodesV5Flag,
@@ -119,6 +118,8 @@ var (
 		utils.RPCEnabledFlag,
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
+		utils.RPCCORSDomainFlag,
+		utils.RPCVirtualHostsFlag,
 		utils.RPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
@@ -127,6 +128,7 @@ var (
 		utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
+		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCap,
 	}
 
