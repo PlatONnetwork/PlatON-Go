@@ -312,7 +312,7 @@ func (db *Database) IncrVersion() {
 }
 
 // DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() ethdb.Reader {
+func (db *Database) DiskDB() ethdb.KeyValueReader {
 	return db.diskdb
 }
 

@@ -41,7 +41,7 @@ import (
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -98,9 +98,9 @@ func (ks keyStorePassphrase) GetKey(addr common.Address, filename, auth string) 
 }
 
 // StoreKey generates a key, encrypts with 'auth' and stores in the given directory
-func StoreKey(dir, auth string, scryptN, scryptP int) (common.Address, error) {
+func StoreKey(dir, auth string, scryptN, scryptP int) (accounts.Account, error) {
 	_, a, err := storeNewKey(&keyStorePassphrase{dir, scryptN, scryptP, false}, rand.Reader, auth)
-	return a.Address, err
+	return a, err
 }
 
 func (ks keyStorePassphrase) StoreKey(filename string, key *Key, auth string) error {

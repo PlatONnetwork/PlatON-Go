@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -14,17 +14,18 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
+
 package utils
 
 import (
 	"bytes"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"math/rand"
 	"sort"
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 )
 
 // RandomOffset returns a random offset between 0 and n

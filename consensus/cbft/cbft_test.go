@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package cbft
 
@@ -115,7 +116,7 @@ func TestPrepareBlockBls(t *testing.T) {
 	header := &types.Header{
 		Number:      big.NewInt(int64(1)),
 		ParentHash:  common.BytesToHash(utils.Rand32Bytes(32)),
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(utils.Rand32Bytes(32)),
 		Root:        common.BytesToHash(utils.Rand32Bytes(32)),

@@ -43,7 +43,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	gopsutil "github.com/shirou/gopsutil/mem"
+	"github.com/elastic/gosigar"
 )
 
 const (
@@ -53,8 +53,9 @@ const (
 var (
 	// Git SHA1 commit hash of the release (set via linker flags)
 	gitCommit = ""
+	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, "the platon-go command line interface")
+	app = utils.NewApp(gitCommit, gitDate, "the platon-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -64,6 +65,7 @@ var (
 		utils.BootnodesV4Flag,
 		//	utils.BootnodesV5Flag,
 		utils.DataDirFlag,
+		utils.AncientFlag,
 		utils.KeyStoreDirFlag,
 		utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
@@ -105,8 +107,6 @@ var (
 		utils.MainFlag,
 		utils.TestnetFlag,
 		utils.NetworkIdFlag,
-		utils.RPCCORSDomainFlag,
-		utils.RPCVirtualHostsFlag,
 		//utils.EthStatsURLFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
@@ -118,6 +118,8 @@ var (
 		utils.RPCEnabledFlag,
 		utils.RPCListenAddrFlag,
 		utils.RPCPortFlag,
+		utils.RPCCORSDomainFlag,
+		utils.RPCVirtualHostsFlag,
 		utils.RPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
@@ -126,6 +128,8 @@ var (
 		utils.WSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
+		utils.InsecureUnlockAllowedFlag,
+		utils.RPCGlobalGasCap,
 	}
 
 	//whisperFlags = []cli.Flag{
@@ -136,12 +140,13 @@ var (
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnabledFlag,
+		utils.MetricsEnabledExpensiveFlag,
 		utils.MetricsEnableInfluxDBFlag,
 		utils.MetricsInfluxDBEndpointFlag,
 		utils.MetricsInfluxDBDatabaseFlag,
 		utils.MetricsInfluxDBUsernameFlag,
 		utils.MetricsInfluxDBPasswordFlag,
-		utils.MetricsInfluxDBHostTagFlag,
+		utils.MetricsInfluxDBTagsFlag,
 	}
 
 	//mpcFlags = []cli.Flag{
@@ -192,6 +197,7 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
+		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
@@ -199,7 +205,6 @@ func init() {
 		attachCommand,
 		javascriptCommand,
 		versionCommand,
-		bugCommand,
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
@@ -240,16 +245,16 @@ func init() {
 		}
 
 		// Cap the cache allowance and tune the garbage collector
-		mem, err := gopsutil.VirtualMemory()
-		if err == nil {
-			if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
-				log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
-				mem.Total = 2 * 1024 * 1024 * 1024
-			}
-			allowance := int(mem.Total / 1024 / 1024 / 3)
-			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
+		var mem gosigar.Mem
+		// Workaround until OpenBSD support lands into gosigar
+		// Check https://github.com/elastic/gosigar#supported-platforms
+		if runtime.GOOS != "openbsd" {
+			if err := mem.Get(); err == nil {
+				allowance := int(mem.Total / 1024 / 1024 / 3)
+				if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
+					log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
+					ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
+				}
 			}
 		}
 		// Ensure Go's GC ignores the database cache for trigger percentage
@@ -306,15 +311,8 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	utils.StartNode(stack)
 
 	// Unlock any account specifically requested
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	unlockAccounts(ctx, stack)
 
-	passwords := utils.MakePasswordList(ctx)
-	unlocks := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
-	for i, account := range unlocks {
-		if trimmed := strings.TrimSpace(account); trimmed != "" {
-			unlockAccount(ctx, ks, trimmed, i, passwords)
-		}
-	}
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
 	stack.AccountManager().Subscribe(events)
@@ -372,5 +370,30 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 
 	if err := ethereum.StartMining(); err != nil {
 		utils.Fatalf("Failed to start mining: %v", err)
+	}
+}
+
+// unlockAccounts unlocks any account specifically requested.
+func unlockAccounts(ctx *cli.Context, stack *node.Node) {
+	var unlocks []string
+	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+	for _, input := range inputs {
+		if trimmed := strings.TrimSpace(input); trimmed != "" {
+			unlocks = append(unlocks, trimmed)
+		}
+	}
+	// Short circuit if there is no account to unlock.
+	if len(unlocks) == 0 {
+		return
+	}
+	// If insecure account unlocking is not allowed if node's APIs are exposed to external.
+	// Print warning log to user and skip unlocking.
+	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
+		utils.Fatalf("Account unlock with HTTP access is forbidden!")
+	}
+	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	passwords := utils.MakePasswordList(ctx)
+	for i, account := range unlocks {
+		unlockAccount(ks, account, i, passwords)
 	}
 }

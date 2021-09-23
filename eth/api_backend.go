@@ -18,6 +18,7 @@ package eth
 
 import (
 	"context"
+	"errors"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -42,13 +43,14 @@ import (
 
 // EthAPIBackend implements ethapi.Backend for full nodes
 type EthAPIBackend struct {
-	eth *Ethereum
-	gpo *gasprice.Oracle
+	extRPCEnabled bool
+	eth           *Ethereum
+	gpo           *gasprice.Oracle
 }
 
 // ChainConfig returns the active chain configuration.
 func (b *EthAPIBackend) ChainConfig() *params.ChainConfig {
-	return b.eth.chainConfig
+	return b.eth.blockchain.Config()
 }
 
 func (b *EthAPIBackend) Engine() consensus.Engine {
@@ -59,10 +61,10 @@ func (b *EthAPIBackend) CurrentBlock() *types.Block {
 	return b.eth.blockchain.CurrentBlock()
 }
 
-func (b *EthAPIBackend) SetHead(number uint64) {
+/*func (b *EthAPIBackend) SetHead(number uint64) {
 	b.eth.protocolManager.downloader.Cancel()
 	b.eth.blockchain.SetHead(number)
-}
+}*/
 
 func (b *EthAPIBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error) {
 	// Pending block is only known by the miner
@@ -102,8 +104,11 @@ func (b *EthAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.
 	}
 	// Otherwise resolve the block number and return its state
 	header, err := b.HeaderByNumber(ctx, blockNr)
-	if header == nil || err != nil {
+	if err != nil {
 		return nil, nil, err
+	}
+	if header == nil {
+		return nil, nil, errors.New("header not found")
 	}
 	stateDb, err := b.eth.BlockChain().StateAt(header.Root)
 	return stateDb, header, err
@@ -114,18 +119,11 @@ func (b *EthAPIBackend) GetBlock(ctx context.Context, hash common.Hash) (*types.
 }
 
 func (b *EthAPIBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
-	if number := rawdb.ReadHeaderNumber(b.eth.chainDb, hash); number != nil {
-		return rawdb.ReadReceipts(b.eth.chainDb, hash, *number, b.ChainConfig()), nil
-	}
-	return nil, nil
+	return b.eth.blockchain.GetReceiptsByHash(hash), nil
 }
 
 func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
-	number := rawdb.ReadHeaderNumber(b.eth.chainDb, hash)
-	if number == nil {
-		return nil, nil
-	}
-	receipts := rawdb.ReadReceipts(b.eth.chainDb, hash, *number, b.ChainConfig())
+	receipts := b.eth.blockchain.GetReceiptsByHash(hash)
 	if receipts == nil {
 		return nil, nil
 	}
@@ -140,7 +138,7 @@ func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *sta
 	vmError := func() error { return nil }
 
 	context := core.NewEVMContext(msg, header, b.eth.BlockChain())
-	return vm.NewEVM(context, snapshotdb.Instance(), state, b.eth.chainConfig, *b.eth.blockchain.GetVMConfig()), vmError, nil
+	return vm.NewEVM(context, snapshotdb.Instance(), state, b.eth.blockchain.Config(), *b.eth.blockchain.GetVMConfig()), vmError, nil
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
@@ -183,6 +181,11 @@ func (b *EthAPIBackend) GetPoolTransaction(hash common.Hash) *types.Transaction 
 	return b.eth.txPool.Get(hash)
 }
 
+func (b *EthAPIBackend) GetTransaction(ctx context.Context, txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64, error) {
+	tx, blockHash, blockNumber, index := rawdb.ReadTransaction(b.eth.ChainDb(), txHash)
+	return tx, blockHash, blockNumber, index, nil
+}
+
 func (b *EthAPIBackend) GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error) {
 	return b.eth.txPool.Nonce(addr), nil
 }
@@ -221,6 +224,14 @@ func (b *EthAPIBackend) EventMux() *event.TypeMux {
 
 func (b *EthAPIBackend) AccountManager() *accounts.Manager {
 	return b.eth.AccountManager()
+}
+
+func (b *EthAPIBackend) ExtRPCEnabled() bool {
+	return b.extRPCEnabled
+}
+
+func (b *EthAPIBackend) RPCGasCap() *big.Int {
+	return b.eth.config.RPCGasCap
 }
 
 func (b *EthAPIBackend) BloomStatus() (uint64, uint64) {

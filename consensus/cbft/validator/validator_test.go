@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package validator
 
@@ -536,7 +537,7 @@ func TestValidatorPoolVerify(t *testing.T) {
 		ParentHash: common.Hash{},
 		Root:       common.Hash{},
 		Number:     big.NewInt(0),
-		Time:       big.NewInt(time.Now().Unix()),
+		Time:       uint64(time.Now().Unix()),
 		Extra:      make([]byte, 32+consensus.ExtraSeal),
 	}
 	sig, err := crypto.Sign(header.SealHash().Bytes(), priKey)

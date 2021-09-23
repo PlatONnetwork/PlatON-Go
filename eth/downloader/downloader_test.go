@@ -47,8 +47,9 @@ var logger = log.New("test", "down")
 // Reduce some of the parameters to make the tester faster.
 func init() {
 	rand.Seed(time.Now().Unix())
-	MaxForkAncestry = uint64(10000)
+	maxForkAncestry = 10000
 	fsHeaderContCheck = 500 * time.Millisecond
+	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 // downloadTester is a test simulator for mocking out local block chain.
@@ -65,6 +66,10 @@ type downloadTester struct {
 	ownHeaders  map[common.Hash]*types.Header  // Headers belonging to the tester
 	ownBlocks   map[common.Hash]*types.Block   // Blocks belonging to the tester
 	ownReceipts map[common.Hash]types.Receipts // Receipts belonging to the tester
+
+	ancientHeaders  map[common.Hash]*types.Header  // Ancient headers belonging to the tester
+	ancientBlocks   map[common.Hash]*types.Block   // Ancient blocks belonging to the tester
+	ancientReceipts map[common.Hash]types.Receipts // Ancient receipts belonging to the tester
 
 	lock sync.RWMutex
 }
@@ -85,11 +90,16 @@ func newTester() *downloadTester {
 		ownBlocks:   map[common.Hash]*types.Block{testGenesis.Hash(): testGenesis},
 		ownReceipts: map[common.Hash]types.Receipts{testGenesis.Hash(): nil},
 		snapshotdb:  sdb,
+
+		// Initialize ancient store with test genesis block
+		ancientHeaders:  map[common.Hash]*types.Header{testGenesis.Hash(): testGenesis.Header()},
+		ancientBlocks:   map[common.Hash]*types.Block{testGenesis.Hash(): testGenesis},
+		ancientReceipts: map[common.Hash]types.Receipts{testGenesis.Hash(): nil},
 	}
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(testGenesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(0, tester.stateDb, sdb, new(event.TypeMux), tester, nil, tester.dropPeer, nil)
+	tester.downloader = New(tester.stateDb, sdb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, nil, tester.dropPeer, nil)
 	return tester
 }
 
@@ -181,11 +191,27 @@ func (dl *downloadTester) HasBlock(hash common.Hash, number uint64) bool {
 	return dl.GetBlockByHash(hash) != nil
 }
 
+// HasFastBlock checks if a block is present in the testers canonical chain.
+func (dl *downloadTester) HasFastBlock(hash common.Hash, number uint64) bool {
+	dl.lock.RLock()
+	defer dl.lock.RUnlock()
+
+	if _, ok := dl.ancientReceipts[hash]; ok {
+		return true
+	}
+	_, ok := dl.ownReceipts[hash]
+	return ok
+}
+
 // GetHeader retrieves a header from the testers canonical chain.
 func (dl *downloadTester) GetHeaderByHash(hash common.Hash) *types.Header {
 	dl.lock.RLock()
 	defer dl.lock.RUnlock()
 
+	header := dl.ancientHeaders[hash]
+	if header != nil {
+		return header
+	}
 	return dl.ownHeaders[hash]
 }
 
@@ -194,6 +220,10 @@ func (dl *downloadTester) GetBlockByHash(hash common.Hash) *types.Block {
 	dl.lock.RLock()
 	defer dl.lock.RUnlock()
 
+	block := dl.ancientBlocks[hash]
+	if block != nil {
+		return block
+	}
 	return dl.ownBlocks[hash]
 }
 
@@ -203,6 +233,9 @@ func (dl *downloadTester) CurrentHeader() *types.Header {
 	defer dl.lock.RUnlock()
 
 	for i := len(dl.ownHashes) - 1; i >= 0; i-- {
+		if header := dl.ancientHeaders[dl.ownHashes[i]]; header != nil {
+			return header
+		}
 		if header := dl.ownHeaders[dl.ownHashes[i]]; header != nil {
 			return header
 		}
@@ -216,6 +249,12 @@ func (dl *downloadTester) CurrentBlock() *types.Block {
 	defer dl.lock.RUnlock()
 
 	for i := len(dl.ownHashes) - 1; i >= 0; i-- {
+		if block := dl.ancientBlocks[dl.ownHashes[i]]; block != nil {
+			if _, err := dl.stateDb.Get(block.Root().Bytes()); err == nil {
+				return block
+			}
+			return block
+		}
 		if block := dl.ownBlocks[dl.ownHashes[i]]; block != nil {
 			if _, err := dl.stateDb.Get(block.Root().Bytes()); err == nil {
 				return block
@@ -231,6 +270,9 @@ func (dl *downloadTester) CurrentFastBlock() *types.Block {
 	defer dl.lock.RUnlock()
 
 	for i := len(dl.ownHashes) - 1; i >= 0; i-- {
+		if block := dl.ancientBlocks[dl.ownHashes[i]]; block != nil {
+			return block
+		}
 		if block := dl.ownBlocks[dl.ownHashes[i]]; block != nil {
 			return block
 		}
@@ -299,7 +341,7 @@ func (dl *downloadTester) InsertChain(blocks types.Blocks) (int, error) {
 }
 
 // InsertReceiptChain injects a new batch of receipts into the simulated chain.
-func (dl *downloadTester) InsertReceiptChain(blocks types.Blocks, receipts []types.Receipts) (int, error) {
+func (dl *downloadTester) InsertReceiptChain(blocks types.Blocks, receipts []types.Receipts, ancientLimit uint64) (i int, err error) {
 	dl.lock.Lock()
 	defer dl.lock.Unlock()
 
@@ -307,11 +349,23 @@ func (dl *downloadTester) InsertReceiptChain(blocks types.Blocks, receipts []typ
 		if _, ok := dl.ownHeaders[blocks[i].Hash()]; !ok {
 			return i, errors.New("unknown owner")
 		}
-		if _, ok := dl.ownBlocks[blocks[i].ParentHash()]; !ok {
-			return i, errors.New("unknown parent")
+		if _, ok := dl.ancientBlocks[blocks[i].ParentHash()]; !ok {
+			if _, ok := dl.ownBlocks[blocks[i].ParentHash()]; !ok {
+				return i, errors.New("unknown parent")
+			}
 		}
-		dl.ownBlocks[blocks[i].Hash()] = blocks[i]
-		dl.ownReceipts[blocks[i].Hash()] = receipts[i]
+		if blocks[i].NumberU64() <= ancientLimit {
+			dl.ancientBlocks[blocks[i].Hash()] = blocks[i]
+			dl.ancientReceipts[blocks[i].Hash()] = receipts[i]
+
+			// Migrate from active db to ancient db
+			dl.ancientHeaders[blocks[i].Hash()] = blocks[i].Header()
+
+			delete(dl.ownHeaders, blocks[i].Hash())
+		} else {
+			dl.ownBlocks[blocks[i].Hash()] = blocks[i]
+			dl.ownReceipts[blocks[i].Hash()] = receipts[i]
+		}
 	}
 	return len(blocks), nil
 }
@@ -328,6 +382,10 @@ func (dl *downloadTester) Rollback(hashes []common.Hash) {
 		delete(dl.ownHeaders, hashes[i])
 		delete(dl.ownReceipts, hashes[i])
 		delete(dl.ownBlocks, hashes[i])
+
+		delete(dl.ancientHeaders, hashes[i])
+		delete(dl.ancientReceipts, hashes[i])
+		delete(dl.ancientBlocks, hashes[i])
 	}
 }
 
@@ -537,13 +595,13 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 	if tester.downloader.mode == LightSync {
 		blocks, receipts = 1, 1
 	}
-	if hs := len(tester.ownHeaders); hs != headers {
+	if hs := len(tester.ownHeaders) + len(tester.ancientHeaders) - 1; hs != headers {
 		t.Fatalf("synchronised headers mismatch: have %v, want %v", hs, headers)
 	}
-	if bs := len(tester.ownBlocks); bs != blocks {
+	if bs := len(tester.ownBlocks) + len(tester.ancientBlocks) - 1; bs != blocks {
 		t.Fatalf("synchronised blocks mismatch: have %v, want %v", bs, blocks)
 	}
-	if rs := len(tester.ownReceipts); rs != receipts {
+	if rs := len(tester.ownReceipts) + len(tester.ancientReceipts) - 1; rs != receipts {
 		t.Fatalf("synchronised receipts mismatch: have %v, want %v", rs, receipts)
 	}
 	// test ppos
@@ -1232,14 +1290,8 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol int) {
 		{errPeersUnavailable, true},         // Nobody had the advertised blocks, drop the advertiser
 		{errInvalidAncestor, true},          // Agreed upon ancestor is not acceptable, drop the chain rewriter
 		{errInvalidChain, true},             // Hash chain was detected as invalid, definitely drop
-		{errInvalidBlock, false},            // A bad peer was detected, but not the sync origin
 		{errInvalidBody, false},             // A bad peer was detected, but not the sync origin
 		{errInvalidReceipt, false},          // A bad peer was detected, but not the sync origin
-		{errCancelBlockFetch, false},        // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelHeaderFetch, false},       // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelBodyFetch, false},         // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelReceiptFetch, false},      // Synchronisation was canceled, origin may be innocent, don't drop
-		{errCancelHeaderProcessing, false},  // Synchronisation was canceled, origin may be innocent, don't drop
 		{errCancelContentProcessing, false}, // Synchronisation was canceled, origin may be innocent, don't drop
 	}
 	// Run the tests and check disconnection status

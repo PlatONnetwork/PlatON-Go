@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package cbft
 
@@ -692,7 +693,7 @@ func (cbft *Cbft) MissingPrepareVote() (v *protocols.GetPrepareVote, err error) 
 		cbft.log.Debug("MissingPrepareVote", "epoch", cbft.state.Epoch(), "viewNumber", cbft.state.ViewNumber(), "beginIndex", begin, "endIndex", end, "validatorLen", len)
 
 		block := cbft.state.HighestQCBlock()
-		blockTime := common.MillisToTime(block.Time().Int64())
+		blockTime := common.MillisToTime(int64(block.Time()))
 
 		for index := begin; index < end; index++ {
 			size := cbft.state.PrepareVoteLenByIndex(index)

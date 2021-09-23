@@ -41,7 +41,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 //
 // It's important to note that any errors returned by the interpreter should be
 // considered a revert-and-consume-all-gas operations except for
-// errExecutionReverted which means revert-and-keep-gas-lfet.
+// ErrExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {

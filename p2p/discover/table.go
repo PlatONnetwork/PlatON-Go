@@ -318,7 +318,7 @@ func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
 func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	fails := tab.db.findFails(n.ID)
 	r, err := tab.net.findnode(n.ID, n.addr(), targetID)
-	if err != nil || len(r) == 0 {
+	if len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
 		log.Trace("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
@@ -443,7 +443,7 @@ func (tab *Table) loadSeedNodes() {
 	for i := range seeds {
 		seed := seeds[i]
 		age := log.Lazy{Fn: func() interface{} { return time.Since(tab.db.lastPongReceived(seed.ID)) }}
-		log.Debug("Found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age)
+		log.Trace("Found seed node in database", "id", seed.ID, "addr", seed.addr(), "age", age)
 		tab.add(seed)
 	}
 }

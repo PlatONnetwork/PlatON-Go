@@ -133,14 +133,12 @@ func (e *commitWorkEnv) setCommitStatusIdle() {
 // and gathering the sealing result.
 type worker struct {
 	EmptyBlock   string
-	config       *params.ChainConfig
+	config       *Config
+	chainConfig  *params.ChainConfig
 	miningConfig *core.MiningConfig
 	engine       consensus.Engine
 	eth          Backend
 	chain        *core.BlockChain
-
-	gasFloor uint64
-	//gasCeil  uint64
 
 	// Subscriptions
 	mux          *event.TypeMux
@@ -201,19 +199,18 @@ type worker struct {
 	vmTimeout uint64
 }
 
-func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
-	eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor uint64, isLocalBlock func(*types.Block) bool,
+func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
+	eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
 
 	worker := &worker{
-		config:       config,
-		miningConfig: miningConfig,
-		engine:       engine,
-		eth:          eth,
-		mux:          mux,
-		chain:        eth.BlockChain(),
-		gasFloor:     gasFloor,
-		//gasCeil:            gasCeil,
+		config:             config,
+		chainConfig:        chainConfig,
+		miningConfig:       miningConfig,
+		engine:             engine,
+		eth:                eth,
+		mux:                mux,
+		chain:              eth.BlockChain(),
 		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
@@ -240,18 +237,18 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 	worker.bftResultSub = worker.mux.Subscribe(cbfttypes.CbftResult{})
 	// Sanitize recommit interval if the user-specified one is too short.
-	if config.Cbft != nil {
-		recommit = time.Duration(config.Cbft.Period) * time.Second
+	if chainConfig.Cbft != nil {
+		worker.config.Recommit = time.Duration(chainConfig.Cbft.Period) * time.Second
 	}
-	if recommit < miningConfig.MinRecommitInterval {
-		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", miningConfig.MinRecommitInterval)
-		recommit = miningConfig.MinRecommitInterval
+	if worker.config.Recommit < miningConfig.MinRecommitInterval {
+		log.Warn("Sanitizing miner recommit interval", "provided", worker.config.Recommit, "updated", miningConfig.MinRecommitInterval)
+		worker.config.Recommit = miningConfig.MinRecommitInterval
 	}
 
-	worker.EmptyBlock = config.EmptyBlock
+	worker.EmptyBlock = chainConfig.EmptyBlock
 
-	worker.recommit = recommit
-	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * miningConfig.DefaultCommitRatio)
+	worker.recommit = worker.config.Recommit
+	worker.commitDuration = int64((float64)(worker.config.Recommit.Nanoseconds()/1e6) * miningConfig.DefaultCommitRatio)
 	log.Info("CommitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
 	worker.commitWorkEnv.nextBlockTime.Store(time.Now())
@@ -260,7 +257,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	//worker.setCommitter(NewTxsCommitter(worker))
 
 	go worker.mainLoop()
-	go worker.newWorkLoop(recommit)
+	go worker.newWorkLoop(worker.config.Recommit)
 	go worker.resultLoop()
 	go worker.taskLoop()
 
@@ -462,7 +459,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						}
 					}
 					timer.Reset(50 * time.Millisecond)
-				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
+				} else if w.chainConfig.Clique == nil || w.chainConfig.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
 						timer.Reset(recommit)
@@ -769,7 +766,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.NewEIP155Signer(w.config.ChainID),
+		signer:     types.NewEIP155Signer(w.chainConfig.ChainID),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,
@@ -801,7 +798,7 @@ func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) 
 
 	vmCfg := *w.chain.GetVMConfig()       // value copy
 	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, w.current.gasPool, w.current.state,
+	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, w.current.gasPool, w.current.state,
 		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
@@ -827,7 +824,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	}
 
 	var coalescedLogs []*types.Log
-	var bftEngine = w.config.Cbft != nil
+	var bftEngine = w.chainConfig.Cbft != nil
 
 	for {
 		now := time.Now()
@@ -875,8 +872,8 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		from, _ := types.Sender(w.current.signer, tx)
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
-		if !w.config.IsEIP155(w.current.header.Number) {
-			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.config.EIP155Block)
+		if !w.chainConfig.IsEIP155(w.current.header.Number) {
+			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.chainConfig.EIP155Block)
 
 			txs.Pop()
 			continue
@@ -969,8 +966,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
-		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
-			timestamp = parent.Time().Int64() + 1
+		if parent.Time() >= uint64(timestamp) {
+			timestamp = int64(parent.Time() + 1)
 		}
 		// this will ensure we're not going off too far in the future
 		if now := time.Now().Unix(); timestamp > now+1 {
@@ -984,8 +981,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor),
-		Time:       big.NewInt(timestamp),
+		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor),
+		Time:       uint64(timestamp),
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1028,8 +1025,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
-	if w.config.Cbft.ValidatorMode == "inner" {
+	log.Trace("Validator mode", "mode", w.chainConfig.Cbft.ValidatorMode)
+	if w.chainConfig.Cbft.ValidatorMode == "inner" {
 		// Check if need to switch validators.
 		// If needed, make a inner contract transaction
 		// and pack into pending block.
@@ -1205,7 +1202,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.engine.NextBaseBlock()
-	nextBaseBlockTime := common.MillisToTime(nextBaseBlock.Time().Int64())
+	nextBaseBlockTime := common.MillisToTime(int64(nextBaseBlock.Time()))
 
 	if timestamp.Before(nextBaseBlockTime) {
 		log.Warn("Invalid packing timestamp,current timestamp is lower than the parent timestamp", "parentBlockTime", common.Beautiful(nextBaseBlockTime), "currentBlockTime", common.Beautiful(timestamp))
@@ -1235,17 +1232,17 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		} else {
 			log.Debug("Check if time's up in shouldCommit()", "result", shouldCommit,
 				"current.number", currentBaseBlock.Number(),
 				"current.hash", currentBaseBlock.Hash(),
-				"current.timestamp", common.MillisToString(currentBaseBlock.Time().Int64()),
+				"current.timestamp", common.MillisToString(int64(currentBaseBlock.Time())),
 				"next.number", nextBaseBlock.Number(),
 				"next.hash", nextBaseBlock.Hash(),
-				"next.timestamp", common.MillisToString(nextBaseBlock.Time().Int64()),
+				"next.timestamp", common.MillisToString(int64(nextBaseBlock.Time())),
 				"nextBlockTime", nextBlockTime,
 				"timestamp", timestamp)
 		}

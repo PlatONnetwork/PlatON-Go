@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -28,12 +28,21 @@ var (
 
 // business error, Gas will not be returned back to caller
 type BizError struct {
-	Code uint32
-	Msg  string
+	Code uint32 `json:"code"`
+	Msg  string `json:"message"`
 }
 
 func (e *BizError) Error() string {
 	return e.Msg
+}
+
+func (e *BizError) ErrorData() interface{} {
+	return e
+}
+
+// ErrorCode returns the JSON error code for a revertal.
+func (e *BizError) ErrorCode() int {
+	return 4
 }
 
 func NewBizError(code uint32, text string) *BizError {

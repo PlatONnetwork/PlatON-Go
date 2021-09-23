@@ -13,16 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReadWriteDatabaseVersion(t *testing.T) {
-	chainDb := NewMemoryDatabase()
-	bcVersion := ReadDatabaseVersion(chainDb)
-	assert.Equal(t, 0, bcVersion, "got: %d, want: %d", bcVersion, 0)
-
-	WriteDatabaseVersion(chainDb, 1)
-	bcVersion = ReadDatabaseVersion(chainDb)
-	assert.Equal(t, 1, bcVersion, "got: %d, want: %d", bcVersion, 1)
-}
-
 func TestReadWriteEconomicModel(t *testing.T) {
 
 	chainDb := NewMemoryDatabase()
@@ -59,7 +49,7 @@ func TestReadWritePreimages(t *testing.T) {
 
 	preimages := make(map[common.Hash][]byte)
 	preimages[hash] = common.CopyBytes(blob)
-	WritePreimages(chainDb, 0, preimages)
+	WritePreimages(chainDb, preimages)
 
 	preimage = ReadPreimage(chainDb, hash)
 	assert.NotEqual(t, 0, len(preimage), "the preimage is nil")

@@ -156,7 +156,7 @@ func NewProtocolManager(chainConfig *params.ChainConfig, indexerConfig *light.In
 	}
 
 	if lightSync {
-		manager.downloader = downloader.New(downloader.LightSync, chainDb, snapshotdb.Instance(), manager.eventMux, nil, blockchain, removePeer, nil)
+		manager.downloader = downloader.New(chainDb, snapshotdb.Instance(), nil, manager.eventMux, nil, blockchain, removePeer, nil)
 		manager.peers.notify((*downloaderPeerNotify)(manager))
 		manager.fetcher = newLightFetcher(manager)
 	}
@@ -665,7 +665,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Retrieve the requested block's receipts, skipping if unknown to us
 			var results types.Receipts
 			if number := rawdb.ReadHeaderNumber(pm.chainDb, hash); number != nil {
-				results = rawdb.ReadReceipts(pm.chainDb, hash, *number, pm.chainConfig)
+				results = rawdb.ReadRawReceipts(pm.chainDb, hash, *number)
 			}
 			if results == nil {
 				if header := pm.blockchain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyRootHash {
@@ -1166,9 +1166,9 @@ func (pm *ProtocolManager) txStatus(hashes []common.Hash) []txStatus {
 
 		// If the transaction is unknown to the pool, try looking it up locally
 		if stat == core.TxStatusUnknown {
-			if block, number, index := rawdb.ReadTxLookupEntry(pm.chainDb, hashes[i]); block != (common.Hash{}) {
+			if tx, blockHash, blockNumber, txIndex := rawdb.ReadTransaction(pm.chainDb, hashes[i]); tx != nil {
 				stats[i].Status = core.TxStatusIncluded
-				stats[i].Lookup = &rawdb.TxLookupEntry{BlockHash: block, BlockIndex: number, Index: index}
+				stats[i].Lookup = &rawdb.LegacyTxLookupEntry{BlockHash: blockHash, BlockIndex: blockNumber, Index: txIndex}
 			}
 		}
 	}

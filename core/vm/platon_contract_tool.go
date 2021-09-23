@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -38,10 +38,10 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 	result := reflect.ValueOf(fn).Call(params)
 	switch errtyp := result[1].Interface().(type) {
 	case *common.BizError:
-		log.Error("Failed to execute contract tx", "err", err)
+		log.Error("Failed to execute contract tx", "err", errtyp)
 		return xcom.NewResult(errtyp, nil), errtyp
 	case error:
-		log.Error("Failed to execute contract tx", "err", err)
+		log.Error("Failed to execute contract tx", "err", errtyp)
 		return xcom.NewResult(common.InternalError, nil), errtyp
 	default:
 	}
