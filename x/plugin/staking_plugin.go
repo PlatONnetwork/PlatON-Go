@@ -4084,7 +4084,7 @@ func (sk *StakingPlugin) SetReward(block *types.Block, numStr string) error {
 			return err
 		}
 		epochBlocks := xutil.CalcBlocksEachEpoch()
-		remainTime := incIssuanceTime - block.Header().Time.Int64()
+		remainTime := incIssuanceTime - int64(block.Header().Time)
 		remainEpoch := 1
 		remainBlocks := math2.Ceil(float64(remainTime) / float64(avgPackTime))
 		if remainBlocks > float64(epochBlocks) {
