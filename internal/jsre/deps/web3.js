@@ -4724,6 +4724,7 @@ HttpProvider.prototype.sendAsync = function (payload, callback) {
 HttpProvider.prototype.isConnected = function () {
   try {
     this.send({
+      bech32: true,
       id: 9999999999,
       jsonrpc: '2.0',
       method: 'net_listening',
@@ -5220,6 +5221,7 @@ Jsonrpc.toPayload = function (method, params) {
     Jsonrpc.messageId++;
 
     return {
+        bech32: true,
         jsonrpc: '2.0',
         id: Jsonrpc.messageId,
         method: method,
@@ -5380,6 +5382,7 @@ Method.prototype.toPayload = function (args) {
     this.validateArgs(params);
 
     return {
+        bech32: true,
         method: call,
         params: params,
         callback: callback

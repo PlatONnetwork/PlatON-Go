@@ -612,13 +612,22 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 			},
 			args: make([]int64, 1),
 		},
+		{
+			name: "AddPreimage",
+			fn: func(a testAction, s *StateDB) {
+				preimage := []byte{1}
+				hash := common.BytesToHash(preimage)
+				s.AddPreimage(hash, preimage)
+			},
+			args: make([]int64, 1),
+		},
 	}
 	action := actions[r.Intn(len(actions))]
 	var nameargs []string
 	if !action.noAddr {
 		nameargs = append(nameargs, addr.String())
 	}
-	for _, i := range action.args {
+	for i := range action.args {
 		action.args[i] = rand.Int63n(100)
 		nameargs = append(nameargs, fmt.Sprint(action.args[i]))
 	}

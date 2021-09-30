@@ -19,8 +19,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -67,6 +69,15 @@ var (
 		Usage: "Solidity compiler to use if source builds are requested",
 		Value: "solc",
 	}
+	vyFlag = cli.StringFlag{
+		Name:  "vy",
+		Usage: "Path to the Ethereum contract Vyper source to build and bind",
+	}
+	vyperFlag = cli.StringFlag{
+		Name:  "vyper",
+		Usage: "Vyper compiler to use if source builds are requested",
+		Value: "vyper",
+	}
 	excFlag = cli.StringFlag{
 		Name:  "exc",
 		Usage: "Comma separated types to exclude from binding",
@@ -86,7 +97,7 @@ var (
 	}
 	aliasFlag = cli.StringFlag{
 		Name:  "alias",
-		Usage: "Comma separated aliases for function and event renaming, e.g. foo=bar",
+		Usage: "Comma separated aliases for function and event renaming, e.g. original1=alias1, original2=alias2",
 	}
 )
 
@@ -99,6 +110,8 @@ func init() {
 		jsonFlag,
 		solFlag,
 		solcFlag,
+		vyFlag,
+		vyperFlag,
 		excFlag,
 		pkgFlag,
 		outFlag,
@@ -110,7 +123,7 @@ func init() {
 }
 
 func abigen(c *cli.Context) error {
-	utils.CheckExclusive(c, abiFlag, jsonFlag, solFlag) // Only one source can be selected.
+	utils.CheckExclusive(c, abiFlag, jsonFlag, solFlag, vyFlag) // Only one source can be selected.
 	if c.GlobalString(pkgFlag.Name) == "" {
 		utils.Fatalf("No destination package specified (--pkg)")
 	}
@@ -183,6 +196,23 @@ func abigen(c *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("Failed to build Solidity contract: %v", err)
 			}
+		case c.GlobalIsSet(vyFlag.Name):
+			output, err := compiler.CompileVyper(c.GlobalString(vyperFlag.Name), c.GlobalString(vyFlag.Name))
+			if err != nil {
+				utils.Fatalf("Failed to build Vyper contract: %v", err)
+			}
+			contracts = make(map[string]*compiler.Contract)
+			for n, contract := range output {
+				name := n
+				// Sanitize the combined json names to match the
+				// format expected by solidity.
+				if !strings.Contains(n, ":") {
+					// Remove extra path components
+					name = abi.ToCamelCase(strings.TrimSuffix(filepath.Base(name), ".vy"))
+				}
+				contracts[name] = contract
+			}
+
 		case c.GlobalIsSet(jsonFlag.Name):
 			jsonOutput, err := ioutil.ReadFile(c.GlobalString(jsonFlag.Name))
 			if err != nil {
@@ -204,7 +234,7 @@ func abigen(c *cli.Context) error {
 			}
 			abis = append(abis, string(abi))
 			bins = append(bins, contract.Code)
-			//sigs = append(sigs, contract.Hashes)
+			sigs = append(sigs, contract.Hashes)
 			nameParts := strings.Split(name, ":")
 			types = append(types, nameParts[len(nameParts)-1])
 

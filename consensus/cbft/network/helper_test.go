@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package network
 
@@ -46,7 +47,7 @@ func newFakePrepareBlock() *protocols.PrepareBlock {
 		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
-		Time:     big.NewInt(1426516743),
+		Time:     1426516743,
 		Extra:    make([]byte, 100),
 	})
 	return &protocols.PrepareBlock{
@@ -169,7 +170,7 @@ func newFakeQCBlockList() *protocols.QCBlockList {
 		Coinbase: common.MustBech32ToAddress("lax13zy0ruv447se9nlwscrfskzvqv85e8d35gau40"),
 		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		Nonce:    types.EncodeNonce(utils.RandBytes(81)),
-		Time:     big.NewInt(1426516743),
+		Time:     1426516743,
 		Extra:    make([]byte, 100),
 	})
 	return &protocols.QCBlockList{

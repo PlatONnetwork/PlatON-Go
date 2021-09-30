@@ -44,6 +44,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 const (
@@ -101,21 +102,19 @@ type ProtocolManager struct {
 	blockSignatureSub    *event.TypeMuxSubscription
 
 	// channels for fetcher, syncer, txsyncLoop
-	newPeerCh   chan *peer
-	txsyncCh    chan *txsync
-	quitSync    chan struct{}
-	noMorePeers chan struct{}
+	txsyncCh chan *txsync
+	quitSync chan struct{}
 
-	// wait group is used for graceful shutdowns during downloading
-	// and processing
-	wg sync.WaitGroup
+	chainSync *chainSyncer
+	wg        sync.WaitGroup
+	peerWG    sync.WaitGroup
 
 	engine consensus.Engine
 }
 
 // NewProtocolManager returns a new PlatON sub protocol manager. The PlatON sub protocol manages peers capable
 // with the PlatON network.
-func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database) (*ProtocolManager, error) {
+func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database, cacheLimit int) (*ProtocolManager, error) {
 	// Create the protocol manager with the base fields
 	manager := &ProtocolManager{
 		networkID:   networkID,
@@ -124,25 +123,19 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		blockchain:  blockchain,
 		chainconfig: config,
 		peers:       newPeerSet(),
-		newPeerCh:   make(chan *peer),
-		noMorePeers: make(chan struct{}),
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
 		engine:      engine,
 	}
-	// Figure out whether to allow fast sync or not
-	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
-		log.Warn("Blockchain not empty, fast sync disabled")
-		mode = downloader.FullSync
-	}
-	if mode == downloader.FastSync {
+	// If fast sync was requested and our database is empty, grant it
+	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() == 0 {
 		manager.fastSync = uint32(1)
 	}
 	// Initiate a sub-protocol for every implemented version we can handle
 	manager.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		// Skip protocol version if incompatible with the mode of operation
-		if mode == downloader.FastSync && version < eth63 {
+		if atomic.LoadUint32(&manager.fastSync) == 1 && version < eth63 {
 			continue
 		}
 		// Compatible; initialise the sub-protocol
@@ -152,15 +145,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 			Version: version,
 			Length:  ProtocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				peer := manager.newPeer(int(version), p, rw)
-				select {
-				case manager.newPeerCh <- peer:
-					manager.wg.Add(1)
-					defer manager.wg.Done()
-					return manager.handle(peer)
-				case <-manager.quitSync:
-					return p2p.DiscQuitting
-				}
+				return manager.runPeer(manager.newPeer(int(version), p, rw))
 			},
 			NodeInfo: func() interface{} {
 				return manager.NodeInfo()
@@ -181,9 +166,16 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return manager.engine.DecodeExtra(extra)
 	}
 
-	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, snapshotdb.Instance(), manager.eventMux, blockchain, nil, manager.removePeer, decodeExtra)
+	// Construct the downloader (long sync) and its backing state bloom if fast
+	// sync is requested. The downloader is responsible for deallocating the state
+	// bloom when it's done.
+	var stateBloom *trie.SyncBloom
+	if atomic.LoadUint32(&manager.fastSync) == 1 {
+		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
+	}
+	manager.downloader = downloader.New(chaindb, snapshotdb.Instance(), stateBloom, manager.eventMux, blockchain, nil, manager.removePeer, decodeExtra)
 
+	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
 	}
@@ -215,6 +207,8 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 	manager.txFetcher = fetcher.NewTxFetcher(manager.txpool.Has, manager.txpool.AddRemotes, fetchTx)
 
+	manager.chainSync = newChainSyncer(manager)
+
 	return manager, nil
 }
 
@@ -244,6 +238,7 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// broadcast transactions
 	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
 	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
+	pm.wg.Add(1)
 	go pm.txBroadcastLoop()
 
 	// broadcast mined blocks
@@ -251,12 +246,14 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// broadcast prepare mined blocks
 	//pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
 	//pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
+	pm.wg.Add(1)
 	go pm.minedBroadcastLoop()
 	//go pm.prepareMinedBlockcastLoop()
 	//go pm.blockSignaturecastLoop()
 
 	// start sync handlers
-	go pm.syncer()
+	pm.wg.Add(2)
+	go pm.chainSync.loop()
 	go pm.txsyncLoop()
 }
 
@@ -266,23 +263,28 @@ func (pm *ProtocolManager) Stop() {
 	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
 	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
 
-	// Quit the sync loop.
+	// Quit chainSync and txsync.
 	// After this send has completed, no new peers will be accepted.
-	pm.noMorePeers <- struct{}{}
-
-	// Quit fetcher, txsyncLoop.
 	close(pm.quitSync)
+	pm.wg.Wait()
 
 	// Disconnect existing sessions.
 	// This also closes the gate for any new registrations on the peer set.
 	// sessions which are already established but not added to pm.peers yet
 	// will exit when they try to register.
 	pm.peers.Close()
-
-	// Wait for all peer handler goroutines and the loops to come down.
-	pm.wg.Wait()
+	pm.peerWG.Wait()
 
 	log.Info("PlatON protocol stopped")
+}
+
+func (pm *ProtocolManager) runPeer(p *peer) error {
+	if !pm.chainSync.handlePeerEvent(p) {
+		return p2p.DiscQuitting
+	}
+	pm.peerWG.Add(1)
+	defer pm.peerWG.Done()
+	return pm.handle(p)
 }
 
 func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -322,6 +324,8 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
 		return err
 	}
+	pm.chainSync.handlePeerEvent(p)
+
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
 	pm.syncTransactions(p)
@@ -355,7 +359,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
-	// Block header query, collect the requested headers and reply
+		// Block header query, collect the requested headers and reply
 	case msg.Code == GetBlockHeadersMsg:
 		// Decode the complex header query
 		var query getBlockHeadersData
@@ -783,14 +787,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		if _, bn := p.Head(); trueBn.Cmp(bn) > 0 {
 			p.SetHead(trueHead, trueBn)
-			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
-			// a singe block (as the true TD is below the propagated block), however this
-			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.blockchain.CurrentBlock()
-			if trueBn.Cmp(currentBlock.Number()) > 0 {
-				go pm.synchronise(p)
-			}
-
+			pm.chainSync.handlePeerEvent(p)
 		}
 
 	case msg.Code == TxMsg:
@@ -1007,9 +1004,10 @@ func (pm *ProtocolManager) answerGetPooledTransactions(query GetPooledTransactio
 	return hashes, txs
 }
 
-// Mined broadcast loop
+// minedBroadcastLoop sends mined blocks to connected peers.
 func (pm *ProtocolManager) minedBroadcastLoop() {
-	// automatically stops if unsubscribe
+	defer pm.wg.Done()
+
 	for obj := range pm.minedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
@@ -1020,6 +1018,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
+	defer pm.wg.Done()
 	timer := time.NewTimer(defaultBroadcastInterval)
 
 	for {

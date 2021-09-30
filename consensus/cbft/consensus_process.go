@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package cbft
 
@@ -501,7 +502,7 @@ func (cbft *Cbft) findQCBlock() {
 			cbft.insertQCBlock(block, qc)
 			cbft.network.Broadcast(&protocols.BlockQuorumCert{BlockQC: qc})
 			// metrics
-			blockQCCollectedGauage.Update(block.Time().Int64())
+			blockQCCollectedGauage.Update(int64(block.Time()))
 			cbft.trySendPrepareVote()
 		}
 	}
@@ -751,7 +752,7 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	// metrics.
 	viewNumberGauage.Update(int64(viewNumber))
 	epochNumberGauage.Update(int64(epoch))
-	viewChangedTimer.UpdateSince(time.Unix(block.Time().Int64(), 0))
+	viewChangedTimer.UpdateSince(time.Unix(int64(block.Time()), 0))
 
 	// write confirmed viewChange info to wal
 	if !cbft.isLoading() {

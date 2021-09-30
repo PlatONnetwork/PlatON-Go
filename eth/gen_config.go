@@ -6,14 +6,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 )
-
-var _ = (*configMarshaling)(nil)
 
 // MarshalTOML marshals as TOML.
 func (c Config) MarshalTOML() (interface{}, error) {
@@ -28,13 +26,18 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		SkipBcVersionCheck       bool `toml:"-"`
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
+		DatabaseFreezer          string
 		TrieCache                int
 		TrieTimeout              time.Duration
-		MinerExtraData           hexutil.Bytes `toml:",omitempty"`
-		MinerGasFloor            uint64
-		MinerGasPrice            *big.Int
-		MinerRecommit            time.Duration
-		MinerNoverify            bool
+		TrieDBCache              int
+		DBDisabledGC             bool
+		DBGCInterval             uint64
+		DBGCTimeout              time.Duration
+		DBGCMpt                  bool
+		DBGCBlock                int
+		VMWasmType               string
+		VmTimeoutDuration        uint64
+		Miner                    miner.Config
 		MiningLogAtDepth         uint
 		TxChanSize               int
 		ChainHeadChanSize        int
@@ -59,6 +62,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
+		RPCGasCap                *big.Int `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -71,13 +75,18 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
+	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
-	enc.MinerExtraData = c.MinerExtraData
-	enc.MinerGasFloor = c.MinerGasFloor
-	enc.MinerGasPrice = c.MinerGasPrice
-	enc.MinerRecommit = c.MinerRecommit
-	enc.MinerNoverify = c.MinerNoverify
+	enc.TrieDBCache = c.TrieDBCache
+	enc.DBDisabledGC = c.DBDisabledGC
+	enc.DBGCInterval = c.DBGCInterval
+	enc.DBGCTimeout = c.DBGCTimeout
+	enc.DBGCMpt = c.DBGCMpt
+	enc.DBGCBlock = c.DBGCBlock
+	enc.VMWasmType = c.VMWasmType
+	enc.VmTimeoutDuration = c.VmTimeoutDuration
+	enc.Miner = c.Miner
 	enc.MiningLogAtDepth = c.MiningLogAtDepth
 	enc.TxChanSize = c.TxChanSize
 	enc.ChainHeadChanSize = c.ChainHeadChanSize
@@ -102,6 +111,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.DocRoot = c.DocRoot
 	enc.Debug = c.Debug
+	enc.RPCGasCap = c.RPCGasCap
 	return &enc, nil
 }
 
@@ -118,13 +128,18 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		SkipBcVersionCheck       *bool `toml:"-"`
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
+		DatabaseFreezer          *string
 		TrieCache                *int
 		TrieTimeout              *time.Duration
-		MinerExtraData           *hexutil.Bytes `toml:",omitempty"`
-		MinerGasFloor            *uint64
-		MinerGasPrice            *big.Int
-		MinerRecommit            *time.Duration
-		MinerNoverify            *bool
+		TrieDBCache              *int
+		DBDisabledGC             *bool
+		DBGCInterval             *uint64
+		DBGCTimeout              *time.Duration
+		DBGCMpt                  *bool
+		DBGCBlock                *int
+		VMWasmType               *string
+		VmTimeoutDuration        *uint64
+		Miner                    *miner.Config
 		MiningLogAtDepth         *uint
 		TxChanSize               *int
 		ChainHeadChanSize        *int
@@ -149,6 +164,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
+		RPCGasCap                *big.Int `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -184,26 +200,41 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
 	}
+	if dec.DatabaseFreezer != nil {
+		c.DatabaseFreezer = *dec.DatabaseFreezer
+	}
 	if dec.TrieCache != nil {
 		c.TrieCache = *dec.TrieCache
 	}
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
 	}
-	if dec.MinerExtraData != nil {
-		c.MinerExtraData = *dec.MinerExtraData
+	if dec.TrieDBCache != nil {
+		c.TrieDBCache = *dec.TrieDBCache
 	}
-	if dec.MinerGasFloor != nil {
-		c.MinerGasFloor = *dec.MinerGasFloor
+	if dec.DBDisabledGC != nil {
+		c.DBDisabledGC = *dec.DBDisabledGC
 	}
-	if dec.MinerGasPrice != nil {
-		c.MinerGasPrice = dec.MinerGasPrice
+	if dec.DBGCInterval != nil {
+		c.DBGCInterval = *dec.DBGCInterval
 	}
-	if dec.MinerRecommit != nil {
-		c.MinerRecommit = *dec.MinerRecommit
+	if dec.DBGCTimeout != nil {
+		c.DBGCTimeout = *dec.DBGCTimeout
 	}
-	if dec.MinerNoverify != nil {
-		c.MinerNoverify = *dec.MinerNoverify
+	if dec.DBGCMpt != nil {
+		c.DBGCMpt = *dec.DBGCMpt
+	}
+	if dec.DBGCBlock != nil {
+		c.DBGCBlock = *dec.DBGCBlock
+	}
+	if dec.VMWasmType != nil {
+		c.VMWasmType = *dec.VMWasmType
+	}
+	if dec.VmTimeoutDuration != nil {
+		c.VmTimeoutDuration = *dec.VmTimeoutDuration
+	}
+	if dec.Miner != nil {
+		c.Miner = *dec.Miner
 	}
 	if dec.MiningLogAtDepth != nil {
 		c.MiningLogAtDepth = *dec.MiningLogAtDepth
@@ -276,6 +307,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.Debug != nil {
 		c.Debug = *dec.Debug
+	}
+	if dec.RPCGasCap != nil {
+		c.RPCGasCap = dec.RPCGasCap
 	}
 	return nil
 }

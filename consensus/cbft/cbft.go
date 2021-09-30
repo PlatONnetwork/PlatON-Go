@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package cbft
 
@@ -259,6 +260,11 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
 	// Start the handler to process the message.
 	go cbft.network.Start()
+
+	if cbft.config.Option.NodePriKey == nil {
+		cbft.config.Option.NodePriKey = cbft.nodeServiceContext.NodePriKey()
+		cbft.config.Option.NodeID = discover.PubkeyID(&cbft.config.Option.NodePriKey.PublicKey)
+	}
 
 	if isGenesis() {
 		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
@@ -820,7 +826,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	minedCounter.Inc(1)
 	preBlock := cbft.blockTree.FindBlockByHash(block.ParentHash())
 	if preBlock != nil {
-		blockMinedGauage.Update(common.Millis(time.Now()) - preBlock.Time().Int64())
+		blockMinedGauage.Update(common.Millis(time.Now()) - int64(preBlock.Time()))
 	}
 	go func() {
 		select {
@@ -846,19 +852,19 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 		{
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewDebugConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewPublicPlatonConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "admin",
 			Version:   "1.0",
-			Service:   NewPublicConsensusAPI(cbft),
+			Service:   NewPublicAdminConsensusAPI(cbft),
 			Public:    true,
 		},
 	}

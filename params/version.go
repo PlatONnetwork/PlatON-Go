@@ -24,7 +24,7 @@ const (
 	//These versions are meaning the current code version.
 	VersionMajor = 1          // Major version component of the current release
 	VersionMinor = 1          // Minor version component of the current release
-	VersionPatch = 0          // Patch version component of the current release
+	VersionPatch = 1          // Patch version component of the current release
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
@@ -85,10 +85,13 @@ func ArchiveVersion(gitCommit string) string {
 	return vsn
 }
 
-func VersionWithCommit(gitCommit string) string {
+func VersionWithCommit(gitCommit, gitDate string) string {
 	vsn := VersionWithMeta
 	if len(gitCommit) >= 8 {
 		vsn += "-" + gitCommit[:8]
+	}
+	if (VersionMeta != "stable") && (gitDate != "") {
+		vsn += "-" + gitDate
 	}
 	return vsn
 }

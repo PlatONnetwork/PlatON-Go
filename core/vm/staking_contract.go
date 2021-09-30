@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -360,7 +360,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 		"externalId", externalId, "nodeName", nodeName, "website", website,
 		"details", details, "from", from)
 
-	if !stkc.Contract.UseGas(params.EditCandidatGas) {
+	if !stkc.Contract.UseGas(params.EditCandidateGas) {
 		return nil, ErrOutOfGas
 	}
 
@@ -768,7 +768,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId d
 		"blockNumber", blockNumber.Uint64(), "delAddr", from, "nodeId", nodeId.String(),
 		"stakingNum", stakingBlockNum, "amount", amount)
 
-	if !stkc.Contract.UseGas(params.WithdrewDelegateGas) {
+	if !stkc.Contract.UseGas(params.WithdrewDelegationGas) {
 		return nil, ErrOutOfGas
 	}
 
@@ -803,7 +803,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId d
 
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
 			fmt.Sprintf("withdrewDelegation threshold: %d, deposit: %d", threshold, amount),
-			TxWithdrewDelegation, staking.ErrWithdrewDelegateVonTooLow)
+			TxWithdrewDelegation, staking.ErrWithdrewDelegationVonTooLow)
 	}
 
 	if txHash == common.ZeroHash {
