@@ -67,7 +67,13 @@ func BytesToAddress(b []byte) Address {
 // If b is larger than len(h), b will be cropped from the left.
 func BigToAddress(b *big.Int) Address { return BytesToAddress(b.Bytes()) }
 
-// Deprecated: address to string is use bech32 now
+func StringToAddress(s string) (Address, error) {
+	if IsHexAddress(s) {
+		return HexToAddress(s), nil
+	}
+	return Bech32ToAddress(s)
+}
+
 // HexToAddress returns Address with byte values of s.
 // If s is larger than len(h), s will be cropped from the left.
 func HexToAddress(s string) Address { return BytesToAddress(FromHex(s)) }
@@ -99,9 +105,7 @@ func Bech32ToAddress(s string) (Address, error) {
 	} else if currentAddressHRP != hrpDecode {
 		log.Warn("the address not compare current net", "want", currentAddressHRP, "input", s)
 	}
-	var a Address
-	a.SetBytes(converted)
-	return a, nil
+	return BytesToAddress(converted), nil
 }
 
 // Bech32ToAddressWithoutCheckHrp returns Address with byte values of s.
@@ -117,7 +121,6 @@ func Bech32ToAddressWithoutCheckHrp(s string) Address {
 	return a
 }
 
-// Deprecated: address to string is use bech32 now
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
 // Ethereum address or not.
 func IsHexAddress(s string) bool {
