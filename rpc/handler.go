@@ -377,7 +377,7 @@ func (h *handler) handleSubscribe(cp *callProc, msg *jsonrpcMessage) *jsonrpcMes
 	args = args[1:]
 
 	// Install notifier in context so the subscription handler can find it.
-	n := &Notifier{h: h, namespace: namespace}
+	n := &Notifier{h: h, namespace: namespace, eth: msg.isEthMessage()}
 	cp.notifiers = append(cp.notifiers, n)
 	ctx := context.WithValue(cp.ctx, notifierKey{}, n)
 
