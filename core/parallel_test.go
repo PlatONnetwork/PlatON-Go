@@ -271,7 +271,24 @@ func TestParallel_PackParallel_VerifyParallel(t *testing.T) {
 	testTxList := initTx(fromAccountList, contractAccountList)
 
 	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
-	parallelMode(t, testTxList, blockchain, stateDb, header)
+	parallelMode(t, testTxList, blockchain, stateDb, header, make(map[common.Address]struct{}))
+}
+
+func TestExecute_Tx_As_Contract_Entry(t *testing.T) {
+	fromAccountList, toAccountList, contractAccountList := initAccount()
+	blockchain, stateDb, header := initChain(fromAccountList, toAccountList, contractAccountList)
+	testTxList := initTx(fromAccountList, contractAccountList)
+	tempContractCache := make(map[common.Address]struct{})
+	blockchain.SetProcessor(NewParallelStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
+	// Use transfer entry to execute transactions
+	block1 := parallelMode(t, testTxList, blockchain, stateDb, header, tempContractCache)
+
+	for _, tx := range testTxList {
+		tempContractCache[*tx.To()] = struct{}{}
+	}
+	// Use contract entry to execute transactions
+	block2 := parallelMode(t, testTxList, blockchain, stateDb, header, tempContractCache)
+	assert.Equal(t, block1.Root(), block2.Root())
 }
 
 func TestParallel_PackParallel_VerifySerial(t *testing.T) {
@@ -280,15 +297,15 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 	testTxList := initTx(fromAccountList, contractAccountList)
 
 	blockchain.SetProcessor(NewStateProcessor(chainConfig, blockchain, consensus.NewFaker()))
-	parallelMode(t, testTxList, blockchain, stateDb, header)
+	parallelMode(t, testTxList, blockchain, stateDb, header, make(map[common.Address]struct{}))
 }
 
-func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
+func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header, tempContractCache map[common.Address]struct{}) *types.Block {
 	//initState := stateDb.Copy()
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
-	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil)
+	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil, tempContractCache)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(testTxList)
@@ -297,7 +314,7 @@ func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *Block
 		t.Fatal("pack txs err", "err", err)
 	}
 
-	_, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
+	block, err := Finalize(blockchain, header, stateDb, ctx.packedTxList, ctx.receipts)
 	if err != nil {
 		t.Fatal("Finalize block failed", "err", err)
 	}
@@ -309,6 +326,7 @@ func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *Block
 	//		t.Fatal("ProcessDirectly block error", "err", err)
 	//	}
 	//}
+	return block
 }
 
 func TestParallel_PackSerial_VerifyParallel(t *testing.T) {
