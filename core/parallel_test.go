@@ -24,6 +24,7 @@ import (
 	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
