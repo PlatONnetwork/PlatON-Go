@@ -894,8 +894,8 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 			transfer = peers
 		} else {
 			// Send the block to a subset of our peers
-			rand.Seed(time.Now().UnixNano())
-			indexes := rand.Perm(len(peers))
+			rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			indexes := rd.Perm(len(peers))
 			maxPeers := int(math.Sqrt(float64(len(peers))))
 			transfer = make([]*peer, 0, maxPeers)
 			for i := 0; i < maxPeers; i++ {
@@ -930,7 +930,7 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 		annos = make(map[*peer][]common.Hash)      // Set peer->hash to announce
 
 	)
-	rand.Seed(time.Now().UnixNano())
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
@@ -940,7 +940,7 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 				txset[peer] = append(txset[peer], tx)
 			}
 		} else {
-			indexes := rand.Perm(len(peers))
+			indexes := rd.Perm(len(peers))
 			numAnnos := int(math.Sqrt(float64(len(peers) - numBroadcastTxPeers)))
 			countAnnos := 0
 			if numAnnos > numBroadcastTxHashPeers {
