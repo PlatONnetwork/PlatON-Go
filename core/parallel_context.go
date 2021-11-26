@@ -41,18 +41,20 @@ type ParallelContext struct {
 	packNewBlock       bool
 	wg                 sync.WaitGroup
 	signer             types.Signer
+	tempContractCache  map[common.Address]struct{}
 }
 
-func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool, signer types.Signer) *ParallelContext {
+func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool, signer types.Signer, tempContractCache map[common.Address]struct{}) *ParallelContext {
 	ctx := &ParallelContext{
-		state:           state,
-		header:          header,
-		blockHash:       blockHash,
-		gp:              gp,
-		poppedAddresses: make(map[common.Address]struct{}),
-		earnings:        big.NewInt(0),
-		packNewBlock:    packNewBlock,
-		signer:          signer,
+		state:             state,
+		header:            header,
+		blockHash:         blockHash,
+		gp:                gp,
+		poppedAddresses:   make(map[common.Address]struct{}),
+		earnings:          big.NewInt(0),
+		packNewBlock:      packNewBlock,
+		signer:            signer,
+		tempContractCache: tempContractCache,
 	}
 	return ctx
 }

@@ -29,6 +29,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 )
 
 var (
@@ -93,6 +95,7 @@ func NotifierFromContext(ctx context.Context) (*Notifier, bool) {
 type Notifier struct {
 	h         *handler
 	namespace string
+	eth       bool
 
 	mu           sync.Mutex
 	sub          *Subscription
@@ -121,9 +124,20 @@ func (n *Notifier) CreateSubscription() *Subscription {
 // Notify sends a notification to the client with the given data as payload.
 // If an error occurs the RPC connection is closed and the error is returned.
 func (n *Notifier) Notify(id ID, data interface{}) error {
-	enc, err := json.Marshal(data)
-	if err != nil {
-		return err
+	var (
+		enc []byte
+		err error
+	)
+	if n.eth {
+		enc, err = json2.Marshal(data)
+		if err != nil {
+			return err
+		}
+	} else {
+		enc, err = json.Marshal(data)
+		if err != nil {
+			return err
+		}
 	}
 
 	n.mu.Lock()

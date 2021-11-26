@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -4729,4 +4728,49 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	expectedCumulativeIncome = expectedCumulativeIncome.Add(expectedCumulativeIncome, per[1].CalDelegateReward(new(big.Int).Add(del.Released, del.ReleasedHes)))
 	calcDelegateIncome(4, del, per)
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+}
+
+func TestStakingPlugin_RandSeedShuffle(t *testing.T) {
+	dataList := make([]int, 0)
+	for i := 0; i < 6; i++ {
+		dataList = append(dataList, i)
+	}
+	dataListCp := make([]int, len(dataList))
+	copy(dataListCp, dataList)
+
+	dataListCp2 := make([]int, len(dataList))
+	copy(dataListCp2, dataList)
+
+	dataListCp3 := make([]int, len(dataList))
+	copy(dataListCp3, dataList)
+
+	rd := mrand.New(mrand.NewSource(110))
+	rd.Shuffle(len(dataList), func(i, j int) {
+		dataList[i], dataList[j] = dataList[j], dataList[i]
+	})
+
+	mrand.Seed(110)
+	mrand.Shuffle(len(dataListCp), func(i, j int) {
+		dataListCp[i], dataListCp[j] = dataListCp[j], dataListCp[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] == dataListCp[i])
+	}
+
+	// Reset Seed
+	rd.Seed(110)
+	mrand.Seed(119)
+	mrand.Shuffle(len(dataListCp2), func(i, j int) {
+		dataListCp2[i], dataListCp2[j] = dataListCp2[j], dataListCp2[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] != dataListCp2[i])
+	}
+
+	rd.Shuffle(len(dataListCp3), func(i, j int) {
+		dataListCp3[i], dataListCp3[j] = dataListCp3[j], dataListCp3[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] == dataListCp3[i])
+	}
 }

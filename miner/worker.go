@@ -1088,9 +1088,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	startTime = time.Now()
 	var localTimeout = false
+	tempContractCache := make(map[common.Address]struct{})
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
+		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline, tempContractCache); failed {
 			return fmt.Errorf("commit transactions error")
 		} else {
 			localTimeout = timeout
@@ -1104,7 +1105,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 
-		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline); failed {
+		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline, tempContractCache); failed {
 			return fmt.Errorf("commit transactions error")
 		}
 	}

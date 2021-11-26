@@ -560,9 +560,9 @@ func (args *FilterCriteria) UnmarshalJSON(data []byte) error {
 }
 
 func decodeAddress(s string) (common.Address, error) {
-	b, err := common.Bech32ToAddress(s)
+	b, err := common.StringToAddress(s)
 	if err != nil {
-		return common.ZeroAddr, fmt.Errorf("bech32 is invalid  for decoding; input %s ", s)
+		return common.ZeroAddr, fmt.Errorf("address is invalid  for decoding; input %s ", s)
 	}
 	return b, nil
 }

@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -22,7 +21,9 @@ func NewTxDag(signer types.Signer) *TxDag {
 	return txDag
 }
 
-func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs []*types.Transaction, exe *Executor) error {
+func (txDag *TxDag) MakeDagGraph(ctx *ParallelContext, exe *Executor) error {
+	blockNumber, state, txs := ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList
+
 	txDag.dag = dag3.NewDag(len(txs))
 	//save all transfer addresses between two contracts(precompiled and user defined)
 	transferAddressMap := make(map[common.Address]int, 0)
@@ -33,7 +34,7 @@ func (txDag *TxDag) MakeDagGraph(blockNumber uint64, state *state.StateDB, txs [
 			continue
 		}
 
-		if exe.isContract(tx.To(), state) {
+		if exe.isContract(tx, state, ctx) {
 			txDag.contracts[index] = struct{}{}
 			if index > 0 {
 				if index-latestPrecompiledIndex > 1 {

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -48,5 +49,5 @@ type Processor interface {
 }
 
 type Committer interface {
-	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool)
+	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool)
 }

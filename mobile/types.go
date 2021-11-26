@@ -29,8 +29,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-// A Nonce is a 64-bit hash which proves (combined with the mix-hash) that
-// a sufficient amount of computation has been carried out on a block.
+// BlockNonce is an 81-byte vrf proof containing random numbers
+// Used to verify the block when receiving the block
 type Nonce struct {
 	nonce types.BlockNonce
 }

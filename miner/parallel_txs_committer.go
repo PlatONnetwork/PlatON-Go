@@ -19,7 +19,8 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 	}
 }
 
-func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool) {
+func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
+
 	w := c.worker
 
 	// Short circuit if current is nil
@@ -47,7 +48,7 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 		}
 	}
 
-	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, core.GetExecutor().Signer())
+	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, core.GetExecutor().Signer(), tempContractCache)
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)
