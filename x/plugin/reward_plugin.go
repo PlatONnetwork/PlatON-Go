@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package plugin
 
@@ -794,7 +795,7 @@ func (rmp *RewardMgrPlugin) runIncreaseIssuance(blockHash common.Hash, head *typ
 		if nil != err {
 			return err
 		}
-		log.Info("Call CalcEpochReward, increaseIssuance successful", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+		log.Info("Call CalcEpochReward, increaseIssuance successful", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time,
 			"yearNumber", yearNumber, "incIssuanceTime", incIssuanceTime, "yearEndBalance", GetYearEndBalance(state, yearNumber), "remainingReward", remainReward)
 	}
 	return nil
@@ -836,12 +837,12 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	if yearStartTime == 0 { //特殊处理：说明是链的第1块，则需要计算1岁时的增发时间
+	if yearStartTime == 0 {//特殊处理：说明是链的第1块，则需要计算1岁时的增发时间
 		yearStartBlockNumber = head.Number.Uint64() //此时滑动窗口起始块高 yearStartBlockNumber=1
-		yearStartTime = head.Time.Int64()           //此时滑动窗口起始时间 yearStartTime=区块1的时间
+		yearStartTime = int64(head.Time)
 		//计算链下一年的预期增发时间点（当前区块时间 + 增发周期长度）
 		//todo:2rd: mysql 保存gengeis.json的配置，增发周期（注意时间单位：分钟)，设置新表：ppos_env
-		//todo: ppos_env.issue_cycle，发行周期（分钟）
+		//todo: ppos_env.issue_cycle，发行周期（分钟）//此时滑动窗口起始时间 yearStartTime=区块1的时间
 		incIssuanceTime = yearStartTime + int64(xcom.AdditionalCycleTime()*uint64(minutes))
 		if err := xcom.StorageIncIssuanceTime(blockHash, rmp.db, incIssuanceTime); nil != err {
 			log.Error("storage incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
@@ -856,7 +857,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		//todo: 这个究竟有什么作用？
 		//每年开始的remainReward=增发进激励池的+上年的balance余额（惩罚的+上年没用完的（如果有））
 		remainReward = GetYearEndBalance(state, 0)
-		log.Info("Call CalcEpochReward, First calculation", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+		log.Info("Call CalcEpochReward, First calculation", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time,
 			"yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "incIssuanceTime", incIssuanceTime, "remainReward", remainReward)
 	}
 
@@ -901,12 +902,12 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 				yearStartBlockNumber += epochBlocks
 			}
 			//调整滑动窗口的起始时间
-			yearStartTime = snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time.Int64()
+			yearStartTime = int64(snapshotdb.GetDBBlockChain().GetHeaderByNumber(yearStartBlockNumber).Time)
 			if err := StorageYearStartTime(blockHash, rmp.db, yearStartBlockNumber, yearStartTime); nil != err {
 				log.Error("Storage year start time and block height failed", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 				return nil, nil, err
 			}
-			log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+			log.Debug("Call CalcEpochReward, Adjust the sampling range of the block time", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time,
 				"epochBlocks", epochBlocks, "yearNumber", yearNumber, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime)
 		}
 	}
@@ -916,11 +917,11 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	avgPackTime := xcom.Interval() * uint64(millisecond)
 	if head.Number.Uint64() > yearStartBlockNumber {
 		diffNumber := head.Number.Uint64() - yearStartBlockNumber
-		diffTime := head.Time.Int64() - yearStartTime
+		diffTime := int64(head.Time) - yearStartTime
 
 		avgPackTime = uint64(diffTime) / diffNumber
 		log.Debug("Call CalcEpochReward, Calculate the average block production time in the previous year", "currBlockNumber", head.Number, "currBlockHash", blockHash,
-			"currBlockTime", head.Time.Int64(), "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
+			"currBlockTime", head.Time, "yearStartBlockNumber", yearStartBlockNumber, "yearStartTime", yearStartTime, "diffNumber", diffNumber, "diffTime", diffTime,
 			"avgPackTime", avgPackTime)
 	}
 	if err := xcom.StorageAvgPackTime(blockHash, rmp.db, avgPackTime); nil != err {
@@ -933,16 +934,16 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 	// the increase issue time will be postponed for one settlement cycle,
 	// and the remaining rewards will all be issued in the next settlement cycle
 	remainEpoch := 1
-	if head.Time.Int64() >= incIssuanceTime {
+	if int64(head.Time) >= incIssuanceTime {
 		//如果当前区块时间>=下个增发时间点，则下个增发被推迟一个epoch，激励池中本年度可用资金，将在接下来的epoch中分配完。
 		epochTotalReward.Add(epochTotalReward, remainReward)
 		remainReward = new(big.Int)
 		log.Info("Call CalcEpochReward, The current time has exceeded the expected additional issue time", "currBlockNumber", head.Number, "currBlockHash", blockHash,
-			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
+			"currBlockTime", head.Time, "incIssuanceTime", incIssuanceTime, "epochTotalReward", epochTotalReward)
 	} else {
 
 		//本年度剩余时间（下次增发的预期时间-当前区块时间）
-		remainTime := incIssuanceTime - head.Time.Int64()
+		remainTime := incIssuanceTime - int64(head.Time)
 
 		//本年度剩余区块（剩余时间/出块平均间隔）
 		remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
@@ -956,7 +957,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		//remainReward将等于0
 		remainReward = remainReward.Sub(remainReward, epochTotalReward)
 		log.Debug("Call CalcEpochReward, Calculation of rewards for the next settlement cycle", "currBlockNumber", head.Number, "currBlockHash", blockHash,
-			"currBlockTime", head.Time.Int64(), "incIssuanceTime", incIssuanceTime, "remainTime", remainTime, "remainBlocks", remainBlocks, "epochBlocks", epochBlocks,
+			"currBlockTime", head.Time, "incIssuanceTime", incIssuanceTime, "remainTime", remainTime, "remainBlocks", remainBlocks, "epochBlocks", epochBlocks,
 			"remainEpoch", remainEpoch, "remainReward", remainReward, "epochTotalReward", epochTotalReward)
 	}
 	// If the last settlement cycle is left, record the increaseIssuance block height
@@ -969,7 +970,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Info("Call CalcEpochReward, IncIssuanceNumber stored successfully", "currBlockNumber", head.Number, "currBlockHash", blockHash,
 			"epochBlocks", epochBlocks, "incIssuanceNumber", incIssuanceNumber)
 	}
-	// Get the total block reward and Staking reward for each settlement cycle
+	// Get the total block reward and staking reward for each settlement cycle
 	// 下一个epoch的总出块激励金，以及质押激励金。
 	epochTotalNewBlockReward := percentageCalculation(epochTotalReward, xcom.NewBlockRewardRate())
 	//下一个epoch的总质押奖励，总质押激励 = 总激励 - 出块激励。
@@ -988,7 +989,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("Failed to execute CalcEpochReward function", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	log.Debug("Call CalcEpochReward, Cycle reward", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time.Int64(),
+	log.Debug("Call CalcEpochReward, Cycle reward", "currBlockNumber", head.Number, "currBlockHash", blockHash, "currBlockTime", head.Time,
 		"epochTotalReward", epochTotalReward, "newBlockRewardRate", xcom.NewBlockRewardRate(), "epochTotalNewBlockReward", epochTotalNewBlockReward,
 		"epochTotalStakingReward", epochTotalStakingReward, "epochBlocks", epochBlocks, "newBlockReward", newBlockReward)
 	return newBlockReward, epochTotalStakingReward, nil

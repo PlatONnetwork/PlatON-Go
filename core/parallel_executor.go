@@ -1,15 +1,14 @@
 package core
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/panjf2000/ants/v2"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -33,9 +32,9 @@ type Executor struct {
 	vmCfg        vm.Config
 	signer       types.Signer
 
-	workerPool    *ants.PoolWithFunc
-	contractCache *lru.Cache
-	txpool        *TxPool
+	workerPool *ants.PoolWithFunc
+	//contractCache     *lru.Cache
+	txpool *TxPool
 }
 
 type TaskArgs struct {
@@ -60,8 +59,8 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 		executor.signer = types.NewEIP155Signer(chainConfig.ChainID)
 		executor.vmCfg = vmCfg
-		csc, _ := lru.New(contractCacheSize)
-		executor.contractCache = csc
+		//csc, _ := lru.New(contractCacheSize)
+		//executor.contractCache = csc
 		executor.txpool = txpool
 	})
 }
@@ -79,7 +78,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		txDag := NewTxDag(exe.signer)
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
-		if err := txDag.MakeDagGraph(ctx.header.Number.Uint64(), ctx.GetState(), ctx.txList, exe); err != nil {
+		if err := txDag.MakeDagGraph(ctx, exe); err != nil {
 			return err
 		}
 		log.Trace("Make dag graph cost", "number", ctx.header.Number.Uint64(), "time", time.Since(start))
@@ -235,18 +234,24 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }
 
-func (exe *Executor) isContract(address *common.Address, state *state.StateDB) bool {
+func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx *ParallelContext) bool {
+	address := tx.To()
 	if address == nil { // create contract
+		contractAddress := crypto.CreateAddress(tx.FromAddr(exe.signer), tx.Nonce())
+		ctx.tempContractCache[contractAddress] = struct{}{}
 		return true
 	}
-	if cached, ok := exe.contractCache.Get(*address); ok {
-		return cached.(bool)
+	if _, ok := ctx.tempContractCache[*address]; ok {
+		return true
 	}
+	//if cached, ok := exe.contractCache.Get(*address); ok {
+	//	return cached.(bool)
+	//}
 	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
 	//if isContract {
 	//	exe.contractCache.Add(*address, true)
 	//}
-	exe.contractCache.Add(*address, isContract)
+	//exe.contractCache.Add(*address, isContract)
 	return isContract
 }
 

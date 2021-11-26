@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -63,6 +65,34 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash *common.Hash    `json:"hash" rlp:"-"`
 	From *common.Address `json:"hash" rlp:"-"`
+}
+
+// MarshalJSON2 marshals as JSON.
+func (t txdata) MarshalJSON2() ([]byte, error) {
+	type txdata struct {
+		AccountNonce hexutil.Uint64  `json:"nonce"    gencodec:"required"`
+		Price        *hexutil.Big    `json:"gasPrice" gencodec:"required"`
+		GasLimit     hexutil.Uint64  `json:"gas"      gencodec:"required"`
+		Recipient    *common.Address `json:"to"       rlp:"nil"`
+		Amount       *hexutil.Big    `json:"value"    gencodec:"required"`
+		Payload      hexutil.Bytes   `json:"input"    gencodec:"required"`
+		V            *hexutil.Big    `json:"v" gencodec:"required"`
+		R            *hexutil.Big    `json:"r" gencodec:"required"`
+		S            *hexutil.Big    `json:"s" gencodec:"required"`
+		Hash         *common.Hash    `json:"hash" rlp:"-"`
+	}
+	var enc txdata
+	enc.AccountNonce = hexutil.Uint64(t.AccountNonce)
+	enc.Price = (*hexutil.Big)(t.Price)
+	enc.GasLimit = hexutil.Uint64(t.GasLimit)
+	enc.Recipient = t.Recipient
+	enc.Amount = (*hexutil.Big)(t.Amount)
+	enc.Payload = t.Payload
+	enc.V = (*hexutil.Big)(t.V)
+	enc.R = (*hexutil.Big)(t.R)
+	enc.S = (*hexutil.Big)(t.S)
+	enc.Hash = t.Hash
+	return json2.Marshal(&enc)
 }
 
 type txdataMarshaling struct {

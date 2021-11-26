@@ -19,6 +19,7 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
+	"golang.org/x/crypto/sha3"
 	"net"
 	"reflect"
 	"testing"
@@ -27,7 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
@@ -48,8 +48,8 @@ func newTestTransport(id discover.NodeID, fd net.Conn) transport {
 	wrapped.rw = newRLPXFrameRW(fd, secrets{
 		MAC:        zero16,
 		AES:        zero16,
-		IngressMAC: sha3.NewKeccak256(),
-		EgressMAC:  sha3.NewKeccak256(),
+		IngressMAC: sha3.NewLegacyKeccak256(),
+		EgressMAC:  sha3.NewLegacyKeccak256(),
 	})
 	return &testTransport{id: id, rlpx: wrapped}
 }
@@ -130,7 +130,7 @@ func TestServerDial(t *testing.T) {
 		t.Fatalf("could not setup listener: %v", err)
 	}
 	defer listener.Close()
-	accepted := make(chan net.Conn)
+	accepted := make(chan net.Conn, 1)
 	go func() {
 		conn, err := listener.Accept()
 		if err != nil {

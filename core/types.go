@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -34,7 +35,7 @@ type Validator interface {
 
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
-	ValidateState(block, parent *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
+	ValidateState(block *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
 }
 
 // Processor is an interface for processing blocks using a given initial state.
@@ -48,5 +49,5 @@ type Processor interface {
 }
 
 type Committer interface {
-	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time) (failed bool, isTimeout bool)
+	CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool)
 }

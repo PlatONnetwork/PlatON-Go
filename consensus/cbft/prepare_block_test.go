@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package cbft
 
@@ -392,7 +393,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
 	header := &types.Header{
 		Number:      big.NewInt(int64(11)),
 		ParentHash:  suit.view.firstProposer().state.HighestQCBlock().Hash(),
-		Time:        big.NewInt(time.Now().UnixNano() + 100),
+		Time:        uint64(time.Now().UnixNano() + 100),
 		Extra:       make([]byte, 97),
 		ReceiptHash: common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
 		Root:        common.BytesToHash(hexutil.MustDecode("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),

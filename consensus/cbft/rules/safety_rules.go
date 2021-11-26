@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package rules
 
@@ -192,20 +193,18 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		if parentBlock == nil {
 			return newCommonError(fmt.Sprintf("parentBlock does not exist(parentHash:%s, parentNum:%d, blockIndex:%d)", block.Block.ParentHash().String(), block.BlockNum()-1, block.BlockIndex))
 		}
-		// prepareBlock timestamp
-		blockTime := common.MillisToTime(block.Block.Time().Int64())
 
 		// parent block time must before than prepareBlock time
-		if !common.MillisToTime(parentBlock.Time().Int64()).Before(blockTime) {
+		if parentBlock.Time() > block.Block.Time() {
 			return newCommonError(fmt.Sprintf("prepareBlock time is before parent(parentHash:%s, parentNum:%d, parentTime:%d, blockHash:%s, blockNum:%d, blockTime:%d)",
-				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time().Int64(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64()))
+				parentBlock.Hash().String(), parentBlock.NumberU64(), parentBlock.Time(), block.Block.Hash().String(), block.BlockNum(), block.Block.Time()))
 		}
 
 		// prepareBlock time cannot exceed system time by 1000 ms(default)
-		sysTime := time.Now()
-		if !blockTime.Before(sysTime.Add(riseTimeLimit)) {
+		riseTime := common.Millis(time.Now().Add(riseTimeLimit))
+		if block.Block.Time() > uint64(riseTime) {
 			return newCommonError(fmt.Sprintf("prepareBlock time is advance(blockHash:%s, blockNum:%d, blockTime:%d, sysTime:%d)",
-				block.Block.Hash().String(), block.BlockNum(), block.Block.Time().Int64(), common.Millis(sysTime)))
+				block.Block.Hash().String(), block.BlockNum(), block.Block.Time(), riseTime))
 		}
 		return nil
 	}

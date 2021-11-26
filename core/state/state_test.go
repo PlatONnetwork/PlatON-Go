@@ -25,9 +25,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/stretchr/testify/assert"
 
@@ -257,10 +256,12 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "platon")
-	defer os.Remove(tmpDir)
-
-	db, _ := leveldb.New(tmpDir, 0, 0, "")
+	frdir, err := ioutil.TempDir("", "platon")
+	if err != nil {
+		t.Fatalf("failed to create temp freezer dir: %v", err)
+	}
+	defer os.Remove(frdir)
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
@@ -320,7 +321,7 @@ func TestEmptyByte(t *testing.T) {
 func TestForEachStorage(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := leveldb.New(tmpDir, 0, 0, "")
+	db, _ := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "", "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
@@ -351,7 +352,7 @@ func TestMigrateStorage(t *testing.T) {
 
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := leveldb.New(tmpDir, 0, 0, "")
+	db, _ := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "", "")
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")

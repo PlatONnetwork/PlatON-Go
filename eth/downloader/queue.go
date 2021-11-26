@@ -654,7 +654,6 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 	// Iterate over the expired requests and return each to the queue
 	expiries := make(map[string]int)
 	for id, request := range pendPool {
-		//log.Debug("queue expire", "id", id, "time.Since(request.Time)", time.Since(request.Time), "timeout", timeout, "len(request.Headers)", len(request.Headers))
 		if time.Since(request.Time) > timeout {
 			// Update the metrics with the timeout
 			timeoutMeter.Mark(1)
@@ -663,20 +662,15 @@ func (q *queue) expire(timeout time.Duration, pendPool map[string]*fetchRequest,
 			if request.From > 0 {
 				taskQueue.Push(request.From, -int64(request.From))
 			}
-			headers := make([]string, 0)
 			for _, header := range request.Headers {
 				taskQueue.Push(header, -int64(header.Number.Uint64()))
-				headers = append(headers, header.Number.String())
-				headers = append(headers, header.Hash().Hex())
 			}
-			//log.Debug("queue expire expiries add", "id", id, "len(request.Headers)", len(request.Headers), "headers", strings.Join(headers, ","))
 			// Add the peer to the expiry report along the number of failed requests
 			expiries[id] = len(request.Headers)
+
+			// Remove the expired requests from the pending pool directly
+			delete(pendPool, id)
 		}
-	}
-	// Remove the expired requests from the pending pool
-	for id := range expiries {
-		delete(pendPool, id)
 	}
 	return expiries
 }

@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+
 
 package plugin
 
@@ -400,7 +401,7 @@ func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amoun
 
 	if total.Cmp(amount) < 0 {
 		rp.log.Warn("Balance of restricting and free not enough", "totalAmount",
-			restrictInfo.CachePlanAmount, "stankingAmount", restrictInfo.AdvanceAmount, "free", canStakingFree, "funds", amount)
+			restrictInfo.CachePlanAmount, "stakingAmount", restrictInfo.AdvanceAmount, "free", canStakingFree, "funds", amount)
 		return nil, nil, restricting.ErrRestrictBalanceAndFreeNotEnough
 	}
 

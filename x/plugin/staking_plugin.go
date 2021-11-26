@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -3042,8 +3042,8 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen, "shuffleSeed", shuffleSeed)
 
 	if gov.Gte110Version(currentVersion) {
-		rand.Seed(shuffleSeed)
-		rand.Shuffle(len(svList), func(i, j int) {
+		rd := rand.New(rand.NewSource(shuffleSeed))
+		rd.Shuffle(len(svList), func(i, j int) {
 			svList[i], svList[j] = svList[j], svList[i]
 		})
 	}

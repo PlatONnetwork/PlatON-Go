@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -340,7 +340,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		TxHash:      types.EmptyRootHash,
 		ReceiptHash: types.EmptyRootHash,
 		Number:      newNumber,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		Nonce:       types.EncodeNonce(nonce),
 	}
@@ -709,7 +709,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		TxHash:      types.EmptyRootHash,
 		ReceiptHash: types.EmptyRootHash,
 		Number:      currentNumber,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		Nonce:       types.EncodeNonce(nonce),
 	}
@@ -764,7 +764,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		TxHash:      types.EmptyRootHash,
 		ReceiptHash: types.EmptyRootHash,
 		Number:      currentNumber,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		Nonce:       types.EncodeNonce(nonce),
 	}
@@ -1026,7 +1026,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		TxHash:      types.EmptyRootHash,
 		ReceiptHash: types.EmptyRootHash,
 		Number:      currentNumber,
-		Time:        big.NewInt(time.Now().UnixNano()),
+		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
 		Nonce:       types.EncodeNonce(nonce),
 	}
@@ -3936,4 +3936,49 @@ func TestStakingPlugin_CalcDelegateIncome(t *testing.T) {
 	expectedCumulativeIncome = expectedCumulativeIncome.Add(expectedCumulativeIncome, per[1].CalDelegateReward(new(big.Int).Add(del.Released, del.ReleasedHes)))
 	calcDelegateIncome(4, del, per)
 	assert.True(t, del.CumulativeIncome.Cmp(expectedCumulativeIncome) == 0)
+}
+
+func TestStakingPlugin_RandSeedShuffle(t *testing.T) {
+	dataList := make([]int, 0)
+	for i := 0; i < 6; i++ {
+		dataList = append(dataList, i)
+	}
+	dataListCp := make([]int, len(dataList))
+	copy(dataListCp, dataList)
+
+	dataListCp2 := make([]int, len(dataList))
+	copy(dataListCp2, dataList)
+
+	dataListCp3 := make([]int, len(dataList))
+	copy(dataListCp3, dataList)
+
+	rd := mrand.New(mrand.NewSource(110))
+	rd.Shuffle(len(dataList), func(i, j int) {
+		dataList[i], dataList[j] = dataList[j], dataList[i]
+	})
+
+	mrand.Seed(110)
+	mrand.Shuffle(len(dataListCp), func(i, j int) {
+		dataListCp[i], dataListCp[j] = dataListCp[j], dataListCp[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] == dataListCp[i])
+	}
+
+	// Reset Seed
+	rd.Seed(110)
+	mrand.Seed(119)
+	mrand.Shuffle(len(dataListCp2), func(i, j int) {
+		dataListCp2[i], dataListCp2[j] = dataListCp2[j], dataListCp2[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] != dataListCp2[i])
+	}
+
+	rd.Shuffle(len(dataListCp3), func(i, j int) {
+		dataListCp3[i], dataListCp3[j] = dataListCp3[j], dataListCp3[i]
+	})
+	for i := 0; i < len(dataList); i++ {
+		assert.True(t, dataList[i] == dataListCp3[i])
+	}
 }

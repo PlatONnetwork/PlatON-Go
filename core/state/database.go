@@ -65,7 +65,7 @@ type Trie interface {
 	ParallelHash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
-	Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error
+	Prove(key []byte, fromLevel uint, proofDb ethdb.KeyValueWriter) error
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
@@ -88,7 +88,6 @@ func NewDatabaseWithCache(db ethdb.Database, cache int) Database {
 type cachingDB struct {
 	db            *trie.Database
 	mu            sync.Mutex
-	pastTries     []*trie.SecureTrie
 	codeSizeCache *lru.Cache
 }
 

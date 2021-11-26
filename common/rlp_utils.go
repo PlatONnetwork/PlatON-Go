@@ -1,4 +1,4 @@
-// Copyright 2018-2020 The PlatON Network Authors
+// Copyright 2021 The PlatON Network Authors
 // This file is part of the PlatON-Go library.
 //
 // The PlatON-Go library is free software: you can redistribute it and/or modify
@@ -18,8 +18,8 @@ package common
 
 import (
 	"bytes"
+	"golang.org/x/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -40,7 +40,7 @@ func GenerateKVHash(k, v []byte, oldHash Hash) Hash {
 }
 
 func RlpHash(x interface{}) (h Hash) {
-	hw := sha3.NewKeccak256()
+	hw := sha3.NewLegacyKeccak256()
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h

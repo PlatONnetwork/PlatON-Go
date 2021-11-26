@@ -18,98 +18,17 @@
 package web3ext
 
 var Modules = map[string]string{
-	"admin":      Admin_JS,
-	"chequebook": Chequebook_JS,
-	"clique":     Clique_JS,
-	"debug":      Debug_JS,
-	"platon":     Platon_JS,
-	"miner":      Miner_JS,
-	"net":        Net_JS,
-	"personal":   Personal_JS,
-	"rpc":        RPC_JS,
-	"shh":        Shh_JS,
-	"swarmfs":    SWARMFS_JS,
-	"txpool":     TxPool_JS,
+	"admin":      AdminJs,
+	"debug":      DebugJs,
+	"platon":     PlatonJs,
+	"miner":      MinerJs,
+	"net":        NetJs,
+	"personal":   PersonalJs,
+	"rpc":        RpcJs,
+	"txpool":     TxpoolJs,
 }
 
-const Chequebook_JS = `
-web3._extend({
-	property: 'chequebook',
-	methods: [
-		new web3._extend.Method({
-			name: 'deposit',
-			call: 'chequebook_deposit',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Property({
-			name: 'balance',
-			getter: 'chequebook_balance',
-			outputFormatter: web3._extend.utils.toDecimal
-		}),
-		new web3._extend.Method({
-			name: 'cash',
-			call: 'chequebook_cash',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'issue',
-			call: 'chequebook_issue',
-			params: 2,
-			inputFormatter: [null, null]
-		}),
-	]
-});
-`
-
-const Clique_JS = `
-web3._extend({
-	property: 'clique',
-	methods: [
-		new web3._extend.Method({
-			name: 'getSnapshot',
-			call: 'clique_getSnapshot',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'getSnapshotAtHash',
-			call: 'clique_getSnapshotAtHash',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'getSigners',
-			call: 'clique_getSigners',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'getSignersAtHash',
-			call: 'clique_getSignersAtHash',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'propose',
-			call: 'clique_propose',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'discard',
-			call: 'clique_discard',
-			params: 1
-		}),
-	],
-	properties: [
-		new web3._extend.Property({
-			name: 'proposals',
-			getter: 'clique_proposals'
-		}),
-	]
-});
-`
-
-const Admin_JS = `
+const AdminJs = `
 web3._extend({
 	property: 'admin',
 	methods: [
@@ -195,7 +114,7 @@ web3._extend({
 });
 `
 
-const Debug_JS = `
+const DebugJs = `
 web3._extend({
 	property: 'debug',
 	methods: [
@@ -353,6 +272,24 @@ web3._extend({
 			inputFormatter: [null, null]
 		}),
 		new web3._extend.Method({
+			name: 'traceBadBlock',
+			call: 'debug_traceBadBlock',
+			params: 1,
+			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
+			name: 'standardTraceBadBlockToFile',
+			call: 'debug_standardTraceBadBlockToFile',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
+			name: 'standardTraceBlockToFile',
+			call: 'debug_standardTraceBlockToFile',
+			params: 2,
+			inputFormatter: [null, null]
+		}),
+		new web3._extend.Method({
 			name: 'traceBlockByNumber',
 			call: 'debug_traceBlockByNumber',
 			params: 2,
@@ -423,7 +360,7 @@ web3._extend({
 });
 `
 
-const Platon_JS = `
+const PlatonJs = `
 web3._extend({
 	property: 'platon',
 	methods: [
@@ -498,7 +435,7 @@ web3._extend({
 });
 `
 
-const Miner_JS = `
+const MinerJs = `
 web3._extend({
 	property: 'miner',
 	methods: [
@@ -513,7 +450,7 @@ web3._extend({
 });
 `
 
-const Net_JS = `
+const NetJs = `
 web3._extend({
 	property: 'net',
 	methods: [],
@@ -526,7 +463,7 @@ web3._extend({
 });
 `
 
-const Personal_JS = `
+const PersonalJs = `
 web3._extend({
 	property: 'personal',
 	methods: [
@@ -572,7 +509,7 @@ web3._extend({
 })
 `
 
-const RPC_JS = `
+const RpcJs = `
 web3._extend({
 	property: 'rpc',
 	methods: [],
@@ -585,51 +522,7 @@ web3._extend({
 });
 `
 
-const Shh_JS = `
-web3._extend({
-	property: 'shh',
-	methods: [
-	],
-	properties:
-	[
-		new web3._extend.Property({
-			name: 'version',
-			getter: 'shh_version',
-			outputFormatter: web3._extend.utils.toDecimal
-		}),
-		new web3._extend.Property({
-			name: 'info',
-			getter: 'shh_info'
-		}),
-	]
-});
-`
-
-const SWARMFS_JS = `
-web3._extend({
-	property: 'swarmfs',
-	methods:
-	[
-		new web3._extend.Method({
-			name: 'mount',
-			call: 'swarmfs_mount',
-			params: 2
-		}),
-		new web3._extend.Method({
-			name: 'unmount',
-			call: 'swarmfs_unmount',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'listmounts',
-			call: 'swarmfs_listmounts',
-			params: 0
-		}),
-	]
-});
-`
-
-const TxPool_JS = `
+const TxpoolJs = `
 web3._extend({
 	property: 'txpool',
 	methods: [],

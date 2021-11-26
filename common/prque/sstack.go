@@ -14,16 +14,16 @@ type item struct {
 	priority int64
 }
 
-// setIndexCallback is called when the element is moved to a new index.
-// Providing setIndexCallback is optional, it is needed only if the application needs
+// SetIndexCallback is called when the element is moved to a new index.
+// Providing SetIndexCallback is optional, it is needed only if the application needs
 // to delete elements other than the top one.
-type setIndexCallback func(a interface{}, i int)
+type SetIndexCallback func(a interface{}, i int)
 
 // Internal sortable stack data structure. Implements the Push and Pop ops for
 // the stack (heap) functionality and the Len, Less and Swap methods for the
 // sortability requirements of the heaps.
 type sstack struct {
-	setIndex setIndexCallback
+	setIndex SetIndexCallback
 	size     int
 	capacity int
 	offset   int
@@ -33,7 +33,7 @@ type sstack struct {
 }
 
 // Creates a new, empty stack.
-func newSstack(setIndex setIndexCallback) *sstack {
+func newSstack(setIndex SetIndexCallback) *sstack {
 	result := new(sstack)
 	result.setIndex = setIndex
 	result.active = make([]*item, blockSize)

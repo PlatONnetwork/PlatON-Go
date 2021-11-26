@@ -22,10 +22,10 @@ const (
 
 func (w *worker) shouldSwitch() bool {
 	header := w.current.header
-	blocksPerNode := int(w.config.Cbft.Amount)
+	blocksPerNode := int(w.chainConfig.Cbft.Amount)
 	offset := blocksPerNode * 2
 	agency := validator.NewInnerAgency(
-		w.config.Cbft.InitialNodes,
+		w.chainConfig.Cbft.InitialNodes,
 		w.chain,
 		blocksPerNode,
 		offset)
@@ -45,7 +45,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 		return buf[:]
 	}
 
-	offset := uint64(w.config.Cbft.Amount) * 2
+	offset := uint64(w.chainConfig.Cbft.Amount) * 2
 	validBlockNumber := w.current.header.Number.Uint64() + offset + 1
 	address := common.HexToAddress(innerAccountAddr)
 	nonce := w.current.state.GetNonce(address)
@@ -81,7 +81,8 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	}
 	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs)
 
-	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline); ok {
+	tempContractCache := make(map[common.Address]struct{})
+	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
 		log.Error("Commit inner contract transaction fail")
 		return errors.New("commit transaction fail")
 	}

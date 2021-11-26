@@ -20,10 +20,11 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"golang.org/x/crypto/sha3"
 	"io"
 	"math/big"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -246,6 +247,10 @@ func (self *stateObject) GetCommittedState(db Database, key []byte) []byte {
 		return value
 	}
 
+	// Track the amount of time wasted on reading the storge trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { self.db.StorageReads += time.Since(start) }(time.Now())
+	}
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet(key[:])
 	if err != nil {
@@ -301,7 +306,7 @@ func (self *stateObject) getPrefixValue(pack, key, value []byte) []byte {
 	prefix := append(self.data.StorageKeyPrefix, pack...)
 	prefix = append(prefix, key...)
 	prefixHash := common.Hash{}
-	keccak := sha3.NewKeccak256()
+	keccak := sha3.NewLegacyKeccak256()
 	keccak.Write(prefix)
 	keccak.Sum(prefixHash[:0])
 	return append(prefixHash[:], value...)
@@ -317,6 +322,10 @@ func (self *stateObject) removePrefixValue(value []byte) []byte {
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
+	// Track the amount of time wasted on updating the storage trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { self.db.StorageUpdates += time.Since(start) }(time.Now())
+	}
 	for key, value := range self.dirtyStorage {
 		delete(self.dirtyStorage, key)
 
@@ -344,6 +353,11 @@ func (self *stateObject) updateTrie(db Database) Trie {
 // UpdateRoot sets the trie root to the current root hash of
 func (self *stateObject) updateRoot(db Database) {
 	self.updateTrie(db)
+
+	// Track the amount of time wasted on hashing the storage trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { self.db.StorageHashes += time.Since(start) }(time.Now())
+	}
 	//self.data.Root = self.trie.Hash()
 	self.data.Root = self.trie.ParallelHash()
 }
@@ -356,6 +370,10 @@ func (self *stateObject) CommitTrie(db Database) error {
 		return self.dbErr
 	}
 
+	// Track the amount of time wasted on committing the storage trie
+	if metrics.EnabledExpensive {
+		defer func(start time.Time) { self.db.StorageCommits += time.Since(start) }(time.Now())
+	}
 	root, err := self.trie.Commit(nil)
 
 	if err == nil {
