@@ -81,7 +81,8 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	}
 	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs)
 
-	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline); ok {
+	tempContractCache := make(map[common.Address]struct{})
+	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
 		log.Error("Commit inner contract transaction fail")
 		return errors.New("commit transaction fail")
 	}

@@ -41,18 +41,20 @@ type ParallelContext struct {
 	packNewBlock       bool
 	wg                 sync.WaitGroup
 	signer             types.Signer
+	tempContractCache  map[common.Address]struct{}
 }
 
-func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool, signer types.Signer) *ParallelContext {
+func NewParallelContext(state *state.StateDB, header *types.Header, blockHash common.Hash, gp *GasPool, packNewBlock bool, signer types.Signer, tempContractCache map[common.Address]struct{}) *ParallelContext {
 	ctx := &ParallelContext{
-		state:           state,
-		header:          header,
-		blockHash:       blockHash,
-		gp:              gp,
-		poppedAddresses: make(map[common.Address]struct{}),
-		earnings:        big.NewInt(0),
-		packNewBlock:    packNewBlock,
-		signer:          signer,
+		state:             state,
+		header:            header,
+		blockHash:         blockHash,
+		gp:                gp,
+		poppedAddresses:   make(map[common.Address]struct{}),
+		earnings:          big.NewInt(0),
+		packNewBlock:      packNewBlock,
+		signer:            signer,
+		tempContractCache: tempContractCache,
 	}
 	return ctx
 }
@@ -196,12 +198,12 @@ func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject,
 		err:             nil,
 	}
 	ctx.SetResult(idx, result)
-	/*	log.Debug("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", tx.Hash().TerminalString(),
+	log.Trace("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", tx.Hash().TerminalString(),
 		"gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "txUsedGas", txGasUsed, "txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(),
-		"txValue", tx.Value().Uint64(), "minerEarnings", minerEarnings.Uint64())*/
+		"txValue", tx.Value().Uint64(), "minerEarnings", minerEarnings.Uint64())
 }
 
-func (ctx *ParallelContext) batchMerge(batchNo int, originIdxList []int, deleteEmptyObjects bool) {
+func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 	resultList := ctx.GetResults()
 	for _, idx := range originIdxList {
 		if resultList[idx] != nil {
