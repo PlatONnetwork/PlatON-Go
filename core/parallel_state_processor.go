@@ -73,7 +73,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		if err := GetExecutor().ExecuteTransactions(ctx); err != nil {
 			return nil, nil, 0, err
 		}
-		receipts = ctx.GetReceipts()
+		receipts = sortReceipts(block.Transactions(), ctx.GetReceipts())
 		allLogs = ctx.GetLogs()
 		log.Trace("Process parallel execute transactions cost time", "blockNumber", block.Number(), "blockHash", block.Hash(), "time", time.Since(start))
 	}
@@ -92,4 +92,25 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	//p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
 	statedb.IntermediateRoot(true)
 	return receipts, allLogs, *usedGas, nil
+}
+
+func sortReceipts(txs types.Transactions, receipts types.Receipts) types.Receipts {
+	receiptsMap := make(map[common.Hash]*types.Receipt)
+	cumulativeGasUsed := uint64(0)
+	sortReceipts := make([]*types.Receipt, 0, receipts.Len())
+
+	for _, r := range receipts {
+		receiptsMap[r.TxHash] = r
+	}
+	for _, tx := range txs {
+		if r, ok := receiptsMap[tx.Hash()]; ok {
+			cumulativeGasUsed += r.GasUsed
+			r.CumulativeGasUsed = cumulativeGasUsed
+			sortReceipts = append(sortReceipts, r)
+			log.Trace("sortReceipts tx", "hash", tx.Hash(), "to", tx.To(), "data", tx.Data())
+		} else {
+			log.Error("GetReceipts error,the corresponding receipt was not found", "txhash", tx.Hash())
+		}
+	}
+	return sortReceipts
 }

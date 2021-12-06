@@ -33,8 +33,7 @@ type Executor struct {
 	signer       types.Signer
 
 	workerPool *ants.PoolWithFunc
-	//contractCache     *lru.Cache
-	txpool *TxPool
+	txpool     *TxPool
 }
 
 type TaskArgs struct {
@@ -59,8 +58,6 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 		executor.signer = types.NewEIP155Signer(chainConfig.ChainID)
 		executor.vmCfg = vmCfg
-		//csc, _ := lru.New(contractCacheSize)
-		//executor.contractCache = csc
 		executor.txpool = txpool
 	})
 }
@@ -127,7 +124,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 				}
 				// waiting for current batch done
 				ctx.wg.Wait()
-				ctx.batchMerge(batchNo, parallelTxIdxs, true)
+				ctx.batchMerge(parallelTxIdxs)
 				batchNo++
 			}
 		}
@@ -142,14 +139,13 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 		log.Trace("Finalise stateDB cost", "number", ctx.header.Number, "time", time.Since(start))
 	}
 
-	/*
-		// dag print info
-		logVerbosity := debug.GetLogVerbosity()
+	// dag print info
+	/*	logVerbosity := debug.GetLogVerbosity()
 		if logVerbosity == log.LvlTrace {
 			inf := ctx.txListInfo()
 			log.Trace("TxList Info", "blockNumber", ctx.header.Number, "txList", inf)
-		}
-	*/
+		}*/
+
 	return nil
 }
 
@@ -244,29 +240,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	//if cached, ok := exe.contractCache.Get(*address); ok {
-	//	return cached.(bool)
-	//}
 	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
-	//if isContract {
-	//	exe.contractCache.Add(*address, true)
-	//}
-	//exe.contractCache.Add(*address, isContract)
 	return isContract
 }
-
-/*// load tx fromAddress from txpool by txHash
-func (exe *Executor) cacheTxFromAddress(txs []*types.Transaction, signer types.Signer) {
-	hit := 0
-	for _, tx := range txs {
-		txpool_tx := exe.txpool.all.Get(tx.Hash())
-		if txpool_tx != nil {
-			fromAddress := txpool_tx.FromAddr(signer)
-			if fromAddress != (common.Address{}) {
-				tx.CacheFromAddr(signer, fromAddress)
-				hit++
-			}
-		}
-	}
-	log.Debug("Parallel execute cacheTxFromAddress", "hit", hit, "total", len(txs))
-}*/
