@@ -359,6 +359,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 
 	//stats
 	genesisDataCollector := new(common.GenesisData)
+	statData := common.CreateStatData()
 
 	genesisIssuance := new(big.Int)
 
@@ -430,7 +431,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		}
 
 		// Store genesis staking data
-		if _, err := genesisStakingData(genesisDataCollector, initDataStateHash, sdb, g, statedb); nil != err {
+		if _, err := genesisStakingData(genesisDataCollector, statData, initDataStateHash, sdb, g, statedb); nil != err {
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
@@ -477,6 +478,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	//stats:保持创世块统计数据
 	//todo: Genesis增加一个指示器，collected bool，当true，则不再写。
 	statsdb.Instance().WriteGenesisData(genesisDataCollector)
+	statsdb.Instance().WriteStatData(big.NewInt(0), statData)
 
 	log.Debug("Call ToBlock finished", "genesisHash", block.Hash().Hex())
 	return block

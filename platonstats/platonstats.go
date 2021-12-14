@@ -84,6 +84,7 @@ type StatsBlockExt struct {
 	ExeBlockData *common.ExeBlockData   `json:"exeBlockData,omitempty"`
 	GenesisData  *common.GenesisData    `json:"GenesisData,omitempty"`
 	ContractList []common.Address       `json:"ContractList,omitempty"`
+	StatData     *common.StatData       `json:"statData,omitempty"`
 }
 
 type PlatonStatsService struct {
@@ -191,6 +192,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	var genesisData *common.GenesisData
 	var receipts []*types.Receipt
 	var exeBlockData *common.ExeBlockData
+	var statData *common.StatData
 
 	var err error
 	if block.NumberU64() == 0 {
@@ -199,9 +201,11 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 			return errors.New("cannot read genesis data")
 		}
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
+		statData = statsdb.Instance().ReadStatData(block.Number())
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
+		statData = statsdb.Instance().ReadStatData(block.Number())
 	}
 
 	brief := collectBrief(block)
@@ -223,6 +227,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
 		ContractList: contractList,
+		StatData:     statData,
 	}
 
 	jsonBytes, err := json.Marshal(statsBlockExt)

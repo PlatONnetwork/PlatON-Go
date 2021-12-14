@@ -146,14 +146,18 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				changed = true
 			}
 			if changed {
+				//stats
+				common.CollectCandidateChanged(blockNumber, v.NodeAddress)
 				if err = sk.db.SetCanMutableStore(blockHash, v.NodeAddress, canOld); err != nil {
 					log.Error("Failed to editCandidate on stakingPlugin BeginBlock", "nodeAddress", v.NodeAddress.String(),
 						"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
 			}
-
 		}
+
+		//stats 查询存在变更犹豫期金额节点信息
+		sk.checkHesChangeCandidate(blockHash, blockNumber)
 	}
 	return nil
 }
@@ -341,6 +345,9 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	can.StakingEpoch = uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
 
+	//stats
+	common.CollectCandidateChanged(blockNumber.Uint64(), addr)
+
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Store Candidate info is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -403,6 +410,9 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		return staking.ErrWrongVonOptType
 	}
 
+	//stats
+	common.CollectCandidateDeleted(blockNumber.Uint64(), addr, transformCandidateBase2StatCandidate(can.CandidateBase))
+
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to RollBackStaking on stakingPlugin: Delete Candidate info is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -427,6 +437,10 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 }
 
 func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, canAddr common.NodeAddress, can *staking.Candidate) error {
+
+	//stats
+	common.CollectCandidateChanged(blockNumber.Uint64(), canAddr)
+
 	if err := sk.db.SetCanBaseStore(blockHash, canAddr, can.CandidateBase); nil != err {
 		log.Error("Failed to EditCandidate on stakingPlugin: Store CandidateBase info is failed",
 			"nodeId", can.NodeId.String(), "blockNumber", blockNumber.Uint64(),
@@ -497,6 +511,9 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
+	//stats
+	common.CollectCandidateChanged(blockNumber.Uint64(), canAddr)
+
 	if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 		log.Error("Failed to IncreaseStaking on stakingPlugin: Store CandidateMutable info is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
@@ -528,12 +545,18 @@ func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Ha
 
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
+		//stats
+		common.CollectCandidateChanged(blockNumber.Uint64(), canAddr)
+
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Store CandidateMutable info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 			return err
 		}
 	} else {
+
+		//stats
+		common.CollectCandidateDeleted(blockNumber.Uint64(), canAddr, transformCandidateBase2StatCandidate(can.CandidateBase))
 
 		if err := sk.db.DelCandidateStore(blockHash, canAddr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate info is failed",
@@ -686,6 +709,10 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 					return err
 				}
 				can.CleanLowRatioStatus()
+
+				//stats
+				common.CollectCandidateChanged(blockNumber, canAddr)
+
 				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -701,6 +728,10 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockNumber u
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
 					return err
 				}
+
+				//stats
+				common.CollectCandidateChanged(blockNumber, canAddr)
+
 				if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 					log.Error("Failed to HandleUnCandidateItem on stakingPlugin: Store CandidateMutable info is failed",
 						"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -779,6 +810,9 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 	} else {
 		can.RestrictingPlan = balance
 	}
+
+	//stats
+	common.CollectCandidateDeleted(blockNumber, addr, transformCandidateBase2StatCandidate(can.CandidateBase))
 
 	if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
 		log.Error("Failed to HandleUnCandidateItem: Delete candidate info failed",
@@ -945,6 +979,9 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		return err
 	}
 
+	//stats
+	common.CollectCandidateChanged(blockNumber.Uint64(), canAddr)
+
 	// update can info about Shares
 	if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store CandidateMutable info is failed",
@@ -957,7 +994,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 // stats:撤回委托，可以部分撤回。
 // 0.15.0之前，委托用户可以撤销委托，马上到账。待赎回委托：委托的节点如果撤销质押了，委托用户需自己赎回委托，这种委托，成为待赎回委托。
 // 0.15.0之后，委托用户撤销委托，要先发撤回委托交易，委托进入冻结状态，冻结期满；委托进入待赎回状态，委托用户再发赎回委托才能到账；委托的节点如果撤销质押了，委托用户需要自己发送撤回委托交易，待冻结结满，再发赎回交易。待赎回委托：处于冻结期的委托。
-func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,  txHash common.Hash, amount *big.Int,
+func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, error) {
 	issueIncome := new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -1127,6 +1164,9 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				can.SubShares(realSub)
 			}
 		}
+
+		//stats
+		common.CollectCandidateChanged(blockNumber.Uint64(), canAddr)
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to WithdrewDelegation on stakingPlugin: Store CandidateMutable info is failed", "blockNumber",
@@ -2085,6 +2125,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 		// 重新保存
 		addr, _ := xutil.NodeId2Addr(can.NodeId)
+
+		//stats
+		common.CollectCandidateChanged(blockNumber, addr)
+
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to Store Candidate on Election", "blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(), "err", err)
@@ -2438,6 +2482,8 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 				return needRemove, err
 			}
 		}
+		//stats
+		common.CollectCandidateChanged(blockNumber, canAddr)
 
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates on stakingPlugin: Store CandidateMutable info is failed",
@@ -2455,6 +2501,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		}
 
 		can.AppendStatus(changeStatus)
+
+		//stats
+		common.CollectCandidateChanged(blockNumber, canAddr)
+
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates: Store CandidateMutable is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2463,6 +2513,10 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 
 	} else {
 		can.AppendStatus(changeStatus)
+
+		//stats
+		common.CollectCandidateChanged(blockNumber, canAddr)
+
 		if err := sk.db.SetCanMutableStore(blockHash, canAddr, can.CandidateMutable); nil != err {
 			log.Error("Failed to SlashCandidates: Store CandidateMutable is failed", "slashType", slashItem.SlashType,
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "err", err)
@@ -2627,6 +2681,10 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 		can.ProgramVersion = programVersion
+
+		//stats
+		common.CollectCandidateChanged(blockNumber, addr)
+
 		//Store full version
 		if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 			log.Error("Failed to ProposalPassedNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
@@ -2688,6 +2746,10 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return err
 	}
+
+	//stats
+	common.CollectCandidateChanged(blockNumber, addr)
+
 	//Store full version
 	if err := sk.db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		log.Error("Failed to DeclarePromoteNotify: Store CandidateBase info is failed", "blockNumber", blockNumber,
@@ -3823,4 +3885,45 @@ func CheckOperatingThreshold(blockNumber uint64, blockHash common.Hash, balance 
 		return false, common.Big0
 	}
 	return balance.Cmp(threshold) >= 0, threshold
+}
+
+func transformCandidateBase2StatCandidate(can *staking.CandidateBase) *common.DelCandidate {
+	return &common.DelCandidate{
+		NodeId:          common.NodeID(can.NodeId),
+		StakingBlockNum: can.StakingBlockNum,
+		StakingTxIndex:  can.StakingTxIndex,
+	}
+}
+
+func (sk *StakingPlugin) checkHesChangeCandidate(blockHash common.Hash, blockNumber uint64) {
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		log.Error("ProcessStatData error, on checkHesChangeCandidate", "blockNumber", blockNumber)
+		fmt.Errorf("ProcessStatData error, on checkHesChangeCandidate")
+	}
+	defer iter.Release()
+
+	for iter.Valid(); iter.Next(); {
+
+		addrSuffix := iter.Value()
+		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			log.Error("ProcessStatData error, on checkHesChangeCandidate", "blockNumber", blockNumber, "addrSuffix", addrSuffix)
+			fmt.Errorf("ProcessStatData error, on checkHesChangeCandidate")
+		}
+
+		if epoch-uint64(can.StakingEpoch) == 1 {
+			canAddr, err := xutil.NodeId2Addr(can.NodeId)
+			if nil != err {
+				log.Error("ProcessStatData error, on checkHesChangeCandidate", "blockNumber", blockNumber, "addrSuffix", addrSuffix, "nodeId", can.NodeId)
+				fmt.Errorf("ProcessStatData error, on checkHesChangeCandidate")
+			}
+
+			common.CollectCandidateChanged(blockNumber, canAddr)
+			lazyCalcStakeAmount(epoch, can.CandidateMutable)
+		}
+	}
 }

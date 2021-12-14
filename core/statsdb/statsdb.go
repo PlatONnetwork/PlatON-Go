@@ -34,6 +34,10 @@ var (
 
 	//ErrNotFound when db not found
 	ErrNotFound = errors.New("statsDB: not found")
+
+	StatKeyPrefix = []byte("statKey")
+
+	PerIssuanceEpochPrefix = []byte("pieKey")
 )
 
 type StatsDB struct {
@@ -109,6 +113,55 @@ func (db *StatsDB) DeleteExeBlockData(blockNumber *big.Int) {
 	if err := db.DeleteLevelDB(blockNumber.Bytes()); err != nil {
 		log.Crit("Failed to delete ExeBlockData", "blockNumber", blockNumber, "err", err)
 	}
+}
+
+func (db *StatsDB) WriteStatData(blockNumber *big.Int, data *common.StatData) {
+	if data == nil {
+		return
+	}
+
+	if jsonBytes, err := json.Marshal(data); err != nil {
+		log.Crit("Failed to write StatData", "blockNumber", blockNumber, "err", err)
+	} else {
+		if err := db.PutLevelDB(append(StatKeyPrefix, blockNumber.Bytes()...), jsonBytes); err != nil {
+			log.Crit("Failed to write StatData", "blockNumber", blockNumber, "data", common.Bytes2Hex(jsonBytes), "err", err)
+		} else {
+			log.Info("WriteStatData", "blockNumber", blockNumber, "data", string(jsonBytes))
+		}
+	}
+}
+
+func (db *StatsDB) ReadStatData(blockNumber *big.Int) *common.StatData {
+	bytes, _ := db.GetLevelDB(append(StatKeyPrefix, blockNumber.Bytes()...))
+
+	log.Info("ReadStatData", "blockNumber", blockNumber, "dataLength", len(bytes))
+	if len(bytes) == 0 {
+		return nil
+	}
+	var data common.StatData
+	if err := json.Unmarshal(bytes, &data); err != nil {
+		log.Crit("Failed to read StatData", "blockNumber", blockNumber, "data", common.Bytes2Hex(bytes), "err", err)
+		return nil
+	}
+	return &data
+}
+
+func (db *StatsDB) WritePerIssuanceEpoch(epoch uint64) {
+	if err := db.PutLevelDB(PerIssuanceEpochPrefix, common.Uint64ToBytes(epoch)); err != nil {
+		log.Crit("Failed to write PerIssuanceEpoch", "epoch", epoch, "err", err)
+	} else {
+		log.Info("WritePerIssuanceEpoch", "epoch", epoch)
+	}
+}
+
+func (db *StatsDB) ReadPerIssuanceEpoch() uint64 {
+	bytes, _ := db.GetLevelDB(PerIssuanceEpochPrefix)
+
+	log.Info("ReadPerIssuanceEpoch", "dataLength", len(bytes))
+	if len(bytes) == 0 {
+		return uint64(0)
+	}
+	return common.BytesToUint64(bytes)
 }
 
 func (db *StatsDB) PutLevelDB(key, value []byte) error {

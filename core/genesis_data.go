@@ -32,7 +32,7 @@ func ConvertToCommonNodeIdList(verifierList []params.CbftNode) []common.NodeID {
 	return nodeIdList
 }
 
-func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
+func genesisStakingData(genesisDataCollector *common.GenesisData, statData *common.StatData, prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
 
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
@@ -177,6 +177,29 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, prevHash commo
 
 		//stats: 收集内置质押节点信息
 		genesisDataCollector.AddStakingItem(common.NodeID(base.NodeId), base.Description.NodeName, base.StakingAddress, base.BenefitAddress, mutable.Shares)
+		statData.Put.Candidate = append(statData.Put.Candidate, &common.Candidate{
+			NodeId:              common.NodeID(base.NodeId),
+			StakingAddress:      base.StakingAddress,
+			BenefitAddress:      base.BenefitAddress,
+			RewardPer:           mutable.RewardPer,
+			NextRewardPer:       mutable.NextRewardPer,
+			StakingTxIndex:      base.StakingTxIndex,
+			ProgramVersion:      base.ProgramVersion,
+			Status:              uint32(mutable.Status),
+			StakingBlockNum:     base.StakingBlockNum,
+			Shares:              mutable.Shares,
+			Released:            mutable.Released,
+			ReleasedHes:         mutable.ReleasedHes,
+			RestrictingPlan:     mutable.RestrictingPlan,
+			RestrictingPlanHes:  mutable.RestrictingPlanHes,
+			ExternalId:          base.ExternalId,
+			NodeName:            base.NodeName,
+			Website:             base.Website,
+			Details:             base.Details,
+			DelegateTotal:       mutable.DelegateTotal,
+			DelegateTotalHes:    mutable.DelegateTotalHes,
+			DelegateRewardTotal: mutable.DelegateRewardTotal,
+		})
 	}
 
 	// store the account staking Reference Count
