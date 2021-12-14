@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -854,7 +853,7 @@ func (rmp *RewardMgrPlugin) CalcEpochReward(blockHash common.Hash, head *types.H
 		log.Error("load incIssuanceTime fail", "currentBlockNumber", head.Number, "currentBlockHash", blockHash.TerminalString(), "err", err)
 		return nil, nil, err
 	}
-	if yearStartTime == 0 {//特殊处理：说明是链的第1块，则需要计算1岁时的增发时间
+	if yearStartTime == 0 { //特殊处理：说明是链的第1块，则需要计算1岁时的增发时间
 		yearStartBlockNumber = head.Number.Uint64() //此时滑动窗口起始块高 yearStartBlockNumber=1
 		yearStartTime = int64(head.Time)
 		//计算链下一年的预期增发时间点（当前区块时间 + 增发周期长度）
@@ -1178,7 +1177,7 @@ func (rmp *RewardMgrPlugin) calculateEpochNumber(blockHash common.Hash, blockNum
 		return err
 	}
 
-	remainTime := incIssuanceTime - header.Time.Int64()
+	remainTime := incIssuanceTime - int64(header.Time)
 	remainBlocks := math.Ceil(float64(remainTime) / float64(avgPackTime))
 	epochBlocks := xutil.CalcBlocksEachEpoch()
 	if remainBlocks > float64(epochBlocks) {
