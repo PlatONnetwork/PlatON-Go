@@ -184,7 +184,7 @@ func (s *PlatonStatsService) blockMsgLoop() {
 		select {
 		case <-s.quit:
 			s.waitQuit.Done()
-			break
+			return
 		default:
 			nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
 			if nextBlock != nil {
