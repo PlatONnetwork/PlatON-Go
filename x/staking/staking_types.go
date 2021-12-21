@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package staking
 
 import (
@@ -581,11 +580,11 @@ type Validator struct {
 }
 
 type ValidatorSave struct {
-	ValidatorTerm   uint32 // Validator's term in the consensus round
-	NodeId          discover.NodeID
+	ValidatorTerm       uint32 // Validator's term in the consensus round
+	NodeId              discover.NodeID
 	DelegateRewardTotal *big.Int
-	DelegateTotal     *big.Int
-	StakingBlockNum uint64
+	DelegateTotal       *big.Int
+	StakingBlockNum     uint64
 }
 
 func (val *Validator) String() string {
@@ -1267,7 +1266,6 @@ type SlashNodeData struct {
 	Amount *big.Int
 }
 
-
 func (s *SlashNodeItem) String() string {
 	return fmt.Sprintf(`{"nodeId": %s, "amount": %d, "slashType": %d, "benefitAddr": %s}`, s.NodeId.String(), s.Amount, s.SlashType, s.BenefitAddr)
 }
@@ -1285,50 +1283,59 @@ func (queue SlashQueue) String() string {
 }
 
 type CandidateVersion struct {
-	NodeId             discover.NodeID
-	ProgramVersion     uint32
+	NodeId         discover.NodeID
+	ProgramVersion uint32
+}
+
+type CurReward struct {
+	PackageReward *big.Int
+	StakingReward *big.Int
 }
 
 type Reward struct {
-	PackageReward     *big.Int
-	StakingReward     *big.Int
-	YearNum     uint32
-	YearStartNum     uint64
-	YearEndNum     uint64
-	RemainEpoch     uint32
-	AvgPackTime      uint64
+	PackageReward *big.Int
+	StakingReward *big.Int
+	YearNum       uint32
+	YearStartNum  uint64
+	YearEndNum    uint64
+	RemainEpoch   uint32
+	AvgPackTime   uint64
 }
 
 type RewardReturn struct {
+	CurPackageReward  *hexutil.Big
+	CurStakingReward  *hexutil.Big
+	NextPackageReward *hexutil.Big
+	NextStakingReward *hexutil.Big
 	PackageReward     *hexutil.Big
 	StakingReward     *hexutil.Big
-	YearNum     uint32
-	YearStartNum     uint64
-	YearEndNum     uint64
-	RemainEpoch     uint32
-	AvgPackTime      uint64
+	YearNum           uint32
+	YearStartNum      uint64
+	YearEndNum        uint64
+	RemainEpoch       uint32
+	AvgPackTime       uint64
 }
 
 type TransBlockReturnQueue []*TransBlockReturn
 
 type TransBlockReturn struct {
 	TxHash     string
-	From      common.Address
-	To        common.Address
-	TransDatas     []TransData
+	From       common.Address
+	To         common.Address
+	TransDatas []TransData
 }
 
 type TransBlock struct {
-	TransHashStr     []string
+	TransHashStr []string
 }
 
 type TransInput struct {
-	From      []byte
-	To        []byte
-	TransDatas     []TransData
+	From       []byte
+	To         []byte
+	TransDatas []TransData
 }
 
 type TransData struct {
-	Input     string
-	Code      string
+	Input string
+	Code  string
 }
