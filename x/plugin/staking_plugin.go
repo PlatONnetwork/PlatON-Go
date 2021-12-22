@@ -1803,14 +1803,41 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 		return rewardReturn, err
 	}
 	log.Debug("wow,GetHistoryReward reward:", "PackageReward", reward.PackageReward, "StakingReward", reward.StakingReward)
+
+	// 查询当前结算周期出块及质押经理
+	curPackageReward := big.NewInt(0)
+	curStakingReward := big.NewInt(0)
+	if i > 0 {
+		numStr := strconv.FormatUint(queryNumber-xutil.CalcBlocksEachEpoch(), 10)
+		log.Debug("wow,GetCurHistoryReward query number:", "num string", numStr)
+		data, err := STAKING_DB.HistoryDB.Get([]byte(RewardName + numStr))
+		var curReward staking.Reward
+		if nil != err {
+			return rewardReturn, err
+		}
+
+		err = rlp.DecodeBytes(data, &curReward)
+		if nil != err {
+			return rewardReturn, err
+		}
+		log.Debug("wow,GetCurHistoryReward reward:", "PackageReward", curReward.PackageReward, "StakingReward", curReward.StakingReward)
+
+		curPackageReward = curReward.PackageReward
+		curStakingReward = curReward.StakingReward
+	}
+
 	rewardReturn = staking.RewardReturn{
-		PackageReward: (*hexutil.Big)(reward.PackageReward),
-		StakingReward: (*hexutil.Big)(reward.StakingReward),
-		YearNum:       reward.YearNum,
-		YearStartNum:  reward.YearStartNum,
-		YearEndNum:    reward.YearEndNum,
-		RemainEpoch:   reward.RemainEpoch,
-		AvgPackTime:   reward.AvgPackTime,
+		CurPackageReward:  (*hexutil.Big)(curPackageReward),
+		CurStakingReward:  (*hexutil.Big)(curStakingReward),
+		NextPackageReward: (*hexutil.Big)(reward.PackageReward),
+		NextStakingReward: (*hexutil.Big)(reward.StakingReward),
+		PackageReward:     (*hexutil.Big)(reward.PackageReward),
+		StakingReward:     (*hexutil.Big)(reward.StakingReward),
+		YearNum:           reward.YearNum,
+		YearStartNum:      reward.YearStartNum,
+		YearEndNum:        reward.YearEndNum,
+		RemainEpoch:       reward.RemainEpoch,
+		AvgPackTime:       reward.AvgPackTime,
 	}
 	log.Debug("wow,GetHistoryReward rewardReturn:", "PackageReward", rewardReturn.PackageReward, "StakingReward", rewardReturn.StakingReward)
 	log.Debug("wow,GetHistoryReward", rewardReturn)
