@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
+
 package plugin
 
 import (
@@ -23,7 +24,6 @@ import (
 	"math"
 	"math/big"
 	"sort"
-	"strconv"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -105,17 +105,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-
-		var reward = staking.CurReward{
-			PackageReward: big.NewInt(0),
-			StakingReward: big.NewInt(0),
-		}
-		data, err := rlp.EncodeToBytes(reward)
-		if nil != err {
-			log.Error("Failed to EncodeToBytes on save CurReward", "err", err)
-		}
-		STAKING_DB.HistoryDB.Put([]byte(CurStakingPackageReward+"0"), data)
-
 	} else {
 		packageReward, err = LoadNewBlockReward(blockHash, rmp.db)
 		if nil != err {
@@ -150,16 +139,6 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			log.Error("Execute CalcEpochReward fail", "blockNumber", head.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 			return err
 		}
-
-		var reward = staking.CurReward{
-			PackageReward: packageReward,
-			StakingReward: stakingReward,
-		}
-		data, err := rlp.EncodeToBytes(reward)
-		if nil != err {
-			log.Error("Failed to EncodeToBytes on save CurReward", "err", err)
-		}
-		STAKING_DB.HistoryDB.Put([]byte(CurStakingPackageReward+strconv.FormatUint(blockNumber, 10)), data)
 	}
 
 	return nil

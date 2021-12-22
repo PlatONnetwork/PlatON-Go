@@ -85,16 +85,15 @@ const (
 	EpochValIndexSize = 2
 	RoundValIndexSize = 6
 
-	ValidatorName           = "Validator"
-	VerifierName            = "Verifier"
-	RewardName              = "Reward"
-	YearName                = "Year"
-	InitNodeName            = "InitNode"
-	SlashName               = "Slash"
-	TransBlockName          = "TransBlock"
-	TransHashName           = "TransHash"
-	InnerContractCreate     = "ContractCreate"
-	CurStakingPackageReward = "CurStakingPackageReward"
+	ValidatorName       = "Validator"
+	VerifierName        = "Verifier"
+	RewardName          = "Reward"
+	YearName            = "Year"
+	InitNodeName        = "InitNode"
+	SlashName           = "Slash"
+	TransBlockName      = "TransBlock"
+	TransHashName       = "TransHash"
+	InnerContractCreate = "ContractCreate"
 )
 
 // Instance a global StakingPlugin
@@ -1804,30 +1803,14 @@ func (sk *StakingPlugin) GetHistoryReward(blockHash common.Hash, blockNumber uin
 		return rewardReturn, err
 	}
 	log.Debug("wow,GetHistoryReward reward:", "PackageReward", reward.PackageReward, "StakingReward", reward.StakingReward)
-
-	// 加载当前周期奖励
-	data, err = STAKING_DB.HistoryDB.Get([]byte(CurStakingPackageReward + numStr))
-	if nil != err {
-		return rewardReturn, err
-	}
-	var curReward staking.CurReward
-	err = rlp.DecodeBytes(data, &curReward)
-	if nil != err {
-		return rewardReturn, err
-	}
-
 	rewardReturn = staking.RewardReturn{
-		CurPackageReward:  (*hexutil.Big)(curReward.PackageReward),
-		CurStakingReward:  (*hexutil.Big)(curReward.StakingReward),
-		NextPackageReward: (*hexutil.Big)(reward.PackageReward),
-		NextStakingReward: (*hexutil.Big)(reward.StakingReward),
-		PackageReward:     (*hexutil.Big)(reward.PackageReward),
-		StakingReward:     (*hexutil.Big)(reward.StakingReward),
-		YearNum:           reward.YearNum,
-		YearStartNum:      reward.YearStartNum,
-		YearEndNum:        reward.YearEndNum,
-		RemainEpoch:       reward.RemainEpoch,
-		AvgPackTime:       reward.AvgPackTime,
+		PackageReward: (*hexutil.Big)(reward.PackageReward),
+		StakingReward: (*hexutil.Big)(reward.StakingReward),
+		YearNum:       reward.YearNum,
+		YearStartNum:  reward.YearStartNum,
+		YearEndNum:    reward.YearEndNum,
+		RemainEpoch:   reward.RemainEpoch,
+		AvgPackTime:   reward.AvgPackTime,
 	}
 	log.Debug("wow,GetHistoryReward rewardReturn:", "PackageReward", rewardReturn.PackageReward, "StakingReward", rewardReturn.StakingReward)
 	log.Debug("wow,GetHistoryReward", rewardReturn)
