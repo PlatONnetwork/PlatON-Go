@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 // Package evidence implements recording duplicate blocks and votes for cbft consensus.
 package evidence
 
@@ -29,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -87,10 +85,10 @@ type baseEvidencePool struct {
 }
 
 // NewEvidencePool creates a new baseEvidencePool to record duplicate blocks and votes.
-func NewEvidencePool(ctx *node.ServiceContext, evidenceDir string) (EvidencePool, error) {
+func NewEvidencePool(resolvePath func(string) string, evidenceDir string) (EvidencePool, error) {
 	path := ""
-	if ctx != nil {
-		path = ctx.ResolvePath(evidenceDir)
+	if resolvePath != nil {
+		path = resolvePath(evidenceDir)
 	}
 	if len(path) == 0 {
 		return &emptyEvidencePool{}, nil
