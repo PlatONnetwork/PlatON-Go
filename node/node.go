@@ -64,8 +64,6 @@ type Node struct {
 
 	databases map[*closeTrackingDB]struct{} // All open databases
 
-	// chainId identifies the current chain and is used for replay protection
-	ChainID *big.Int `toml:"-"`
 }
 
 const (
