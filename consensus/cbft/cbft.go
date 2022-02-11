@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -160,7 +159,7 @@ type Cbft struct {
 	csPool *ctypes.CSMsgPool
 
 	// wal
-	nodeServiceContext *node.ServiceContext
+	nodeServiceContext *node.Node
 	wal                wal.Wal
 	bridge             Bridge
 
@@ -188,7 +187,7 @@ type Cbft struct {
 }
 
 // New returns a new CBFT.
-func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
+func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.Node) *Cbft {
 	cbft := &Cbft{
 		config:             ctypes.Config{Sys: sysConfig, Option: optConfig},
 		eventMux:           eventMux,
@@ -211,7 +210,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
-	if evPool, err := evidence.NewEvidencePool(ctx, optConfig.EvidenceDir); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx.ResolvePath, optConfig.EvidenceDir); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -262,7 +261,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	go cbft.network.Start()
 
 	if cbft.config.Option.NodePriKey == nil {
-		cbft.config.Option.NodePriKey = cbft.nodeServiceContext.NodePriKey()
+		cbft.config.Option.NodePriKey = cbft.nodeServiceContext.Config().NodeKey()
 		cbft.config.Option.NodeID = discover.PubkeyID(&cbft.config.Option.NodePriKey.PublicKey)
 	}
 
@@ -463,7 +462,7 @@ func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 // LoadWal tries to recover consensus state and view msg from the wal.
 func (cbft *Cbft) LoadWal() (err error) {
 	// init wal and load wal state
-	var context *node.ServiceContext
+	var context *node.Node
 	if cbft.config.Option.WalMode {
 		context = cbft.nodeServiceContext
 	}

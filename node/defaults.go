@@ -28,21 +28,24 @@ import (
 )
 
 const (
-	DefaultHTTPHost = "localhost" // Default host interface for the HTTP RPC server
-	DefaultHTTPPort = 6789        // Default TCP port for the HTTP RPC server
-	DefaultWSHost   = "localhost" // Default host interface for the websocket RPC server
-	DefaultWSPort   = 6790        // Default TCP port for the websocket RPC server
+	DefaultHTTPHost    = "localhost" // Default host interface for the HTTP RPC server
+	DefaultHTTPPort    = 6789        // Default TCP port for the HTTP RPC server
+	DefaultWSHost      = "localhost" // Default host interface for the websocket RPC server
+	DefaultWSPort      = 6790        // Default TCP port for the websocket RPC server
+	DefaultGraphQLHost = "localhost" // Default host interface for the GraphQL server
+	DefaultGraphQLPort = 6791        // Default TCP port for the GraphQL server
 )
 
 // DefaultConfig contains reasonable default settings.
 var DefaultConfig = Config{
-	DataDir:          DefaultDataDir(),
-	HTTPPort:         DefaultHTTPPort,
-	HTTPModules:      []string{"net", "web3"},
-	HTTPVirtualHosts: []string{"localhost"},
-	HTTPTimeouts:     rpc.DefaultHTTPTimeouts,
-	WSPort:           DefaultWSPort,
-	WSModules:        []string{"net", "web3"},
+	DataDir:             DefaultDataDir(),
+	HTTPPort:            DefaultHTTPPort,
+	HTTPModules:         []string{"net", "web3"},
+	HTTPVirtualHosts:    []string{"localhost"},
+	HTTPTimeouts:        rpc.DefaultHTTPTimeouts,
+	WSPort:              DefaultWSPort,
+	WSModules:           []string{"net", "web3"},
+	GraphQLVirtualHosts: []string{"localhost"},
 	P2P: p2p.Config{
 		ListenAddr:        ":16789",
 		MaxPeers:          60,

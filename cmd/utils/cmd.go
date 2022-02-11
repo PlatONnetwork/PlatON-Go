@@ -74,7 +74,7 @@ func StartNode(stack *node.Node) {
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
 		go func() {
-			stack.Stop()
+			stack.Close()
 		}()
 		for i := 10; i > 0; i-- {
 			<-sigc
