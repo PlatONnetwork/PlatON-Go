@@ -77,7 +77,7 @@ type LightEthereum struct {
 	wg sync.WaitGroup
 }
 
-func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
+func New(ctx *node.Node, config *eth.Config) (*LightEthereum, error) {
 	chainDb, err := ctx.OpenDatabase("lightchaindata", config.DatabaseCache, config.DatabaseHandles, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
@@ -105,11 +105,11 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 			iConfig: light.DefaultClientIndexerConfig,
 		},
 		chainConfig:    chainConfig,
-		eventMux:       ctx.EventMux,
+		eventMux:       ctx.EventMux(),
 		peers:          peers,
 		reqDist:        newRequestDistributor(peers, quitSync),
-		accountManager: ctx.AccountManager,
-		engine:         eth.CreateConsensusEngine(ctx, chainConfig, false, chainDb, &config.CbftConfig, ctx.EventMux),
+		accountManager: ctx.AccountManager(),
+		engine:         eth.CreateConsensusEngine(ctx, chainConfig, false, chainDb, &config.CbftConfig, ctx.EventMux()),
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
@@ -146,7 +146,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 	if leth.protocolManager, err = NewProtocolManager(leth.chainConfig, light.DefaultClientIndexerConfig, true, config.NetworkId, leth.eventMux, leth.engine, leth.peers, leth.blockchain, nil, chainDb, leth.odr, leth.relay, leth.serverPool, quitSync, &leth.wg); err != nil {
 		return nil, err
 	}
-	leth.ApiBackend = &LesApiBackend{ctx.ExtRPCEnabled(), leth, nil}
+	leth.ApiBackend = &LesApiBackend{leth.ApiBackend.ExtRPCEnabled(), leth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice

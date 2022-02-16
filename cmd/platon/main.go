@@ -39,6 +39,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethclient"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -81,8 +82,6 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
-		utils.LightServFlag,
-		utils.LightPeersFlag,
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
@@ -92,11 +91,7 @@ var (
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
-		utils.MinerGasTargetFlag,
-		//utils.MinerGasLimitFlag,
 		utils.MinerGasPriceFlag,
-		//	utils.MinerExtraDataFlag,
-		//utils.MinerLegacyExtraDataFlag,
 		utils.NATFlag,
 		utils.NoDiscoverFlag,
 		//	utils.DiscoveryV5Flag,
@@ -110,33 +105,42 @@ var (
 		//utils.EthStatsURLFlag,
 		utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
+		utils.LegacyGpoBlocksFlag,
 		utils.GpoPercentileFlag,
+		utils.LegacyGpoPercentileFlag,
 		configFileFlag,
 	}
 
 	rpcFlags = []cli.Flag{
-		utils.RPCEnabledFlag,
-		utils.RPCListenAddrFlag,
-		utils.RPCPortFlag,
-		utils.RPCCORSDomainFlag,
-		utils.RPCVirtualHostsFlag,
-		utils.RPCApiFlag,
+		utils.HTTPEnabledFlag,
+		utils.HTTPListenAddrFlag,
+		utils.HTTPPortFlag,
+		utils.HTTPCORSDomainFlag,
+		utils.HTTPVirtualHostsFlag,
+		utils.LegacyRPCEnabledFlag,
+		utils.LegacyRPCListenAddrFlag,
+		utils.LegacyRPCPortFlag,
+		utils.LegacyRPCCORSDomainFlag,
+		utils.LegacyRPCVirtualHostsFlag,
+		utils.GraphQLEnabledFlag,
+		utils.GraphQLCORSDomainFlag,
+		utils.GraphQLVirtualHostsFlag,
+		utils.HTTPApiFlag,
+		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
+		utils.LegacyWSListenAddrFlag,
 		utils.WSPortFlag,
+		utils.LegacyWSPortFlag,
 		utils.WSApiFlag,
+		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
+		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCap,
 	}
-
-	//whisperFlags = []cli.Flag{
-	//	utils.WhisperEnabledFlag,
-	//	utils.WhisperMaxMessageSizeFlag,
-	//	utils.WhisperRestrictConnectionBetweenLightClientsFlag,
-	//}
 
 	metricsFlags = []cli.Flag{
 		utils.MetricsEnabledFlag,
@@ -148,17 +152,6 @@ var (
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
 	}
-
-	//mpcFlags = []cli.Flag{
-	//	//utils.MPCEnabledFlag,
-	//	utils.MPCIceFileFlag,
-	//	utils.MPCActorFlag,
-	//}
-	//vcFlags = []cli.Flag{
-	//	utils.VCEnabledFlag,
-	//	utils.VCActorFlag,
-	//	utils.VCPasswordFlag,
-	//}
 
 	cbftFlags = []cli.Flag{
 		utils.CbftPeerMsgQueueSize,
@@ -208,6 +201,8 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		// See cmd/utils/flags_legacy.go
+		utils.ShowDeprecated,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -215,13 +210,10 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
+	app.Flags = append(app.Flags, debug.DeprecatedFlags...)
 	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
-	// for mpc
-	//app.Flags = append(app.Flags, mpcFlags...)
-	//// for vc
-	//app.Flags = append(app.Flags, vcFlags...)
 	// for cbft
 	app.Flags = append(app.Flags, cbftFlags...)
 	app.Flags = append(app.Flags, dbFlags...)
@@ -295,16 +287,17 @@ func platon(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
-	node := makeFullNode(ctx)
-	startNode(ctx, node)
-	node.Wait()
+	stack, backend := makeFullNode(ctx)
+	defer stack.Close()
+	startNode(ctx, stack, backend)
+	stack.Wait()
 	return nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
-func startNode(ctx *cli.Context, stack *node.Node) {
+func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
@@ -359,16 +352,16 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
 		utils.Fatalf("Light clients do not support mining")
 	}
-	var ethereum *eth.Ethereum
-	if err := stack.Service(&ethereum); err != nil {
-		utils.Fatalf("PlatON service not running: %v", err)
+	ethBackend, ok := backend.(*eth.EthAPIBackend)
+	if !ok {
+		utils.Fatalf("Ethereum service not running")
 	}
 	// Set the gas price to the limits from the CLI and start mining
 	gasprice := utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 
-	ethereum.TxPool().SetGasPrice(gasprice)
+	ethBackend.TxPool().SetGasPrice(gasprice)
 
-	if err := ethereum.StartMining(); err != nil {
+	if err := ethBackend.StartMining(); err != nil {
 		utils.Fatalf("Failed to start mining: %v", err)
 	}
 }
