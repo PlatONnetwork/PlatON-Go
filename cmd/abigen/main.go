@@ -19,12 +19,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -97,7 +98,7 @@ var (
 	}
 	aliasFlag = cli.StringFlag{
 		Name:  "alias",
-		Usage: "Comma separated aliases for function and event renaming, e.g. original1=alias1, original2=alias2",
+		Usage: "Comma separated aliases for function and event renaming, e.g. foo=bar",
 	}
 )
 
