@@ -19,9 +19,12 @@ package bind
 import (
 	"crypto/ecdsa"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"io"
 	"io/ioutil"
+	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -29,9 +32,18 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
+// ErrNoChainID is returned whenever the user failed to specify a chain id.
+var ErrNoChainID = errors.New("no chain id specified")
+
+// ErrNotAuthorized is returned when an account is not properly unlocked.
+var ErrNotAuthorized = errors.New("not authorized to sign this account")
+
 // NewTransactor is a utility method to easily create a transaction signer from
 // an encrypted json key stream and the associated passphrase.
+//
+// Deprecated: Use NewTransactorWithChainID instead.
 func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
+	log.Warn("WARNING: NewTransactor has been deprecated in favour of NewTransactorWithChainID")
 	json, err := ioutil.ReadAll(keyin)
 	if err != nil {
 		return nil, err
@@ -43,15 +55,39 @@ func NewTransactor(keyin io.Reader, passphrase string) (*TransactOpts, error) {
 	return NewKeyedTransactor(key.PrivateKey), nil
 }
 
+// NewKeyStoreTransactor is a utility method to easily create a transaction signer from
+// an decrypted key from a keystore.
+//
+// Deprecated: Use NewKeyStoreTransactorWithChainID instead.
+func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
+	log.Warn("WARNING: NewKeyStoreTransactor has been deprecated in favour of NewTransactorWithChainID")
+	return &TransactOpts{
+		From: account.Address,
+		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != account.Address {
+				return nil, ErrNotAuthorized
+			}
+			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}, nil
+}
+
 // NewKeyedTransactor is a utility method to easily create a transaction signer
 // from a single private key.
+//
+// Deprecated: Use NewKeyedTransactorWithChainID instead.
 func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
+	log.Warn("WARNING: NewKeyedTransactor has been deprecated in favour of NewKeyedTransactorWithChainID")
 	keyAddr := crypto.PubkeyToAddress(key.PublicKey)
 	return &TransactOpts{
 		From: keyAddr,
 		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
 			if address != keyAddr {
-				return nil, errors.New("not authorized to sign this account")
+				return nil, ErrNotAuthorized
 			}
 			signature, err := crypto.Sign(signer.Hash(tx).Bytes(), key)
 			if err != nil {
@@ -62,16 +98,56 @@ func NewKeyedTransactor(key *ecdsa.PrivateKey) *TransactOpts {
 	}
 }
 
-// NewKeystoreTransactor is a utility method to easily create a transaction signer from
-// an decrypted key from a keystore
-func NewKeyStoreTransactor(keystore *keystore.KeyStore, account accounts.Account) (*TransactOpts, error) {
+// NewTransactorWithChainID is a utility method to easily create a transaction signer from
+// an encrypted json key stream and the associated passphrase.
+func NewTransactorWithChainID(keyin io.Reader, passphrase string, chainID *big.Int) (*TransactOpts, error) {
+	json, err := ioutil.ReadAll(keyin)
+	if err != nil {
+		return nil, err
+	}
+	key, err := keystore.DecryptKey(json, passphrase)
+	if err != nil {
+		return nil, err
+	}
+	return NewKeyedTransactorWithChainID(key.PrivateKey, chainID)
+}
+
+// NewKeyStoreTransactorWithChainID is a utility method to easily create a transaction signer from
+// an decrypted key from a keystore.
+func NewKeyStoreTransactorWithChainID(keystore *keystore.KeyStore, account accounts.Account, chainID *big.Int) (*TransactOpts, error) {
+	if chainID == nil {
+		return nil, ErrNoChainID
+	}
 	return &TransactOpts{
 		From: account.Address,
 		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
 			if address != account.Address {
-				return nil, errors.New("not authorized to sign this account")
+				return nil, ErrNotAuthorized
 			}
 			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}, nil
+}
+
+// NewKeyedTransactorWithChainID is a utility method to easily create a transaction signer
+// from a single private key.
+func NewKeyedTransactorWithChainID(key *ecdsa.PrivateKey, chainID *big.Int) (*TransactOpts, error) {
+	keyAddr := crypto.PubkeyToAddress(key.PublicKey)
+	if chainID == nil {
+		return nil, ErrNoChainID
+	}
+	signer := types.NewEIP155Signer(chainID)
+	return &TransactOpts{
+		From: keyAddr,
+		Signer: func(signer2 types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			if address != keyAddr {
+				return nil, ErrNotAuthorized
+			}
+			signature, err := crypto.Sign(signer.Hash(tx).Bytes(), key)
 			if err != nil {
 				return nil, err
 			}
