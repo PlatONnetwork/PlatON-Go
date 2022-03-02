@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
@@ -200,6 +201,19 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
+	}
+
+	if statedb != nil && gov.Gte120VersionState(statedb) {
+		cpyChainCfg := &params.ChainConfig {
+			ChainID:     chainConfig.PIP7ChainID,
+			AddressHRP:  chainConfig.AddressHRP,
+			EmptyBlock:  chainConfig.EmptyBlock,
+			EIP155Block: chainConfig.EIP155Block,
+			EWASMBlock: chainConfig.EWASMBlock,
+			Cbft: chainConfig.Cbft,
+			GenesisVersion: chainConfig.GenesisVersion,
+		}
+		evm.chainConfig = cpyChainCfg
 	}
 
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
