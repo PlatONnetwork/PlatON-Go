@@ -32,8 +32,6 @@ var (
 	ErrInvalidChainId = errors.New("invalid chain id for signer")
 )
 
-const PIP7CHAINID = 210425
-
 // sigCache is used to cache the derived sender and contains
 // the signer used to derive it.
 type sigCache struct {
@@ -45,7 +43,7 @@ type sigCache struct {
 func MakeSigner(config *params.ChainConfig, pip7 bool) Signer {
 	var signer Signer
 	if pip7 {
-		signer = NewPIP7Signer(config.ChainID, big.NewInt(PIP7CHAINID))
+		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
 	} else {
 		signer = NewEIP155Signer(config.ChainID)
 	}

@@ -18,7 +18,6 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/holiman/uint256"
 	"math/big"
@@ -206,7 +205,7 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 
 	if statedb != nil && gov.Gte120VersionState(statedb) {
 		cpyChainCfg := &params.ChainConfig {
-			ChainID:     big.NewInt(types.PIP7CHAINID),
+			ChainID:     chainConfig.PIP7ChainID,
 			AddressHRP:  chainConfig.AddressHRP,
 			EmptyBlock:  chainConfig.EmptyBlock,
 			EIP155Block: chainConfig.EIP155Block,
