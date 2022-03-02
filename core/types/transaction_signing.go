@@ -20,8 +20,9 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -82,7 +83,6 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	//log.Debug("Sender cache1", "add", addr, "hash", tx.Hash(), "poi", fmt.Sprintf("%p", tx))
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr, nil
 }
@@ -112,7 +112,7 @@ func NewEIP155Signer(chainId *big.Int) EIP155Signer {
 	if chainId == nil {
 		chainId = new(big.Int)
 	}
-	return EIP155Signer {
+	return EIP155Signer{
 		chainId:    chainId,
 		chainIdMul: new(big.Int).Mul(chainId, big.NewInt(2)),
 	}
@@ -177,7 +177,7 @@ func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byt
 type PIP7Signer struct {
 	EIP155Signer
 	chainId, chainIdMul         *big.Int
-	IsActive bool
+	IsActive                    bool
 	PIP7ChainId, PIP7ChainIdMul *big.Int
 }
 
@@ -186,10 +186,10 @@ func NewPIP7Signer(chainId *big.Int, pip7ChainId *big.Int) PIP7Signer {
 		chainId = new(big.Int)
 	}
 	// https://github.com/PlatONnetwork/PIPs/blob/master/PIPs/PIP-7.md
-	return PIP7Signer {
-		chainId:    chainId,
-		chainIdMul: new(big.Int).Mul(chainId, big.NewInt(2)),
-		PIP7ChainId: pip7ChainId,
+	return PIP7Signer{
+		chainId:        chainId,
+		chainIdMul:     new(big.Int).Mul(chainId, big.NewInt(2)),
+		PIP7ChainId:    pip7ChainId,
 		PIP7ChainIdMul: new(big.Int).Mul(pip7ChainId, big.NewInt(2)),
 	}
 }

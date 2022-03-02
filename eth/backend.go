@@ -202,7 +202,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	}
 
 	log.Info("Initialised chain configuration", "config", chainConfig)
-	stack.SetP2pChainID(chainConfig.ChainID)
+	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
 
 	eth := &Ethereum{
 		config:            config,
