@@ -204,8 +204,8 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		interpreters: make([]Interpreter, 0, 1),
 	}
 
-	if statedb !=nil && gov.Gte120VersionState(statedb) {
-		cpyChainCfg := &params.ChainConfig{
+	if statedb !=nil && chainConfig != nil && gov.Gte120VersionState(statedb) {
+		cpyChainCfg := &params.ChainConfig {
 			ChainID:     big.NewInt(types.PIP7CHAINID),
 			AddressHRP:  chainConfig.AddressHRP,
 			EmptyBlock:  chainConfig.EmptyBlock,
