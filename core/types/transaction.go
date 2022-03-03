@@ -296,7 +296,6 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 	if err != nil {
 		return common.Address{}
 	}
-	//log.Debug("Sender cache2", "add", addr, "hash", tx.Hash(), "poi", fmt.Sprintf("%p", tx))
 	tx.from.Store(sigCache{signer: signer, from: addr})
 	return addr
 }

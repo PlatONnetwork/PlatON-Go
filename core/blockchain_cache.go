@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"sort"
 	"sync"
 	"time"
@@ -284,11 +285,11 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	if executed() {
 		return nil
 	}
-	SenderCacher.RecoverFromBlock(types.NewEIP155Signer(bcc.chainConfig.ChainID), block)
 
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
 	start := time.Now()
 	state, err := bcc.MakeStateDB(parent)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state)), block)
 	elapse := time.Since(start)
 	if err != nil {
 		return errors.New("execute block error")

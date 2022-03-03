@@ -1,11 +1,12 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/panjf2000/ants/v2"
 
