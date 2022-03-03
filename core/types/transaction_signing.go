@@ -242,6 +242,20 @@ func (s PIP7Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte,
 	return recoverPubKeyAndSender(s.Hash(tx), tx.data.R, tx.data.S, V, true)
 }
 
+// Hash returns the hash to be signed by the sender.
+// It does not uniquely identify the transaction.
+func (s PIP7Signer) Hash(tx *Transaction) common.Hash {
+	return rlpHash([]interface{}{
+		tx.data.AccountNonce,
+		tx.data.Price,
+		tx.data.GasLimit,
+		tx.data.Recipient,
+		tx.data.Amount,
+		tx.data.Payload,
+		s.chainId, uint(0), uint(0),
+	})
+}
+
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
