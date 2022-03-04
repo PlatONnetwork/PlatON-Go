@@ -48,7 +48,7 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 		}
 	}
 
-	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, core.GetExecutor().Signer(), tempContractCache)
+	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, core.GetExecutor().MakeSigner(w.current.state), tempContractCache)
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)
