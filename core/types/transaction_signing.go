@@ -175,7 +175,6 @@ func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byt
 }
 
 type PIP7Signer struct {
-	EIP155Signer
 	chainId, chainIdMul         *big.Int
 	IsActive                    bool
 	PIP7ChainId, PIP7ChainIdMul *big.Int
@@ -254,6 +253,21 @@ func (s PIP7Signer) Hash(tx *Transaction) common.Hash {
 		tx.data.Payload,
 		s.chainId, uint(0), uint(0),
 	})
+}
+
+// SignatureValues returns the raw R, S, V values corresponding to the
+// given signature.This signature
+// needs to be in the [R || S || V] format where V is 0 or 1.
+func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
+	if len(sig) != 65 {
+		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
+	}
+	R = new(big.Int).SetBytes(sig[:32])
+	S = new(big.Int).SetBytes(sig[32:64])
+	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
+	V.Add(V, s.chainIdMul)
+
+	return R, S, V, nil
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
