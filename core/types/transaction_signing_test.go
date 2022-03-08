@@ -84,12 +84,6 @@ func TestPIP7ChainId(t *testing.T) {
 		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
 	}
 
-	tx = NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil)
-	tx, err = SignTx(tx, signer, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	from, err := signer.Sender(tx)
 	if err != nil {
 		t.Error("expected err", "err", err)
