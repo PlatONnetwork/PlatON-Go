@@ -70,6 +70,35 @@ func TestEIP155ChainId(t *testing.T) {
 
 }
 
+func TestPIP7ChainId(t *testing.T) {
+	key, _ := crypto.GenerateKey()
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+
+	signer := NewPIP7Signer(big.NewInt(100), big.NewInt(210425))
+	tx, err := SignTx(NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil), signer, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tx.ChainId().Cmp(signer.chainId) != 0 {
+		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
+	}
+
+	tx = NewTransaction(0, addr, new(big.Int), 0, new(big.Int), nil)
+	tx, err = SignTx(tx, signer, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	from, err := signer.Sender(tx)
+	if err != nil {
+		t.Error("expected err", "err", err)
+	}
+	if tx.FromAddr(signer) != from || addr != from {
+		t.Error("expected chain id is not exist")
+	}
+
+}
 func TestEIP155SigningVitalik(t *testing.T) {
 	// Test vectors come from http://vitalik.ca/files/eip155_testvec.txt
 	for i, test := range []struct {

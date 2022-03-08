@@ -54,10 +54,10 @@ var (
 
 func TestTransactionSigHash(t *testing.T) {
 	var eip155 EIP155Signer
-	if eip155.Hash(emptyTx) != common.HexToHash("9044138c0fc609a18dcff53a0bb5b40b555362bbe0de85a2cd71b8a2ebf18068") {
+	if eip155.Hash(emptyTx, nil) != common.HexToHash("9044138c0fc609a18dcff53a0bb5b40b555362bbe0de85a2cd71b8a2ebf18068") {
 		t.Errorf("empty transaction hash mismatch, got %x", emptyTx.Hash())
 	}
-	if eip155.Hash(rightvrsTx) != common.HexToHash("47205c07c43ed26682dffedb77203b013cfcb08af54d1edf2cf3d651a7db43b0") {
+	if eip155.Hash(rightvrsTx, nil) != common.HexToHash("47205c07c43ed26682dffedb77203b013cfcb08af54d1edf2cf3d651a7db43b0") {
 		t.Errorf("RightVRS transaction hash mismatch, got %x", rightvrsTx.Hash())
 	}
 }
