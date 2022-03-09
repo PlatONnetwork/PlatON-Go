@@ -239,7 +239,7 @@ func (tx *Transaction) GetCost() *BigInt { return &BigInt{tx.tx.Cost()} }
 
 // Deprecated: GetSigHash cannot know which signer to use.
 func (tx *Transaction) GetSigHash() *Hash {
-	return &Hash{types.NewEIP155Signer(new(big.Int)).Hash(tx.tx)}
+	return &Hash{types.NewEIP155Signer(new(big.Int)).Hash(tx.tx, new(big.Int))}
 }
 
 // Deprecated: use EthereumClient.TransactionSender
