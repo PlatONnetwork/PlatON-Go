@@ -221,7 +221,7 @@ func (a Address) MarshalText() ([]byte, error) {
 }
 
 func (a Address) MarshalText2() ([]byte, error) {
-	return hexutil.Bytes(a[:]).MarshalText()
+	return []byte(a.Hex()), nil
 }
 
 // UnmarshalText parses a hash in hex syntax.
