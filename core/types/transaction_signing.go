@@ -51,7 +51,7 @@ func MakeSigner(config *params.ChainConfig, pip7 bool) Signer {
 
 // SignTx signs the transaction using the given signer and private key
 func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, error) {
-	h := s.Hash(tx, tx.ChainId())
+	h := s.Hash(tx, nil)
 	sig, err := crypto.Sign(h[:], prv)
 	if err != nil {
 		return nil, err
