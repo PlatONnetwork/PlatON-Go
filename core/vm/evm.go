@@ -202,7 +202,7 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	//
+	//第一阶段EVM中CHAINID指令返回值沿用旧值
 	/*
 		if statedb != nil && gov.Gte120VersionState(statedb) {
 			cpyChainCfg := &params.ChainConfig {
