@@ -18,11 +18,11 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -202,20 +202,21 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
 	}
-
-	if statedb != nil && gov.Gte120VersionState(statedb) {
-		cpyChainCfg := &params.ChainConfig {
-			ChainID:     chainConfig.PIP7ChainID,
-			AddressHRP:  chainConfig.AddressHRP,
-			EmptyBlock:  chainConfig.EmptyBlock,
-			EIP155Block: chainConfig.EIP155Block,
-			EWASMBlock: chainConfig.EWASMBlock,
-			Cbft: chainConfig.Cbft,
-			GenesisVersion: chainConfig.GenesisVersion,
+	//第一阶段EVM中CHAINID指令返回值沿用旧值
+	/*
+		if statedb != nil && gov.Gte120VersionState(statedb) {
+			cpyChainCfg := &params.ChainConfig {
+				ChainID:     chainConfig.PIP7ChainID,
+				AddressHRP:  chainConfig.AddressHRP,
+				EmptyBlock:  chainConfig.EmptyBlock,
+				EIP155Block: chainConfig.EIP155Block,
+				EWASMBlock: chainConfig.EWASMBlock,
+				Cbft: chainConfig.Cbft,
+				GenesisVersion: chainConfig.GenesisVersion,
+			}
+			evm.chainConfig = cpyChainCfg
 		}
-		evm.chainConfig = cpyChainCfg
-	}
-
+	*/
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
 	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
