@@ -23,6 +23,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -245,7 +247,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if st.evm.GetVMConfig().VmTimeoutDuration > 0 &&
-		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()))) {
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), gov.Gte120VersionState(st.state))) {
 
 		timeout := time.Duration(st.evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)
