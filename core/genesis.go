@@ -318,6 +318,12 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if g.Config.GenesisVersion == 0 {
 		return errors.New("genesis version configuration is missed")
 	}
+	if g.Config.ChainID == nil {
+		g.Config.ChainID = new(big.Int).SetUint64(2203180)
+	}
+	if g.Config.PIP7ChainID == nil {
+		g.Config.PIP7ChainID = new(big.Int).SetUint64(2203181)
+	}
 
 	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
