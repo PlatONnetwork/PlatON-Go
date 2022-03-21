@@ -144,6 +144,8 @@ var (
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+
+	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
