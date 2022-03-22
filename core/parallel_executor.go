@@ -1,11 +1,12 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
@@ -256,6 +257,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state)) || state.GetCodeSize(*address) > 0
 	return isContract
 }

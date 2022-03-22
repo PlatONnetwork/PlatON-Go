@@ -28,7 +28,7 @@ func NewEnv(cfg *Config) *vm.EVM {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		GetHash:     func(uint64) common.Hash { return common.Hash{} },
-
+		GetNonce:    func(uint64) []byte { return nil },
 		Origin:      cfg.Origin,
 		Coinbase:    cfg.Coinbase,
 		BlockNumber: cfg.BlockNumber,
