@@ -590,7 +590,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		}
 		start := i * common.HashLength
 		for j := 0; j < common.HashLength; j++ {
-			randomNumbers[j+start] = currentNonces[j] ^ preNonce[j] ^ txhash[j]
+			randomNumbers[j+start] = randomNumbers[j] ^ preNonce[j]
 		}
 	}
 	return randomNumbers, nil
