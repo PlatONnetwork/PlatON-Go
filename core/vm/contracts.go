@@ -20,8 +20,13 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+
+	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
@@ -99,6 +104,18 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 }
 
+var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
+	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
+	// add by economic model
+	vm.StakingContractAddr:     &StakingContract{},
+	vm.RestrictingContractAddr: &RestrictingContract{},
+	vm.SlashingContractAddr:    &SlashingContract{},
+	vm.GovContractAddr:         &GovContract{},
+	vm.RewardManagerPoolAddr:   &rewardEmpty{},
+	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
+	vm.VrfInnerContractAddr:    &vrf{},
+}
+
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
@@ -123,25 +140,35 @@ func IsEVMPrecompiledContract(addr common.Address) bool {
 	return false
 }
 
-func IsPlatONPrecompiledContract(addr common.Address) bool {
-	if _, ok := PlatONPrecompiledContracts[addr]; ok {
-		return true
+func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
+	if Gte120Version {
+		if _, ok := PlatONPrecompiledContracts120[addr]; ok {
+			return true
+		}
+	} else {
+		if _, ok := PlatONPrecompiledContracts[addr]; ok {
+			return true
+		}
 	}
 	return false
 }
 
-func IsPrecompiledContract(addr common.Address) bool {
+func IsPrecompiledContract(addr common.Address, Gte120Version bool) bool {
 	if IsEVMPrecompiledContract(addr) {
 		return true
 	} else {
-		return IsPlatONPrecompiledContract(addr)
+		return IsPlatONPrecompiledContract(addr, Gte120Version)
 	}
 }
 
 type PrecompiledContractCheck struct{}
 
 func (pcc *PrecompiledContractCheck) IsPlatONPrecompiledContract(address common.Address) bool {
-	return IsPlatONPrecompiledContract(address)
+	// 涉及到数据修改的合约才需要此接口
+	if _, ok := PlatONPrecompiledContracts[address]; ok {
+		return true
+	}
+	return false
 }
 
 func init() {
@@ -504,4 +531,67 @@ func (c *blake2F) Run(input []byte) ([]byte, error) {
 		binary.LittleEndian.PutUint64(output[offset:offset+8], h[i])
 	}
 	return output, nil
+}
+
+type vrf struct {
+	Evm *EVM
+}
+
+const vrfMaxNumWords = 500
+
+var (
+	errVrfNumWords       = errors.New("invalid NumWords value")
+	errVrfNonceNotEnough = errors.New("nonce not enough")
+)
+
+func (v vrf) RequiredGas(input []byte) uint64 {
+	// 暂时不收费
+	return 0
+}
+
+// Run 随机数生成规则,当前区块随机数 异或 (之前区块随机数) 异或 交易hash
+// 参数 unit32 随机数数量
+// 返回值 大小为32*随机数数量的byte数组,每32位为一个随机数
+func (v vrf) Run(input []byte) ([]byte, error) {
+
+	seedNum := common.BytesToUint32(input)
+
+	if seedNum >= vrfMaxNumWords {
+		return nil, errVrfNumWords
+	}
+	currentBlockNum := v.Evm.BlockNumber.Uint64()
+
+	if currentBlockNum < uint64(seedNum) {
+		return nil, errVrfNonceNotEnough
+	}
+	randomNumbers := make([]byte, seedNum*common.HashLength)
+	currentNonces := vrf2.ProofToHash(v.Evm.Nonce.Bytes())
+	txhash := v.Evm.StateDB.TxHash()
+
+	for i := 0; i < common.HashLength; i++ {
+		randomNumbers[i] = currentNonces[i] ^ txhash[i]
+	}
+	if seedNum == 1 {
+		return randomNumbers, nil
+	}
+
+	vrf := handler.GetVrfHandlerInstance()
+	nonceInVrf, err := vrf.Load(v.Evm.ParentHash)
+	if err != nil {
+		return nil, err
+	}
+	var preNonce []byte
+	for i := 1; i < int(seedNum); i++ {
+		// 优先从VrfHandler中获取nonce, 当获取不到则从区块中拿
+		if i+1 > len(nonceInVrf) {
+			preNonce = vrf2.ProofToHash(v.Evm.GetNonce(currentBlockNum - uint64(i) - 1))
+		} else {
+			preNonce = nonceInVrf[len(nonceInVrf)-i-1]
+		}
+		start := i * common.HashLength
+		for j := 0; j < common.HashLength; j++ {
+			randomNumbers[j+start] = currentNonces[j] ^ preNonce[j] ^ txhash[j]
+		}
+	}
+	return randomNumbers, nil
 }
