@@ -22,6 +22,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
@@ -553,10 +554,14 @@ func (v vrf) RequiredGas(input []byte) uint64 {
 // 参数 unit32 随机数数量
 // 返回值 大小为32*随机数数量的byte数组,每32位为一个随机数
 func (v vrf) Run(input []byte) ([]byte, error) {
+	defer func() {
+		if er := recover(); nil != er {
+			log.Error("run vrf fail,parse data is failed", "error", er, "input", input)
+		}
+	}()
+	seedNum := new(big.Int).SetBytes(input).Uint64()
 
-	seedNum := common.BytesToUint32(input)
-
-	if seedNum >= vrfMaxNumWords {
+	if seedNum > vrfMaxNumWords {
 		return nil, errVrfNumWords
 	}
 	currentBlockNum := v.Evm.BlockNumber.Uint64()
