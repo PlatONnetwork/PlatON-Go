@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// import "../interfaces/LinkTokenInterface.sol";
-// import "../interfaces/BlockhashStoreInterface.sol";
-// import "../interfaces/AggregatorV3Interface.sol";
 import "../interfaces/VRFCoordinatorV2Interface.sol";
 import "../interfaces/TypeAndVersionInterface.sol";
-// import "../interfaces/ERC677ReceiverInterface.sol";
 import "./VRF.sol";
 import "../ConfirmedOwner.sol";
 import "../VRFConsumerBaseV2.sol";
@@ -16,7 +12,6 @@ contract VRFCoordinatorV2 is
   ConfirmedOwner,
   TypeAndVersionInterface,
   VRFCoordinatorV2Interface
-  // ERC677ReceiverInterface  该接口定义的onTokenTransfer函数已经不用了
 {
   // LinkTokenInterface public immutable LINK;
   // AggregatorV3Interface public immutable LINK_ETH_FEED;
@@ -27,15 +22,11 @@ contract VRFCoordinatorV2 is
   // Should a user require more consumers, they can use multiple subscriptions.
   uint16 public constant MAX_CONSUMERS = 100;
   error TooManyConsumers();
-  error InsufficientBalance();
   error InvalidConsumer(uint64 subId, address consumer);
   error InvalidSubscription();
-  error OnlyCallableFromLink();
-  error InvalidCalldata();
   error MustBeSubOwner(address owner);
   error PendingRequestExists();
   error MustBeRequestedOwner(address proposedOwner);
-  error BalanceInvariantViolated(uint256 internalBalance, uint256 externalBalance); // Should never happen
   event FundsRecovered(address to, uint256 amount);
   // We use the subscription struct (1 word)
   // at fulfillment time.
@@ -87,16 +78,10 @@ contract VRFCoordinatorV2 is
   // and some arithmetic operations.
   uint256 private constant GAS_FOR_CALL_EXACT_CHECK = 5_000;
   error InvalidRequestConfirmations(uint16 have, uint16 min, uint16 max);
-  error GasLimitTooBig(uint32 have, uint32 want);
   error NumWordsTooBig(uint32 have, uint32 want);
   error ProvingKeyAlreadyRegistered(bytes32 keyHash);
   error NoSuchProvingKey(bytes32 keyHash);
   error InvalidLinkWeiPrice(int256 linkWei);
-  error InsufficientGasForConsumer(uint256 have, uint256 want);
-  error NoCorrespondingRequest();
-  error IncorrectCommitment();
-  error BlockhashNotInStore(uint256 blockNum);
-  error PaymentTooLarge();
   error Reentrant();
   struct RequestCommitment {
     uint64 blockNum;
@@ -125,6 +110,7 @@ contract VRFCoordinatorV2 is
     address indexed sender
   );
   event RandomWordsFulfilled(uint256 indexed requestId, uint256 outputSeed, uint96 payment, bool success);
+  event SyncRequestRandomWordsFulfilled(uint256 indexed requestId, uint32 numWords, uint256 numRandomWords);
 
   struct Config {
     uint16 minimumRequestConfirmations;
@@ -163,17 +149,7 @@ contract VRFCoordinatorV2 is
     FeeConfig feeConfig
   );
 
-  // modify by platon 去掉LINK、LINK_ETH_FEED、BLOCKHASH_STORE接口合约的加载
-  // constructor(
-  //   address link,
-  //   address blockhashStore,
-  //   address linkEthFeed
-  // ) ConfirmedOwner(msg.sender) {
-  //   LINK = LinkTokenInterface(link);
-  //   LINK_ETH_FEED = AggregatorV3Interface(linkEthFeed);
-  //   BLOCKHASH_STORE = BlockhashStoreInterface(blockhashStore);
-  // }
-    constructor(
+  constructor(
   ) ConfirmedOwner(msg.sender) {
   }
 
@@ -181,7 +157,7 @@ contract VRFCoordinatorV2 is
    * @notice Registers a proving key to an oracle.
    * @param oracle address of the oracle
    * @param publicProvingKey key that oracle can use to submit vrf fulfillments
-   * modify by platon PlatON版本无需此步骤，但为了兼容chainlink用户，保留此方法
+   * PlatON版本无需此步骤，但为了兼容chainlink用户，保留此方法
    */
   function registerProvingKey(address oracle, uint256[2] calldata publicProvingKey) external onlyOwner {
     bytes32 kh = hashOfKey(publicProvingKey);
@@ -196,7 +172,7 @@ contract VRFCoordinatorV2 is
   /**
    * @notice Deregisters a proving key to an oracle.
    * @param publicProvingKey key that oracle can use to submit vrf fulfillments
-   * modify by platon PlatON版本无需此步骤，但为了兼容chainlink用户，保留此方法
+   * PlatON版本无需此步骤，但为了兼容chainlink用户，保留此方法
    */
   function deregisterProvingKey(uint256[2] calldata publicProvingKey) external onlyOwner {
     bytes32 kh = hashOfKey(publicProvingKey);
@@ -339,7 +315,7 @@ contract VRFCoordinatorV2 is
   /**
    * @notice Recover link sent with transfer instead of transferAndCall.
    * @param to address to send link to
-   * modify by platon platon版本去掉了所有费用的计算，所以该方法无需实现
+   * PlatON版本去掉了所有费用的计算
    */
   function recoverFunds(address to) external onlyOwner {
     // uint256 externalBalance = LINK.balanceOf(address(this));
@@ -392,22 +368,7 @@ contract VRFCoordinatorV2 is
     if (currentNonce == 0) {
       revert InvalidConsumer(subId, msg.sender);
     }
-    // Input validation using the config storage word.
-    if (
-      requestConfirmations < s_config.minimumRequestConfirmations || requestConfirmations > MAX_REQUEST_CONFIRMATIONS
-    ) {
-      revert InvalidRequestConfirmations(
-        requestConfirmations,
-        s_config.minimumRequestConfirmations,
-        MAX_REQUEST_CONFIRMATIONS
-      );
-    }
-    // No lower bound on the requested gas limit. A user could request 0
-    // and they would simply be billed for the proof verification and wouldn't be
-    // able to do anything with the random value.
-    if (callbackGasLimit > s_config.maxGasLimit) {
-      revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
-    }
+
     if (numWords > MAX_NUM_WORDS) {
       revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
     }
@@ -432,7 +393,7 @@ contract VRFCoordinatorV2 is
     );
     s_consumers[msg.sender][subId] = nonce;
 
-    // modify by platon，调用内置合约生成随机数，并调用fulfillRandomWords
+    // 调用PlatON内置合约生成随机数，并回调fulfillRandomWords
     uint256[] memory randomWords = VRF.requestRandomWords(numWords);
     fulfillRandomWords(requestId, subId, randomWords, msg.sender);
 
@@ -457,7 +418,7 @@ contract VRFCoordinatorV2 is
   }
 
   /**
-   * modify by platon 增加的同步获取随机数方法
+   * 同步获取随机数
    */
   function syncRequestRandomWords(
     bytes32 keyHash,
@@ -477,22 +438,7 @@ contract VRFCoordinatorV2 is
     if (currentNonce == 0) {
       revert InvalidConsumer(subId, msg.sender);
     }
-    // Input validation using the config storage word.
-    if (
-      requestConfirmations < s_config.minimumRequestConfirmations || requestConfirmations > MAX_REQUEST_CONFIRMATIONS
-    ) {
-      revert InvalidRequestConfirmations(
-        requestConfirmations,
-        s_config.minimumRequestConfirmations,
-        MAX_REQUEST_CONFIRMATIONS
-      );
-    }
-    // No lower bound on the requested gas limit. A user could request 0
-    // and they would simply be billed for the proof verification and wouldn't be
-    // able to do anything with the random value.
-    if (callbackGasLimit > s_config.maxGasLimit) {
-      revert GasLimitTooBig(callbackGasLimit, s_config.maxGasLimit);
-    }
+
     if (numWords > MAX_NUM_WORDS) {
       revert NumWordsTooBig(numWords, MAX_NUM_WORDS);
     }
@@ -505,21 +451,12 @@ contract VRFCoordinatorV2 is
     s_requestCommitments[requestId] = keccak256(
       abi.encode(requestId, block.number, subId, callbackGasLimit, numWords, msg.sender)
     );
-    emit RandomWordsRequested(
-      keyHash,
-      requestId,
-      preSeed,
-      subId,
-      requestConfirmations,
-      callbackGasLimit,
-      numWords,
-      msg.sender
-    );
+    
     s_consumers[msg.sender][subId] = nonce;
 
-    // modify by platon，调用内置合约生成随机数，并调用fulfillRandomWords
+    // 调用内置合约生成随机数，并同步返回
     uint256[] memory randomWords = VRF.requestRandomWords(numWords);
-
+    emit SyncRequestRandomWordsFulfilled(requestId, numWords, randomWords.length);
     return randomWords;
   }
 
@@ -545,7 +482,7 @@ contract VRFCoordinatorV2 is
   /**
    * @dev calls target address with exactly gasAmount gas and data as calldata
    * or reverts if at least gasAmount gas is not available.
-   * modify by platon 回调客户合约的rawFulfillRandomWords函数，去掉了gasAmount-callbackGasLimit参数,call调用时直接gas()
+   * 回调客户合约的rawFulfillRandomWords函数，去掉了gasAmount-callbackGasLimit参数
    */
   function callWithExactGas(
     address target,
@@ -580,171 +517,11 @@ contract VRFCoordinatorV2 is
     return success;
   }
 
-  /**
-   * @dev calls target address with exactly gasAmount gas and data as calldata
-   * or reverts if at least gasAmount gas is not available.
-   * modify by platon private函数，可以删除
-   */
-  // function getRandomnessFromProof(Proof memory proof, RequestCommitment memory rc)
-  //   private
-  //   view
-  //   returns (
-  //     bytes32 keyHash,
-  //     uint256 requestId,
-  //     uint256 randomness
-  //   )
-  // {
-  //   keyHash = hashOfKey(proof.pk);
-  //   // Only registered proving keys are permitted.
-  //   address oracle = s_provingKeys[keyHash];
-  //   if (oracle == address(0)) {
-  //     revert NoSuchProvingKey(keyHash);
-  //   }
-  //   requestId = uint256(keccak256(abi.encode(keyHash, proof.seed)));
-  //   bytes32 commitment = s_requestCommitments[requestId];
-  //   if (commitment == 0) {
-  //     revert NoCorrespondingRequest();
-  //   }
-  //   if (
-  //     commitment != keccak256(abi.encode(requestId, rc.blockNum, rc.subId, rc.callbackGasLimit, rc.numWords, rc.sender))
-  //   ) {
-  //     revert IncorrectCommitment();
-  //   }
-
-  //   bytes32 blockHash = blockhash(rc.blockNum);
-  //   if (blockHash == bytes32(0)) {
-  //     blockHash = BLOCKHASH_STORE.getBlockhash(rc.blockNum);
-  //     if (blockHash == bytes32(0)) {
-  //       revert BlockhashNotInStore(rc.blockNum);
-  //     }
-  //   }
-
-  //   // The seed actually used by the VRF machinery, mixing in the blockhash
-  //   uint256 actualSeed = uint256(keccak256(abi.encodePacked(proof.seed, blockHash)));
-  //   randomness = VRF.randomValueFromVRFProof(proof, actualSeed); // Reverts on failure
-  // }
-
-  /*
-   * @notice Compute fee based on the request count
-   * @param reqCount number of requests
-   * @return feePPM fee in LINK PPM
-   * modify by platon 根据订阅的请求次数reqCount来计算费用，可以删除
-   */
-  // function getFeeTier(uint64 reqCount) public view returns (uint32) {
-  //   FeeConfig memory fc = s_feeConfig;
-  //   if (0 <= reqCount && reqCount <= fc.reqsForTier2) {
-  //     return fc.fulfillmentFlatFeeLinkPPMTier1;
-  //   }
-  //   if (fc.reqsForTier2 < reqCount && reqCount <= fc.reqsForTier3) {
-  //     return fc.fulfillmentFlatFeeLinkPPMTier2;
-  //   }
-  //   if (fc.reqsForTier3 < reqCount && reqCount <= fc.reqsForTier4) {
-  //     return fc.fulfillmentFlatFeeLinkPPMTier3;
-  //   }
-  //   if (fc.reqsForTier4 < reqCount && reqCount <= fc.reqsForTier5) {
-  //     return fc.fulfillmentFlatFeeLinkPPMTier4;
-  //   }
-  //   return fc.fulfillmentFlatFeeLinkPPMTier5;
-  // }
-
-  /*
-   * @notice Fulfill a randomness request
-   * @param proof contains the proof and randomness
-   * @param rc request commitment pre-image, committed to at request time
-   * @return payment amount billed to the subscription
-   * @dev simulated offchain to determine if sufficient balance is present to fulfill the request
-   * modify by platon 该函数由chainlink回调，platon版本获取随机数修改为同步，可以删除
-   */
-  // function fulfillRandomWords(Proof memory proof, RequestCommitment memory rc) external nonReentrant returns (uint96) {
-  //   uint256 startGas = gasleft();
-  //   (bytes32 keyHash, uint256 requestId, uint256 randomness) = getRandomnessFromProof(proof, rc);
-
-  //   uint256[] memory randomWords = new uint256[](rc.numWords);
-  //   for (uint256 i = 0; i < rc.numWords; i++) {
-  //     randomWords[i] = uint256(keccak256(abi.encode(randomness, i)));
-  //   }
-
-  //   delete s_requestCommitments[requestId];
-  //   VRFConsumerBaseV2 v;
-  //   bytes memory resp = abi.encodeWithSelector(v.rawFulfillRandomWords.selector, requestId, randomWords);
-  //   // Call with explicitly the amount of callback gas requested
-  //   // Important to not let them exhaust the gas budget and avoid oracle payment.
-  //   // Do not allow any non-view/non-pure coordinator functions to be called
-  //   // during the consumers callback code via reentrancyLock.
-  //   // Note that callWithExactGas will revert if we do not have sufficient gas
-  //   // to give the callee their requested amount.
-  //   s_config.reentrancyLock = true;
-  //   bool success = callWithExactGas(rc.callbackGasLimit, rc.sender, resp);
-  //   s_config.reentrancyLock = false;
-
-  //   // Increment the req count for fee tier selection.
-  //   uint64 reqCount = s_subscriptions[rc.subId].reqCount;
-  //   s_subscriptions[rc.subId].reqCount += 1;
-
-  //   // We want to charge users exactly for how much gas they use in their callback.
-  //   // The gasAfterPaymentCalculation is meant to cover these additional operations where we
-  //   // decrement the subscription balance and increment the oracles withdrawable balance.
-  //   // We also add the flat link fee to the payment amount.
-  //   // Its specified in millionths of link, if s_config.fulfillmentFlatFeeLinkPPM = 1
-  //   // 1 link / 1e6 = 1e18 juels / 1e6 = 1e12 juels.
-  //   uint96 payment = calculatePaymentAmount(
-  //     startGas,
-  //     s_config.gasAfterPaymentCalculation,
-  //     getFeeTier(reqCount),
-  //     tx.gasprice
-  //   );
-  //   if (s_subscriptions[rc.subId].balance < payment) {
-  //     revert InsufficientBalance();
-  //   }
-  //   s_subscriptions[rc.subId].balance -= payment;
-  //   s_withdrawableTokens[s_provingKeys[keyHash]] += payment;
-  //   // Include payment in the event for tracking costs.
-  //   emit RandomWordsFulfilled(requestId, randomness, payment, success);
-  //   return payment;
-  // }
-
-  // Get the amount of gas used for fulfillment
-  // modify by platon 计算fulfillment需要的gas用量，内部函数，可以删除
-  // function calculatePaymentAmount(
-  //   uint256 startGas,
-  //   uint256 gasAfterPaymentCalculation,
-  //   uint32 fulfillmentFlatFeeLinkPPM,
-  //   uint256 weiPerUnitGas
-  // ) internal view returns (uint96) {
-  //   int256 weiPerUnitLink;
-  //   weiPerUnitLink = getFeedData();
-  //   if (weiPerUnitLink <= 0) {
-  //     revert InvalidLinkWeiPrice(weiPerUnitLink);
-  //   }
-  //   // (1e18 juels/link) (wei/gas * gas) / (wei/link) = juels
-  //   uint256 paymentNoFee = (1e18 * weiPerUnitGas * (gasAfterPaymentCalculation + startGas - gasleft())) /
-  //     uint256(weiPerUnitLink);
-  //   uint256 fee = 1e12 * uint256(fulfillmentFlatFeeLinkPPM);
-  //   if (paymentNoFee > (1e27 - fee)) {
-  //     revert PaymentTooLarge(); // Payment + fee cannot be more than all of the link in existence.
-  //   }
-  //   return uint96(paymentNoFee + fee);
-  // }
-
-  // modify by platon 内部函数，可以删除
-  // function getFeedData() private view returns (int256) {
-  //   uint32 stalenessSeconds = s_config.stalenessSeconds;
-  //   bool staleFallback = stalenessSeconds > 0;
-  //   uint256 timestamp;
-  //   int256 weiPerUnitLink;
-  //   (, weiPerUnitLink, , timestamp, ) = LINK_ETH_FEED.latestRoundData();
-  //   // solhint-disable-next-line not-rely-on-time
-  //   if (staleFallback && stalenessSeconds < block.timestamp - timestamp) {
-  //     weiPerUnitLink = s_fallbackWeiPerUnitLink;
-  //   }
-  //   return weiPerUnitLink;
-  // }
-
   /*
    * @notice Oracle withdraw LINK earned through fulfilling requests
    * @param recipient where to send the funds
    * @param amount amount to withdraw
-   * modify by platon 扣费函数，无需实现
+   * 扣费函数，无需实现
    */
   function oracleWithdraw(address recipient, uint96 amount) external nonReentrant {
     // if (s_withdrawableTokens[msg.sender] < amount) {
@@ -756,33 +533,6 @@ contract VRFCoordinatorV2 is
     //   revert InsufficientBalance();
     // }
   }
-
-  /*
-   * modify by platon platon版本去掉了所有费用的计算，所以该方法去掉，不需要LINK合约调用充值
-   * 同时 s_subscriptions[subId].balance 和 s_totalBalance 值将一直为0，也不再对此做校验
-   */
-  // function onTokenTransfer(
-  //   address, /* sender */
-  //   uint256 amount,
-  //   bytes calldata data
-  // ) external override nonReentrant {
-  //   if (msg.sender != address(LINK)) {
-  //     revert OnlyCallableFromLink();
-  //   }
-  //   if (data.length != 32) {
-  //     revert InvalidCalldata();
-  //   }
-  //   uint64 subId = abi.decode(data, (uint64));
-  //   if (s_subscriptionConfigs[subId].owner == address(0)) {
-  //     revert InvalidSubscription();
-  //   }
-  //   // We do not check that the msg.sender is the subscription owner,
-  //   // anyone can fund a subscription.
-  //   uint256 oldBalance = s_subscriptions[subId].balance;
-  //   s_subscriptions[subId].balance += uint96(amount);
-  //   s_totalBalance += uint96(amount);
-  //   emit SubscriptionFunded(subId, oldBalance, oldBalance + amount);
-  // }
 
   function getCurrentSubId() external view returns (uint64) {
     return s_currentSubId;
