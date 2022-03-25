@@ -570,11 +570,16 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		return nil, errVrfNonceNotEnough
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)
+	txHash := v.Evm.StateDB.TxHash()
+
+	if txHash == common.ZeroHash {
+		return randomNumbers, nil
+	}
+
 	currentNonces := vrf2.ProofToHash(v.Evm.Nonce.Bytes())
-	txhash := v.Evm.StateDB.TxHash()
 
 	for i := 0; i < common.HashLength; i++ {
-		randomNumbers[i] = currentNonces[i] ^ txhash[i]
+		randomNumbers[i] = currentNonces[i] ^ txHash[i]
 	}
 	if seedNum == 1 {
 		return randomNumbers, nil
