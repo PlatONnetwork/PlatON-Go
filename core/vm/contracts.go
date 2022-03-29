@@ -570,14 +570,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		return nil, errVrfNonceNotEnough
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)
-	txHash := v.Evm.StateDB.TxHash()
-
-	if txHash == common.ZeroHash {
-		return randomNumbers, nil
-	}
-
 	currentNonces := vrf2.ProofToHash(v.Evm.Nonce.Bytes())
 
+	txHash := v.Evm.StateDB.TxHash()
 	for i := 0; i < common.HashLength; i++ {
 		randomNumbers[i] = currentNonces[i] ^ txHash[i]
 	}
@@ -590,6 +585,12 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// cache nonce
+	if seedNum > uint64(len(nonceInVrf)) {
+		v.Evm.GetNonce(currentBlockNum - seedNum)
+	}
+
 	var preNonce []byte
 	for i := 1; i < int(seedNum); i++ {
 		// 优先从VrfHandler中获取nonce, 当获取不到则从区块中拿
