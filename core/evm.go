@@ -112,10 +112,10 @@ func GetNonceFn(ref *types.Header, chain ChainContext) func(n uint64) []byte {
 		if nonce, ok := cache[n]; ok {
 			return nonce
 		}
-		for header := chain.GetHeader(ref.ParentHash, ref.Number.Uint64()-1); header != nil; header = chain.GetHeader(header.ParentHash, header.Number.Uint64()-1) {
-			cache[header.Number.Uint64()-1] = header.Nonce.Bytes()
-			if n == header.Number.Uint64()-1 {
-				return header.Nonce.Bytes()
+		for block := chain.Engine().GetBlockByHashAndNum(ref.ParentHash, ref.Number.Uint64()-1); block != nil; block = chain.Engine().GetBlockByHashAndNum(block.Header().ParentHash, block.Header().Number.Uint64()-1) {
+			cache[block.Header().Number.Uint64()-1] = block.Header().Nonce.Bytes()
+			if n == block.Header().Number.Uint64()-1 {
+				return block.Header().Nonce.Bytes()
 			}
 		}
 		return nil

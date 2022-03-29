@@ -20,6 +20,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -556,7 +557,7 @@ func (v vrf) RequiredGas(input []byte) uint64 {
 func (v vrf) Run(input []byte) ([]byte, error) {
 	defer func() {
 		if er := recover(); nil != er {
-			log.Error("run vrf fail,parse data is failed", "error", er, "input", input)
+			log.Error("run vrf contract fail,parse data is failed", "error", er, "input", input)
 		}
 	}()
 	seedNum := new(big.Int).SetBytes(input).Uint64()
@@ -588,7 +589,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 
 	// cache nonce
 	if seedNum > uint64(len(nonceInVrf)) {
-		v.Evm.GetNonce(currentBlockNum - seedNum)
+		if v.Evm.GetNonce(currentBlockNum-seedNum) == nil {
+			return nil, fmt.Errorf("run vrf contract fail, can't get nonce from db,num %v", currentBlockNum-seedNum)
+		}
 	}
 
 	var preNonce []byte
