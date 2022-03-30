@@ -20,6 +20,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -556,7 +557,7 @@ func (v vrf) RequiredGas(input []byte) uint64 {
 func (v vrf) Run(input []byte) ([]byte, error) {
 	defer func() {
 		if er := recover(); nil != er {
-			log.Error("run vrf fail,parse data is failed", "error", er, "input", input)
+			log.Error("run vrf contract fail,parse data is failed", "error", er, "input", input)
 		}
 	}()
 	seedNum := new(big.Int).SetBytes(input).Uint64()
@@ -571,10 +572,10 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)
 	currentNonces := vrf2.ProofToHash(v.Evm.Nonce.Bytes())
-	txhash := v.Evm.StateDB.TxHash()
 
+	txHash := v.Evm.StateDB.TxHash()
 	for i := 0; i < common.HashLength; i++ {
-		randomNumbers[i] = currentNonces[i] ^ txhash[i]
+		randomNumbers[i] = currentNonces[i] ^ txHash[i]
 	}
 	if seedNum == 1 {
 		return randomNumbers, nil
@@ -585,6 +586,14 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// cache nonce
+	if seedNum > uint64(len(nonceInVrf)) {
+		if v.Evm.GetNonce(currentBlockNum-seedNum) == nil {
+			return nil, fmt.Errorf("run vrf contract fail, can't get nonce from db,num %v", currentBlockNum-seedNum)
+		}
+	}
+
 	var preNonce []byte
 	for i := 1; i < int(seedNum); i++ {
 		// 优先从VrfHandler中获取nonce, 当获取不到则从区块中拿
