@@ -51,6 +51,8 @@ type dummyStatedb struct {
 
 func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
+func (*dummyStatedb) GetState(common.Address, []byte) []byte { return []byte{} }
+
 func runTrace(tracer *Tracer) (json.RawMessage, error) {
 	env := vm.NewEVM(vm.Context{BlockNumber: big.NewInt(1), Ctx: context.Background()}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
 

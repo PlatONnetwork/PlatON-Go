@@ -78,6 +78,7 @@ var (
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(100),
+		PIP7ChainID: big.NewInt(210425),
 		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
@@ -102,6 +103,7 @@ var (
 	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
 		ChainID:     big.NewInt(104),
+		PIP7ChainID: big.NewInt(210429),
 		AddressHRP:  "lat",
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(1),
@@ -126,6 +128,7 @@ var (
 	GrapeChainConfig = &ChainConfig{
 		AddressHRP:  "lat",
 		ChainID:     big.NewInt(304),
+		PIP7ChainID: big.NewInt(210425),
 		EmptyBlock:  "on",
 		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
@@ -138,9 +141,11 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+
+	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -161,7 +166,8 @@ type TrustedCheckpoint struct {
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
-	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	ChainID     *big.Int `json:"chainId"`               // chainId identifies the current chain and is used for replay protection
+	PIP7ChainID *big.Int `json:"pip7ChainId,omitempty"` // chainId identifies the current chain and is used for replay protection
 	AddressHRP  string   `json:"addressHRP"`
 	EmptyBlock  string   `json:"emptyBlock"`
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block

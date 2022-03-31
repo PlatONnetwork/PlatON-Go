@@ -80,6 +80,13 @@ func Gte110Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_1_0
 }
 
+func Gte120VersionState(state xcom.StateDB) bool {
+	return Gte120Version(GetCurrentActiveVersion(state))
+}
+
+func Gte120Version(version uint32) bool {
+	return version >= params.FORKVERSION_1_2_0
+}
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(blockHash)
 	if preActiveVersion > 0 {
