@@ -20,8 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/graphql"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -30,8 +28,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/platonstats"
+	"github.com/PlatONnetwork/PlatON-Go/graphql"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+
 	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/PlatONnetwork/PlatON-Go/platonstats"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -1185,15 +1186,9 @@ func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, cfg node.C
 	}
 }
 
-func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic, dsn string, datadir string) {
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		// Retrieve both eth and les services
-		var ethServ *eth.Ethereum
-		ctx.Service(&ethServ)
-		//todo:初始化监控数据库，以后可以移入platonstats包
-		p2p.InitMonitorDB(dsn)
-		return platonstats.New(kafkaUrl, kafkaBlockTopic, ethServ, datadir)
-	}); err != nil {
+func RegisterStatsService(stack *node.Node, ethServ ethapi.Backend, kafkaUrl, kafkaBlockTopic, dsn string, datadir string) {
+	p2p.InitMonitorDB(dsn)
+	if err := platonstats.New(kafkaUrl, kafkaBlockTopic, ethServ, stack, datadir); err != nil {
 		Fatalf("Failed to register the PlatON stats service: %v", err)
 	}
 }
