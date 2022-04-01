@@ -84,6 +84,7 @@ type StatsBlockExt struct {
 	ExeBlockData *common.ExeBlockData   `json:"exeBlockData,omitempty"`
 	GenesisData  *common.GenesisData    `json:"GenesisData,omitempty"`
 	ContractList []common.Address       `json:"ContractList,omitempty"`
+	StatData     *common.StatData       `json:"statData,omitempty"`
 }
 
 type PlatonStatsService struct {
@@ -96,6 +97,8 @@ type PlatonStatsService struct {
 	stopSampleMsg   chan struct{}
 	stopBlockMsg    chan struct{}
 	stopOnce        sync.Once
+	quit            chan bool
+	waitQuit        sync.WaitGroup
 }
 
 var (
@@ -105,11 +108,16 @@ var (
 func New(kafkaUrl, kafkaBlockTopic string, ethServ *eth.Ethereum, datadir string) (*PlatonStatsService, error) {
 	log.Info("new PlatON stats service", "kafkaUrl", kafkaUrl, "kafkaBlockTopic", kafkaBlockTopic)
 
+	waitQ := sync.WaitGroup{}
+	waitQ.Add(1)
+
 	platonStatsService = &PlatonStatsService{
 		kafkaUrl:        kafkaUrl,
 		kafkaBlockTopic: kafkaBlockTopic,
 		eth:             ethServ,
 		datadir:         datadir,
+		quit:            make(chan bool),
+		waitQuit:        waitQ,
 	}
 	if len(datadir) > 0 {
 		statsLogFile = filepath.Join(datadir, statsLogFile)
@@ -151,8 +159,10 @@ func (s *PlatonStatsService) Start(server *p2p.Server) error {
 // Stop implements node.Service, terminating the monitoring and reporting daemon.
 func (s *PlatonStatsService) Stop() error {
 	s.stopOnce.Do(func() {
-		close(s.stopSampleMsg)
+		//close(s.stopSampleMsg)
 		//close(s.stopBlockMsg)
+		s.quit <- true
+		s.waitQuit.Wait()
 		if s.kafkaClient != nil {
 			s.kafkaClient.Close()
 		}
@@ -162,7 +172,6 @@ func (s *PlatonStatsService) Stop() error {
 	return nil
 }
 
-//todo: 服务如何退出？整个Node如何停止？
 func (s *PlatonStatsService) blockMsgLoop() {
 	var nextBlockNumber uint64
 	nextBlockNumber = 0
@@ -172,17 +181,23 @@ func (s *PlatonStatsService) blockMsgLoop() {
 	}
 
 	for {
-		nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
-		if nextBlock != nil {
-			if err := s.reportBlockMsg(nextBlock); err == nil {
-				writeStatsLog(nextBlockNumber)
-				nextBlockNumber = nextBlockNumber + 1
+		select {
+		case <-s.quit:
+			s.waitQuit.Done()
+			return
+		default:
+			nextBlock := s.BlockChain().GetBlockByNumber(nextBlockNumber)
+			if nextBlock != nil {
+				if err := s.reportBlockMsg(nextBlock); err == nil {
+					writeStatsLog(nextBlockNumber)
+					nextBlockNumber = nextBlockNumber + 1
+				} else {
+					//
+					panic(err)
+				}
 			} else {
-				//
-				panic(err)
+				time.Sleep(time.Microsecond * 50)
 			}
-		} else {
-			time.Sleep(time.Microsecond * 50)
 		}
 	}
 }
@@ -191,6 +206,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	var genesisData *common.GenesisData
 	var receipts []*types.Receipt
 	var exeBlockData *common.ExeBlockData
+	var statData *common.StatData
 
 	var err error
 	if block.NumberU64() == 0 {
@@ -199,9 +215,11 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 			return errors.New("cannot read genesis data")
 		}
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
+		statData = statsdb.Instance().ReadStatData(block.Number())
 	} else {
 		receipts = s.BlockChain().GetReceiptsByHash(block.Hash())
 		exeBlockData = statsdb.Instance().ReadExeBlockData(block.Number())
+		statData = statsdb.Instance().ReadStatData(block.Number())
 	}
 
 	brief := collectBrief(block)
@@ -223,6 +241,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 		ExeBlockData: exeBlockData,
 		GenesisData:  genesisData,
 		ContractList: contractList,
+		StatData:     statData,
 	}
 
 	jsonBytes, err := json.Marshal(statsBlockExt)

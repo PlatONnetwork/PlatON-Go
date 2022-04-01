@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -301,6 +303,7 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	//to execute
 	//stats: 初始化执行区块数据存放对象
 	common.InitExeBlockData(block.NumberU64())
+	common.InitStatData(block.NumberU64(), block.Hash())
 
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
 	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
@@ -315,10 +318,17 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		//stats: 保存 ExeBlockData in snapshotDB
 
 		exeBlockData := common.PopExeBlockData(block.NumberU64())
-		json, _ := json.Marshal(exeBlockData)
+		exeBlockDataJson, _ := json.Marshal(exeBlockData)
 
-		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64(), "exeBlockData", string(json))
+		log.Debug("Execute block finished, write ExeBlockData", "number", block.NumberU64(), "exeBlockData", string(exeBlockDataJson))
 		statsdb.Instance().WriteExeBlockData(block.Number(), exeBlockData)
+
+		statData := common.PopStatData(block.NumberU64())
+		processStatData(block.Number(), statData)
+		statDataJson, _ := json.Marshal(statData)
+
+		log.Debug("Execute block finished, write StatData", "number", block.NumberU64(), "statData", string(statDataJson))
+		statsdb.Instance().WriteStatData(block.Number(), statData)
 
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
@@ -375,3 +385,48 @@ func (self sealHashSort) Swap(i, j int) {
 	self[i], self[j] = self[j], self[i]
 }
 func (self sealHashSort) Less(i, j int) bool { return self[i].number < self[j].number }
+
+func processStatData(blockNumber *big.Int, statData *common.StatData) {
+	// 将 CandidateDeleted 转换成 Delete数组
+	for key := range statData.CandidateDeleted {
+		statData.Delete.Candidate = append(statData.Delete.Candidate, statData.CandidateDeleted[key])
+	}
+
+	// 将 CandidateChanged 转转成 Put数组
+	stakingPlugin := plugin.StakingInstance()
+	for key := range statData.CandidateChanged {
+		if statData.CandidateDeleted[key] == nil {
+			can, err := stakingPlugin.GetCandidateCompactInfo(statData.BlockHash, blockNumber.Uint64(), key)
+			if nil != err {
+				log.Error("ProcessStatData error, on getCandidateInfo", "blockHash", statData.BlockHash, "nodeAddress", key)
+				fmt.Errorf("ProcessStatData error, on getCandidateInfo")
+			}
+
+			statData.Put.Candidate = append(statData.Put.Candidate, &common.Candidate{
+				NodeId:              common.NodeID(can.NodeId),
+				StakingAddress:      can.StakingAddress,
+				BenefitAddress:      can.BenefitAddress,
+				RewardPer:           can.RewardPer,
+				NextRewardPer:       can.NextRewardPer,
+				StakingTxIndex:      can.StakingTxIndex,
+				ProgramVersion:      can.ProgramVersion,
+				Status:              uint32(can.Status),
+				StakingBlockNum:     can.StakingBlockNum,
+				Shares:              can.Shares.ToInt(),
+				Released:            can.Released.ToInt(),
+				ReleasedHes:         can.ReleasedHes.ToInt(),
+				RestrictingPlan:     can.RestrictingPlan.ToInt(),
+				RestrictingPlanHes:  can.RestrictingPlanHes.ToInt(),
+				ExternalId:          can.ExternalId,
+				NodeName:            can.NodeName,
+				Website:             can.Website,
+				Details:             can.Details,
+				DelegateTotal:       can.DelegateTotal.ToInt(),
+				DelegateTotalHes:    can.DelegateTotalHes.ToInt(),
+				DelegateRewardTotal: can.DelegateRewardTotal.ToInt(),
+			})
+		}
+	}
+	// 删除消息中 CandidateDeleted 和 CandidateChanged
+	statData.CandidateChanged, statData.CandidateDeleted = nil, nil
+}
