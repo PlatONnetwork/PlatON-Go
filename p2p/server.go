@@ -20,13 +20,14 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
@@ -67,7 +68,8 @@ type Config struct {
 	BlsPublicKey bls.PublicKey `toml:"-"`
 
 	// chainId identifies the current chain and is used for replay protection
-	ChainID *big.Int `toml:"-"`
+	ChainID     *big.Int `toml:"-"`
+	PIP7ChainID *big.Int `toml:"-"`
 
 	// MaxPeers is the maximum number of peers that can be
 	// connected. It must be greater than zero.
@@ -533,6 +535,7 @@ func (srv *Server) Start() (err error) {
 		cfg := discover.Config{
 			PrivateKey:   srv.PrivateKey,
 			ChainID:      srv.ChainID,
+			PIP7ChainID:  srv.PIP7ChainID,
 			AnnounceAddr: realaddr,
 			NodeDBPath:   srv.NodeDatabase,
 			NetRestrict:  srv.NetRestrict,

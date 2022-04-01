@@ -36,6 +36,16 @@ type VMContext struct {
 	Log      *WasmLogger
 }
 
+//DO NOT DELETE  used by cdt test
+func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
+	return &VMContext{
+		evm:      evm,
+		contract: contract,
+		config:   config,
+		db:       db,
+	}
+}
+
 func addFuncExport(m *wasm.Module, sig wasm.FunctionSig, function wasm.Function, export wasm.ExportEntry) {
 	typesLen := len(m.Types.Entries)
 	m.Types.Entries = append(m.Types.Entries, sig)

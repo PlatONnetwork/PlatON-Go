@@ -221,7 +221,7 @@ func (a Address) MarshalText() ([]byte, error) {
 }
 
 func (a Address) MarshalText2() ([]byte, error) {
-	return hexutil.Bytes(a[:]).MarshalText()
+	return []byte(a.Hex()), nil
 }
 
 // UnmarshalText parses a hash in hex syntax.
@@ -281,6 +281,21 @@ func (a Address) Value() (driver.Value, error) {
 	return a[:], nil
 }
 
+// ImplementsGraphQLType returns true if Hash implements the specified GraphQL type.
+func (a Address) ImplementsGraphQLType(name string) bool { return name == "Address" }
+
+// UnmarshalGraphQL unmarshals the provided GraphQL query data.
+func (a *Address) UnmarshalGraphQL(input interface{}) error {
+	var err error
+	switch input := input.(type) {
+	case string:
+		err = a.UnmarshalText([]byte(input))
+	default:
+		err = fmt.Errorf("unexpected type %T for Address", input)
+	}
+	return err
+}
+
 // UnprefixedAddress allows marshaling an Address without 0x prefix.
 type UnprefixedAddress Address
 
@@ -309,7 +324,7 @@ func NewMixedcaseAddress(addr Address) MixedcaseAddress {
 // NewMixedcaseAddressFromString is mainly meant for unit-testing
 func NewMixedcaseAddressFromString(hexaddr string) (*MixedcaseAddress, error) {
 	if !IsHexAddress(hexaddr) {
-		return nil, fmt.Errorf("Invalid address")
+		return nil, errors.New("invalid address")
 	}
 	a := FromHex(hexaddr)
 	return &MixedcaseAddress{addr: BytesToAddress(a), original: hexaddr}, nil
@@ -370,6 +385,9 @@ type NodeAddress Address
 
 // Bytes gets the string representation of the underlying address.
 func (a NodeAddress) Bytes() []byte { return a[:] }
+
+// Big converts an address to a big integer.
+func (a NodeAddress) Big() *big.Int { return new(big.Int).SetBytes(a[:]) }
 
 // Hash converts an address to a hash by left-padding it with zeros.
 func (a NodeAddress) Hash() Hash { return BytesToHash(a[:]) }

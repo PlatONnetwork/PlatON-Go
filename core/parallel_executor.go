@@ -1,11 +1,14 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/panjf2000/ants/v2"
 
@@ -24,6 +27,8 @@ const (
 var (
 	executorOnce sync.Once
 	executor     Executor
+	EIP155Signer types.Signer
+	PIP7Signer   types.Signer
 )
 
 type Executor struct {
@@ -56,7 +61,9 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		})
 		executor.chainConfig = chainConfig
 		executor.chainContext = chainContext
-		executor.signer = types.NewEIP155Signer(chainConfig.ChainID)
+		EIP155Signer = types.NewEIP155Signer(chainConfig.ChainID)
+		PIP7Signer = types.MakeSigner(chainConfig, true)
+		executor.signer = EIP155Signer
 		executor.vmCfg = vmCfg
 		executor.txpool = txpool
 	})
@@ -66,13 +73,23 @@ func GetExecutor() *Executor {
 	return &executor
 }
 
+func (exe *Executor) MakeSigner(stateDB *state.StateDB) types.Signer {
+	pip7 := gov.Gte120VersionState(stateDB)
+	if pip7 {
+		exe.signer = PIP7Signer
+	} else {
+		exe.signer = EIP155Signer
+	}
+	return exe.signer
+}
+
 func (exe *Executor) Signer() types.Signer {
 	return exe.signer
 }
 
 func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	if len(ctx.txList) > 0 {
-		txDag := NewTxDag(exe.signer)
+		txDag := NewTxDag(exe.Signer())
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
 		if err := txDag.MakeDagGraph(ctx, exe); err != nil {
@@ -100,7 +117,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 							break
 						}
 
-						from := tx.FromAddr(exe.signer)
+						from := tx.FromAddr(exe.Signer())
 						if _, popped := ctx.poppedAddresses[from]; popped {
 							log.Debug("Address popped", "from", from.Bech32())
 							continue
@@ -155,7 +172,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	}
 	tx := ctx.GetTx(idx)
 
-	msg, err := tx.AsMessage(exe.signer)
+	msg, err := tx.AsMessage(exe.Signer())
 	if err != nil {
 		//gas pool is subbed
 		ctx.buildTransferFailedResult(idx, err, true)
@@ -233,13 +250,13 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx *ParallelContext) bool {
 	address := tx.To()
 	if address == nil { // create contract
-		contractAddress := crypto.CreateAddress(tx.FromAddr(exe.signer), tx.Nonce())
+		contractAddress := crypto.CreateAddress(tx.FromAddr(exe.Signer()), tx.Nonce())
 		ctx.tempContractCache[contractAddress] = struct{}{}
 		return true
 	}
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state)) || state.GetCodeSize(*address) > 0
 	return isContract
 }

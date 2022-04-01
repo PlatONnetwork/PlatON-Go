@@ -58,8 +58,8 @@ func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func
 	var (
 		evmux = new(event.TypeMux)
 		//	engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)
-		engine = consensus.NewFaker()
 		db     = rawdb.NewMemoryDatabase()
+		engine = consensus.NewFakerWithDataBase(db)
 		gspec  = &core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},

@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"strconv"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -115,7 +117,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
 	usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 
-	msg, err := tx.AsMessage(types.NewEIP155Signer(config.ChainID))
+	msg, err := tx.AsMessage(types.MakeSigner(config, gov.Gte120VersionState(statedb)))
 
 	if err != nil {
 		return nil, 0, err

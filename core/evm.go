@@ -52,6 +52,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(header, chain),
+		GetNonce:    GetNonceFn(header, chain),
 		Origin:      msg.From(),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
@@ -60,6 +61,8 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext) vm.Con
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
 		BlockHash:   blockHash,
 		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
+		Nonce:       header.Nonce,
+		ParentHash:  header.ParentHash,
 	}
 }
 
@@ -92,6 +95,30 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 			}
 		}
 		return common.Hash{}
+	}
+}
+
+func GetNonceFn(ref *types.Header, chain ChainContext) func(n uint64) []byte {
+	var cache map[uint64][]byte
+
+	return func(n uint64) []byte {
+		// If there's no hash cache yet, make one
+		if cache == nil {
+			cache = map[uint64][]byte{
+				ref.Number.Uint64() - 1: ref.Nonce.Bytes(),
+			}
+		}
+		// Try to fulfill the request from the cache
+		if nonce, ok := cache[n]; ok {
+			return nonce
+		}
+		for block := chain.Engine().GetBlockByHashAndNum(ref.ParentHash, ref.Number.Uint64()-1); block != nil; block = chain.Engine().GetBlockByHashAndNum(block.Header().ParentHash, block.Header().Number.Uint64()-1) {
+			cache[block.Header().Number.Uint64()-1] = block.Header().Nonce.Bytes()
+			if n == block.Header().Number.Uint64()-1 {
+				return block.Header().Nonce.Bytes()
+			}
+		}
+		return nil
 	}
 }
 

@@ -118,7 +118,7 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
 
 ```
-platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "db,platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
+platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
 ```
 
 OK, it seems that the chain is running correctly, we can check it as follow:

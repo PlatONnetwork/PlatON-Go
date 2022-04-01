@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -92,7 +91,7 @@ type baseBridge struct {
 }
 
 // NewBridge creates a new Bridge to update consensus state and consensus msg.
-func NewBridge(ctx *node.ServiceContext, cbft *Cbft) (Bridge, error) {
+func NewBridge(ctx *node.Node, cbft *Cbft) (Bridge, error) {
 	if ctx == nil {
 		return &emptyBridge{}, nil
 	}

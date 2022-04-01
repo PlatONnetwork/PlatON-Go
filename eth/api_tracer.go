@@ -460,7 +460,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.eth.blockchain.Config(), block.Number())
+		signer = types.MakeSigner(api.eth.blockchain.Config(), false)
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
@@ -560,7 +560,7 @@ func (api *PrivateDebugAPI) standardTraceBlockToFile(ctx context.Context, block 
 
 	// Execute transaction, either tracing all or just the requested one
 	var (
-		signer = types.MakeSigner(api.eth.blockchain.Config(), block.Number())
+		signer = types.MakeSigner(api.eth.blockchain.Config(), false)
 		dumps  []string
 	)
 	for i, tx := range block.Transactions() {
