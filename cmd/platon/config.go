@@ -208,7 +208,7 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	// Add the PlatON Stats daemon if requested.
 	if len(cfg.Stats.URL) > 0 {
-		utils.RegisterStatsService(stack, backend, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
 	}
 	return stack, backend
 }
