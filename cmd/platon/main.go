@@ -371,12 +371,12 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 	}
 
 	//MONITOR
-	startMonitor(ethereum)
+	startMonitor(ethBackend)
 
 }
 
 //监控内置节点
-func startMonitor(ethereum *eth.Ethereum) {
+func startMonitor(ethereum *eth.EthAPIBackend) {
 	genesisValidatorQueue, err := staking.NewStakingDB().GetRoundValListByIrr(1, xutil.ConsensusSize())
 	if err != nil {
 		log.Error("cannot load and monitor genesis validators", "error", err)
