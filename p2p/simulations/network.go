@@ -104,10 +104,9 @@ func (net *Network) NewNodeWithConfig(conf *adapters.NodeConfig) (*Node, error) 
 	}
 
 	// if no services are configured, use the default service
-	if len(conf.Services) == 0 {
-		conf.Services = []string{net.DefaultService}
+	if len(conf.Lifecycles) == 0 {
+		conf.Lifecycles = []string{net.DefaultService}
 	}
-
 	// use the NodeAdapter to create the node
 	adapterNode, err := net.nodeAdapter.NewNode(conf)
 	if err != nil {
@@ -555,6 +554,7 @@ func (n *Node) NodeInfo() *p2p.NodeInfo {
 	}
 	info := n.Node.NodeInfo()
 	info.Name = n.Config.Name
+	info.ID = n.Config.ID.String()
 	return info
 }
 

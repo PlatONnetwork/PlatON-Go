@@ -55,6 +55,8 @@ type TransactOpts struct {
 	GasLimit uint64   // Gas limit to set for the transaction execution (0 = estimate)
 
 	Context context.Context // Network context to support cancellation and timeouts (nil = no timeout)
+
+	NoSend bool // Do all transact steps but do not send the transaction
 }
 
 // FilterOpts is the collection of options to fine tune filtering for events
@@ -118,10 +120,13 @@ func DeployContract(opts *TransactOpts, abi abi.ABI, bytecode []byte, backend Co
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (c *BoundContract) Call(opts *CallOpts, result interface{}, method string, params ...interface{}) error {
+func (c *BoundContract) Call(opts *CallOpts, results *[]interface{}, method string, params ...interface{}) error {
 	// Don't crash on a lazy user
 	if opts == nil {
 		opts = new(CallOpts)
+	}
+	if results == nil {
+		results = new([]interface{})
 	}
 	// Pack the input, call and unpack the results
 	input, err := c.abi.Pack(method, params...)
@@ -150,7 +155,10 @@ func (c *BoundContract) Call(opts *CallOpts, result interface{}, method string, 
 		}
 	} else {
 		output, err = c.caller.CallContract(ctx, msg, opts.BlockNumber)
-		if err == nil && len(output) == 0 {
+		if err != nil {
+			return err
+		}
+		if len(output) == 0 {
 			// Make sure we have a contract to operate on, and bail out otherwise.
 			if code, err = c.caller.CodeAt(ctx, c.address, opts.BlockNumber); err != nil {
 				return err
@@ -159,10 +167,14 @@ func (c *BoundContract) Call(opts *CallOpts, result interface{}, method string, 
 			}
 		}
 	}
-	if err != nil {
+
+	if len(*results) == 0 {
+		res, err := c.abi.Unpack(method, output)
+		*results = res
 		return err
 	}
-	return c.abi.Unpack(result, method, output)
+	res := *results
+	return c.abi.UnpackIntoInterface(res[0], method, output)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
@@ -250,6 +262,9 @@ func (c *BoundContract) transact(opts *TransactOpts, contract *common.Address, i
 	signedTx, err := opts.Signer(types.NewEIP155Signer(new(big.Int)), opts.From, rawTx)
 	if err != nil {
 		return nil, err
+	}
+	if opts.NoSend {
+		return signedTx, nil
 	}
 	if err := c.transactor.SendTransaction(ensureContext(opts.Context), signedTx); err != nil {
 		return nil, err
@@ -340,7 +355,7 @@ func (c *BoundContract) WatchLogs(opts *WatchOpts, name string, query ...[]inter
 // UnpackLog unpacks a retrieved log into the provided output structure.
 func (c *BoundContract) UnpackLog(out interface{}, event string, log types.Log) error {
 	if len(log.Data) > 0 {
-		if err := c.abi.Unpack(out, event, log.Data); err != nil {
+		if err := c.abi.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return err
 		}
 	}

@@ -31,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/les/flowcontrol"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -46,27 +47,29 @@ type LesServer struct {
 	lesTopics   []discv5.Topic
 	privateKey  *ecdsa.PrivateKey
 	quitSync    chan struct{}
+
+	p2pSrv *p2p.Server
 }
 
-func NewLesServer(eth *eth.Ethereum, config *eth.Config) (*LesServer, error) {
+func NewLesServer(node *node.Node, e *eth.Ethereum, config *eth.Config) (*LesServer, error) {
 	quitSync := make(chan struct{})
-	pm, err := NewProtocolManager(eth.BlockChain().Config(), light.DefaultServerIndexerConfig, false, config.NetworkId, eth.EventMux(), eth.Engine(), newPeerSet(), eth.BlockChain(), eth.TxPool(), eth.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
+	pm, err := NewProtocolManager(e.BlockChain().Config(), light.DefaultServerIndexerConfig, false, config.NetworkId, e.EventMux(), e.Engine(), newPeerSet(), e.BlockChain(), e.TxPool(), e.ChainDb(), nil, nil, nil, quitSync, new(sync.WaitGroup))
 	if err != nil {
 		return nil, err
 	}
 
 	lesTopics := make([]discv5.Topic, len(AdvertiseProtocolVersions))
 	for i, pv := range AdvertiseProtocolVersions {
-		lesTopics[i] = lesTopic(eth.BlockChain().Genesis().Hash(), pv)
+		lesTopics[i] = lesTopic(e.BlockChain().Genesis().Hash(), pv)
 	}
 
 	srv := &LesServer{
 		lesCommons: lesCommons{
 			config:           config,
-			chainDb:          eth.ChainDb(),
+			chainDb:          e.ChainDb(),
 			iConfig:          light.DefaultServerIndexerConfig,
-			chtIndexer:       light.NewChtIndexer(eth.ChainDb(), nil, params.CHTFrequency, params.HelperTrieProcessConfirmations),
-			bloomTrieIndexer: light.NewBloomTrieIndexer(eth.ChainDb(), nil, params.BloomBitsBlocks, params.BloomTrieFrequency),
+			chtIndexer:       light.NewChtIndexer(e.ChainDb(), nil, params.CHTFrequency, params.HelperTrieProcessConfirmations),
+			bloomTrieIndexer: light.NewBloomTrieIndexer(e.ChainDb(), nil, params.BloomBitsBlocks, params.BloomTrieFrequency),
 			protocolManager:  pm,
 		},
 		quitSync:  quitSync,
@@ -89,7 +92,7 @@ func NewLesServer(eth *eth.Ethereum, config *eth.Config) (*LesServer, error) {
 		logger.Info("Loaded bloom trie", "section", bloomTrieLastSection, "head", bloomTrieSectionHead, "root", bloomTrieRoot)
 	}
 
-	srv.chtIndexer.Start(eth.BlockChain())
+	srv.chtIndexer.Start(e.BlockChain())
 	pm.server = srv
 
 	srv.defParams = &flowcontrol.ServerParams{
@@ -97,7 +100,10 @@ func NewLesServer(eth *eth.Ethereum, config *eth.Config) (*LesServer, error) {
 		MinRecharge: 50000,
 	}
 	srv.fcManager = flowcontrol.NewClientManager(uint64(config.LightServ), 10, 1000000000)
-	srv.fcCostStats = newCostStats(eth.ChainDb())
+	srv.fcCostStats = newCostStats(e.ChainDb())
+
+	node.RegisterProtocols(srv.Protocols())
+	node.RegisterLifecycle(srv)
 	return srv, nil
 }
 
@@ -106,9 +112,9 @@ func (s *LesServer) Protocols() []p2p.Protocol {
 }
 
 // Start starts the LES server
-func (s *LesServer) Start(srvr *p2p.Server) {
+func (s *LesServer) Start() error {
 	s.protocolManager.Start(s.config.LightPeers)
-	if srvr.DiscV5 != nil {
+	if s.p2pSrv.DiscV5 != nil {
 		for _, topic := range s.lesTopics {
 			topic := topic
 			go func() {
@@ -116,12 +122,14 @@ func (s *LesServer) Start(srvr *p2p.Server) {
 				logger.Info("Starting topic registration")
 				defer logger.Info("Terminated topic registration")
 
-				srvr.DiscV5.RegisterTopic(topic, s.quitSync)
+				s.p2pSrv.DiscV5.RegisterTopic(topic, s.quitSync)
 			}()
 		}
 	}
-	s.privateKey = srvr.PrivateKey
+	s.privateKey = s.p2pSrv.PrivateKey
 	s.protocolManager.blockLoop()
+
+	return nil
 }
 
 func (s *LesServer) SetBloomBitsIndexer(bloomIndexer *core.ChainIndexer) {
@@ -129,7 +137,7 @@ func (s *LesServer) SetBloomBitsIndexer(bloomIndexer *core.ChainIndexer) {
 }
 
 // Stop stops the LES service
-func (s *LesServer) Stop() {
+func (s *LesServer) Stop() error {
 	s.chtIndexer.Close()
 	// bloom trie indexer is closed by parent bloombits indexer
 	s.fcCostStats.store()
@@ -138,6 +146,7 @@ func (s *LesServer) Stop() {
 		<-s.protocolManager.noMorePeers
 	}()
 	s.protocolManager.Stop()
+	return nil
 }
 
 type requestCosts struct {

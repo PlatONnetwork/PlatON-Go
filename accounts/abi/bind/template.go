@@ -261,7 +261,7 @@ var (
 	// sets the output to result. The result type might be a single field for simple
 	// returns, a slice of interfaces for anonymous returns and a struct for named
 	// returns.
-	func (_{{$contract.Type}} *{{$contract.Type}}Raw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	func (_{{$contract.Type}} *{{$contract.Type}}Raw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 		return _{{$contract.Type}}.Contract.{{$contract.Type}}Caller.contract.Call(opts, result, method, params...)
 	}
 
@@ -280,7 +280,7 @@ var (
 	// sets the output to result. The result type might be a single field for simple
 	// returns, a slice of interfaces for anonymous returns and a struct for named
 	// returns.
-	func (_{{$contract.Type}} *{{$contract.Type}}CallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	func (_{{$contract.Type}} *{{$contract.Type}}CallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 		return _{{$contract.Type}}.Contract.contract.Call(opts, result, method, params...)
 	}
 
@@ -304,11 +304,8 @@ var (
 			err := _{{$contract.Type}}.contract.Call(opts, &out, "{{.Original.Name}}" {{range .Normalized.Inputs}}, {{.Name}}{{end}})
 			{{if .Structured}}
 			outstruct := new(struct{ {{range .Normalized.Outputs}} {{.Name}} {{bindtype .Type $structs}}; {{end}} })
-			if err != nil {
-				return *outstruct, err
-			}
 			{{range $i, $t := .Normalized.Outputs}} 
-			outstruct.{{.Name}} = *abi.ConvertType(out[{{$i}}], new({{bindtype .Type $structs}})).(*{{bindtype .Type $structs}}){{end}}
+			outstruct.{{.Name}} = out[{{$i}}].({{bindtype .Type $structs}}){{end}}
 
 			return *outstruct, err
 			{{else}}
@@ -544,6 +541,7 @@ var (
 			if err := _{{$contract.Type}}.contract.UnpackLog(event, "{{.Original.Name}}", log); err != nil {
 				return nil, err
 			}
+			event.Raw = log
 			return event, nil
 		}
 

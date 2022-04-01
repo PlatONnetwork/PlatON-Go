@@ -159,7 +159,7 @@ func initGenesis(ctx *cli.Context) error {
 	}
 
 	// Open an initialise both full and light databases
-	stack := makeFullNode(ctx)
+	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
@@ -223,7 +223,7 @@ func importPreimages(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
-	stack := makeFullNode(ctx)
+	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
 	diskdb := utils.MakeChainDatabase(ctx, stack)
@@ -241,7 +241,7 @@ func exportPreimages(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
-	stack := makeFullNode(ctx)
+	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
 	diskdb := utils.MakeChainDatabase(ctx, stack)
@@ -267,7 +267,7 @@ func copyDb(ctx *cli.Context) error {
 		utils.Fatalf("Source SnapshotDBD directory (path to a local ppos database) path argument missing")
 	}
 	// Initialize a new chain for the running node to sync into
-	stack := makeFullNode(ctx)
+	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
 	chain, chainDb := utils.MakeChain(ctx, stack)
@@ -379,7 +379,7 @@ func confirmAndRemoveDB(database string, kind string) {
 }
 
 func dump(ctx *cli.Context) error {
-	stack := makeFullNode(ctx)
+	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
 	chain, chainDb := utils.MakeChain(ctx, stack)

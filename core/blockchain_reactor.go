@@ -338,7 +338,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
 
-	if !vm.IsPlatONPrecompiledContract(to) {
+	if !vm.IsPlatONPrecompiledContract(to, true) {
 		return nil
 	}
 

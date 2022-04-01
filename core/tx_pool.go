@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"sort"
@@ -320,12 +321,20 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
+	pip7 := false
+	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
+		stateDB, err := chain.GetState(currentBlock.Header())
+		if err == nil && stateDB != nil {
+			pip7 = gov.Gte120VersionState(stateDB)
+		}
+	}
+
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.NewEIP155Signer(chainconfig.ChainID),
+		signer:      types.MakeSigner(chainconfig, pip7),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -497,6 +506,13 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHeader.GasLimit
+
+	// reset signer
+	if gov.Gte120VersionState(statedb) {
+		pool.signer = types.MakeSigner(pool.chainconfig, true)
+		pool.locals.signer = pool.signer
+		pool.cacheAccountNeedPromoted.signer = pool.signer
+	}
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -1403,6 +1419,12 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.currentState = statedb
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
+	// reset signer
+	if gov.Gte120VersionState(statedb) {
+		pool.signer = types.MakeSigner(pool.chainconfig, true)
+		pool.locals.signer = pool.signer
+		pool.cacheAccountNeedPromoted.signer = pool.signer
+	}
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)

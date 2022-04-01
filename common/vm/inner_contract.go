@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package vm
 
 import "github.com/PlatONnetwork/PlatON-Go/common"
@@ -28,6 +27,7 @@ var (
 	GovContractAddr            = common.HexToAddress("0x1000000000000000000000000000000000000005") // The PlatON Precompiled contract addr for governance
 	DelegateRewardPoolAddr     = common.HexToAddress("0x1000000000000000000000000000000000000006") // The PlatON Precompiled contract addr for delegate reward
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
+	VrfInnerContractAddr       = common.HexToAddress("0x3000000000000000000000000000000000000001") // The PlatON Precompiled contract addr for vrf inner
 	TempContractAddr           = common.HexToAddress("0x0000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 )
 

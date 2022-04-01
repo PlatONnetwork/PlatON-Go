@@ -78,8 +78,6 @@ var AppHelpFlagGroups = []flagGroup{
 			//utils.EthStatsURLFlag,
 			utils.StatsFlag,
 			utils.IdentityFlag,
-			utils.LightServFlag,
-			utils.LightPeersFlag,
 			utils.LightKDFFlag,
 		},
 	},
@@ -89,16 +87,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DeveloperPeriodFlag,
 		},
 	},
-	//{
-	//	Name: "DASHBOARD",
-	//	Flags: []cli.Flag{
-	//		utils.DashboardEnabledFlag,
-	//		utils.DashboardAddrFlag,
-	//		utils.DashboardPortFlag,
-	//		utils.DashboardRefreshFlag,
-	//		utils.DashboardAssetsFlag,
-	//	},
-	//},
 	{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
@@ -136,20 +124,23 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "API AND CONSOLE",
 		Flags: []cli.Flag{
-			utils.RPCEnabledFlag,
-			utils.RPCListenAddrFlag,
-			utils.RPCPortFlag,
-			utils.RPCApiFlag,
-			utils.RPCGlobalGasCap,
+			utils.IPCDisabledFlag,
+			utils.IPCPathFlag,
+			utils.HTTPEnabledFlag,
+			utils.HTTPListenAddrFlag,
+			utils.HTTPPortFlag,
+			utils.HTTPApiFlag,
+			utils.HTTPCORSDomainFlag,
+			utils.HTTPVirtualHostsFlag,
 			utils.WSEnabledFlag,
 			utils.WSListenAddrFlag,
 			utils.WSPortFlag,
 			utils.WSApiFlag,
 			utils.WSAllowedOriginsFlag,
-			utils.IPCDisabledFlag,
-			utils.IPCPathFlag,
-			utils.RPCCORSDomainFlag,
-			utils.RPCVirtualHostsFlag,
+			utils.GraphQLEnabledFlag,
+			utils.GraphQLCORSDomainFlag,
+			utils.GraphQLVirtualHostsFlag,
+			utils.RPCGlobalGasCap,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
@@ -177,9 +168,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "MINER",
 		Flags: []cli.Flag{
 			utils.MinerGasPriceFlag,
-			utils.MinerGasTargetFlag,
-			//utils.MinerGasLimitFlag,
-			//	utils.MinerExtraDataFlag,
 		},
 	},
 	{
@@ -199,26 +187,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Name:  "METRICS AND STATS",
 		Flags: metricsFlags,
 	},
-	//{
-	//	Name:  "WHISPER (EXPERIMENTAL)",
-	//	Flags: whisperFlags,
-	//},
-	//{
-	//	Name: "MPC COMPUTE",
-	//	Flags: []cli.Flag{
-	//		utils.MPCEnabledFlag,
-	//		utils.MPCActorFlag,
-	//		utils.MPCIceFileFlag,
-	//	},
-	//},
-	//{
-	//	Name: "VC COMPUTE",
-	//	Flags: []cli.Flag{
-	//		utils.VCEnabledFlag,
-	//		utils.VCActorFlag,
-	//		utils.VCPasswordFlag,
-	//	},
-	//},
 	{
 		Name: "CBFT",
 		Flags: []cli.Flag{
@@ -247,7 +215,27 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "ALIASED (deprecated)",
+		Flags: append([]cli.Flag{
+			utils.LegacyRPCEnabledFlag,
+			utils.LegacyRPCListenAddrFlag,
+			utils.LegacyRPCPortFlag,
+			utils.LegacyRPCCORSDomainFlag,
+			utils.LegacyRPCVirtualHostsFlag,
+			utils.LegacyRPCApiFlag,
+			utils.LegacyWSListenAddrFlag,
+			utils.LegacyWSPortFlag,
+			utils.LegacyWSAllowedOriginsFlag,
+			utils.LegacyWSApiFlag,
+			utils.LegacyGpoBlocksFlag,
+			utils.LegacyGpoPercentileFlag,
+		}, debug.DeprecatedFlags...),
+	},
+	{
 		Name: "MISC",
+		Flags: []cli.Flag{
+			cli.HelpFlag,
+		},
 	},
 }
 
@@ -305,10 +293,17 @@ func init() {
 					categorized[flag.String()] = struct{}{}
 				}
 			}
-			uncategorized := []cli.Flag{}
+			deprecated := make(map[string]struct{})
+			for _, flag := range utils.DeprecatedFlags {
+				deprecated[flag.String()] = struct{}{}
+			}
+			// Only add uncategorized flags if they are not deprecated
+			var uncategorized []cli.Flag
 			for _, flag := range data.(*cli.App).Flags {
 				if _, ok := categorized[flag.String()]; !ok {
-					uncategorized = append(uncategorized, flag)
+					if _, ok := deprecated[flag.String()]; !ok {
+						uncategorized = append(uncategorized, flag)
+					}
 				}
 			}
 			if len(uncategorized) > 0 {

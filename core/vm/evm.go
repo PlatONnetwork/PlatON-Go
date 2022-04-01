@@ -18,14 +18,18 @@ package vm
 
 import (
 	"context"
-	"github.com/holiman/uint256"
 	"math/big"
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
+	"github.com/holiman/uint256"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
@@ -49,6 +53,10 @@ type (
 	// GetHashFunc returns the n'th block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
+
+	// GetNonceFunc returns the n'th block Nonce in the blockchain
+	// and is used by the VRF in EVM.
+	GetNonceFunc func(uint64) []byte
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -60,9 +68,12 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 
-		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+		if p := PlatONPrecompiledContracts120[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
-
+			case *vrf:
+				if gov.Gte120VersionState(evm.StateDB) {
+					return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
+				}
 			case *validatorInnerContract:
 				vic := &validatorInnerContract{
 					Contract: contract,
@@ -142,6 +153,8 @@ type Context struct {
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
 
+	GetNonce GetNonceFunc
+
 	// Message information
 	Origin   common.Address // Provides information for ORIGIN
 	GasPrice *big.Int       // Provides information for GASPRICE
@@ -152,8 +165,10 @@ type Context struct {
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
+	Nonce       types.BlockNonce
 
-	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
+	BlockHash  common.Hash // Only, the value will be available after the current block has been sealed.
+	ParentHash common.Hash
 
 	Ctx context.Context
 }
@@ -206,7 +221,21 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 		chainConfig:  chainConfig,
 		interpreters: make([]Interpreter, 0, 1),
 	}
-
+	//第一阶段EVM中CHAINID指令返回值沿用旧值
+	/*
+		if statedb != nil && gov.Gte120VersionState(statedb) {
+			cpyChainCfg := &params.ChainConfig {
+				ChainID:     chainConfig.PIP7ChainID,
+				AddressHRP:  chainConfig.AddressHRP,
+				EmptyBlock:  chainConfig.EmptyBlock,
+				EIP155Block: chainConfig.EIP155Block,
+				EWASMBlock: chainConfig.EWASMBlock,
+				Cbft: chainConfig.Cbft,
+				GenesisVersion: chainConfig.GenesisVersion,
+			}
+			evm.chainConfig = cpyChainCfg
+		}
+	*/
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
 	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
@@ -271,7 +300,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
 
-		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr) && value.Sign() == 0 {
+		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)

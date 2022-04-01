@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 // Package wal implements the similar write-ahead logging for cbft consensus.
 package wal
 
@@ -87,7 +86,7 @@ type Wal interface {
 type emptyWal struct {
 }
 
-func WalDir(ctx *node.ServiceContext) string {
+func WalDir(ctx *node.Node) string {
 	return ctx.ResolvePath(walDir)
 }
 
@@ -139,7 +138,7 @@ type baseWal struct {
 }
 
 // NewWal creates a new wal to update and load consensus state.
-func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
+func NewWal(ctx *node.Node, specifiedPath string) (Wal, error) {
 	if ctx == nil && len(specifiedPath) == 0 {
 		return &emptyWal{}, nil
 	}

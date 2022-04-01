@@ -27,6 +27,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
 	cli "gopkg.in/urfave/cli.v1"
@@ -190,33 +192,25 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	return stack, cfg
 }
 
-func makeFullNode(ctx *cli.Context) *node.Node {
+func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	stack, cfg := makeConfigNode(ctx)
 
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 	statsdb.SetDBPath(stack.ResolvePath(statsdb.DBPath))
-	utils.RegisterEthService(stack, &cfg.Eth)
+
+	backend := utils.RegisterEthService(stack, &cfg.Eth)
+
+	// Configure GraphQL if requested
+	if ctx.GlobalIsSet(utils.GraphQLEnabledFlag.Name) {
+		utils.RegisterGraphQLService(stack, backend, cfg.Node)
+	}
 
 	// Add the PlatON Stats daemon if requested.
 	if len(cfg.Stats.URL) > 0 {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
+		utils.RegisterStatsService(stack, backend, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
 	}
-	return stack
-}
-
-func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, platonConfig) {
-	stack, cfg := makeConfigNode(ctx)
-	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-	statsdb.SetDBPath(stack.ResolvePath(statsdb.DBPath))
-
-	utils.RegisterEthService(stack, &cfg.Eth)
-
-	// Add the PlatON Stats daemon if requested.
-	if cfg.Stats.URL != "" {
-		utils.RegisterStatsService(stack, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
-	}
-	return stack, cfg
+	return stack, backend
 }
 
 // dumpConfig is the dumpconfig command.

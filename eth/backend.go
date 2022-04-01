@@ -63,13 +63,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-type LesServer interface {
-	Start(srvr *p2p.Server)
-	Stop()
-	Protocols() []p2p.Protocol
-	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
-}
-
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
 	config *Config
@@ -78,10 +71,6 @@ type Ethereum struct {
 	txPool          *core.TxPool
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
-	lesServer       LesServer
-	// modify
-	//mpcPool *core.MPCPool
-	//vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -101,17 +90,14 @@ type Ethereum struct {
 	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
 
-	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
-}
+	p2pServer *p2p.Server
 
-func (s *Ethereum) AddLesServer(ls LesServer) {
-	s.lesServer = ls
-	ls.SetBloomBitsIndexer(s.bloomIndexer)
+	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
 }
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
-func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
+func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run eth.PlatON in light sync mode, use les.LightPlatON")
@@ -124,13 +110,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
 	}
 	// Assemble the Ethereum object
-	chainDb, err := ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
+	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
 	if err != nil {
 		return nil, err
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	snapshotBaseDB, err := snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+	snapshotBaseDB, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 	if err != nil {
 		return nil, err
 	}
@@ -162,29 +148,29 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			}
 
 			if config.DatabaseFreezer != "" {
-				if err := os.RemoveAll(ctx.ResolveFreezerPath("chaindata", config.DatabaseFreezer)); err != nil {
+				if err := os.RemoveAll(stack.Config().ResolveFreezerPath("chaindata", config.DatabaseFreezer)); err != nil {
 					return nil, err
 				}
 			}
 
-			if err := os.RemoveAll(ctx.ResolvePath("chaindata")); err != nil {
+			if err := os.RemoveAll(stack.ResolvePath("chaindata")); err != nil {
 				return nil, err
 			}
 
-			if err := os.RemoveAll(ctx.ResolvePath(wal.WalDir(ctx))); err != nil {
+			if err := os.RemoveAll(stack.ResolvePath(wal.WalDir(stack))); err != nil {
 				return nil, err
 			}
 
-			if err := os.RemoveAll(ctx.ResolvePath(snapshotdb.DBPath)); err != nil {
+			if err := os.RemoveAll(stack.ResolvePath(snapshotdb.DBPath)); err != nil {
 				return nil, err
 			}
 
-			chainDb, err = ctx.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
+			chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
 			if err != nil {
 				return nil, err
 			}
 
-			snapshotBaseDB, err = snapshotdb.Open(ctx.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+			snapshotBaseDB, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 			if err != nil {
 				return nil, err
 			}
@@ -193,7 +179,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			if stored != params.MainnetGenesisHash && config.Genesis == nil {
 				// private net
 				config.Genesis = new(core.Genesis)
-				if err := config.Genesis.InitGenesisAndSetEconomicConfig(ctx.GenesisPath()); err != nil {
+				if err := config.Genesis.InitGenesisAndSetEconomicConfig(stack.GenesisPath()); err != nil {
 					return nil, err
 				}
 			}
@@ -202,7 +188,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
-
 	if err := snapshotBaseDB.Close(); err != nil {
 		return nil, err
 	}
@@ -217,18 +202,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 
 	log.Info("Initialised chain configuration", "config", chainConfig)
+	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
 
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
-		eventMux:          ctx.EventMux,
-		accountManager:    ctx.AccountManager,
-		engine:            CreateConsensusEngine(ctx, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, ctx.EventMux),
+		eventMux:          stack.EventMux(),
+		accountManager:    stack.AccountManager(),
+		engine:            CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		p2pServer:         stack.Server(),
 	}
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -289,7 +276,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.bloomIndexer.Start(eth.blockchain)
 
 	if config.TxPool.Journal != "" {
-		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
+		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
 	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, core.NewTxPoolBlockChain(blockChainCache))
 
@@ -312,7 +299,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.blockchain.Config().ChainID)
-	node.GetCryptoHandler().SetPrivateKey(ctx.NodePriKey())
+	node.GetCryptoHandler().SetPrivateKey(stack.Config().NodeKey())
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
@@ -335,7 +322,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
-			reactor.SetPrivateKey(ctx.NodePriKey())
+			reactor.SetPrivateKey(stack.Config().NodeKey())
 			handlePlugin(reactor)
 			agency = reactor
 
@@ -364,13 +351,19 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//downloader 在NewProtocolManager中初始化
 	reactor.SetDownloader(eth.Downloader())
 
-	eth.APIBackend = &EthAPIBackend{ctx.ExtRPCEnabled(), eth, nil}
+	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), eth, nil}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+	// Start the RPC service
+	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, eth.NetVersion())
 
+	// Register the backend on the node
+	stack.RegisterAPIs(eth.APIs())
+	stack.RegisterProtocols(eth.Protocols())
+	stack.RegisterLifecycle(eth)
 	return eth, nil
 }
 
@@ -396,10 +389,10 @@ func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
+func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
 	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
-	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, ctx)
+	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
 	if engine == nil {
 		panic("create consensus engine fail")
 	}
@@ -556,35 +549,29 @@ func (s *Ethereum) IsListening() bool                  { return true } // Always
 func (s *Ethereum) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
 func (s *Ethereum) NetVersion() uint64                 { return s.networkID }
 func (s *Ethereum) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
+func (s *Ethereum) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
 
-// Protocols implements node.Service, returning all the currently configured
+// Protocols returns all the currently configured
 // network protocols to start.
 func (s *Ethereum) Protocols() []p2p.Protocol {
 	protocols := make([]p2p.Protocol, 0)
 	protocols = append(protocols, s.protocolManager.SubProtocols...)
 	protocols = append(protocols, s.engine.Protocols()...)
 
-	if s.lesServer == nil {
-		return protocols
-	}
-	protocols = append(protocols, s.lesServer.Protocols()...)
 	return protocols
 }
 
-// Start implements node.Service, starting all internal goroutines needed by the
+// Start implements node.Lifecycle, starting all internal goroutines needed by the
 // Ethereum protocol implementation.
-func (s *Ethereum) Start(srvr *p2p.Server) error {
+func (s *Ethereum) Start() error {
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
-	// Start the RPC service
-	s.netRPCService = ethapi.NewPublicNetAPI(srvr, s.NetVersion())
-
 	// Figure out a max peers count based on the server limits
-	maxPeers := srvr.MaxPeers
+	maxPeers := s.p2pServer.MaxPeers
 	if s.config.LightServ > 0 {
-		if s.config.LightPeers >= srvr.MaxPeers {
-			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, srvr.MaxPeers)
+		if s.config.LightPeers >= s.p2pServer.MaxPeers {
+			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, s.p2pServer.MaxPeers)
 		}
 		maxPeers -= s.config.LightPeers
 	}
@@ -597,17 +584,14 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
 				// todo: Mock point.
 				if !node.FakeNetEnable {
-					srvr.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+					s.p2pServer.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
 				}
 			}
 		}
 		s.StartMining()
 	}
-	srvr.StartWatching(s.eventMux)
+	s.p2pServer.StartWatching(s.eventMux)
 
-	if s.lesServer != nil {
-		s.lesServer.Start(srvr)
-	}
 	return nil
 }
 
@@ -615,9 +599,6 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 // Ethereum protocol.
 func (s *Ethereum) Stop() error {
 	s.protocolManager.Stop()
-	if s.lesServer != nil {
-		s.lesServer.Stop()
-	}
 
 	// Then stop everything else.
 	s.bloomIndexer.Close()

@@ -66,7 +66,8 @@ const (
 )
 
 var (
-	cRest = []rlp.RawValue{{0x65}, {0x65}}
+	cRest     = []rlp.RawValue{{0x65}, {0x65}}
+	cRestPIP7 = []rlp.RawValue{{0x65}, {0x65}}
 )
 
 // RPC request structures
@@ -231,7 +232,8 @@ type Config struct {
 	PrivateKey *ecdsa.PrivateKey
 
 	// chainId identifies the current chain and is used for replay protection
-	ChainID *big.Int `toml:"-"`
+	ChainID     *big.Int `toml:"-"`
+	PIP7ChainID *big.Int `toml:"-"`
 
 	// These settings are optional:
 	AnnounceAddr *net.UDPAddr      // local address announced in the DHT
@@ -250,8 +252,13 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 
 	if cfg.ChainID != nil {
 		bytes_ChainId, _ := rlp.EncodeToBytes(cfg.ChainID)
-		log.Info("UDP listener up", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
+		log.Info("UDP set chain ID ", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
 		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
+	}
+	if cfg.PIP7ChainID != nil {
+		bytes_PIP7ChainID, _ := rlp.EncodeToBytes(cfg.PIP7ChainID)
+		cRestPIP7 = []rlp.RawValue{bytes_PIP7ChainID, bytes_PIP7ChainID}
+		log.Info("UDP set pip7 chain ID ", "chainId", cfg.PIP7ChainID, "bytes_ChainId", bytes_PIP7ChainID)
 	}
 
 	log.Info("UDP listener up", "self", tab.self)
@@ -631,7 +638,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if !reflect.DeepEqual(req.Rest, cRest) {
+	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
 		return errData
 	}
 
@@ -640,7 +647,7 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       cRest,
+		Rest:       req.Rest,
 	})
 	//WHY: 发送ping后，为什么还需要处理reply?
 	t.handleReply(fromID, pingPacket, req)
@@ -669,7 +676,7 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 		return errExpired
 	}
 
-	if !reflect.DeepEqual(req.Rest, cRest) {
+	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
 		return errData
 	}
 
@@ -686,7 +693,7 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !reflect.DeepEqual(req.Rest, cRest) {
+	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
 		return errData
 	}
 	if !t.db.hasBond(fromID) {
@@ -705,7 +712,7 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 
 	p := neighbors{
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Rest:       cRest,
+		Rest:       req.Rest,
 	}
 	var sent bool
 	// Send neighbors in chunks with at most maxNeighbors per packet
@@ -732,7 +739,7 @@ func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byt
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !reflect.DeepEqual(req.Rest, cRest) {
+	if !reflect.DeepEqual(req.Rest, cRest) && !reflect.DeepEqual(req.Rest, cRestPIP7) {
 		return errData
 	}
 	if !t.handleReply(fromID, neighborsPacket, req) {

@@ -482,6 +482,15 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 	self.lock.Unlock()
 }
 
+// SetStorage replaces the entire storage for the specified account with given
+// storage. This function should only be used for debugging.
+func (self *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetStorage(storage)
+	}
+}
+
 //func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
 //	var buffer bytes.Buffer
 //	//buffer.Write(address[:])

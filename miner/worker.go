@@ -766,7 +766,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.NewEIP155Signer(w.chainConfig.ChainID),
+		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,

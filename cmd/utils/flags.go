@@ -20,6 +20,8 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/graphql"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -90,7 +92,6 @@ GLOBAL OPTIONS:
    {{range .Flags}}{{.}}
    {{end}}{{end}}
 `
-
 	cli.CommandHelpTemplate = CommandHelpTemplate
 }
 
@@ -99,7 +100,6 @@ func NewApp(gitCommit, gitDate, usage string) *cli.App {
 	app := cli.NewApp()
 	app.Name = filepath.Base(os.Args[0])
 	app.Author = ""
-	//app.Authors = nil
 	app.Email = ""
 	app.Version = params.VersionWithCommit(gitCommit, gitDate)
 	app.Usage = usage
@@ -167,16 +167,6 @@ var (
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
-	}
-	LightServFlag = cli.IntFlag{
-		Name:  "lightserv",
-		Usage: "Maximum percentage of time allowed for serving LES requests (0-90)",
-		Value: 0,
-	}
-	LightPeersFlag = cli.IntFlag{
-		Name:  "lightpeers",
-		Usage: "Maximum number of LES client peers",
-		Value: eth.DefaultConfig.LightPeers,
 	}
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
@@ -262,11 +252,6 @@ var (
 		Usage: "Megabytes of memory allocated to triedb internal caching",
 		Value: eth.DefaultConfig.TrieDBCache,
 	}
-	MinerGasTargetFlag = cli.Uint64Flag{
-		Name:  "miner.gastarget",
-		Usage: "Target gas floor for mined blocks",
-		Value: eth.DefaultConfig.Miner.GasFloor,
-	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
@@ -283,13 +268,13 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
-	RPCGlobalGasCap = cli.Uint64Flag{
-		Name:  "rpc.gascap",
-		Usage: "Sets a cap on gas that can be used in eth_call/estimateGas",
-	}
 	InsecureUnlockAllowedFlag = cli.BoolFlag{
 		Name:  "allow-insecure-unlock",
 		Usage: "Allow insecure account unlocking when account-related RPCs are exposed by http",
+	}
+	RPCGlobalGasCap = cli.Uint64Flag{
+		Name:  "rpc.gascap",
+		Usage: "Sets a cap on gas that can be used in platon_call/estimateGas",
 	}
 	// Logging and debug settings
 	/*EthStatsURLFlag = cli.StringFlag{
@@ -307,35 +292,6 @@ var (
 		Usage: "Disables db compaction after import",
 	}
 	// RPC settings
-	RPCEnabledFlag = cli.BoolFlag{
-		Name:  "rpc",
-		Usage: "Enable the HTTP-RPC server",
-	}
-	RPCListenAddrFlag = cli.StringFlag{
-		Name:  "rpcaddr",
-		Usage: "HTTP-RPC server listening interface",
-		Value: node.DefaultHTTPHost,
-	}
-	RPCPortFlag = cli.IntFlag{
-		Name:  "rpcport",
-		Usage: "HTTP-RPC server listening port",
-		Value: node.DefaultHTTPPort,
-	}
-	RPCCORSDomainFlag = cli.StringFlag{
-		Name:  "rpccorsdomain",
-		Usage: "Comma separated list of domains from which to accept cross origin requests (browser enforced)",
-		Value: "",
-	}
-	RPCVirtualHostsFlag = cli.StringFlag{
-		Name:  "rpcvhosts",
-		Usage: "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
-		Value: strings.Join(node.DefaultConfig.HTTPVirtualHosts, ","),
-	}
-	RPCApiFlag = cli.StringFlag{
-		Name:  "rpcapi",
-		Usage: "API's offered over the HTTP-RPC interface",
-		Value: "",
-	}
 	IPCDisabledFlag = cli.BoolFlag{
 		Name:  "ipcdisable",
 		Usage: "Disable the IPC-RPC server",
@@ -344,27 +300,70 @@ var (
 		Name:  "ipcpath",
 		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
 	}
+	HTTPEnabledFlag = cli.BoolFlag{
+		Name:  "http",
+		Usage: "Enable the HTTP-RPC server",
+	}
+	HTTPListenAddrFlag = cli.StringFlag{
+		Name:  "http.addr",
+		Usage: "HTTP-RPC server listening interface",
+		Value: node.DefaultHTTPHost,
+	}
+	HTTPPortFlag = cli.IntFlag{
+		Name:  "http.port",
+		Usage: "HTTP-RPC server listening port",
+		Value: node.DefaultHTTPPort,
+	}
+	HTTPCORSDomainFlag = cli.StringFlag{
+		Name:  "http.corsdomain",
+		Usage: "Comma separated list of domains from which to accept cross origin requests (browser enforced)",
+		Value: "",
+	}
+	HTTPVirtualHostsFlag = cli.StringFlag{
+		Name:  "http.vhosts",
+		Usage: "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
+		Value: strings.Join(node.DefaultConfig.HTTPVirtualHosts, ","),
+	}
+	HTTPApiFlag = cli.StringFlag{
+		Name:  "http.api",
+		Usage: "API's offered over the HTTP-RPC interface",
+		Value: "",
+	}
+	GraphQLEnabledFlag = cli.BoolFlag{
+		Name:  "graphql",
+		Usage: "Enable GraphQL on the HTTP-RPC server. Note that GraphQL can only be started if an HTTP server is started as well.",
+	}
+	GraphQLCORSDomainFlag = cli.StringFlag{
+		Name:  "graphql.corsdomain",
+		Usage: "Comma separated list of domains from which to accept cross origin requests (browser enforced)",
+		Value: "",
+	}
+	GraphQLVirtualHostsFlag = cli.StringFlag{
+		Name:  "graphql.vhosts",
+		Usage: "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
+		Value: strings.Join(node.DefaultConfig.GraphQLVirtualHosts, ","),
+	}
 	WSEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
 		Usage: "Enable the WS-RPC server",
 	}
 	WSListenAddrFlag = cli.StringFlag{
-		Name:  "wsaddr",
+		Name:  "ws.addr",
 		Usage: "WS-RPC server listening interface",
 		Value: node.DefaultWSHost,
 	}
 	WSPortFlag = cli.IntFlag{
-		Name:  "wsport",
+		Name:  "ws.port",
 		Usage: "WS-RPC server listening port",
 		Value: node.DefaultWSPort,
 	}
 	WSApiFlag = cli.StringFlag{
-		Name:  "wsapi",
+		Name:  "ws.api",
 		Usage: "API's offered over the WS-RPC interface",
 		Value: "",
 	}
 	WSAllowedOriginsFlag = cli.StringFlag{
-		Name:  "wsorigins",
+		Name:  "ws.origins",
 		Usage: "Origins from which to accept websockets requests",
 		Value: "",
 	}
@@ -381,7 +380,7 @@ var (
 	MaxPeersFlag = cli.IntFlag{
 		Name:  "maxpeers",
 		Usage: "Maximum number of network peers (network disabled if set to 0)",
-		Value: 60,
+		Value: node.DefaultConfig.P2P.MaxPeers,
 	}
 	MaxConsensusPeersFlag = cli.IntFlag{
 		Name:  "maxconsensuspeers",
@@ -391,7 +390,7 @@ var (
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",
 		Usage: "Maximum number of pending connection attempts (defaults used if set to 0)",
-		Value: 0,
+		Value: node.DefaultConfig.P2P.MaxPendingPeers,
 	}
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
@@ -450,28 +449,15 @@ var (
 
 	// Gas price oracle settings
 	GpoBlocksFlag = cli.IntFlag{
-		Name:  "gpoblocks",
+		Name:  "gpo.blocks",
 		Usage: "Number of recent blocks to check for gas prices",
 		Value: eth.DefaultConfig.GPO.Blocks,
 	}
 	GpoPercentileFlag = cli.IntFlag{
-		Name:  "gpopercentile",
+		Name:  "gpo.percentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: eth.DefaultConfig.GPO.Percentile,
 	}
-	//WhisperEnabledFlag = cli.BoolFlag{
-	//	Name:  "shh",
-	//	Usage: "Enable Whisper",
-	//}
-	//WhisperMaxMessageSizeFlag = cli.IntFlag{
-	//	Name:  "shh.maxmessagesize",
-	//	Usage: "Max message size accepted",
-	//	Value: int(whisper.DefaultMaxMessageSize),
-	//}
-	//WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
-	//	Name:  "shh.restrict-light",
-	//	Usage: "Restrict connection between two whisper light clients",
-	//}
 
 	// Metrics flags
 	MetricsEnabledFlag = cli.BoolFlag{
@@ -494,7 +480,7 @@ var (
 	MetricsInfluxDBDatabaseFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.database",
 		Usage: "InfluxDB database name to push reported metrics to",
-		Value: "platon",
+		Value: "alaya",
 	}
 	MetricsInfluxDBUsernameFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.username",
@@ -515,37 +501,6 @@ var (
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
 		Value: "host=localhost",
 	}
-
-	// mpc compute
-	//MPCIceFileFlag = cli.StringFlag{
-	//	Name:  "mpc.ice",
-	//	Usage: "Filename for ice to init mvm",
-	//	Value: "",
-	//}
-	//MPCActorFlag = cli.StringFlag{
-	//	Name:  "mpc.actor",
-	//	Usage: "The address of actor to exec mpc compute",
-	//	Value: "",
-	//}
-	//MPCEnabledFlag = cli.BoolFlag{
-	//	Name:  "mpc",
-	//	Usage: "Enable mpc compute",
-	//}
-	//VCEnabledFlag = cli.BoolFlag{
-	//	Name:  "vc",
-	//	Usage: "Enable vc compute",
-	//}
-	//VCActorFlag = cli.StringFlag{
-	//	Name:  "vc.actor",
-	//	Usage: "The address of vc to exec set result",
-	//	Value: "",
-	//}
-	//
-	//VCPasswordFlag = cli.StringFlag{
-	//	Name:  "vc.password",
-	//	Usage: "the pwd of unlock actor",
-	//	Value: "",
-	//}
 
 	CbftPeerMsgQueueSize = cli.Uint64Flag{
 		Name:  "cbft.msg_queue_size",
@@ -616,7 +571,7 @@ var (
 
 // MakeDataDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified. If the node is starting a testnet,
-// the a subdirectory of the specified datadir will be used.
+// then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.GlobalString(DataDirFlag.Name); path != "" {
 
@@ -740,35 +695,76 @@ func setNAT(ctx *cli.Context, cfg *p2p.Config) {
 
 // splitAndTrim splits input separated by a comma
 // and trims excessive white space from the substrings.
-func splitAndTrim(input string) []string {
-	result := strings.Split(input, ",")
-	for i, r := range result {
-		result[i] = strings.TrimSpace(r)
+func splitAndTrim(input string) (ret []string) {
+	l := strings.Split(input, ",")
+	for _, r := range l {
+		r = strings.TrimSpace(r)
+		if len(r) > 0 {
+			ret = append(ret, r)
+		}
 	}
-	return result
+	return ret
 }
 
 // setHTTP creates the HTTP RPC listener interface string from the set
 // command line flags, returning empty if the HTTP endpoint is disabled.
 func setHTTP(ctx *cli.Context, cfg *node.Config) {
-	if ctx.GlobalBool(RPCEnabledFlag.Name) && cfg.HTTPHost == "" {
+	if ctx.GlobalBool(LegacyRPCEnabledFlag.Name) && cfg.HTTPHost == "" {
+		log.Warn("The flag --rpc is deprecated and will be removed in the future, please use --http")
 		cfg.HTTPHost = "127.0.0.1"
-		if ctx.GlobalIsSet(RPCListenAddrFlag.Name) {
-			cfg.HTTPHost = ctx.GlobalString(RPCListenAddrFlag.Name)
+		if ctx.GlobalIsSet(LegacyRPCListenAddrFlag.Name) {
+			cfg.HTTPHost = ctx.GlobalString(LegacyRPCListenAddrFlag.Name)
+			log.Warn("The flag --rpcaddr is deprecated and will be removed in the future, please use --http.addr")
+		}
+	}
+	if ctx.GlobalBool(HTTPEnabledFlag.Name) && cfg.HTTPHost == "" {
+		cfg.HTTPHost = "127.0.0.1"
+		if ctx.GlobalIsSet(HTTPListenAddrFlag.Name) {
+			cfg.HTTPHost = ctx.GlobalString(HTTPListenAddrFlag.Name)
 		}
 	}
 
-	if ctx.GlobalIsSet(RPCPortFlag.Name) {
-		cfg.HTTPPort = ctx.GlobalInt(RPCPortFlag.Name)
+	if ctx.GlobalIsSet(LegacyRPCPortFlag.Name) {
+		cfg.HTTPPort = ctx.GlobalInt(LegacyRPCPortFlag.Name)
+		log.Warn("The flag --rpcport is deprecated and will be removed in the future, please use --http.port")
 	}
-	if ctx.GlobalIsSet(RPCCORSDomainFlag.Name) {
-		cfg.HTTPCors = splitAndTrim(ctx.GlobalString(RPCCORSDomainFlag.Name))
+	if ctx.GlobalIsSet(HTTPPortFlag.Name) {
+		cfg.HTTPPort = ctx.GlobalInt(HTTPPortFlag.Name)
 	}
-	if ctx.GlobalIsSet(RPCApiFlag.Name) {
-		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(RPCApiFlag.Name))
+
+	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {
+		cfg.HTTPCors = splitAndTrim(ctx.GlobalString(LegacyRPCCORSDomainFlag.Name))
+		log.Warn("The flag --rpccorsdomain is deprecated and will be removed in the future, please use --http.corsdomain")
 	}
-	if ctx.GlobalIsSet(RPCVirtualHostsFlag.Name) {
-		cfg.HTTPVirtualHosts = splitAndTrim(ctx.GlobalString(RPCVirtualHostsFlag.Name))
+	if ctx.GlobalIsSet(HTTPCORSDomainFlag.Name) {
+		cfg.HTTPCors = splitAndTrim(ctx.GlobalString(HTTPCORSDomainFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(LegacyRPCApiFlag.Name) {
+		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name))
+		log.Warn("The flag --rpcapi is deprecated and will be removed in the future, please use --http.api")
+	}
+	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
+		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
+		cfg.HTTPVirtualHosts = splitAndTrim(ctx.GlobalString(LegacyRPCVirtualHostsFlag.Name))
+		log.Warn("The flag --rpcvhosts is deprecated and will be removed in the future, please use --http.vhosts")
+	}
+	if ctx.GlobalIsSet(HTTPVirtualHostsFlag.Name) {
+		cfg.HTTPVirtualHosts = splitAndTrim(ctx.GlobalString(HTTPVirtualHostsFlag.Name))
+	}
+}
+
+// setGraphQL creates the GraphQL listener interface string from the set
+// command line flags, returning empty if the GraphQL endpoint is disabled.
+func setGraphQL(ctx *cli.Context, cfg *node.Config) {
+	if ctx.GlobalIsSet(GraphQLCORSDomainFlag.Name) {
+		cfg.GraphQLCors = splitAndTrim(ctx.GlobalString(GraphQLCORSDomainFlag.Name))
+	}
+	if ctx.GlobalIsSet(GraphQLVirtualHostsFlag.Name) {
+		cfg.GraphQLVirtualHosts = splitAndTrim(ctx.GlobalString(GraphQLVirtualHostsFlag.Name))
 	}
 }
 
@@ -777,16 +773,33 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 func setWS(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalBool(WSEnabledFlag.Name) && cfg.WSHost == "" {
 		cfg.WSHost = "127.0.0.1"
+		if ctx.GlobalIsSet(LegacyWSListenAddrFlag.Name) {
+			cfg.WSHost = ctx.GlobalString(LegacyWSListenAddrFlag.Name)
+			log.Warn("The flag --wsaddr is deprecated and will be removed in the future, please use --ws.addr")
+		}
 		if ctx.GlobalIsSet(WSListenAddrFlag.Name) {
 			cfg.WSHost = ctx.GlobalString(WSListenAddrFlag.Name)
 		}
 	}
-
+	if ctx.GlobalIsSet(LegacyWSPortFlag.Name) {
+		cfg.WSPort = ctx.GlobalInt(LegacyWSPortFlag.Name)
+		log.Warn("The flag --wsport is deprecated and will be removed in the future, please use --ws.port")
+	}
 	if ctx.GlobalIsSet(WSPortFlag.Name) {
 		cfg.WSPort = ctx.GlobalInt(WSPortFlag.Name)
 	}
+
+	if ctx.GlobalIsSet(LegacyWSAllowedOriginsFlag.Name) {
+		cfg.WSOrigins = splitAndTrim(ctx.GlobalString(LegacyWSAllowedOriginsFlag.Name))
+		log.Warn("The flag --wsorigins is deprecated and will be removed in the future, please use --ws.origins")
+	}
 	if ctx.GlobalIsSet(WSAllowedOriginsFlag.Name) {
 		cfg.WSOrigins = splitAndTrim(ctx.GlobalString(WSAllowedOriginsFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(LegacyWSApiFlag.Name) {
+		cfg.WSModules = splitAndTrim(ctx.GlobalString(LegacyWSApiFlag.Name))
+		log.Warn("The flag --wsapi is deprecated and will be removed in the future, please use --ws.api")
 	}
 	if ctx.GlobalIsSet(WSApiFlag.Name) {
 		cfg.WSModules = splitAndTrim(ctx.GlobalString(WSApiFlag.Name))
@@ -872,51 +885,33 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	setBootstrapNodes(ctx, cfg)
 	// setBootstrapNodesV5(ctx, cfg)
 
-	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
-	lightServer := ctx.GlobalInt(LightServFlag.Name) != 0
-	lightPeers := ctx.GlobalInt(LightPeersFlag.Name)
-
 	if ctx.GlobalIsSet(MaxConsensusPeersFlag.Name) {
 		cfg.MaxConsensusPeers = ctx.GlobalInt(MaxConsensusPeersFlag.Name)
 	}
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
-		if lightServer && !ctx.GlobalIsSet(LightPeersFlag.Name) {
-			cfg.MaxPeers += lightPeers
-		}
-	} else {
-		if lightServer {
-			cfg.MaxPeers += lightPeers
-		}
-		if lightClient && ctx.GlobalIsSet(LightPeersFlag.Name) && cfg.MaxPeers < lightPeers {
-			cfg.MaxPeers = lightPeers
-		}
 	}
-	if !(lightClient || lightServer) {
-		lightPeers = 0
-	}
-	ethPeers := cfg.MaxPeers - lightPeers
-	if lightClient {
-		ethPeers = 0
-	}
+
+	ethPeers := cfg.MaxPeers
+
 	if cfg.MaxPeers <= cfg.MaxConsensusPeers {
 		log.Error("MaxPeers is less than MaxConsensusPeers", "MaxPeers", cfg.MaxPeers, "MaxConsensusPeers", cfg.MaxConsensusPeers)
 		Fatalf("MaxPeers is less than MaxConsensusPeers, MaxPeers: %d, MaxConsensusPeers: %d", cfg.MaxPeers, cfg.MaxConsensusPeers)
 	}
-	log.Info("Maximum peer count", "ETH", ethPeers, "LES", lightPeers, "consensusTotal", cfg.MaxConsensusPeers, "total", cfg.MaxPeers)
+	log.Info("Maximum peer count", "ETH", ethPeers, "consensusTotal", cfg.MaxConsensusPeers, "total", cfg.MaxPeers)
 
 	if ctx.GlobalIsSet(MaxPendingPeersFlag.Name) {
 		cfg.MaxPendingPeers = ctx.GlobalInt(MaxPendingPeersFlag.Name)
 	}
-	if ctx.GlobalIsSet(NoDiscoverFlag.Name) || lightClient {
+	if ctx.GlobalIsSet(NoDiscoverFlag.Name) {
 		cfg.NoDiscovery = true
 	}
 
 	// if we're running a light client or server, force enable the v5 peer discovery
 	// unless it is explicitly disabled with --nodiscover note that explicitly specifying
 	// --v5disc overrides --nodiscover, in which case the later only disables v4 discovery
-	forceV5Discovery := (lightClient || lightServer) && !ctx.GlobalBool(NoDiscoverFlag.Name)
+	forceV5Discovery := !ctx.GlobalBool(NoDiscoverFlag.Name)
 	if forceV5Discovery {
 		cfg.DiscoveryV5 = true
 	}
@@ -942,6 +937,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	SetP2PConfig(ctx, &cfg.P2P)
 	setIPC(ctx, cfg)
 	setHTTP(ctx, cfg)
+	setGraphQL(ctx, cfg)
 	setWS(ctx, cfg)
 	setNodeUserIdent(ctx, cfg)
 
@@ -1021,50 +1017,7 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-//func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
-//	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
-//		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
-//	}
-//	if ctx.GlobalIsSet(MPCActorFlag.Name) {
-//		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
-//	}
-//	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
-//		if _, err := os.Stat(file); err != nil {
-//			fmt.Println("ice conf not exists.")
-//			return
-//		}
-//		if b := filepath.IsAbs(file); !b {
-//			absPath, err := filepath.Abs(file)
-//			if err != nil {
-//				fmt.Println("Read abs path of ice conf fail: ", err.Error())
-//				return
-//			}
-//			cfg.IceConf = absPath
-//		} else {
-//			cfg.IceConf = file
-//		}
-//	}
-//}
-//
-//func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
-//	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
-//		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
-//	}
-//	if ctx.GlobalIsSet(VCActorFlag.Name) {
-//		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
-//		fmt.Println("cfg.VcActor", cfg.VcActor)
-//	}
-//
-//	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
-//		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
-//	}
-//
-//}
-
 func setMiner(ctx *cli.Context, cfg *miner.Config) {
-	if ctx.GlobalIsSet(MinerGasTargetFlag.Name) {
-		cfg.GasFloor = ctx.GlobalUint64(MinerGasTargetFlag.Name)
-	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.GasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
@@ -1074,13 +1027,9 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, TestnetFlag)
-	CheckExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
-	// for mpc compute
-	//setMpcPool(ctx, &cfg.MPCPool)
-	//setVcPool(ctx, &cfg.VCPool)
 
 	if ctx.GlobalIsSet(CbftWalDisabledFlag.Name) {
 		cfg.CbftConfig.WalMode = false
@@ -1088,16 +1037,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
-	if ctx.GlobalIsSet(LightServFlag.Name) {
-		cfg.LightServ = ctx.GlobalInt(LightServFlag.Name)
-	}
-	if ctx.GlobalIsSet(LightPeersFlag.Name) {
-		cfg.LightPeers = ctx.GlobalInt(LightPeersFlag.Name)
-	}
 	if ctx.GlobalIsSet(NetworkIdFlag.Name) {
 		cfg.NetworkId = ctx.GlobalUint64(NetworkIdFlag.Name)
 	}
-
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 	}
@@ -1197,32 +1139,25 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *eth.Config) {
-	var err error
+func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
 	if cfg.SyncMode == downloader.LightSync {
-		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			light, err := les.New(ctx, cfg)
-			if err == nil {
-				stack.ChainID = light.ApiBackend.ChainConfig().ChainID
-			}
-			return light, err
-		})
+		backend, err := les.New(stack, cfg)
+		if err != nil {
+			Fatalf("Failed to register the Ethereum service: %v", err)
+		}
+		return backend.ApiBackend
 	} else {
-		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			fullNode, err := eth.New(ctx, cfg)
-			if err == nil {
-				stack.ChainID = fullNode.APIBackend.ChainConfig().ChainID
+		backend, err := eth.New(stack, cfg)
+		if err != nil {
+			Fatalf("Failed to register the Ethereum service: %v", err)
+		}
+		if cfg.LightServ > 0 {
+			_, err := les.NewLesServer(stack, backend, cfg)
+			if err != nil {
+				Fatalf("Failed to create the LES server: %v", err)
 			}
-
-			if fullNode != nil && cfg.LightServ > 0 {
-				ls, _ := les.NewLesServer(fullNode, cfg)
-				fullNode.AddLesServer(ls)
-			}
-			return fullNode, err
-		})
-	}
-	if err != nil {
-		Fatalf("Failed to register the PlatON-Go service: %v", err)
+		}
+		return backend.APIBackend
 	}
 }
 
@@ -1237,18 +1172,16 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 
 // RegisterEthStatsService configures the Ethereum Stats daemon and adds it to
 // the given node.
-func RegisterEthStatsService(stack *node.Node, url string) {
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		// Retrieve both eth and les services
-		var ethServ *eth.Ethereum
-		ctx.Service(&ethServ)
+func RegisterEthStatsService(stack *node.Node, backend ethapi.Backend, url string) {
+	if err := ethstats.New(stack, backend, backend.Engine(), url); err != nil {
+		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+	}
+}
 
-		var lesServ *les.LightEthereum
-		ctx.Service(&lesServ)
-
-		return ethstats.New(url, ethServ, lesServ)
-	}); err != nil {
-		Fatalf("Failed to register the PlatON-Go Stats service: %v", err)
+// RegisterGraphQLService is a utility function to construct a new service and register it against a node.
+func RegisterGraphQLService(stack *node.Node, backend ethapi.Backend, cfg node.Config) {
+	if err := graphql.New(stack, backend, cfg.GraphQLCors, cfg.GraphQLVirtualHosts); err != nil {
+		Fatalf("Failed to register the GraphQL service: %v", err)
 	}
 }
 
@@ -1268,6 +1201,7 @@ func RegisterStatsService(stack *node.Node, kafkaUrl, kafkaBlockTopic, dsn strin
 func SetupMetrics(ctx *cli.Context) {
 	if metrics.Enabled {
 		log.Info("Enabling metrics collection")
+
 		var (
 			enableExport = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)
 			endpoint     = ctx.GlobalString(MetricsInfluxDBEndpointFlag.Name)
@@ -1366,48 +1300,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("Can't create BlockChain: %v", err)
 	}
 
-	return chain, chainDb
-}
-
-// MakeChain creates a chain manager from set command line flags.
-func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeCfg *node.Config) (chain *core.BlockChain, chainDb ethdb.Database) {
-	var err error
-	chainDb = MakeChainDatabase(ctx, stack)
-	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
-	if err != nil {
-		Fatalf("%v", err)
-	}
-	config, _, err := core.SetupGenesisBlock(chainDb, basedb, MakeGenesis(ctx))
-	if err != nil {
-		Fatalf("%v", err)
-	}
-	if err := basedb.Close(); err != nil {
-		Fatalf("%v", err)
-	}
-	var engine consensus.Engine
-	if config.Cbft != nil {
-		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(sc, config, false, chainDb, &cfg.CbftConfig, stack.EventMux())
-	}
-
-	cache := &core.CacheConfig{
-		Disabled:        true,
-		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
-	}
-	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
-	}
-	vmcfg := vm.Config{}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
-	if err != nil {
-		Fatalf("Can't create BlockChain: %v", err)
-	}
 	return chain, chainDb
 }
 

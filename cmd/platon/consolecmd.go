@@ -78,12 +78,12 @@ JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Cons
 // same time.
 func localConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
-	node := makeFullNode(ctx)
-	startNode(ctx, node)
-	defer node.Stop()
+	stack, backend := makeFullNode(ctx)
+	startNode(ctx, stack, backend)
+	defer stack.Close()
 
 	// Attach to the newly started node and start the JavaScript console
-	client, err := node.Attach()
+	client, err := stack.Attach()
 	if err != nil {
 		utils.Fatalf("Failed to attach to the inproc platon: %v", err)
 	}
@@ -177,12 +177,12 @@ func dialRPC(endpoint string) (*rpc.Client, error) {
 // everything down.
 func ephemeralConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
-	node := makeFullNode(ctx)
-	startNode(ctx, node)
-	defer node.Stop()
+	stack, backend := makeFullNode(ctx)
+	startNode(ctx, stack, backend)
+	defer stack.Close()
 
 	// Attach to the newly started node and start the JavaScript console
-	client, err := node.Attach()
+	client, err := stack.Attach()
 	if err != nil {
 		utils.Fatalf("Failed to attach to the inproc platon: %v", err)
 	}
