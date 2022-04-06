@@ -48,7 +48,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		tempContractCache := make(map[common.Address]struct{})
-		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().Signer(), tempContractCache)
+		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().MakeSigner(statedb), tempContractCache)
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
 
