@@ -23,17 +23,27 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"hash"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 
+	"golang.org/x/crypto/sha3"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
+
+//SignatureLength indicates the byte length required to carry a signature with recovery id.
+const SignatureLength = 64 + 1 // 64 bytes ECDSA signature + 1 byte recovery id
+
+// RecoveryIDOffset points to the byte offset within the signature that contains the recovery id.
+const RecoveryIDOffset = 64
+
+// DigestLength sets the signature digest exact length
+const DigestLength = 32
 
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
