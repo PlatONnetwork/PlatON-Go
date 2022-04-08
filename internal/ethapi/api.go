@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"time"
 
@@ -522,13 +523,17 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 //	return nil
 //}
 
-// ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
+// ChainId is the PIP-7 replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
-	// if current block is at or past the EIP-155 replay-protection fork block, return chainID from config
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		return (*hexutil.Big)(config.ChainID), nil
+	stateDB, _, err := s.b.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(s.b.CurrentBlock().Number().Uint64()))
+	config := s.b.ChainConfig()
+	if err == nil {
+		pip7 := gov.Gte120VersionState(stateDB)
+		if pip7 {
+			return (*hexutil.Big)(config.PIP7ChainID), nil
+		}
 	}
-	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
+	return (*hexutil.Big)(config.ChainID), nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -1492,7 +1497,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.NewEIP155Signer(b.ChainConfig().ChainID)
+		signer := types.MakeSigner(b.ChainConfig(), true)
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
