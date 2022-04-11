@@ -1532,7 +1532,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.PIP7ChainID
+		chainID = config.ChainID
 	}
 	log.Info("Sign transaction with:", "ChainID", chainID.String())
 	signed, err := wallet.SignTx(account, tx, chainID)
