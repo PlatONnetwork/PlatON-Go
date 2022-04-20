@@ -52,6 +52,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+var HttpEthCompatible = false
+
 // PublicEthereumAPI provides an API to access Ethereum related information.
 // It offers only methods that operate on public data that is freely available to anyone.
 type PublicEthereumAPI struct {
@@ -1060,7 +1062,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 
 // RPCMarshalHeader converts the given header to the RPC output .
 func RPCMarshalHeader(head *types.Header) map[string]interface{} {
-	return map[string]interface{}{
+	m := map[string]interface{}{
 		"number":     (*hexutil.Big)(head.Number),
 		"hash":       head.Hash(),
 		"parentHash": head.ParentHash,
@@ -1079,6 +1081,12 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
 	}
+	if HttpEthCompatible {
+		m["nonce"] = hexutil.Bytes(head.Nonce[0:8])
+		m["timestamp"] = hexutil.Uint64(head.Time / 1000)
+	}
+
+	return m
 }
 
 // RPCMarshalBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
