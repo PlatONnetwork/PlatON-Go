@@ -20,8 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/graphql"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -29,6 +27,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/graphql"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 
@@ -43,6 +44,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	types2 "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -745,7 +747,7 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
 	}
 	if ctx.GlobalBool(HTTPEnabledEthCompatibleFlag.Name) {
-		ethapi.HttpEthCompatible = true
+		types2.HttpEthCompatible = true
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
