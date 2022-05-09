@@ -21,6 +21,8 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
@@ -161,7 +163,7 @@ func initGenesis(ctx *cli.Context) error {
 	// Open an initialise both full and light databases
 	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
-
+	statsdb.SetDBPath(stack.ResolvePath(statsdb.DBPath))
 	for _, name := range []string{"chaindata", "lightchaindata"} {
 		chaindb, err := stack.OpenDatabase(name, 0, 0, "")
 		if err != nil {
