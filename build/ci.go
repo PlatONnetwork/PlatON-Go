@@ -206,7 +206,6 @@ func doInstall(cmdline []string) {
 	if flag.NArg() > 0 {
 		packages = flag.Args()
 	}
-	//packages = build.ExpandPackagesNoVendor(packages)
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
@@ -338,10 +337,6 @@ func doTest(cmdline []string) {
 	if len(flag.CommandLine.Args()) > 0 {
 		packages = flag.CommandLine.Args()
 	}
-	packages = build.ExpandPackagesNoVendor(packages)
-
-	// Run analysis tools before the tests.
-	build.MustRun(goTool("vet", packages...))
 
 	// Run the actual tests.
 	gotest := goTool("test", buildFlags(env)...)

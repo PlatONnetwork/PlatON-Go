@@ -79,7 +79,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 	platon := runPlatON(t,
 		"--port", "0", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
 
-	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
+	waitForEndpoint(t, ipc, 3*time.Second)
 	testAttachWelcome(t, platon, "ipc:"+ipc, ipcAPIs)
 
 	platon.Interrupt()
@@ -92,8 +92,9 @@ func TestHTTPAttachWelcome(t *testing.T) {
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--rpc", "--rpcport", port)
 
-	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
-	testAttachWelcome(t, platon, "http://localhost:"+port, httpAPIs)
+	endpoint := "http://127.0.0.1:" + port
+	waitForEndpoint(t, endpoint, 3*time.Second)
+	testAttachWelcome(t, platon, endpoint, httpAPIs)
 
 	platon.Interrupt()
 	platon.ExpectExit()
@@ -106,8 +107,9 @@ func TestWSAttachWelcome(t *testing.T) {
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
 		"--ws", "--wsport", port /*, "--testnet"*/)
 
-	time.Sleep(2 * time.Second) // Simple way to wait for the RPC endpoint to open
-	testAttachWelcome(t, platon, "ws://localhost:"+port, httpAPIs)
+	endpoint := "ws://127.0.0.1:" + port
+	waitForEndpoint(t, endpoint, 3*time.Second)
+	testAttachWelcome(t, platon, endpoint, httpAPIs)
 
 	platon.Interrupt()
 	platon.ExpectExit()
