@@ -27,6 +27,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -611,6 +612,10 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 		msg.Payload = bytes.NewReader(payload)
 		msg.Size = uint32(len(payload))
 	}
+	msg.meterSize = msg.Size
+	if metrics.Enabled && msg.meterCap.Name != "" { // don't meter non-subprotocol messages
+		metrics.GetOrRegisterMeter(fmt.Sprintf("%s/%s/%d/%#02x", egressMeterName, msg.meterCap.Name, msg.meterCap.Version, msg.meterCode), nil).Mark(int64(msg.meterSize))
+	}
 	// write header
 	headbuf := make([]byte, 32)
 	fsize := uint32(len(ptype)) + msg.Size
@@ -706,6 +711,7 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 		return msg, err
 	}
 	msg.Size = uint32(content.Len())
+	msg.meterSize = msg.Size
 	msg.Payload = content
 
 	// if snappy is enabled, verify and decompress message
