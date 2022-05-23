@@ -116,6 +116,7 @@ type MiningConfig struct {
 
 const (
 	receiptsCacheLimit = 32
+	txLookupCacheLimit = 1024
 
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	//
@@ -186,6 +187,7 @@ type BlockChain struct {
 	bodyRLPCache  *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
 	receiptsCache *lru.Cache     // Cache for the most recent receipts per block
 	blockCache    *lru.Cache     // Cache for the most recent entire blocks
+	txLookupCache *lru.Cache     // Cache for the most recent transaction lookup data.
 	futureBlocks  *lru.Cache     // future blocks are blocks added for later processing
 
 	quit    chan struct{} // blockchain quit channel
@@ -228,6 +230,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	bodyRLPCache, _ := lru.New(cacheConfig.BodyCacheLimit)
 	receiptsCache, _ := lru.New(receiptsCacheLimit)
 	blockCache, _ := lru.New(cacheConfig.BlockCacheLimit)
+	txLookupCache, _ := lru.New(txLookupCacheLimit)
 	futureBlocks, _ := lru.New(cacheConfig.MaxFutureBlocks)
 	badBlocks, _ := lru.New(cacheConfig.BadBlockLimit)
 
@@ -243,6 +246,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		bodyRLPCache:   bodyRLPCache,
 		receiptsCache:  receiptsCache,
 		blockCache:     blockCache,
+		txLookupCache:  txLookupCache,
 		futureBlocks:   futureBlocks,
 		engine:         engine,
 		vmConfig:       vmConfig,
@@ -441,6 +445,7 @@ func (bc *BlockChain) loadLastState() error {
 	bc.bodyRLPCache.Purge()
 	bc.receiptsCache.Purge()
 	bc.blockCache.Purge()
+	bc.txLookupCache.Purge()
 	bc.futureBlocks.Purge()
 
 	// Rewind the block chain, ensuring we don't end up with a stateless head block
@@ -947,6 +952,7 @@ func (bc *BlockChain) truncateAncient(head uint64) error {
 	bc.bodyRLPCache.Purge()
 	bc.receiptsCache.Purge()
 	bc.blockCache.Purge()
+	bc.txLookupCache.Purge()
 	bc.futureBlocks.Purge()
 
 	log.Info("Rewind ancient data", "number", head)
@@ -1670,11 +1676,13 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	}
 	// Ensure the user sees large reorgs
 	if len(oldChain) > 0 && len(newChain) > 0 {
-		logFn := log.Debug
+		logFn := log.Info
+		msg := "Chain reorg detected"
 		if len(oldChain) > 63 {
+			msg = "Large chain reorg detected"
 			logFn = log.Warn
 		}
-		logFn("Chain split detected", "number", commonBlock.Number(), "hash", commonBlock.Hash(),
+		logFn(msg, "number", commonBlock.Number(), "hash", commonBlock.Hash(),
 			"drop", len(oldChain), "dropfrom", oldChain[0].Hash(), "add", len(newChain), "addfrom", newChain[0].Hash())
 		blockReorgAddMeter.Mark(int64(len(newChain)))
 		blockReorgDropMeter.Mark(int64(len(oldChain)))
@@ -1866,6 +1874,22 @@ func (bc *BlockChain) GetAncestor(hash common.Hash, number, ancestor uint64, max
 // caching it (associated with its hash) if found.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 	return bc.hc.GetHeaderByNumber(number)
+}
+
+// GetTransactionLookup retrieves the lookup associate with the given transaction
+// hash from the cache or database.
+func (bc *BlockChain) GetTransactionLookup(hash common.Hash) *rawdb.LegacyTxLookupEntry {
+	// Short circuit if the txlookup already in the cache, retrieve otherwise
+	if lookup, exist := bc.txLookupCache.Get(hash); exist {
+		return lookup.(*rawdb.LegacyTxLookupEntry)
+	}
+	tx, blockHash, blockNumber, txIndex := rawdb.ReadTransaction(bc.db, hash)
+	if tx == nil {
+		return nil
+	}
+	lookup := &rawdb.LegacyTxLookupEntry{BlockHash: blockHash, BlockIndex: blockNumber, Index: txIndex}
+	bc.txLookupCache.Add(hash, lookup)
+	return lookup
 }
 
 // Config retrieves the blockchain's chain configuration.

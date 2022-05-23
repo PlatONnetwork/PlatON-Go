@@ -405,6 +405,12 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'fillTransaction',
+			call: 'eth_fillTransaction',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
 			name: 'getRawTransaction',
 			call: 'platon_getRawTransactionByHash',
 			params: 1
