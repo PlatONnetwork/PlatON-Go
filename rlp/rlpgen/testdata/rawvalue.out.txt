@@ -1,6 +1,6 @@
 package test
 
-import "github.com/AlayaNetwork/Alaya-Go/rlp"
+import "github.com/PlatONnetwork/PlatON-Go/rlp"
 import "io"
 
 func (obj *Test) EncodeRLP(_w io.Writer) error {
