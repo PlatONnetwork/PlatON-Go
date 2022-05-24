@@ -58,14 +58,14 @@ func (b *bridge) NewAccount(call otto.FunctionCall) (response otto.Value) {
 	switch {
 	// No password was specified, prompt the user for it
 	case len(call.ArgumentList) == 0:
-		if password, err = b.prompter.PromptPassword("Passphrase: "); err != nil {
+		if password, err = b.prompter.PromptPassword("Password: "); err != nil {
 			throwJSException(err.Error())
 		}
-		if confirm, err = b.prompter.PromptPassword("Repeat passphrase: "); err != nil {
+		if confirm, err = b.prompter.PromptPassword("Repeat password: "); err != nil {
 			throwJSException(err.Error())
 		}
 		if password != confirm {
-			throwJSException("passphrases don't match!")
+			throwJSException("passwords don't match!")
 		}
 
 	// A single string password was specified, use that
@@ -143,7 +143,7 @@ func (b *bridge) UnlockAccount(call otto.FunctionCall) (response otto.Value) {
 
 	if call.Argument(1).IsUndefined() || call.Argument(1).IsNull() {
 		fmt.Fprintf(b.printer, "Unlock account %s\n", account)
-		if input, err := b.prompter.PromptPassword("Passphrase: "); err != nil {
+		if input, err := b.prompter.PromptPassword("Password: "); err != nil {
 			throwJSException(err.Error())
 		} else {
 			passwd, _ = otto.ToValue(input)
@@ -190,7 +190,7 @@ func (b *bridge) Sign(call otto.FunctionCall) (response otto.Value) {
 	// if the password is not given or null ask the user and ensure password is a string
 	if passwd.IsUndefined() || passwd.IsNull() {
 		fmt.Fprintf(b.printer, "Give password for account %s\n", account)
-		if input, err := b.prompter.PromptPassword("Passphrase: "); err != nil {
+		if input, err := b.prompter.PromptPassword("Password: "); err != nil {
 			throwJSException(err.Error())
 		} else {
 			passwd, _ = otto.ToValue(input)

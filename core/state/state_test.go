@@ -63,7 +63,11 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	s.state.Commit(false)
 
 	// check that dump contains the state objects that are in trie
-	got := string(s.state.Dump())
+	opts := &DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               256, // Sanity limit over RPC
+	}
+	got := string(s.state.Dump(opts))
 	want := `{
     "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
