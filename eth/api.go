@@ -38,9 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
-// AccountRangeMaxResults is the maximum number of results to be returned per call
-const AccountRangeMaxResults = 256
-
 // PrivateMinerAPI provides private RPC methods to control the miner.
 // These methods can be abused by external users and must be considered insecure for use by untrusted users.
 type PrivateMinerAPI struct {
