@@ -77,8 +77,9 @@ func FileHandler(path string, fmtr Format) (Handler, error) {
 
 // countingWriter wraps a WriteCloser object in order to count the written bytes.
 type countingWriter struct {
-	w     io.WriteCloser // the wrapped object
-	count uint           // number of bytes written
+	sync.Mutex                // lock
+	w          io.WriteCloser // the wrapped object
+	count      uint           // number of bytes written
 }
 
 // Write increments the byte counter by the number of bytes written.
@@ -160,6 +161,7 @@ func RotatingFileHandler(path string, limit uint, formatter Format) (Handler, er
 	h := StreamHandler(counter, formatter)
 
 	return FuncHandler(func(r *Record) error {
+		counter.Lock()
 		if counter.count > limit {
 			counter.Close()
 			counter.w = nil
@@ -171,11 +173,13 @@ func RotatingFileHandler(path string, limit uint, formatter Format) (Handler, er
 				0600,
 			)
 			if err != nil {
+				counter.Unlock()
 				return err
 			}
 			counter.w = f
 			counter.count = 0
 		}
+		counter.Unlock()
 		return h.Log(r)
 	}), nil
 }
