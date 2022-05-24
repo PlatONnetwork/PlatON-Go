@@ -1534,13 +1534,14 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) error {
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
-	stateSync := d.syncState(latest.Root)
-	defer stateSync.Cancel()
-	go func() {
-		if err := stateSync.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
+	sync := d.syncState(latest.Root)
+	defer sync.Cancel()
+	closeOnErr := func(s *stateSync) {
+		if err := s.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
 			d.queue.Close() // wake up Results
 		}
-	}()
+	}
+	go closeOnErr(sync)
 	// To cater for moving pivot points, track the pivot block and subsequently
 	// accumulated download results separately.
 	var (
@@ -1554,12 +1555,12 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 		if len(results) == 0 {
 			// If pivot sync is done, stop
 			if oldPivot == nil {
-				return stateSync.Cancel()
+				return sync.Cancel()
 			}
 			// If sync failed, stop
 			select {
 			case <-d.cancelCh:
-				stateSync.Cancel()
+				sync.Cancel()
 				return errCanceled
 			default:
 			}
@@ -1572,21 +1573,17 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 		}
 
 		P, beforeP, afterP := splitAroundPivot(pivot, results)
-		if err := d.commitFastSyncData(beforeP, stateSync); err != nil {
+		if err := d.commitFastSyncData(beforeP, sync); err != nil {
 			return err
 		}
 		if P != nil {
 			// If new pivot block found, cancel old state retrieval and restart
 			if oldPivot != P {
-				stateSync.Cancel()
+				sync.Cancel()
 
-				stateSync = d.syncState(P.Header.Root)
-				defer stateSync.Cancel()
-				go func() {
-					if err := stateSync.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
-						d.queue.Close() // wake up Results
-					}
-				}()
+				sync = d.syncState(P.Header.Root)
+				defer sync.Cancel()
+				go closeOnErr(sync)
 				oldPivot = P
 			}
 			// Wait for completion, occasionally checking for pivot staleness
@@ -1599,9 +1596,9 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 				continue
 			}
 			select {
-			case <-stateSync.done:
-				if stateSync.err != nil {
-					return stateSync.err
+			case <-sync.done:
+				if sync.err != nil {
+					return sync.err
 				}
 				if err := d.commitPivotBlock(P); err != nil {
 					return err

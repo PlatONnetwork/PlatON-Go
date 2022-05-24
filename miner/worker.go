@@ -717,7 +717,7 @@ func (w *worker) resultLoop() {
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
 			cbftResult.ChainStateUpdateCB()
-			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
+			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true)
 			if err != nil {
 				if cbftResult.SyncState != nil {
 					cbftResult.SyncState <- err
@@ -734,16 +734,6 @@ func (w *worker) resultLoop() {
 				log.Trace("Broadcast the block and announce chain insertion event", "hash", block.Hash(), "number", block.NumberU64())
 				w.mux.Post(core.NewMinedBlockEvent{Block: block})
 			}
-
-			var events []interface{}
-			switch stat {
-			case core.CanonStatTy:
-				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				events = append(events, core.ChainHeadEvent{Block: block})
-			case core.SideStatTy:
-				events = append(events, core.ChainSideEvent{Block: block})
-			}
-			w.chain.PostChainEvents(events, logs)
 
 		case <-w.exitCh:
 			return

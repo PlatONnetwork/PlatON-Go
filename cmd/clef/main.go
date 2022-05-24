@@ -35,8 +35,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/mattn/go-isatty"
-	colorable "github.com/mattn/go-colorable"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -46,6 +44,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 	"github.com/PlatONnetwork/PlatON-Go/signer/rules"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
+	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -196,7 +196,7 @@ func init() {
 	}
 	app.Action = signer
 	app.Commands = []cli.Command{initCommand, attestCommand, addCredentialCommand}
-
+	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }
 func main() {
 	if err := app.Run(os.Args); err != nil {
