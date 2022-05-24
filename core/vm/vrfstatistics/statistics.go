@@ -47,6 +47,7 @@ func DecodeKeyRandomNumTxs(key []byte) uint64 {
 	return common.BytesToUint64(key[len(KeyRandomNumTxs):])
 }
 
+// 记录随机数在每个块的生成次数以及交易hash和调用方
 type Statistics struct {
 	blocks map[uint64]*RandomNumRequest
 	mu     sync.RWMutex
@@ -74,6 +75,7 @@ func (c *Statistics) AddRequest(block uint64, seedNum uint64, txhash common.Hash
 	c.blocks[block] = data
 }
 
+// 将每个块的统计数据保存到db中,保存完成后从内存中删除
 func (c *Statistics) Save(block uint64, database ethdb.KeyValueStore) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
