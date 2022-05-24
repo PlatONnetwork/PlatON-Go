@@ -83,7 +83,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		//preUsedGas := uint64(0)
 
-		receipt, _, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
+		receipt, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
 		if err != nil {
 			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
@@ -115,12 +115,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
-	usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+	usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
 
 	msg, err := tx.AsMessage(types.MakeSigner(config, gov.Gte120VersionState(statedb)))
 
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	// Create a new context to be used in the EVM environment
 	context := NewEVMContext(msg, header, bc)
@@ -133,7 +133,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	// Apply the transaction to the current state (included in the env)
 	result, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 	// Update the state with pending changes
 	statedb.Finalise(true)
@@ -157,7 +157,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 			res := strconv.Itoa(int(bizError.Code))
 			if err := rlp.Encode(buf, [][]byte{[]byte(res)}); nil != err {
 				log.Error("Cannot RlpEncode the log data", "data", bizError.Code, "err", err)
-				return nil, 0, err
+				return nil, err
 			}
 			receipt.Logs = []*types.Log{
 				&types.Log{
@@ -178,5 +178,5 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	receipt.BlockHash = statedb.BlockHash()
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
-	return receipt, result.UsedGas, err
+	return receipt, err
 }

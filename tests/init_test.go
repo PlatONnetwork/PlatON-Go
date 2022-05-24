@@ -18,6 +18,7 @@ package tests
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,6 +32,17 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
+
+// Command line flags to configure the interpreters.
+var (
+	testEVM   = flag.String("vm.evm", "", "EVM configuration")
+	testEWASM = flag.String("vm.ewasm", "", "EWASM configuration")
+)
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+	os.Exit(m.Run())
+}
 
 var (
 	baseDir            = filepath.Join(".", "testdata")

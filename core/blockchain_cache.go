@@ -288,18 +288,19 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	}
 
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
-	start := time.Now()
+
 	state, err := bcc.MakeStateDB(parent)
 	if err != nil {
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
 	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state)), block)
-	elapse := time.Since(start)
 	if err != nil {
 		return errors.New("execute block error")
 	}
 
+	start := time.Now()
+	elapse := time.Since(start)
 	t := time.Now()
 	//to execute
 	receipts, err := bcc.ProcessDirectly(block, state, parent)

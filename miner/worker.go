@@ -798,7 +798,7 @@ func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) 
 
 	vmCfg := *w.chain.GetVMConfig()       // value copy
 	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
-	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, w.current.gasPool, w.current.state,
+	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, w.current.gasPool, w.current.state,
 		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
