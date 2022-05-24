@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	mrand "math/rand"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -887,7 +888,9 @@ func (bc *BlockChain) procFutureBlocks() {
 		}
 	}
 	if len(blocks) > 0 {
-		types.BlockBy(types.Number).Sort(blocks)
+		sort.Slice(blocks, func(i, j int) bool {
+			return blocks[i].NumberU64() < blocks[j].NumberU64()
+		})
 
 		// Insert one by one as chain insertion needs contiguous ancestry between blocks
 		for i := range blocks {
