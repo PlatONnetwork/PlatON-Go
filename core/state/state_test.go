@@ -63,33 +63,35 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	s.state.Commit(false)
 
 	// check that dump contains the state objects that are in trie
-	got := string(s.state.Dump())
+	opts := &DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               256, // Sanity limit over RPC
+	}
+	got := string(s.state.Dump(opts))
 	want := `{
     "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
-        "0000000000000000000000000000000000000001": {
-            "balance": "22",
-            "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
-        },
-        "0000000000000000000000000000000000000002": {
-            "balance": "44",
-            "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
-        },
-        "0000000000000000000000000000000000000102": {
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqgzywgsrf": {
             "balance": "0",
             "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "87874902497a5bb968da31a2998d8f22e949d1ef6214bcdedd8bae24cca4b9e3",
-            "code": "03030303030303",
-            "storage": {}
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0x87874902497a5bb968da31a2998d8f22e949d1ef6214bcdedd8bae24cca4b9e3",
+            "code": "0x03030303030303",
+            "key": "0xa17eacbc25cda025e81db9c5c62868822c73ce097cee2a63e33a2e41268358a1"
+        },
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpfr7f80": {
+            "balance": "22",
+            "nonce": 0,
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "key": "0x1468288056310c82aa4c01a7e12a10f8111a0560e72b700555479031b86c357d"
+        },
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz8stlfs": {
+            "balance": "44",
+            "nonce": 0,
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "key": "0xd52688a8f926c816ca1e079067caba944f158e764817b83fc43594370ca9cf62"
         }
     }
 }`

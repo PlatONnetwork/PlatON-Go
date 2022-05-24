@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"io"
 	"path/filepath"
 
@@ -382,6 +383,11 @@ func dump(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
+	opts := &state.DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               eth.AccountRangeMaxResults, // Sanity limit over RPC
+	}
+
 	chain, chainDb := utils.MakeChain(ctx, stack)
 	for _, arg := range ctx.Args() {
 		var block *types.Block
@@ -399,7 +405,7 @@ func dump(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump())
+			fmt.Printf("%s\n", state.Dump(opts))
 		}
 	}
 	chainDb.Close()
