@@ -21,9 +21,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
@@ -557,6 +560,14 @@ func (s *PublicBlockChainAPI) GetAddressHrp() string {
 		return common.DefaultAddressHRP
 	}
 	return chainConfig.AddressHRP
+}
+
+func (s *PublicBlockChainAPI) GetSumOfRandomNum() (uint64, error) {
+	return vrfstatistics.Tool.SumOfRandomNum(rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
+}
+
+func (s *PublicBlockChainAPI) GetRandomNumberTxs(ctx context.Context, from, to uint64) (map[uint64][]vrfstatistics.TxInfo, error) {
+	return vrfstatistics.Tool.GetRandomNumberTxs(from, to, rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
 }
 
 // Result structs for GetProof
