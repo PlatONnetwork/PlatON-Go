@@ -146,9 +146,6 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 func (b *testWorkerBackend) BlockChain() *core.BlockChain { return b.chain }
 func (b *testWorkerBackend) TxPool() *core.TxPool         { return b.txPool }
-func (b *testWorkerBackend) PostChainEvents(events []interface{}) {
-	b.chain.PostChainEvents(events, nil)
-}
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
 
@@ -180,7 +177,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 				}
 
 				// block write to real chain
-				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, stateDB)
+				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false)
 				if nil != err {
 					panic(err)
 				}

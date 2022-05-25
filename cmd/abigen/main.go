@@ -103,7 +103,7 @@ var (
 )
 
 func init() {
-	app = flags.NewApp(gitCommit, gitDate, "ethereum checkpoint helper tool")
+	app = flags.NewApp(gitCommit, gitDate, "platon abi helper tool")
 	app.Flags = []cli.Flag{
 		abiFlag,
 		binFlag,
@@ -120,7 +120,7 @@ func init() {
 		aliasFlag,
 	}
 	app.Action = utils.MigrateFlags(abigen)
-	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }
 
 func abigen(c *cli.Context) error {
