@@ -35,8 +35,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"gopkg.in/check.v1"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
@@ -753,7 +751,8 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 	return nil
 }
 
-func (s *StateSuite) TestTouchDelete(c *check.C) {
+func TestTouchDelete(t *testing.T) {
+	s := newStateTest()
 	s.state.GetOrNewStateObject(common.Address{})
 	root, _ := s.state.Commit(false)
 	s.state.Reset(root)
@@ -762,11 +761,11 @@ func (s *StateSuite) TestTouchDelete(c *check.C) {
 	s.state.AddBalance(common.Address{}, new(big.Int))
 
 	if len(s.state.journal.dirties) != 1 {
-		c.Fatal("expected one dirty state object")
+		t.Fatal("expected one dirty state object")
 	}
 	s.state.RevertToSnapshot(snapshot)
 	if len(s.state.journal.dirties) != 0 {
-		c.Fatal("expected no dirty state object")
+		t.Fatal("expected no dirty state object")
 	}
 }
 

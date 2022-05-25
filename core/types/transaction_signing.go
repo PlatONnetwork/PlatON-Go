@@ -137,7 +137,7 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s EIP155Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != 65 {
+	if len(sig) != crypto.SignatureLength {
 		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
 	}
 	R = new(big.Int).SetBytes(sig[:32])

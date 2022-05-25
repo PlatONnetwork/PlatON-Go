@@ -38,13 +38,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pborman/uuid"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/pborman/uuid"
+	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 )
 
 const (
@@ -123,6 +123,7 @@ func (ks keyStorePassphrase) StoreKey(filename string, key *Key, auth string) er
 				"Please file a ticket at:\n\n" +
 				"https://github.com/ethereum/go-ethereum/issues." +
 				"The error was : %s"
+			//lint:ignore ST1005 This is a message for the user
 			return fmt.Errorf(msg, tmpName, err)
 		}
 	}
@@ -230,11 +231,11 @@ func DecryptKey(keyjson []byte, auth string) (*Key, error) {
 
 func decryptKeyV3(keyProtected *encryptedKeyJSONV3, auth string) (keyBytes []byte, keyId []byte, err error) {
 	if keyProtected.Version != version {
-		return nil, nil, fmt.Errorf("Version not supported: %v", keyProtected.Version)
+		return nil, nil, fmt.Errorf("version not supported: %v", keyProtected.Version)
 	}
 
 	if keyProtected.Crypto.Cipher != "aes-128-ctr" {
-		return nil, nil, fmt.Errorf("Cipher not supported: %v", keyProtected.Crypto.Cipher)
+		return nil, nil, fmt.Errorf("cipher not supported: %v", keyProtected.Crypto.Cipher)
 	}
 
 	keyId = uuid.Parse(keyProtected.Id)
@@ -322,13 +323,13 @@ func getKDFKey(cryptoJSON cryptoJSON, auth string) ([]byte, error) {
 		c := ensureInt(cryptoJSON.KDFParams["c"])
 		prf := cryptoJSON.KDFParams["prf"].(string)
 		if prf != "hmac-sha256" {
-			return nil, fmt.Errorf("Unsupported PBKDF2 PRF: %s", prf)
+			return nil, fmt.Errorf("unsupported PBKDF2 PRF: %s", prf)
 		}
 		key := pbkdf2.Key(authArray, salt, c, dkLen, sha256.New)
 		return key, nil
 	}
 
-	return nil, fmt.Errorf("Unsupported KDF: %s", cryptoJSON.KDF)
+	return nil, fmt.Errorf("unsupported KDF: %s", cryptoJSON.KDF)
 }
 
 // TODO: can we do without this when unmarshalling dynamic JSON?

@@ -99,7 +99,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 	switch engine.(type) {
 	case consensus.Bft:
-		gspec.ExtraData = make([]byte, 32+common.AddressLength+65)
+		gspec.ExtraData = make([]byte, 32+common.AddressLength+crypto.SignatureLength)
 		copy(gspec.ExtraData[32:], testBankAddress[:])
 	default:
 		t.Fatalf("unexpected consensus engine type: %T", engine)
