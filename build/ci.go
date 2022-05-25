@@ -120,11 +120,24 @@ var (
 
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
-	// Note: wily is unsupported because it was officially deprecated on lanchpad.
-	// Note: yakkety is unsupported because it was officially deprecated on lanchpad.
-	// Note: zesty is unsupported because it was officially deprecated on lanchpad.
-	// Note: artful is unsupported because it was officially deprecated on lanchpad.
-	debDistros = []string{"trusty", "xenial", "bionic", "cosmic"}
+	// Note: wily is unsupported because it was officially deprecated on Launchpad.
+	// Note: yakkety is unsupported because it was officially deprecated on Launchpad.
+	// Note: zesty is unsupported because it was officially deprecated on Launchpad.
+	// Note: artful is unsupported because it was officially deprecated on Launchpad.
+	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
+	debDistroGoBoots = map[string]string{
+		"trusty": "golang-1.11",
+		"xenial": "golang-go",
+		"bionic": "golang-go",
+		"disco":  "golang-go",
+		"eoan":   "golang-go",
+		"focal":  "golang-go",
+	}
+
+	debGoBootPaths = map[string]string{
+		"golang-1.11": "/usr/lib/go-1.11",
+		"golang-go":   "/usr/lib/go",
+	}
 )
 
 var GOBIN, _ = filepath.Abs(filepath.Join("build", "bin"))
@@ -206,10 +219,12 @@ func doInstall(cmdline []string) {
 	if flag.NArg() > 0 {
 		packages = flag.Args()
 	}
-	//packages = build.ExpandPackagesNoVendor(packages)
 
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
+		if runtime.GOARCH == "arm64" {
+			goinstall.Args = append(goinstall.Args, "-p", "1")
+		}
 		goinstall.Args = append(goinstall.Args, "-v")
 		index := 0
 		packages2 := []string{}
@@ -330,6 +345,7 @@ func goToolArch(arch string, cc string, subcmd string, args ...string) *exec.Cmd
 func doTest(cmdline []string) {
 	var (
 		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
+		verbose  = flag.Bool("v", false, "Whether to log verbosely")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -338,10 +354,6 @@ func doTest(cmdline []string) {
 	if len(flag.CommandLine.Args()) > 0 {
 		packages = flag.CommandLine.Args()
 	}
-	packages = build.ExpandPackagesNoVendor(packages)
-
-	// Run analysis tools before the tests.
-	build.MustRun(goTool("vet", packages...))
 
 	// Run the actual tests.
 	gotest := goTool("test", buildFlags(env)...)
@@ -351,44 +363,46 @@ func doTest(cmdline []string) {
 	if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
 	}
+	if *verbose {
+		gotest.Args = append(gotest.Args, "-v")
+	}
 	gotest.Args = append(gotest.Args, "-tags=test")
 	gotest.Args = append(gotest.Args, packages...)
 	build.MustRun(gotest)
 }
 
-// runs gometalinter on requested packages
+// doLint runs golangci-lint on requested packages.
 func doLint(cmdline []string) {
+	var (
+		cachedir = flag.String("cachedir", "./build/cache", "directory for caching golangci-lint binary.")
+	)
 	flag.CommandLine.Parse(cmdline)
-
 	packages := []string{"./..."}
 	if len(flag.CommandLine.Args()) > 0 {
 		packages = flag.CommandLine.Args()
 	}
-	// Get metalinter and install all supported linters
-	build.MustRun(goTool("get", "gopkg.in/alecthomas/gometalinter.v2"))
-	build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), "--install")
 
-	// Run fast linters batched together
-	configs := []string{
-		"--vendor",
-		"--tests",
-		"--deadline=2m",
-		"--disable-all",
-		"--enable=goimports",
-		"--enable=varcheck",
-		"--enable=vet",
-		"--enable=gofmt",
-		"--enable=misspell",
-		"--enable=goconst",
-		"--min-occurrences=6", // for goconst
-	}
-	build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), append(configs, packages...)...)
+	linter := downloadLinter(*cachedir)
+	lflags := []string{"run", "--config", ".golangci.yml"}
+	build.MustRunCommand(linter, append(lflags, packages...)...)
+	fmt.Println("You have achieved perfection.")
+}
 
-	// Run slow linters one by one
-	for _, linter := range []string{"unconvert", "gosimple"} {
-		configs = []string{"--vendor", "--tests", "--deadline=10m", "--disable-all", "--enable=" + linter}
-		build.MustRunCommand(filepath.Join(GOBIN, "gometalinter.v2"), append(configs, packages...)...)
+// downloadLinter downloads and unpacks golangci-lint.
+func downloadLinter(cachedir string) string {
+	const version = "1.21.0"
+
+	csdb := build.MustLoadChecksums("build/checksums.txt")
+	base := fmt.Sprintf("golangci-lint-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
+	url := fmt.Sprintf("https://github.com/golangci/golangci-lint/releases/download/v%s/%s.tar.gz", version, base)
+	archivePath := filepath.Join(cachedir, base+".tar.gz")
+	if err := csdb.DownloadFile(url, archivePath); err != nil {
+		log.Fatal(err)
 	}
+	if err := build.ExtractTarballArchive(archivePath, cachedir); err != nil {
+		log.Fatal(err)
+	}
+	return filepath.Join(cachedir, base, "golangci-lint")
 }
 
 // Release Packaging
@@ -495,11 +509,13 @@ func maybeSkipArchive(env build.Environment) {
 // Debian Packaging
 func doDebianSource(cmdline []string) {
 	var (
-		signer  = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload  = flag.String("upload", "", `Where to upload the source package (usually "platon/platon")`)
-		sshUser = flag.String("sftp-user", "", `Username for SFTP upload (usually "geth-ci")`)
-		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
-		now     = time.Now()
+		goversion = flag.String("goversion", "", `Go version to build with (will be included in the source package)`)
+		cachedir  = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
+		signer    = flag.String("signer", "", `Signing key name, also used as package author`)
+		upload    = flag.String("upload", "", `Where to upload the source package (usually "alaya/alaya")`)
+		sshUser   = flag.String("sftp-user", "", `Username for SFTP upload (usually "geth-ci")`)
+		workdir   = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
+		now       = time.Now()
 	)
 	flag.CommandLine.Parse(cmdline)
 	*workdir = makeWorkdir(*workdir)
@@ -513,11 +529,34 @@ func doDebianSource(cmdline []string) {
 		build.MustRun(gpg)
 	}
 
-	// Create Debian packages and upload them
+	// Download and verify the Go source package.
+	gobundle := downloadGoSources(*goversion, *cachedir)
+
+	// Download all the dependencies needed to build the sources and run the ci script
+	srcdepfetch := goTool("install", "-n", "./...")
+	srcdepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	build.MustRun(srcdepfetch)
+
+	cidepfetch := goTool("run", "./build/ci.go")
+	cidepfetch.Env = append(os.Environ(), "GOPATH="+filepath.Join(*workdir, "modgopath"))
+	cidepfetch.Run() // Command fails, don't care, we only need the deps to start it
+
+	// Create Debian packages and upload them.
 	for _, pkg := range debPackages {
-		for _, distro := range debDistros {
-			meta := newDebMetadata(distro, *signer, env, now, pkg.Name, pkg.Version, pkg.Executables)
+		for distro, goboot := range debDistroGoBoots {
+			// Prepare the debian package with the go-ethereum sources.
+			meta := newDebMetadata(distro, goboot, *signer, env, now, pkg.Name, pkg.Version, pkg.Executables)
 			pkgdir := stageDebianSource(*workdir, meta)
+
+			// Add Go source code.
+			if err := build.ExtractTarballArchive(gobundle, pkgdir); err != nil {
+				log.Fatalf("Failed to extract Go sources: %v", err)
+			}
+			if err := os.Rename(filepath.Join(pkgdir, "go"), filepath.Join(pkgdir, ".go")); err != nil {
+				log.Fatalf("Failed to rename Go source folder: %v", err)
+			}
+
+			// Run the packaging and upload to the PPA
 			debuild := exec.Command("debuild", "-S", "-sa", "-us", "-uc", "-d", "-Zxz", "-nc")
 			debuild.Dir = pkgdir
 			build.MustRun(debuild)
@@ -536,6 +575,17 @@ func doDebianSource(cmdline []string) {
 			}
 		}
 	}
+}
+
+func downloadGoSources(version string, cachedir string) string {
+	csdb := build.MustLoadChecksums("build/checksums.txt")
+	file := fmt.Sprintf("go%s.src.tar.gz", version)
+	url := "https://dl.google.com/go/" + file
+	dst := filepath.Join(cachedir, file)
+	if err := csdb.DownloadFile(url, dst); err != nil {
+		log.Fatal(err)
+	}
+	return dst
 }
 
 func ppaUpload(workdir, ppa, sshUser string, files []string) {
@@ -597,7 +647,9 @@ type debPackage struct {
 }
 
 type debMetadata struct {
-	Env build.Environment
+	Env           build.Environment
+	GoBootPackage string
+	GoBootPath    string
 
 	PackageName string
 
@@ -626,19 +678,21 @@ func (d debExecutable) Package() string {
 	return d.BinaryName
 }
 
-func newDebMetadata(distro, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
+func newDebMetadata(distro, goboot, author string, env build.Environment, t time.Time, name string, version string, exes []debExecutable) debMetadata {
 	if author == "" {
 		// No signing key, use default author.
 		author = "Ethereum Builds <fjl@ethereum.org>"
 	}
 	return debMetadata{
-		PackageName: name,
-		Env:         env,
-		Author:      author,
-		Distro:      distro,
-		Version:     version,
-		Time:        t.Format(time.RFC1123Z),
-		Executables: exes,
+		GoBootPackage: goboot,
+		GoBootPath:    debGoBootPaths[goboot],
+		PackageName:   name,
+		Env:           env,
+		Author:        author,
+		Distro:        distro,
+		Version:       version,
+		Time:          t.Format(time.RFC1123Z),
+		Executables:   exes,
 	}
 }
 
@@ -703,7 +757,6 @@ func stageDebianSource(tmpdir string, meta debMetadata) (pkgdir string) {
 	if err := os.Mkdir(pkgdir, 0755); err != nil {
 		log.Fatal(err)
 	}
-
 	// Copy the source code.
 	build.MustRunCommand("git", "checkout-index", "-a", "--prefix", pkgdir+string(filepath.Separator))
 
@@ -721,7 +774,6 @@ func stageDebianSource(tmpdir string, meta debMetadata) (pkgdir string) {
 		build.Render("build/deb/"+meta.PackageName+"/deb.install", install, 0644, exe)
 		build.Render("build/deb/"+meta.PackageName+"/deb.docs", docs, 0644, exe)
 	}
-
 	return pkgdir
 }
 
@@ -943,7 +995,7 @@ func doXCodeFramework(cmdline []string) {
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init"))
-	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "--tags", "ios", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile")
+	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile")
 
 	if *local {
 		// If we're building locally, use the build folder and stop afterwards

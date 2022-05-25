@@ -140,6 +140,9 @@ type worker struct {
 	eth          Backend
 	chain        *core.BlockChain
 
+	// Feeds
+	pendingLogsFeed event.Feed
+
 	// Subscriptions
 	mux          *event.TypeMux
 	txsCh        chan core.NewTxsEvent
@@ -717,7 +720,7 @@ func (w *worker) resultLoop() {
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
 			cbftResult.ChainStateUpdateCB()
-			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
+			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true)
 			if err != nil {
 				if cbftResult.SyncState != nil {
 					cbftResult.SyncState <- err
@@ -734,16 +737,6 @@ func (w *worker) resultLoop() {
 				log.Trace("Broadcast the block and announce chain insertion event", "hash", block.Hash(), "number", block.NumberU64())
 				w.mux.Post(core.NewMinedBlockEvent{Block: block})
 			}
-
-			var events []interface{}
-			switch stat {
-			case core.CanonStatTy:
-				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				events = append(events, core.ChainHeadEvent{Block: block})
-			case core.SideStatTy:
-				events = append(events, core.ChainSideEvent{Block: block})
-			}
-			w.chain.PostChainEvents(events, logs)
 
 		case <-w.exitCh:
 			return
@@ -798,7 +791,7 @@ func (w *worker) commitTransaction(tx *types.Transaction) ([]*types.Log, error) 
 
 	vmCfg := *w.chain.GetVMConfig()       // value copy
 	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
-	receipt, _, err := core.ApplyTransaction(w.chainConfig, w.chain, w.current.gasPool, w.current.state,
+	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, w.current.gasPool, w.current.state,
 		w.current.header, tx, &w.current.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", w.current.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
@@ -934,7 +927,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 			cpy[i] = new(types.Log)
 			*cpy[i] = *l
 		}
-		go w.mux.Post(core.PendingLogsEvent{Logs: cpy})
+		w.pendingLogsFeed.Send(cpy)
 	}
 	// Notify resubmit loop to decrease resubmitting interval if current interval is larger
 	// than the user-specified one.

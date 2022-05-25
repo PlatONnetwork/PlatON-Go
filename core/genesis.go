@@ -173,7 +173,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			return nil, common.ZeroHash, err
 		}
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
-		return genesis.Config, block.Hash(), err
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// We have the genesis block in database(perhaps in ancient database)
@@ -198,7 +198,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db, snapshotBaseDB)
-		return genesis.Config, block.Hash(), err
+		if err != nil {
+			return genesis.Config, hash, err
+		}
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// Check whether the genesis block is already written.

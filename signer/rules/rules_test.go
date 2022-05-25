@@ -180,7 +180,7 @@ func TestSignTxRequest(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	fmt.Printf("to %v", to.Address().String())
+	t.Logf("to %v", to.Address().String())
 	resp, err := r.ApproveTx(&core.SignTxRequest{
 		Transaction: core.SendTxArgs{
 			From: *from,

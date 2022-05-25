@@ -14,12 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -548,59 +546,6 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	}
 
 	return rlpData
-}
-
-func main2() {
-	datas := []string{
-		"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000993cb2862467579ec0f452b04bcc50655b1be1fda91ddd5cf3f57750ccdf77cd5c5c7d1375bdcd725fc6ed3afbd608e45cbfcc383bd1894df443d1f7233dccc900",
-		"da82070086706c61746f6e88676f312e31322e388664617277696e0000000000a805c2524f1acde791043a449c56246346a42455e9041cc8fe14a29b0bc794536743c28c371304b21feb7c4c3abad302c7e331d5e197d81323f3129b2bbe42ee01",
-		"da82070086706c61746f6e88676f312e31322e388664617277696e00000000008f2e99ef48013885e07ce585dc61533ddd2fbc198d982886e5c68a828eb714a54a562931b6aaad8239ec5467ad67981e0982841c882298f42a0bb3ef961344d801",
-	}
-	for i, data := range datas {
-		decode, err := hex.DecodeString(data)
-		if err != nil {
-			fmt.Println("decode hex string err:", i)
-		} else {
-			verifyData(decode)
-		}
-	}
-}
-
-func RTrim(decode []byte) []byte {
-	var pos int
-	for pos = len(decode); pos > 0; pos-- {
-		if decode[pos-1] != '\x00' {
-			break
-		}
-	}
-	return decode[:pos]
-}
-func verifyData(decode []byte) {
-	if len(decode) > 0 {
-		var tobeDecoded []byte
-		tobeDecoded = decode
-		if len(decode) <= 32 {
-			tobeDecoded = decode
-		} else {
-			tobeDecoded = decode[:32]
-		}
-
-		dec := RTrim(tobeDecoded)
-		fmt.Println("dec", hex.EncodeToString(dec))
-		var extraData []interface{}
-		err := rlp.DecodeBytes(dec, &extraData)
-		if err != nil {
-			fmt.Println("rlp decode header extra error", err)
-		}
-		//reference to makeExtraData() in gov_plugin.go
-		if len(extraData) == 4 {
-			versionBytes := extraData[0].([]byte)
-			versionInHeader := common.BytesToUint32(versionBytes)
-			fmt.Println("version In Header", versionInHeader)
-		} else {
-			fmt.Println("decode error")
-		}
-	}
 }
 
 func main() {
