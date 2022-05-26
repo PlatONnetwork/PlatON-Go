@@ -1422,7 +1422,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	}
 
 	if err := vrfstatistics.Tool.Save(block.NumberU64(), bc.vrfStatisticsDB); err != nil {
-		return NonStatTy, err
+		log.Error("vrfstatistics save", "err", err)
 	}
 
 	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64())
