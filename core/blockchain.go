@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+
 	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -91,12 +93,12 @@ type CacheConfig struct {
 	BadBlockLimit   int
 	TriesInMemory   int
 
-	DBDisabledGC common.AtomicBool // Whether to disable database garbage collection
-	DBGCInterval uint64            // Block interval for database garbage collection
-	DBGCTimeout  time.Duration
-	DBGCMpt      bool
-	DBGCBlock    int
-	DBDisabledCache  bool
+	DBDisabledGC    common.AtomicBool // Whether to disable database garbage collection
+	DBGCInterval    uint64            // Block interval for database garbage collection
+	DBGCTimeout     time.Duration
+	DBGCMpt         bool
+	DBGCBlock       int
+	DBDisabledCache bool
 	DBCacheEpoch    uint64
 }
 
@@ -160,9 +162,11 @@ type BlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
-	db     ethdb.Database // Low level persistent database to store final content in
-	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
+	db              ethdb.Database // Low level persistent database to store final content in
+	vrfStatisticsDB ethdb.Database
+
+	triegc *prque.Prque  // Priority queue mapping block numbers to tries to gc
+	gcproc time.Duration // Accumulates canonical block processing for trie dumping
 
 	hc            *HeaderChain
 	rmLogsFeed    event.Feed
@@ -234,21 +238,22 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(cacheConfig.BadBlockLimit)
 
 	bc := &BlockChain{
-		chainConfig:    chainConfig,
-		cacheConfig:    cacheConfig,
-		db:             db,
-		triegc:         prque.New(nil),
-		stateCache:     state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit),
-		quit:           make(chan struct{}),
-		shouldPreserve: shouldPreserve,
-		bodyCache:      bodyCache,
-		bodyRLPCache:   bodyRLPCache,
-		receiptsCache:  receiptsCache,
-		blockCache:     blockCache,
-		futureBlocks:   futureBlocks,
-		engine:         engine,
-		vmConfig:       vmConfig,
-		badBlocks:      badBlocks,
+		chainConfig:     chainConfig,
+		cacheConfig:     cacheConfig,
+		db:              db,
+		vrfStatisticsDB: rawdb.NewTable(db, vrfstatistics.Prefix),
+		triegc:          prque.New(nil),
+		stateCache:      state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit),
+		quit:            make(chan struct{}),
+		shouldPreserve:  shouldPreserve,
+		bodyCache:       bodyCache,
+		bodyRLPCache:    bodyRLPCache,
+		receiptsCache:   receiptsCache,
+		blockCache:      blockCache,
+		futureBlocks:    futureBlocks,
+		engine:          engine,
+		vmConfig:        vmConfig,
+		badBlocks:       badBlocks,
 	}
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
@@ -1415,6 +1420,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
+
+	if err := vrfstatistics.Tool.Save(block.NumberU64(), bc.vrfStatisticsDB); err != nil {
+		log.Error("vrfstatistics save", "err", err)
+	}
+
 	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64())
 
 	// Set new head.

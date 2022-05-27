@@ -19,6 +19,7 @@ package types
 
 import (
 	"crypto/ecdsa"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math/big"
@@ -44,7 +45,8 @@ import (
 var (
 	EmptyRootHash = DeriveSha(Transactions{})
 	// Extra field in the block header, maximum length
-	ExtraMaxSize = 97
+	ExtraMaxSize      = 97
+	HttpEthCompatible = false
 )
 
 // BlockNonce is an 81-byte vrf proof containing random numbers
@@ -69,6 +71,41 @@ func (n BlockNonce) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (n *BlockNonce) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
+}
+
+func (n *BlockNonce) ETHBlockNonce() ETHBlockNonce {
+	var a ETHBlockNonce
+	for i := 0; i < len(a); i++ {
+		a[i] = n[i]
+	}
+	return a
+}
+
+// A ETHBlockNonce is a 64-bit hash which proves (combined with the
+// mix-hash) that a sufficient amount of computation has been carried
+// out on a block.
+type ETHBlockNonce [8]byte
+
+// ETHBlockNonce converts the given integer to a block nonce.
+func EncodeETHNonce(i uint64) ETHBlockNonce {
+	var n ETHBlockNonce
+	binary.BigEndian.PutUint64(n[:], i)
+	return n
+}
+
+// Uint64 returns the integer value of a block nonce.
+func (n ETHBlockNonce) Uint64() uint64 {
+	return binary.BigEndian.Uint64(n[:])
+}
+
+// MarshalText encodes n as a hex string with 0x prefix.
+func (n ETHBlockNonce) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(n[:]).MarshalText()
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (n *ETHBlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
@@ -97,6 +134,43 @@ type Header struct {
 
 // MarshalJSON2 marshals as JSON.
 func (h Header) MarshalJSON2() ([]byte, error) {
+	if HttpEthCompatible {
+		type Header struct {
+			ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
+			Coinbase    common.Address `json:"miner"            gencodec:"required"`
+			Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
+			TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
+			ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
+			Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+			Number      *hexutil.Big   `json:"number"           gencodec:"required"`
+			GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
+			GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
+			Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
+			Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+			Nonce       ETHBlockNonce  `json:"nonce"            gencodec:"required"`
+			Hash        common.Hash    `json:"hash"`
+
+			UncleHash  common.Hash  `json:"sha3Uncles"       gencodec:"required"`
+			Difficulty *hexutil.Big `json:"difficulty"       gencodec:"required"`
+		}
+		var enc Header
+		enc.ParentHash = h.ParentHash
+		enc.Coinbase = h.Coinbase
+		enc.Root = h.Root
+		enc.TxHash = h.TxHash
+		enc.ReceiptHash = h.ReceiptHash
+		enc.Bloom = h.Bloom
+		enc.Number = (*hexutil.Big)(h.Number)
+		enc.GasLimit = hexutil.Uint64(h.GasLimit)
+		enc.GasUsed = hexutil.Uint64(h.GasUsed)
+		enc.Time = hexutil.Uint64(h.Time / 1000)
+		enc.Extra = h.Extra
+		enc.Nonce = h.Nonce.ETHBlockNonce()
+		enc.Hash = h.Hash()
+		enc.UncleHash = common.ZeroHash
+		enc.Difficulty = (*hexutil.Big)(h.Number)
+		return json2.Marshal(&enc)
+	}
 	type Header struct {
 		ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
 		Coinbase    common.Address `json:"miner"            gencodec:"required"`

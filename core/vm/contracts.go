@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 
@@ -578,6 +580,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		randomNumbers[i] = currentNonces[i] ^ txHash[i]
 	}
 	if seedNum == 1 {
+		if txHash != common.ZeroHash {
+			vrfstatistics.Tool.AddRequest(v.Evm.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
+		}
 		return randomNumbers, nil
 	}
 
@@ -606,6 +611,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		for j := 0; j < common.HashLength; j++ {
 			randomNumbers[j+start] = randomNumbers[j] ^ preNonce[j]
 		}
+	}
+	if txHash != common.ZeroHash {
+		vrfstatistics.Tool.AddRequest(v.Evm.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
 	}
 	return randomNumbers, nil
 }

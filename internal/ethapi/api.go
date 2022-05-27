@@ -21,9 +21,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
@@ -456,7 +461,7 @@ func (s *PrivateAccountAPI) Sign(ctx context.Context, data hexutil.Bytes, addr c
 		log.Warn("Failed data sign attempt", "address", addr, "err", err)
 		return nil, err
 	}
-	signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
+	signature[crypto.RecoveryIDOffset] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
 	return signature, nil
 }
 
@@ -471,13 +476,13 @@ func (s *PrivateAccountAPI) Sign(ctx context.Context, data hexutil.Bytes, addr c
 //
 // https://github.com/ethereum/go-ethereum/wiki/Management-APIs#personal_ecRecover
 func (s *PrivateAccountAPI) EcRecover(ctx context.Context, data, sig hexutil.Bytes) (common.Address, error) {
-	if len(sig) != 65 {
-		return common.Address{}, fmt.Errorf("signature must be 65 bytes long")
+	if len(sig) != crypto.SignatureLength {
+		return common.Address{}, fmt.Errorf("signature must be %d bytes long", crypto.SignatureLength)
 	}
-	if sig[64] != 27 && sig[64] != 28 {
+	if sig[crypto.RecoveryIDOffset] != 27 && sig[crypto.RecoveryIDOffset] != 28 {
 		return common.Address{}, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
 	}
-	sig[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
+	sig[crypto.RecoveryIDOffset] -= 27 // Transform yellow paper V from 27/28 to 0/1
 
 	rpk, err := crypto.SigToPub(signHash(data), sig)
 	if err != nil {
@@ -523,13 +528,17 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 //	return nil
 //}
 
-// ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
+// ChainId is the PIP-7 replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
-	// if current block is at or past the EIP-155 replay-protection fork block, return chainID from config
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		return (*hexutil.Big)(config.ChainID), nil
+	stateDB, _, err := s.b.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(s.b.CurrentBlock().Number().Uint64()))
+	config := s.b.ChainConfig()
+	if err == nil {
+		pip7 := gov.Gte120VersionState(stateDB)
+		if pip7 {
+			return (*hexutil.Big)(config.PIP7ChainID), nil
+		}
 	}
-	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
+	return (*hexutil.Big)(config.ChainID), nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -557,6 +566,14 @@ func (s *PublicBlockChainAPI) GetAddressHrp() string {
 		return common.DefaultAddressHRP
 	}
 	return chainConfig.AddressHRP
+}
+
+func (s *PublicBlockChainAPI) GetSumOfRandomNum() (uint64, error) {
+	return vrfstatistics.Tool.SumOfRandomNum(rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
+}
+
+func (s *PublicBlockChainAPI) GetRandomNumberTxs(ctx context.Context, from, to uint64) (map[uint64][]vrfstatistics.TxInfo, error) {
+	return vrfstatistics.Tool.GetRandomNumberTxs(from, to, rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
 }
 
 // Result structs for GetProof
@@ -1056,7 +1073,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 
 // RPCMarshalHeader converts the given header to the RPC output .
 func RPCMarshalHeader(head *types.Header) map[string]interface{} {
-	return map[string]interface{}{
+	m := map[string]interface{}{
 		"number":     (*hexutil.Big)(head.Number),
 		"hash":       head.Hash(),
 		"parentHash": head.ParentHash,
@@ -1075,6 +1092,14 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
 	}
+	if types.HttpEthCompatible {
+		m["nonce"] = hexutil.Bytes(head.Nonce[0:8])
+		m["timestamp"] = hexutil.Uint64(head.Time / 1000)
+		m["sha3Uncles"] = common.ZeroHash
+		m["difficulty"] = (*hexutil.Big)(head.Number)
+	}
+
+	return m
 }
 
 // RPCMarshalBlock converts the given block to the RPC output which depends on fullTx. If inclTx is true transactions are
@@ -1629,7 +1654,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.NewEIP155Signer(b.ChainConfig().ChainID)
+		signer := types.MakeSigner(b.ChainConfig(), true)
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
