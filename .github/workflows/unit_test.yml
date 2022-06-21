@@ -8,7 +8,7 @@ env:
 jobs:
   test:
     name: Build
-    runs-on: self-hosted
+    runs-on: ubuntu-18.04
     steps:
 
       - name: Set up Go 1.x
