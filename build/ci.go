@@ -1126,7 +1126,7 @@ func xgoTool(args []string) *exec.Cmd {
 // Binary distribution cleanups
 
 func doPurge(cmdline []string) {
-	var (
+	/*var (
 		store = flag.String("store", "", `Destination from where to purge archives (usually "gethstore/builds")`)
 		limit = flag.Int("days", 30, `Age threshold above which to delete unstalbe archives`)
 	)
@@ -1141,8 +1141,8 @@ func doPurge(cmdline []string) {
 		Account:   strings.Split(*store, "/")[0],
 		Token:     os.Getenv("AZURE_BLOBSTORE_TOKEN"),
 		Container: strings.SplitN(*store, "/", 2)[1],
-	}
-	blobs, err := build.AzureBlobstoreList(auth)
+	}*/
+	/*blobs, err := build.AzureBlobstoreList(auth)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1170,5 +1170,5 @@ func doPurge(cmdline []string) {
 	// Delete all marked as such and return
 	if err := build.AzureBlobstoreDelete(auth, blobs); err != nil {
 		log.Fatal(err)
-	}
+	}*/
 }
