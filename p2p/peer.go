@@ -19,12 +19,13 @@ package p2p
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"io"
 	"net"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -352,7 +353,8 @@ func (p *Peer) handle(msg Msg) error {
 			return fmt.Errorf("msg code out of range: %v", msg.Code)
 		}
 		if metrics.Enabled {
-			metrics.GetOrRegisterMeter(fmt.Sprintf("%s/%s/%d/%#02x", ingressMeterName, proto.Name, proto.Version, msg.Code-proto.offset), nil).Mark(int64(msg.meterSize))
+			m := fmt.Sprintf("%s/%s/%d/%#02x", ingressMeterName, proto.Name, proto.Version, msg.Code-proto.offset)
+			metrics.GetOrRegisterMeter(m, nil).Mark(int64(msg.meterSize))
 		}
 		select {
 		case proto.in <- msg:

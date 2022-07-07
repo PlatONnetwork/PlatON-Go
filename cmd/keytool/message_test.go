@@ -34,7 +34,7 @@ func TestMessageSignVerify(t *testing.T) {
 	message := "test message"
 
 	// Create the key.
-	generate := runKeytool(t, "generate", keyfile)
+	generate := runKeytool(t, "generate", "--lightkdf", keyfile)
 	generate.Expect(`
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}

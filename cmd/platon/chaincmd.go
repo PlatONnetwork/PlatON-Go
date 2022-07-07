@@ -17,10 +17,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"io"
 	"path/filepath"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -59,6 +61,18 @@ This is a destructive action and changes the network in which you will be
 participating.
 
 It expects the genesis file as argument.`,
+	}
+	dumpGenesisCommand = cli.Command{
+		Action:    utils.MigrateFlags(dumpGenesis),
+		Name:      "dumpgenesis",
+		Usage:     "Dumps genesis block JSON configuration to stdout",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The dumpgenesis command dumps the genesis block configuration in JSON format to stdout.`,
 	}
 	importPreimagesCommand = cli.Command{
 		Action:    utils.MigrateFlags(importPreimages),
@@ -204,6 +218,17 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("Failed Copy Genesis file: %v", err)
 	}
 
+	return nil
+}
+
+func dumpGenesis(ctx *cli.Context) error {
+	genesis := utils.MakeGenesis(ctx)
+	if genesis == nil {
+		genesis = core.DefaultGenesisBlock()
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(genesis); err != nil {
+		utils.Fatalf("could not encode genesis")
+	}
 	return nil
 }
 

@@ -4,30 +4,32 @@ go 1.16
 
 require (
 	github.com/AlayaNetwork/graphql-go v1.2.1-0.20211227063951-8d66eefcb4e3
-	github.com/Azure/azure-pipeline-go v0.2.3 // indirect
-	github.com/Azure/azure-storage-blob-go v0.0.0-20180712005634-eaae161d9d5e
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/VictoriaMetrics/fastcache v1.5.7
-	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/btcsuite/btcutil v1.0.2
+	github.com/btcsuite/btcd v0.23.0 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.1.3
+	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/cespare/cp v0.1.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
+	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
+	github.com/dop251/goja v0.0.0-20200219165308-d1232e640a87
 	github.com/elastic/gosigar v0.14.1
 	github.com/fatih/color v1.3.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
+	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-errors/errors v1.0.2-0.20180813162953-d98b870cc4e0
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.1
+	github.com/golang/snappy v0.0.4
 	github.com/gorilla/websocket v1.4.2
-	github.com/graph-gophers/graphql-go v1.3.0
+	github.com/graph-gophers/graphql-go v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls v0.0.0-20211104022442-b840a688b3bb
 	github.com/holiman/uint256 v1.1.1
-	github.com/huin/goupnp v0.0.0-20161224104101-679507af18f3
+	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
 	github.com/julienschmidt/httprouter v1.3.0
@@ -44,19 +46,19 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.10.0
 	github.com/rjeczalik/notify v0.9.1
-	github.com/robertkrimen/otto v0.0.0-20211024170158-b87d35c0b86f
 	github.com/robfig/cron v1.2.1-0.20190616124356-61d93e07d1be
 	github.com/rs/cors v0.0.0-20160617231935-a62a804a8a00
 	github.com/shirou/gopsutil v2.20.5+incompatible
+	github.com/status-im/keycard-go v0.0.0-20190316090335-8537d3370df4
 	github.com/steakknife/bloomfilter v0.0.0-20180922174646-6819c0d2a570
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tealeg/xlsx v1.0.5
+	github.com/wsddn/go-ecdh v0.0.0-20161211032359-48726bab9208
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f
 	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654
+	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.10
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/urfave/cli.v1 v1.20.0

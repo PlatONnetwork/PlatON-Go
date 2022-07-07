@@ -48,7 +48,10 @@ func TestConsoleWelcome(t *testing.T) {
 	platon.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	platon.SetTemplateFunc("gover", runtime.Version)
 	platon.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
-	platon.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
+	//platon.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
+	platon.SetTemplateFunc("niltime", func() string {
+		return time.Unix(0, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
+	})
 	platon.SetTemplateFunc("apis", func() string { return ipcAPIs })
 
 	// Verify the actual welcome message to the required template
@@ -99,7 +102,7 @@ func TestHTTPAttachWelcome(t *testing.T) {
 		platon.Interrupt()
 		platon.ExpectExit()
 	}()
-	
+
 	endpoint := "http://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
 	testAttachWelcome(t, platon, endpoint, httpAPIs)
@@ -135,7 +138,10 @@ func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) 
 	attach.SetTemplateFunc("goarch", func() string { return runtime.GOARCH })
 	attach.SetTemplateFunc("gover", runtime.Version)
 	attach.SetTemplateFunc("gethver", func() string { return params.VersionWithCommit("", "") })
-	attach.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
+	//attach.SetTemplateFunc("niltime", func() string { return time.Unix(0, 0).Format(time.RFC1123) })
+	attach.SetTemplateFunc("niltime", func() string {
+		return time.Unix(0, 0).Format("Mon Jan 02 2006 15:04:05 GMT-0700 (MST)")
+	})
 	attach.SetTemplateFunc("ipc", func() bool { return strings.HasPrefix(endpoint, "ipc") })
 	attach.SetTemplateFunc("datadir", func() string { return platon.Datadir })
 	attach.SetTemplateFunc("apis", func() string { return apis })

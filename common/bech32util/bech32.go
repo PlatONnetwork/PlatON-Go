@@ -1,7 +1,7 @@
 package bech32util
 
 import (
-	"github.com/btcsuite/btcutil/bech32"
+	"github.com/btcsuite/btcd/btcutil/bech32"
 	"github.com/pkg/errors"
 )
 

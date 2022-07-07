@@ -371,7 +371,7 @@ func signer(c *cli.Context) error {
 			hasher := sha256.New()
 			hasher.Write(ruleJS)
 			shasum := hasher.Sum(nil)
-			storedShasum := configStorage.Get("ruleset_sha256")
+			storedShasum, _ := configStorage.Get("ruleset_sha256")
 			if storedShasum != hex.EncodeToString(shasum) {
 				log.Info("Could not validate ruleset hash, rules not enabled", "got", hex.EncodeToString(shasum), "expected", storedShasum)
 			} else {
