@@ -3,11 +3,11 @@ module github.com/PlatONnetwork/PlatON-Go
 go 1.16
 
 require (
+	github.com/AlayaNetwork/Alaya-Go v0.16.2
 	github.com/AlayaNetwork/graphql-go v1.2.1-0.20211227063951-8d66eefcb4e3
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/VictoriaMetrics/fastcache v1.5.7
-	github.com/btcsuite/btcd v0.23.0 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.1.3
+	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c
 	github.com/btcsuite/btcd/btcutil v1.1.0
 	github.com/cespare/cp v0.1.0
 	github.com/cespare/xxhash v1.1.0
@@ -28,6 +28,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/herumi/bls v0.0.0-20220420050213-cf2b578f1c41
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
@@ -59,6 +60,7 @@ require (
 	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.10
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
 	gopkg.in/urfave/cli.v1 v1.20.0
