@@ -142,8 +142,6 @@ type worker struct {
 
 	// Subscriptions
 	mux          *event.TypeMux
-	txsCh        chan core.NewTxsEvent
-	txsSub       event.Subscription
 	chainHeadCh  chan core.ChainHeadEvent
 	chainHeadSub event.Subscription
 	chainSideCh  chan core.ChainSideEvent
@@ -214,7 +212,6 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *co
 		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
-		txsCh:              make(chan core.NewTxsEvent, miningConfig.TxChanSize),
 		chainHeadCh:        make(chan core.ChainHeadEvent, miningConfig.ChainHeadChanSize),
 		chainSideCh:        make(chan core.ChainSideEvent, miningConfig.ChainSideChanSize),
 		newWorkCh:          make(chan *newWorkReq),

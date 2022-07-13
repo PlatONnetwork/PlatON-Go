@@ -100,7 +100,7 @@ type Ethereum struct {
 func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run eth.PlatON in light sync mode, use les.LightPlatON")
+		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
