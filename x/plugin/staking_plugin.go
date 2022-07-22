@@ -783,27 +783,6 @@ func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.A
 	return sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
 }
 
-func (sk *StakingPlugin) GetDelegateExInfo(blockHash common.Hash, delAddr common.Address,
-	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
-
-	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
-	if nil != err {
-		return nil, err
-	}
-	return &staking.DelegationEx{
-		Addr:            delAddr,
-		NodeId:          nodeId,
-		StakingBlockNum: stakeBlockNumber,
-		DelegationHex: staking.DelegationHex{
-			DelegateEpoch:    del.DelegateEpoch,
-			Released:         (*hexutil.Big)(del.Released),
-			ReleasedHes:      (*hexutil.Big)(del.ReleasedHes),
-			RestrictingPlan:  (*hexutil.Big)(del.RestrictingPlan),
-			CumulativeIncome: (*hexutil.Big)(del.CumulativeIncome),
-		},
-	}, nil
-}
-
 func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNumber uint64, delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
 
