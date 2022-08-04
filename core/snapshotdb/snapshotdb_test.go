@@ -36,7 +36,7 @@ import (
 )
 
 func TestCommitZeroBlock(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	if err := ch.insert(true, generatekv(1), newBlockCommited); err != nil {
 		t.Error(err)
@@ -44,7 +44,7 @@ func TestCommitZeroBlock(t *testing.T) {
 }
 
 func TestSnapshotDB_NewBlockRepate(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	ch.addBlock()
 	if err := ch.db.NewBlock(ch.CurrentHeader().Number, ch.CurrentHeader().ParentHash, common.ZeroHash); err != nil {
@@ -72,7 +72,7 @@ func TestSnapshotDB_NewBlockRepate(t *testing.T) {
 }
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		p = generateHash("parentHash")
@@ -113,7 +113,7 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 }
 
 func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var arr = [][]kv{generatekv(10), generatekv(10)}
 	//recognized(unRecognized not in the chain)
@@ -140,7 +140,7 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 }
 
 func TestSnapshotDB_Get_after_del(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		arr            = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
@@ -194,7 +194,7 @@ func TestSnapshotDB_Get_after_del(t *testing.T) {
 }
 
 func TestSnapshotDB_Get(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
@@ -316,7 +316,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 }
 
 func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		baseDBkv  = kv{key: []byte("a"), value: []byte("a")}
@@ -365,7 +365,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 }
 
 func TestSnapshotDB_Del(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		arr                                               = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
@@ -426,7 +426,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking10(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 
 	a, _ := hex.DecodeString("506f7765727ffff8ff00000000000000000000000000ffffff2c387869d4e4fbefffff000000000000025000000000")
@@ -498,7 +498,7 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking2(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 
 	commitDBkv := generatekvWithPrefix(30, "ab")
@@ -574,7 +574,7 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking4(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	generatekvs := generatekvWithPrefix(1000, "aaa")
 	if err := ch.insert(true, generatekvs, newBlockBaseDB); err != nil {
@@ -604,7 +604,7 @@ func TestSnapshotDB_Ranking4(t *testing.T) {
 }
 
 func TestSnapshotDB_Ranking5(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	generatekvs := generatekvWithPrefix(4, "aaa")
 	if err := ch.insert(true, generatekvs, newBlockBaseDB); err != nil {
@@ -678,7 +678,7 @@ func TestSnapshotDB_Ranking5(t *testing.T) {
 //}
 
 func TestSnapshotDB_Ranking3(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 
 	generatekvs := generatekvWithPrefix(1000, "aaa")
@@ -741,7 +741,7 @@ func TestSnapshotDB_Ranking3(t *testing.T) {
 }
 
 func TestSnapshotDB_WalkBaseDB(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var prefix = util.BytesPrefix([]byte("a"))
 
@@ -802,7 +802,7 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 }
 
 func TestSnapshotDB_GetLastKVHash(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
@@ -840,7 +840,7 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 }
 
 func TestSnapshotDB_BaseNum(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	_, err := ch.db.BaseNum()
 	if err != nil {
@@ -849,7 +849,7 @@ func TestSnapshotDB_BaseNum(t *testing.T) {
 }
 
 func TestSnapshotDB_Compaction_del(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	baseDBkv := generatekv(10)
 	if err := ch.insert(true, baseDBkv, newBlockBaseDB); err != nil {
@@ -880,7 +880,7 @@ func TestSnapshotDB_Compaction_del(t *testing.T) {
 }
 
 func TestSnapshotDB_Compaction222222(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		kvs1 = generatekv(3000)
@@ -978,7 +978,7 @@ func TestSnapshotDB_Compaction222222(t *testing.T) {
 }
 
 func TestFlush(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 
 	parentHash := generateHash("a")
@@ -1019,7 +1019,7 @@ func TestFlush(t *testing.T) {
 }
 
 func TestCommit(t *testing.T) {
-	ch := newTestchain("")
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	currentHash := generateHash("currentHash")
 	parentHash := generateHash("parentHash")

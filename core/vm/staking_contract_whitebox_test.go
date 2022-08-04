@@ -37,7 +37,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
@@ -50,16 +49,11 @@ This is a white test cases for staking_contract
 susccess test case
 */
 func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
-
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -67,12 +61,12 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -133,15 +127,11 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 
 func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -149,15 +139,15 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	index := 1
 
 	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-	buildDbRestrictingPlan(t, sender, balance, 1, state)
+	buildDbRestrictingPlan(t, sender, balance, 1, chain.StateDB)
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -217,15 +207,13 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 }
 
 func Test_CreateStake_RightVersion(t *testing.T) {
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -233,12 +221,12 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -300,15 +288,13 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 failure test case
 */
 func Test_CreateStake_RepeatStake(t *testing.T) {
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -316,12 +302,12 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -454,15 +440,13 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -470,19 +454,19 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	// reset sender balance
-	state.SubBalance(sender, state.GetBalance(sender))
+	chain.StateDB.SubBalance(sender, chain.StateDB.GetBalance(sender))
 
 	StakeThreshold := xcom.StakeThreshold()
 	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
-	state.AddBalance(sender, initBalance)
+	chain.StateDB.AddBalance(sender, initBalance)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -559,15 +543,13 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -575,12 +557,12 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -653,15 +635,13 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -671,15 +651,15 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	StakeThreshold := xcom.StakeThreshold()
 	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
-	buildDbRestrictingPlan(t, sender, initBalance, 1, state)
+	buildDbRestrictingPlan(t, sender, initBalance, 1, chain.StateDB)
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -755,15 +735,13 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -773,15 +751,15 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	StakeThreshold := xcom.StakeThreshold()
 	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
-	buildDbRestrictingPlan(t, sender, StakeThreshold, 1, state)
+	buildDbRestrictingPlan(t, sender, StakeThreshold, 1, chain.StateDB)
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -857,15 +835,13 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 }
 
 func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -873,12 +849,12 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -963,15 +939,13 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -979,12 +953,12 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1062,15 +1036,13 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1078,12 +1050,12 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	index := 1
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1164,24 +1136,23 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 func Test_EditStake_by_RightParams(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer func() {
+		chain.SnapDB.Clear()
+	}()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
 
-	contract := create_staking(blockNumber, blockHash, state, 1, t)
+	contract := create_staking(blockNumber, blockHash, chain, 1, t)
 
 	index := 1
 
-	state.Prepare(txHashArr[index+1], blockHash, index+2)
+	chain.StateDB.Prepare(txHashArr[index+1], blockHash, index+2)
 
 	var params [][]byte
 	params = make([][]byte, 0)

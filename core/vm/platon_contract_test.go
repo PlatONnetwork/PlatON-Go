@@ -155,8 +155,6 @@ var (
 	delegateSender        = common.MustBech32ToAddress("lax1c8enpvs5v6974shxgxxav5dsn36e5jl4v29pec")
 	delegateSenderBalance = "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
 
-	sndb = snapshotdb.Instance()
-
 	txHashArr = []common.Hash{
 		common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22"),
 		common.HexToHash("0x000000000000000000000000000000005249b59609286f2fa91a2abc8555e887"),
@@ -285,11 +283,9 @@ func newChain() (*mock.Chain, error) {
 	return chain, nil
 }
 
-func newChainState() (*mock.MockStateDB, *types.Block, error) {
+func newMockChain() *mock.Chain {
 
-	//	testGenesis := new(types.Block)
 	chain := mock.NewChain()
-	//	var state *state.StateDB
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
 	dBalance, _ := new(big.Int).SetString(delegateSenderBalance, 10)
@@ -301,16 +297,16 @@ func newChainState() (*mock.MockStateDB, *types.Block, error) {
 		amount = new(big.Int).Mul(common.Big257, amount)
 		chain.StateDB.AddBalance(addr, amount)
 	}
-	return chain.StateDB, chain.Genesis, nil
+	return chain
 }
 
-func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB) *EVM {
+func newEvm(blockNumber *big.Int, blockHash common.Hash, chain *mock.Chain) *EVM {
 
-	if nil == state {
-		state, _, _ = newChainState()
+	if nil == chain {
+		panic("chain should not be empty")
 	}
 	evm := &EVM{
-		StateDB:     state,
+		StateDB:     chain.StateDB,
 		chainConfig: &params.ChainConfig{},
 	}
 	context := Context{
@@ -320,8 +316,8 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB
 	evm.Context = context
 
 	//set a default active version
-	gov.InitGenesisGovernParam(common.ZeroHash, sndb, 2048)
-	gov.AddActiveVersion(initProgramVersion, 0, state)
+	gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048)
+	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
 
 	return evm
 }
@@ -333,7 +329,7 @@ func newContract(value *big.Int, sender common.Address) *Contract {
 	return contract
 }
 
-func build_staking_data(genesisHash common.Hash) {
+func build_staking_data(sndb snapshotdb.DB, genesisHash common.Hash) {
 
 	stakingDB := staking.NewStakingDB()
 	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)

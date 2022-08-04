@@ -20,7 +20,6 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb/storage"
 	"math/big"
 	"os"
 	"sync"
@@ -50,8 +49,6 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 200
-
-	DBBasePath = "base"
 )
 
 //DB the main snapshotdb interface
@@ -213,14 +210,6 @@ func Close() {
 }
 
 func openBaseDB(snapshotDBPath string, cache int, handles int) (*leveldb.DB, error) {
-	if snapshotDBPath == "" {
-		// use only for test
-		db, err := leveldb.Open(storage.NewMemStorage(), nil)
-		if err != nil {
-			return nil, err
-		}
-		return db, nil
-	}
 	leveldbPath := getBaseDBPath(snapshotDBPath)
 	baseDB, err := leveldb.OpenFile(leveldbPath, &opt.Options{
 		OpenFilesCacheCapacity: handles,

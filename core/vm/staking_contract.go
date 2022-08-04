@@ -1023,7 +1023,7 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 }
 
 func (stkc *StakingContract) getPackageReward() ([]byte, error) {
-	packageReward, err := plugin.LoadNewBlockReward(common.ZeroHash, snapshotdb.Instance())
+	packageReward, err := plugin.LoadNewBlockReward(common.ZeroHash, stkc.Evm.SnapshotDB)
 	if nil != err {
 		return callResultHandler(stkc.Evm, "getPackageReward", nil, common.NotFound.Wrap(err.Error())), nil
 	}
@@ -1031,7 +1031,7 @@ func (stkc *StakingContract) getPackageReward() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getStakingReward() ([]byte, error) {
-	stakingReward, err := plugin.LoadStakingReward(common.ZeroHash, snapshotdb.Instance())
+	stakingReward, err := plugin.LoadStakingReward(common.ZeroHash, stkc.Evm.SnapshotDB)
 	if nil != err {
 		return callResultHandler(stkc.Evm, "getStakingReward", nil, common.NotFound.Wrap(err.Error())), nil
 	}

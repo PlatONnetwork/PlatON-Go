@@ -17,17 +17,16 @@
 package snapshotdb
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"math/rand"
 	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 func newTestchain(path string) *testchain {
-	if path != "" {
-		os.RemoveAll(path)
-	}
+	os.RemoveAll(path)
 	ch := new(testchain)
 	ch.path = path
 	db, err := open(path, 0, 0, false)

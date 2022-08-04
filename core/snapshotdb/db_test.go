@@ -19,11 +19,7 @@ package snapshotdb
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
-	"os"
-	"path"
 	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -31,8 +27,7 @@ import (
 )
 
 func TestRecover(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	ch := newTestchain(path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64())))
+	ch := newTestchain(dbpath)
 	defer ch.clear()
 	var (
 		baseDBArr              []kv
