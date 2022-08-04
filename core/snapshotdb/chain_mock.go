@@ -14,20 +14,20 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"math/rand"
 	"os"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 func newTestchain(path string) *testchain {
-	os.RemoveAll(path)
+	if path != "" {
+		os.RemoveAll(path)
+	}
 	ch := new(testchain)
 	ch.path = path
 	db, err := open(path, 0, 0, false)

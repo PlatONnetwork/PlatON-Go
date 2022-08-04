@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
 
@@ -970,4 +970,28 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
+}
+
+func TestFork130EcHash(t *testing.T) {
+	chain := setup(t)
+	defer clear(chain, t)
+	if Gte130VersionState(chain.StateDB) {
+		if err := WriteEcHash130(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash == nil)
+
+	if err := AddActiveVersion(params.FORKVERSION_1_3_0, 0, chain.StateDB); err != nil {
+		t.Error("AddActiveVersion, err", err)
+	}
+
+	if Gte130VersionState(chain.StateDB) {
+		if err := WriteEcHash130(chain.StateDB); nil != err {
+			t.Fatal(err)
+		}
+	}
+	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	assert.True(t, pposHash != nil)
 }

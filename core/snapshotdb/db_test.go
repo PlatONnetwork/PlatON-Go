@@ -14,13 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
+	"os"
+	"path"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -28,7 +31,8 @@ import (
 )
 
 func TestRecover(t *testing.T) {
-	ch := newTestchain(dbpath)
+	rand.Seed(time.Now().UnixNano())
+	ch := newTestchain(path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64())))
 	defer ch.clear()
 	var (
 		baseDBArr              []kv

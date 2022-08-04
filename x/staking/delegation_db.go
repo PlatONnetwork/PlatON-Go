@@ -18,42 +18,13 @@ func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Addr
 		return nil, err
 	}
 
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+	del := new(DelegationForStorage)
+	if err := rlp.DecodeBytes(delByte, del); nil != err {
 		return nil, err
 	}
 
-	return &del, nil
+	return (*Delegation)(del), nil
 }
-
-func (db *StakingDB) GetDelegateStoreByIrr(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
-	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
-
-	delByte, err := db.getFromCommitted(key)
-	if nil != err {
-		return nil, err
-	}
-
-	var del Delegation
-	if err := rlp.DecodeBytes(delByte, &del); nil != err {
-		return nil, err
-	}
-	return &del, nil
-}
-
-type DelegationInfo struct {
-	NodeID           discover.NodeID
-	StakeBlockNumber uint64
-	Delegation       *Delegation
-}
-
-type DelByDelegateEpoch []*DelegationInfo
-
-func (d DelByDelegateEpoch) Len() int { return len(d) }
-func (d DelByDelegateEpoch) Less(i, j int) bool {
-	return d[i].Delegation.DelegateEpoch < d[j].Delegation.DelegateEpoch
-}
-func (d DelByDelegateEpoch) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 
 func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*DelegationInfo, error) {
 	key := GetDelegateKeyBySuffix(delAddr.Bytes())
@@ -65,21 +36,30 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 	for itr.Next() {
 		info := new(DelegationInfo)
 		_, info.NodeID, info.StakeBlockNumber = DecodeDelegateKey(itr.Key())
-		info.Delegation = new(Delegation)
-		if err := rlp.DecodeBytes(itr.Value(), info.Delegation); err != nil {
+
+		tmp := new(DelegationForStorage)
+		if err := rlp.DecodeBytes(itr.Value(), tmp); err != nil {
 			return nil, err
 		}
+		info.Delegation = (*Delegation)(tmp)
 		infos = append(infos, info)
 	}
 	return infos, nil
 }
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
-	stakeBlockNumber uint64, del *Delegation) error {
+	stakeBlockNumber uint64, del *Delegation, lock bool) error {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+	if lock {
+		delByte, err := encodeStoredDelegateRLP(del)
+		if nil != err {
+			return err
+		}
 
-	delByte, err := rlp.EncodeToBytes(del)
+		return db.put(blockHash, key, delByte)
+	}
+	delByte, err := encodeV1StoredDelegateRLP(del)
 	if nil != err {
 		return err
 	}
@@ -97,4 +77,33 @@ func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Addr
 func (db *StakingDB) IteratorDelegateByBlockHashWithAddr(blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
 	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
 	return db.ranking(blockHash, prefix, ranges)
+}
+
+func (db *StakingDB) GetDelegationLock(blockHash common.Hash, delAddr common.Address, currentEpoch uint32) (*DelegationLock, error) {
+	key := GetDelegationLockKey(delAddr)
+	delByte, err := db.get(blockHash, key)
+	if nil != err {
+		return nil, err
+	}
+
+	dell := new(DelegationLock)
+	if err := rlp.DecodeBytes(delByte, dell); nil != err {
+		return nil, err
+	}
+	dell.update(currentEpoch)
+	return dell, nil
+
+}
+
+func (db *StakingDB) PutDelegationLock(blockHash common.Hash, delAddr common.Address, infos *DelegationLock) error {
+	key := GetDelegationLockKey(delAddr)
+	if infos.shouldDel() {
+		return db.Del(blockHash, key)
+	} else {
+		delByte, err := rlp.EncodeToBytes(infos)
+		if err != nil {
+			return err
+		}
+		return db.put(blockHash, key, delByte)
+	}
 }

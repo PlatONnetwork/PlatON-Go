@@ -140,6 +140,7 @@ const (
 	WithdrewStakeGas      uint64 = 20000 // Gas needed for withdrewStaking
 	DelegateGas           uint64 = 16000 // Gas needed for delegate
 	WithdrewDelegationGas uint64 = 8000  // Gas needed for withdrewDelegate
+	RedeemDelegationGas   uint64 = 6000  // Gas needed for RedeemDelegation
 
 	GovGas                   uint64 = 9000   // Gas needed for precompiled contract: govContract
 	SubmitTextProposalGas    uint64 = 320000 // Gas needed for submitText

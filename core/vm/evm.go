@@ -62,7 +62,6 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-
 		if p := PlatONPrecompiledContracts120[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
 			case *vrf:
