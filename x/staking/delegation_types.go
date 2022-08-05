@@ -84,7 +84,7 @@ func (del *Delegation) IsEmpty() bool {
 func (del *Delegation) TotalHes() *big.Int {
 	totalHes := new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
 	totalHes.Add(totalHes, del.LockReleasedHes)
-	totalHes.Add(totalHes, del.RestrictingPlanHes)
+	totalHes.Add(totalHes, del.LockRestrictingHes)
 	return totalHes
 }
 
