@@ -77,7 +77,7 @@ func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
 	}
 
 	//prepare gc to run contract
-	gc.Evm = newEvm(chain.CurrentHeader().Number, chain.CurrentHeader().Hash(), chain.StateDB)
+	gc.Evm = newEvm(chain.CurrentHeader().Number, chain.CurrentHeader().Hash(), chain)
 	gc.Evm.GasPrice = big.NewInt(9000000 * 1000000000)
 }
 

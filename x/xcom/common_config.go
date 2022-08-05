@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package xcom
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
 
@@ -163,9 +163,32 @@ type EconomicModel struct {
 	InnerAcc    innerAccount      `json:"innerAcc"`
 }
 
+// When the chain is started, if new parameters are added, add them to this structure
+type EconomicModelExtend struct {
+	Staking stakingConfigExtend `json:"staking"`
+}
+
+type stakingConfigExtend struct {
+	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
+}
+
+func EcParams130() ([]byte, error) {
+	params := struct {
+		UnDelegateFreezeDuration uint64
+	}{
+		UnDelegateFreezeDuration: ece.Staking.UnDelegateFreezeDuration,
+	}
+	bytes, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 var (
 	modelOnce sync.Once
 	ec        *EconomicModel
+	ece       *EconomicModelExtend
 )
 
 // Getting the global EconomicModel single instance
@@ -176,8 +199,16 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
+func GetEce() *EconomicModelExtend {
+	return ece
+}
+
 func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 	ec = newEc
+}
+
+func ResetEconomicExtendConfig(newEc *EconomicModelExtend) {
+	ece = newEc
 }
 
 const (
@@ -255,6 +286,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 56,
+			},
+		}
 	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
@@ -308,6 +344,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x02CddA362DCA508709a651fDe1513b22D3C2a4e5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
 			},
 		}
 	case DefaultUnitTestNet:
@@ -365,6 +406,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
+			},
+		}
 	default: // DefaultTestNet
 		log.Error("not support chainID", "netId", netId)
 		return nil
@@ -401,6 +447,13 @@ func CheckUnStakeFreezeDuration(duration, maxEvidenceAge, zeroProduceFreezeDurat
 	}
 	if duration <= zeroProduceFreezeDuration || duration > CeilUnStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", zeroProduceFreezeDuration, CeilUnStakeFreezeDuration))
+	}
+	return nil
+}
+
+func CheckUnDelegateFreezeDuration(UnDelegateFreezeDuration, UnStakeFreezeDuration int) error {
+	if UnDelegateFreezeDuration <= Zero || UnDelegateFreezeDuration > UnStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnDelegateFreezeDuration %d must be (%d, %d]", UnDelegateFreezeDuration, 1, UnStakeFreezeDuration))
 	}
 	return nil
 }
@@ -594,6 +647,10 @@ func CheckEconomicModel() error {
 		return err
 	}
 
+	if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
+		return err
+	}
+
 	return nil
 }
 
@@ -681,6 +738,10 @@ func RewardPerMaxChangeRange() uint16 {
 
 func RewardPerChangeInterval() uint16 {
 	return ec.Staking.RewardPerChangeInterval
+}
+
+func UnDelegateFreezeDuration() uint64 {
+	return ece.Staking.UnDelegateFreezeDuration
 }
 
 /******

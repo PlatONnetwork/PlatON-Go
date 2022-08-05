@@ -369,6 +369,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, nodeId)
 			params = append(params, amount)
 		}
+	case 1006:
 	case 1100:
 	case 1101:
 	case 1102:
@@ -392,6 +393,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1105.NodeId)
 			params = append(params, nodeId)
 		}
+	case 1106:
 
 	case 1200:
 	case 1201:

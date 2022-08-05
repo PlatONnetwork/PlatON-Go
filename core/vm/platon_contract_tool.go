@@ -57,14 +57,14 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
 	}
-	xcom.AddLog(evm.StateDB, blockNumber, contractAddr, event, receipt)
+	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, nil)
 	if errCode.Code == common.NoErr.Code {
 		return []byte(receipt), nil
 	}
 	return []byte(receipt), errCode
 }
 
-func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res interface{}) []byte {
+func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res ...interface{}) []byte {
 	event := strconv.Itoa(fncode)
 	receipt := strconv.Itoa(errCode)
 	blockNumber := evm.BlockNumber.Uint64()
@@ -73,7 +73,7 @@ func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
 			"blockNumber", blockNumber, "receipt: ", receipt, "the reason", reason)
 	}
-	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res)
+	xcom.AddLogWithRes(evm.StateDB, blockNumber, contractAddr, event, receipt, res...)
 	return []byte(receipt)
 }
 
