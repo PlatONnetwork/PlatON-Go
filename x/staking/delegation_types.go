@@ -81,6 +81,13 @@ func (del *Delegation) IsEmpty() bool {
 	return nil == del
 }
 
+func (del *Delegation) TotalHes() *big.Int {
+	totalHes := new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
+	totalHes.Add(totalHes, del.LockReleasedHes)
+	totalHes.Add(totalHes, del.RestrictingPlanHes)
+	return totalHes
+}
+
 type DelegationForStorage Delegation
 
 // DecodeRLP implements rlp.Decoder, and loads both consensus and implementation
