@@ -4,6 +4,9 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+override_dh_auto_clean:
+	# Don't try to be smart Launchpad, we know our build rules better than you
+
 override_dh_auto_build:
 	build/env.sh /usr/lib/go-1.16/bin/go run build/ci.go install -git-commit={{.Env.Commit}} -git-branch={{.Env.Branch}} -git-tag={{.Env.Tag}} -buildnum={{.Env.Buildnum}} -pull-request={{.Env.IsPullRequest}}
 

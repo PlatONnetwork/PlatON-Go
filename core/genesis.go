@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io"
 	"math/big"
 	"os"
@@ -173,7 +174,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			return nil, common.ZeroHash, err
 		}
 		log.Debug("SetupGenesisBlock Hash", "Hash", block.Hash().Hex())
-		return genesis.Config, block.Hash(), err
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// We have the genesis block in database(perhaps in ancient database)
@@ -198,7 +199,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db, snapshotBaseDB)
-		return genesis.Config, block.Hash(), err
+		if err != nil {
+			return genesis.Config, hash, err
+		}
+		return genesis.Config, block.Hash(), nil
 	}
 
 	// Check whether the genesis block is already written.
@@ -238,12 +242,20 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 
 	// Get the existing EconomicModel configuration.
 	ecCfg := rawdb.ReadEconomicModel(db, stored)
+	eceCfg := rawdb.ReadEconomicModelExtend(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
 		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
 		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
+	if nil == eceCfg {
+		log.Warn("Found genesis block without EconomicModelExtend config")
+		xcom.GetEc(xcom.DefaultMainNet)
+		eceCfg = xcom.GetEce()
+		rawdb.WriteEconomicModelExtend(db, stored, eceCfg)
+	}
 	xcom.ResetEconomicDefaultConfig(ecCfg)
+	xcom.ResetEconomicExtendConfig(eceCfg)
 
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
@@ -280,6 +292,18 @@ func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
 	return genesisAddressHRP.Config.AddressHRP, nil
 }
 
+func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
+	var genesisEcConfig struct {
+		EconomicModel *xcom.EconomicModelExtend `json:"economicModel"`
+	}
+	genesisEcConfig.EconomicModel = xcom.GetEce()
+	if err := json.NewDecoder(r).Decode(&genesisEcConfig); err != nil {
+		return fmt.Errorf("invalid genesis file economicModel: %v", err)
+	}
+	xcom.ResetEconomicExtendConfig(genesisEcConfig.EconomicModel)
+	return nil
+}
+
 //this is only use to private chain
 func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	file, err := os.Open(path)
@@ -296,9 +320,14 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return err
 	}
 
-	file.Seek(0, io.SeekStart)
-
 	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
+
+	file.Seek(0, io.SeekStart)
+	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
+		return err
+	}
+
+	file.Seek(0, io.SeekStart)
 	if err := json.NewDecoder(file).Decode(g); err != nil {
 		return fmt.Errorf("invalid genesis file: %v", err)
 	}
@@ -424,6 +453,13 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
+	// 1.3.0
+	if gov.Gte130Version(genesisVersion) {
+		if err := gov.WriteEcHash130(statedb); nil != err {
+			panic("Failed Store EcHash130: " + err.Error())
+		}
+	}
+
 	if g.Config != nil {
 		if g.Config.AddressHRP != "" {
 			statedb.SetString(vm.StakingContractAddr, rawdb.AddressHRPKey, g.Config.AddressHRP)

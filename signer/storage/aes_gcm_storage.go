@@ -53,7 +53,7 @@ func NewAESEncryptedStorage(filename string, key []byte) *AESEncryptedStorage {
 	}
 }
 
-// Put stores a value by key. 0-length keys results in no-op
+// Put stores a value by key. 0-length keys results in noop.
 func (s *AESEncryptedStorage) Put(key, value string) {
 	if len(key) == 0 {
 		return
@@ -63,7 +63,7 @@ func (s *AESEncryptedStorage) Put(key, value string) {
 		log.Warn("Failed to read encrypted storage", "err", err, "file", s.filename)
 		return
 	}
-	ciphertext, iv, err := encrypt(s.key, []byte(value))
+	ciphertext, iv, err := encrypt(s.key, []byte(value), []byte(key))
 	if err != nil {
 		log.Warn("Failed to encrypt entry", "err", err)
 		return
@@ -75,27 +75,41 @@ func (s *AESEncryptedStorage) Put(key, value string) {
 	}
 }
 
-// Get returns the previously stored value, or the empty string if it does not exist or key is of 0-length
-func (s *AESEncryptedStorage) Get(key string) string {
+// Get returns the previously stored value, or an error if it does not exist or
+// key is of 0-length.
+func (s *AESEncryptedStorage) Get(key string) (string, error) {
 	if len(key) == 0 {
-		return ""
+		return "", ErrZeroKey
 	}
 	data, err := s.readEncryptedStorage()
 	if err != nil {
 		log.Warn("Failed to read encrypted storage", "err", err, "file", s.filename)
-		return ""
+		return "", err
 	}
 	encrypted, exist := data[key]
 	if !exist {
 		log.Warn("Key does not exist", "key", key)
-		return ""
+		return "", ErrNotFound
 	}
-	entry, err := decrypt(s.key, encrypted.Iv, encrypted.CipherText)
+	entry, err := decrypt(s.key, encrypted.Iv, encrypted.CipherText, []byte(key))
 	if err != nil {
 		log.Warn("Failed to decrypt key", "key", key)
-		return ""
+		return "", err
 	}
-	return string(entry)
+	return string(entry), nil
+}
+
+// Del removes a key-value pair. If the key doesn't exist, the method is a noop.
+func (s *AESEncryptedStorage) Del(key string) {
+	data, err := s.readEncryptedStorage()
+	if err != nil {
+		log.Warn("Failed to read encrypted storage", "err", err, "file", s.filename)
+		return
+	}
+	delete(data, key)
+	if err = s.writeEncryptedStorage(data); err != nil {
+		log.Warn("Failed to write entry", "err", err)
+	}
 }
 
 // readEncryptedStorage reads the file with encrypted creds
@@ -129,7 +143,10 @@ func (s *AESEncryptedStorage) writeEncryptedStorage(creds map[string]storedCrede
 	return nil
 }
 
-func encrypt(key []byte, plaintext []byte) ([]byte, []byte, error) {
+// encrypt encrypts plaintext with the given key, with additional data
+// The 'additionalData' is used to place the (plaintext) KV-store key into the V,
+// to prevent the possibility to alter a K, or swap two entries in the KV store with eachother.
+func encrypt(key []byte, plaintext []byte, additionalData []byte) ([]byte, []byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, err
@@ -142,11 +159,11 @@ func encrypt(key []byte, plaintext []byte) ([]byte, []byte, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
+	ciphertext := aesgcm.Seal(nil, nonce, plaintext, additionalData)
 	return ciphertext, nonce, nil
 }
 
-func decrypt(key []byte, nonce []byte, ciphertext []byte) ([]byte, error) {
+func decrypt(key []byte, nonce []byte, ciphertext []byte, additionalData []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -155,7 +172,7 @@ func decrypt(key []byte, nonce []byte, ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, additionalData)
 	if err != nil {
 		return nil, err
 	}

@@ -199,7 +199,7 @@ func (db *Database) Stat(property string) (string, error) {
 
 // Compact is not supported on a memory database.
 func (db *Database) Compact(start []byte, limit []byte) error {
-	return errors.New("unsupported operation")
+	return nil
 }
 
 // Len returns the number of entries currently present in the memory database.

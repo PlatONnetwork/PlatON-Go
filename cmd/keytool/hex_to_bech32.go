@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/btcsuite/btcutil/bech32"
+	"github.com/btcsuite/btcd/btcutil/bech32"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/bech32util"
 
@@ -39,8 +39,8 @@ update hex/bech32 address to  bech32 address.
 		utils.AddressHRPFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		hrp := ctx.String(utils.AddressHRPFlag.Name)
-		if err := common.SetAddressHRP(hrp); err != nil {
+		addressHRP := ctx.String(utils.AddressHRPFlag.Name)
+		if err := common.SetAddressHRP(addressHRP); err != nil {
 			return err
 		}
 
