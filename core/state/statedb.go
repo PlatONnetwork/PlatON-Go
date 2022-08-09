@@ -196,6 +196,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 	if err != nil {
 		return err
 	}
+
 	s.trie = tr
 	s.stateObjects = make(map[common.Address]*stateObject)
 	s.stateObjectsPending = make(map[common.Address]struct{})
@@ -853,6 +854,7 @@ func (s *StateDB) Copy() *StateDB {
 			// so we need to make sure that anyside effect the journal would have caused
 			// during a commit (or similar op) is already applied to the copy.
 			state.stateObjects[addr] = object.deepCopy(state)
+
 			state.stateObjectsDirty[addr] = struct{}{}   // Mark the copy dirty to force internal (code/state) commits
 			state.stateObjectsPending[addr] = struct{}{} // Mark the copy pending to force external (account) commits
 		}
@@ -866,7 +868,6 @@ func (s *StateDB) Copy() *StateDB {
 		}
 		state.stateObjectsPending[addr] = struct{}{}
 	}
-
 	for addr := range s.stateObjectsDirty {
 		if _, exist := state.stateObjects[addr]; !exist {
 			state.stateObjects[addr] = s.stateObjects[addr].deepCopy(state)
@@ -988,18 +989,15 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	if len(s.stateObjectsPending) > 0 {
 		s.stateObjectsPending = make(map[common.Address]struct{})
 	}
-
 	// Track the amount of time wasted on hashing the account trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountHashes += time.Since(start) }(time.Now())
 	}
-	//return s.trie.Hash()
-	return s.trie.ParallelHash()
+	return s.trie.Hash()
 }
 
 func (s *StateDB) Root() common.Hash {
-	//return s.trie.Hash()
-	return s.trie.ParallelHash()
+	return s.trie.Hash()
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -1051,8 +1049,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		defer func(start time.Time) { s.AccountCommits += time.Since(start) }(time.Now())
 	}
 	// Write trie changes.
-	//root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
-	return s.trie.ParallelCommit(func(leaf []byte, parent common.Hash) error {
+	root, _, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -1066,6 +1063,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
+	return root, err
 }
 
 func (s *StateDB) SetInt32(addr common.Address, key []byte, value int32) {

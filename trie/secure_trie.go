@@ -144,44 +144,26 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 //
 // Committing flushes nodes from memory. Subsequent Get calls will load nodes
 // from the database.
-func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
+func (t *SecureTrie) Commit(onleaf LeafCallback) (common.Hash, int, error) {
 	// Write all the pre-images to the actual disk database
-	t.trie.db.lock.Lock()
 	if len(t.getSecKeyCache()) > 0 {
-		for hk, key := range t.secKeyCache {
-			t.trie.db.insertPreimage(common.BytesToHash([]byte(hk)), key)
+		if t.trie.db.preimages != nil { // Ugly direct check but avoids the below write lock
+			t.trie.db.lock.Lock()
+			for hk, key := range t.secKeyCache {
+				t.trie.db.insertPreimage(common.BytesToHash([]byte(hk)), key)
+			}
+			t.trie.db.lock.Unlock()
 		}
 		t.secKeyCache = make(map[string][]byte)
 	}
-
-	t.trie.db.lock.Unlock()
-
 	// Commit the trie to its intermediate node database
 	return t.trie.Commit(onleaf)
-}
-
-func (t *SecureTrie) ParallelCommit(onleaf LeafCallback) (root common.Hash, err error) {
-	t.trie.db.lock.Lock()
-	if len(t.getSecKeyCache()) > 0 {
-		for hk, key := range t.secKeyCache {
-			t.trie.db.insertPreimage(common.BytesToHash([]byte(hk)), key)
-		}
-		t.secKeyCache = make(map[string][]byte)
-	}
-
-	t.trie.db.lock.Unlock()
-
-	return t.trie.ParallelCommit(onleaf)
 }
 
 // Hash returns the root hash of SecureTrie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *SecureTrie) Hash() common.Hash {
 	return t.trie.Hash()
-}
-
-func (t *SecureTrie) ParallelHash() common.Hash {
-	return t.trie.ParallelHash()
 }
 
 // Copy returns a copy of SecureTrie.
@@ -211,12 +193,12 @@ func (t *SecureTrie) NodeIterator(start []byte) NodeIterator {
 // The caller must not hold onto the return value because it will become
 // invalid on the next call to hashKey or secKey.
 func (t *SecureTrie) hashKey(key []byte) []byte {
-	h := newHasher(nil)
+	h := newHasher(false)
 	h.sha.Reset()
 	h.sha.Write(key)
-	buf := h.sha.Sum(t.hashKeyBuf[:0])
+	h.sha.Read(t.hashKeyBuf[:])
 	returnHasherToPool(h)
-	return buf
+	return t.hashKeyBuf[:]
 }
 
 // getSecKeyCache returns the current secure key cache, creating a new one if
