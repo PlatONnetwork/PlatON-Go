@@ -47,29 +47,29 @@ import (
 )
 
 const (
-	TxCreateStaking      = 1000
-	TxEditorCandidate    = 1001
-	TxIncreaseStaking    = 1002
-	TxWithdrewCandidate  = 1003
-	TxDelegate           = 1004
-	TxWithdrewDelegation = 1005
-	TxRedeemDelegation   = 1006
-	QueryVerifierList    = 1100
-	QueryValidatorList   = 1101
-	QueryCandidateList   = 1102
-	QueryRelateList      = 1103
-	QueryDelegateInfo    = 1104
-	QueryCandidateInfo   = 1105
-	QueryDelegationLock  = 1106
-	QueryHistoryVerifierList  = 10000
-	QueryHistoryValidatorList  = 10001
-	QueryNodeVersion  = 10002
-	QueryHistoryReward  = 10003
-	QueryHistorySlash = 10004
-	QueryHistoryTrans = 10005
-	GetPackageReward     = 1200
-	GetStakingReward     = 1201
-	GetAvgPackTime       = 1202
+	TxCreateStaking           = 1000
+	TxEditorCandidate         = 1001
+	TxIncreaseStaking         = 1002
+	TxWithdrewCandidate       = 1003
+	TxDelegate                = 1004
+	TxWithdrewDelegation      = 1005
+	TxRedeemDelegation        = 1006
+	QueryVerifierList         = 1100
+	QueryValidatorList        = 1101
+	QueryCandidateList        = 1102
+	QueryRelateList           = 1103
+	QueryDelegateInfo         = 1104
+	QueryCandidateInfo        = 1105
+	QueryDelegationLock       = 1106
+	GetPackageReward          = 1200
+	GetStakingReward          = 1201
+	GetAvgPackTime            = 1202
+	QueryHistoryVerifierList  = 1300
+	QueryHistoryValidatorList = 1301
+	QueryNodeVersion          = 1302
+	QueryHistoryReward        = 1303
+	QueryHistorySlash         = 1304
+	QueryHistoryTrans         = 1305
 )
 
 const (
@@ -115,18 +115,18 @@ func (stkc *StakingContract) FnSignsV1() map[uint16]interface{} {
 		TxWithdrewDelegation: stkc.withdrewDelegation,
 
 		// Get
-		QueryVerifierList:  stkc.getVerifierList,
-		QueryValidatorList: stkc.getValidatorList,
-		QueryCandidateList: stkc.getCandidateList,
-		QueryRelateList:    stkc.getRelatedListByDelAddr,
-		QueryDelegateInfo:  stkc.getDelegateInfo,
-		QueryCandidateInfo: stkc.getCandidateInfo,
-		QueryHistoryVerifierList: stkc.getHistoryVerifierList,
+		QueryVerifierList:         stkc.getVerifierList,
+		QueryValidatorList:        stkc.getValidatorList,
+		QueryCandidateList:        stkc.getCandidateList,
+		QueryRelateList:           stkc.getRelatedListByDelAddr,
+		QueryDelegateInfo:         stkc.getDelegateInfo,
+		QueryCandidateInfo:        stkc.getCandidateInfo,
+		QueryHistoryVerifierList:  stkc.getHistoryVerifierList,
 		QueryHistoryValidatorList: stkc.getHistoryValidatorList,
-		QueryNodeVersion: stkc.getNodeVersion,
-		QueryHistoryReward: stkc.getHistoryReward,
-		QueryHistorySlash: stkc.getHistorySlash,
-		QueryHistoryTrans: stkc.QueryHistoryTrans,
+		QueryNodeVersion:          stkc.getNodeVersion,
+		QueryHistoryReward:        stkc.getHistoryReward,
+		QueryHistorySlash:         stkc.getHistorySlash,
+		QueryHistoryTrans:         stkc.QueryHistoryTrans,
 
 		GetPackageReward: stkc.getPackageReward,
 		GetStakingReward: stkc.getStakingReward,

@@ -32,7 +32,7 @@ import (
 const (
 	TxCreateRestrictingPlan = 4000
 	QueryRestrictingInfo    = 4100
-	QueryRestrictingBalance = 4101
+	QueryRestrictingBalance = 4200
 )
 
 type RestrictingContract struct {
@@ -61,7 +61,7 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 		TxCreateRestrictingPlan: rc.createRestrictingPlan,
 
 		// Get
-		QueryRestrictingInfo: rc.getRestrictingInfo,
+		QueryRestrictingInfo:    rc.getRestrictingInfo,
 		QueryRestrictingBalance: rc.getRestrictingBalance,
 	}
 }
@@ -120,31 +120,33 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, error) {
 
 	accountList := strings.Split(accounts, ";")
-	if(len(accountList) == 0){
-		log.Error("getRestrictingBalance accountList empty","accountList:",len(accountList))
+	if len(accountList) == 0 {
+		log.Error("getRestrictingBalance accountList empty", "accountList:", len(accountList))
 		return nil, nil
 	}
 
 	txHash := rc.Evm.StateDB.TxHash()
 	currNumber := rc.Evm.BlockNumber
 	state := rc.Evm.StateDB
+	blockNumber := rc.Evm.BlockNumber
+	blockHash := rc.Evm.BlockHash
 
 	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 
 	rs := make([]restricting.BalanceResult, len(accountList))
 	for i, account := range accountList {
-		address,err := common.Bech32ToAddress(account)
+		address, err := common.Bech32ToAddress(account)
 		if err != nil {
 			log.Error("Call getRestrictingBalance of RestrictingContract Bech32ToAddress Error", "account", account, "err", err)
 			continue
 		}
-		result, err := rc.Plugin.GetRestrictingBalance(address, state)
+		result, err := rc.Plugin.GetRestrictingBalance(address, state, blockHash, blockNumber.Uint64())
 		if err != nil {
 			rb := restricting.BalanceResult{
-				Account : address,
+				Account: address,
 			}
 			rs[i] = rb
-			log.Error("getRestrictingBalance err","account:",account,";err",err)
+			log.Error("getRestrictingBalance err", "account:", account, ";err", err)
 		} else {
 			rs[i] = result
 		}
@@ -153,4 +155,3 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 	return callResultHandler(rc.Evm, fmt.Sprintf("getRestrictingBalance, account: %s", accounts),
 		rs, nil), nil
 }
-

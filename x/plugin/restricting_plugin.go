@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -654,28 +653,51 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	return rp.getRestrictingInfoToReturn(account, state)
 }
 
-func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state xcom.StateDB) (restricting.BalanceResult, error) {
+func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state xcom.StateDB, blockHash common.Hash, blockNumber uint64) (restricting.BalanceResult, error) {
 
 	log.Debug("begin to GetRestrictingBalance", "account", account.String())
 
 	var (
-		result           restricting.BalanceResult
+		result restricting.BalanceResult
 	)
 	result.Account = account
 	result.FreeBalance = (*hexutil.Big)(state.GetBalance(account))
 	result.LockBalance = (*hexutil.Big)(big.NewInt(0))
 	result.PledgeBalance = (*hexutil.Big)(big.NewInt(0))
-		_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
-	if err != nil {
-		log.Error("failed to rlp encode the restricting account", "error", err.Error(), "info", info)
-		return result, nil
+	result.DLFreeBalance = (*hexutil.Big)(big.NewInt(0))
+	result.DLRestrictingBalance = (*hexutil.Big)(big.NewInt(0))
+	result.Locks = make([]restricting.DelegationLockPeriodResult, 0)
+	// 设置锁仓金
+	_, info, err := rp.mustGetRestrictingInfoByDecode(state, account)
+	if err == nil {
+		result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
+		result.PledgeBalance = (*hexutil.Big)(info.AdvanceAmount)
 	}
 
-	result.LockBalance = (*hexutil.Big)(info.CachePlanAmount)
-	result.PledgeBalance = (*hexutil.Big)(info.AdvanceAmount)
+	// 设置委托锁定金
+	if gov.Gte130VersionState(state) {
+		var (
+			dLock  restricting.DelegationLockPeriodResult
+			dLocks []restricting.DelegationLockPeriodResult
+		)
+		locks, err := StakingInstance().GetGetDelegationLockCompactInfo(blockHash, blockNumber, account)
 
-	log.Trace("get restricting result", "account", account.String(), "result", result)
+		if err == nil {
+			result.DLFreeBalance = locks.Released
+			result.DLRestrictingBalance = locks.RestrictingPlan
+			for _, lock := range locks.Locks {
+				dLock.Epoch = lock.Epoch
+				dLock.Released = lock.Released
+				dLock.RestrictingPlan = lock.RestrictingPlan
+				dLocks = append(dLocks, dLock)
+			}
 
+			if len(dLocks) > 0 {
+				result.Locks = dLocks
+			}
+		}
+		log.Debug("end to GetRestrictingBalance", "locks", locks)
+	}
 	log.Debug("end to GetRestrictingBalance", "GetRestrictingBalance", result)
 
 	return result, nil
