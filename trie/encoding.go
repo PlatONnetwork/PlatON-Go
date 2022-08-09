@@ -35,7 +35,7 @@ package trie
 // into the remaining bytes. Compact encoding is used for nodes stored on disk.
 
 func hexToCompact(hex []byte) []byte {
-	terminator := byte(0) //
+	terminator := byte(0)
 	if hasTerm(hex) {
 		terminator = 1
 		hex = hex[:len(hex)-1]
@@ -49,6 +49,35 @@ func hexToCompact(hex []byte) []byte {
 	}
 	decodeNibbles(hex, buf[1:])
 	return buf
+}
+
+// hexToCompactInPlace places the compact key in input buffer, returning the length
+// needed for the representation
+func hexToCompactInPlace(hex []byte) int {
+	var (
+		hexLen    = len(hex) // length of the hex input
+		firstByte = byte(0)
+	)
+	// Check if we have a terminator there
+	if hexLen > 0 && hex[hexLen-1] == 16 {
+		firstByte = 1 << 5
+		hexLen-- // last part was the terminator, ignore that
+	}
+	var (
+		binLen = hexLen/2 + 1
+		ni     = 0 // index in hex
+		bi     = 1 // index in bin (compact)
+	)
+	if hexLen&1 == 1 {
+		firstByte |= 1 << 4 // odd flag
+		firstByte |= hex[0] // first nibble is contained in the first byte
+		ni++
+	}
+	for ; ni < hexLen; bi, ni = bi+1, ni+2 {
+		hex[bi] = hex[ni]<<4 | hex[ni+1]
+	}
+	hex[0] = firstByte
+	return binLen
 }
 
 func compactToHex(compact []byte) []byte {
