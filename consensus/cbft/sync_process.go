@@ -21,6 +21,7 @@ import (
 	"container/list"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -79,111 +80,126 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 			//utils.SetFalse(&cbft.fetching)
 		}()
 		cbft.log.Debug("Receive QCBlockList", "msg", msg.String())
-		if blockList, ok := msg.(*protocols.QCBlockList); ok {
-			// Execution block
-			for _, block := range blockList.Blocks {
-				if block.ParentHash() != parentBlock.Hash() {
-					cbft.log.Debug("Response block's is error",
-						"blockHash", block.Hash(), "blockNumber", block.NumberU64(),
-						"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
-					return
-				}
-				if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
-					cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
-					return
-				}
-				parentBlock = block
+
+		blockList, ok := msg.(*protocols.QCBlockList)
+		if !ok {
+			return
+		}
+
+		var wg sync.WaitGroup
+		var asyncCallErr error
+		// Handle block
+		for i, block := range blockList.Blocks {
+			if asyncCallErr != nil {
+				return
 			}
+			if block.ParentHash() != parentBlock.Hash() {
+				cbft.log.Debug("Response block is error", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+				return
+			}
+			if err := cbft.blockCacheWriter.Execute(block, parentBlock); err != nil {
+				cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+				return
+			}
+			wg.Add(1)
 
 			// Update the results to the CBFT state machine
 			cbft.asyncCallCh <- func() {
-				for i, block := range blockList.Blocks {
-					if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
-						cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
-						return
-					}
+				if err := cbft.verifyPrepareQC(block.NumberU64(), block.Hash(), blockList.QC[i]); err != nil {
+					cbft.log.Error("Verify block prepare qc failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+					asyncCallErr = err
+					wg.Done()
+					return
 				}
-				if err := cbft.OnInsertQCBlock(blockList.Blocks, blockList.QC); err != nil {
+				if err := cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{blockList.QC[i]}); err != nil {
 					cbft.log.Error("Insert block failed", "error", err)
+					asyncCallErr = err
 				}
+				wg.Done()
 			}
-			if blockList.ForkedBlocks == nil || len(blockList.ForkedBlocks) == 0 {
-				cbft.log.Trace("No forked block need to handle")
-				return
-			}
-			// Remove local forks that already exist.
-			filteredForkedBlocks := make([]*types.Block, 0)
-			filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
-			//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
-			localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
+			wg.Wait()
+			parentBlock = block
+		}
 
-			if localForkedBlocks != nil && len(localForkedBlocks) > 0 {
-				cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
-			}
+		// Handle forked block
+		if len(blockList.ForkedBlocks) == 0 {
+			cbft.log.Trace("No forked block need to handle")
+			return
+		}
+		// Remove local forks that already exist.
+		filteredForkedBlocks := make([]*types.Block, 0)
+		filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
+		//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
+		localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
 
-			for i, forkedBlock := range blockList.ForkedBlocks {
-				for _, localForkedBlock := range localForkedBlocks {
-					if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
-						filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
-						filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
-						break
-					}
-				}
-			}
-			if filteredForkedBlocks != nil && len(filteredForkedBlocks) > 0 {
-				cbft.log.Debug("FilteredForkedBlocks", "number", filteredForkedBlocks[0].NumberU64(), "hash", filteredForkedBlocks[0].Hash().TerminalString())
-			}
+		if len(localForkedBlocks) > 0 {
+			cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
+		}
 
-			// Execution forked block.
-			//var forkedParentBlock *types.Block
-			for _, forkedBlock := range filteredForkedBlocks {
-				if forkedBlock.NumberU64() != parentBlock.NumberU64() {
-					cbft.log.Error("Invalid forked block", "lastParentNumber", parentBlock.NumberU64(), "forkedBlockNumber", forkedBlock.NumberU64())
+		for i, forkedBlock := range blockList.ForkedBlocks {
+			for _, localForkedBlock := range localForkedBlocks {
+				if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
+					filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
+					filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
 					break
 				}
-				//for _, block := range blockList.Blocks {
-				//	if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
-				//		forkedParentBlock = block
-				//		break
-				//	}
-				//}
-				//if forkedParentBlock != nil {
-				//	break
-				//}
 			}
+		}
+		if len(filteredForkedBlocks) > 0 {
+			cbft.log.Debug("FilteredForkedBlocks", "number", filteredForkedBlocks[0].NumberU64(), "hash", filteredForkedBlocks[0].Hash().TerminalString())
+		}
 
-			// Verify forked block and execute.
-			for _, forkedBlock := range filteredForkedBlocks {
-				parentBlock := cbft.blockTree.FindBlockByHash(forkedBlock.ParentHash())
-				if parentBlock == nil {
-					cbft.log.Debug("Response forked block's is error",
-						"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64())
-					return
-				}
-				//if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
-				//	cbft.log.Debug("Response forked block's is error",
-				//		"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
-				//		"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
-				//	return
-				//}
-
-				if err := cbft.blockCacheWriter.Execute(forkedBlock, parentBlock); err != nil {
-					cbft.log.Error("Execute forked block failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
-					return
-				}
+		// Execution forked block.
+		for _, forkedBlock := range filteredForkedBlocks {
+			if forkedBlock.NumberU64() != parentBlock.NumberU64() {
+				cbft.log.Error("Invalid forked block", "lastParentNumber", parentBlock.NumberU64(), "forkedBlockNumber", forkedBlock.NumberU64())
+				break
 			}
+			//for _, block := range blockList.Blocks {
+			//	if block.Hash() == forkedBlock.ParentHash() && block.NumberU64() == forkedBlock.NumberU64()-1 {
+			//		forkedParentBlock = block
+			//		break
+			//	}
+			//}
+			//if forkedParentBlock != nil {
+			//	break
+			//}
+		}
+
+		// Verify forked block and execute.
+		for i, forkedBlock := range filteredForkedBlocks {
+			parentBlock := cbft.blockTree.FindBlockByHash(forkedBlock.ParentHash())
+			if parentBlock == nil {
+				cbft.log.Debug("Response forked block is error", "blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64())
+				return
+			}
+			//if forkedParentBlock == nil || forkedBlock.ParentHash() != forkedParentBlock.Hash() {
+			//	cbft.log.Debug("Response forked block's is error",
+			//		"blockHash", forkedBlock.Hash(), "blockNumber", forkedBlock.NumberU64(),
+			//		"parentHash", parentBlock.Hash(), "parentNumber", parentBlock.NumberU64())
+			//	return
+			//}
+
+			if err := cbft.blockCacheWriter.Execute(forkedBlock, parentBlock); err != nil {
+				cbft.log.Error("Execute forked block failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
+				return
+			}
+			wg.Add(1)
 
 			cbft.asyncCallCh <- func() {
-				for i, forkedBlock := range filteredForkedBlocks {
-					if err := cbft.verifyPrepareQC(forkedBlock.NumberU64(), forkedBlock.Hash(), blockList.ForkedQC[i]); err != nil {
-						cbft.log.Error("Verify forked block prepare qc failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
-						return
-					}
+				if err := cbft.verifyPrepareQC(forkedBlock.NumberU64(), forkedBlock.Hash(), blockList.ForkedQC[i]); err != nil {
+					cbft.log.Error("Verify forked block prepare qc failed", "hash", forkedBlock.Hash(), "number", forkedBlock.NumberU64(), "error", err)
+					asyncCallErr = err
+					wg.Done()
+					return
 				}
-				if err := cbft.OnInsertQCBlock(filteredForkedBlocks, filteredForkedQCs); err != nil {
+				if err := cbft.OnInsertQCBlock([]*types.Block{forkedBlock}, []*ctypes.QuorumCert{blockList.ForkedQC[i]}); err != nil {
 					cbft.log.Error("Insert forked block failed", "error", err)
+					asyncCallErr = err
 				}
+				wg.Done()
 			}
+			wg.Wait()
 		}
 	}
 
