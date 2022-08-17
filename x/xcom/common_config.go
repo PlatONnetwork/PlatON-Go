@@ -136,7 +136,7 @@ type rewardConfig struct {
 	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
 	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
-	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
 
 type restrictingConfig struct {
@@ -876,7 +876,22 @@ func CDFBalance() *big.Int {
 
 func EconomicString() string {
 	if nil != ec {
-		ecByte, _ := json.Marshal(ec)
+		type stakingConfigJson struct {
+			stakingConfig
+			stakingConfigExtend
+		}
+		type EconomicModelJson struct {
+			EconomicModel
+			Staking stakingConfigJson `json:"staking"`
+		}
+		emJson := &EconomicModelJson{
+			EconomicModel: *ec,
+			Staking: stakingConfigJson{
+				stakingConfig:       ec.Staking,
+				stakingConfigExtend: ece.Staking,
+			},
+		}
+		ecByte, _ := json.Marshal(emJson)
 		return string(ecByte)
 	} else {
 		return ""

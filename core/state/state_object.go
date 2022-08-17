@@ -367,6 +367,9 @@ func (s *stateObject) finalise() {
 func (s *stateObject) updateTrie(db Database) Trie {
 	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise()
+	if len(s.pendingStorage) == 0 {
+		return s.trie
+	}
 
 	// Insert all the pending updates into the trie
 	tr := s.getTrie(db)
@@ -375,6 +378,7 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
 	for key, value := range s.pendingStorage {
+
 		// Skip noop changes, persist actual changes
 		oldValue := s.originStorage[key]
 		if bytes.Equal(value, oldValue) {
@@ -402,20 +406,26 @@ func (s *stateObject) updateTrie(db Database) Trie {
 
 // UpdateRoot sets the trie root to the current root hash of
 func (s *stateObject) updateRoot(db Database) {
-	s.updateTrie(db)
+	// If nothing changed, don't bother with hashing anything
+	if s.updateTrie(db) == nil {
+		return
+	}
 
 	// Track the amount of time wasted on hashing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
 	}
 	//s.data.Root = s.trie.Hash()
-	s.data.Root = s.trie.ParallelHash()
+	s.data.Root = s.trie.Hash()
 }
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
 func (s *stateObject) CommitTrie(db Database) error {
-	s.updateTrie(db)
+	// If nothing changed, don't bother with hashing anything
+	if s.updateTrie(db) == nil {
+		return nil
+	}
 	if s.dbErr != nil {
 		return s.dbErr
 	}
@@ -424,7 +434,7 @@ func (s *stateObject) CommitTrie(db Database) error {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, err := s.trie.Commit(nil)
+	root, _, err := s.trie.Commit(nil)
 
 	if err == nil {
 		s.data.Root = root
