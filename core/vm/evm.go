@@ -217,7 +217,7 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 	}
 	//第一阶段EVM中CHAINID指令返回值沿用旧值
 
-	if statedb != nil && gov.Gte120VersionState(statedb) {
+	if statedb != nil && gov.Gte130VersionState(statedb) {
 		cpyChainCfg := &params.ChainConfig{
 			ChainID:        chainConfig.PIP7ChainID,
 			AddressHRP:     chainConfig.AddressHRP,
