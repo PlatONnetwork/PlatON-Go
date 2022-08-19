@@ -361,30 +361,34 @@ func (d *DelegationLock) AdvanceLockedFunds(amount *big.Int) (*big.Int, *big.Int
 
 	for i := len(d.Locks) - 1; i >= 0; i-- {
 		// 使用来自锁仓账户部分
-		if left.Cmp(d.Locks[i].RestrictingPlan) > 0 {
+		if left.Cmp(d.Locks[i].RestrictingPlan) >= 0 {
+			// 当前周期锁仓部分被用完
 			left.Sub(left, d.Locks[i].RestrictingPlan)
 			restricting.Add(restricting, d.Locks[i].RestrictingPlan)
 		} else {
+			// amount已被用完,锁仓部分剩余
 			d.Locks[i].RestrictingPlan.Sub(d.Locks[i].RestrictingPlan, left)
 			restricting.Add(restricting, left)
 			d.change = true
-			d.Locks = d.Locks[:i+1]
+			d.Locks = d.Locks[:i+1] //保留当前周期
 			return released, restricting, nil
 		}
 
-		// 使用来自余额部分
+		// 使用来自余额部分,此时锁仓部分被用完
 		if left.Cmp(d.Locks[i].Released) > 0 {
+			// 当前周期自由金额部分被用完
 			left.Sub(left, d.Locks[i].Released)
 			released.Add(released, d.Locks[i].Released)
 		} else {
+			// amount已被用完
 			d.Locks[i].RestrictingPlan.SetInt64(0)
 			d.Locks[i].Released.Sub(d.Locks[i].Released, left)
 			released.Add(released, left)
 			d.change = true
 			if d.Locks[i].Released.Cmp(common.Big0) == 0 {
-				d.Locks = d.Locks[:i]
+				d.Locks = d.Locks[:i] // 不保留当前周期
 			} else {
-				d.Locks = d.Locks[:i+1]
+				d.Locks = d.Locks[:i+1] // 保留当前周期
 			}
 			return released, restricting, nil
 		}
