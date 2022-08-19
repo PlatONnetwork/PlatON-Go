@@ -46,7 +46,7 @@ func TestDelegationLock_Add(t *testing.T) {
 		t.Error("epoch 2 release should be same")
 	}
 
-	if dlock.Locks[2].Released.Cmp(new(big.Int).SetInt64(30)) != 0 {
+	if dlock.Locks[2].Released.Cmp(new(big.Int).SetInt64(0)) != 0 {
 		t.Error("epoch 3 release should be same")
 	}
 
