@@ -162,7 +162,7 @@ type txPoolBlockChain interface {
 	GetState(header *types.Header) (*state.StateDB, error)
 }
 
-//TxPoolBlockChain most different with blockchain is CurrentBlock function. TxPoolBlockChain need get current block from highest logical block when engine is BFT
+// TxPoolBlockChain most different with blockchain is CurrentBlock function. TxPoolBlockChain need get current block from highest logical block when engine is BFT
 type TxPoolBlockChain struct {
 	chain *BlockChainCache
 }
@@ -183,7 +183,7 @@ func (tx *TxPoolBlockChain) GetBlock(hash common.Hash, number uint64) *types.Blo
 	return tx.chain.GetBlockInMemory(hash, number)
 }
 
-//StateAt(root common.Hash) (*state.StateDB, error)
+// StateAt(root common.Hash) (*state.StateDB, error)
 func (tx *TxPoolBlockChain) GetState(header *types.Header) (*state.StateDB, error) {
 	return tx.chain.GetState(header)
 }
@@ -316,7 +316,7 @@ type txpoolResetRequest struct {
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
-//func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
+// func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
 func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoolBlockChain) *TxPool {
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
@@ -483,10 +483,10 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 }
 
 func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block) {
-	log.Warn("Reset rollback block", "hash", newHeader.Hash(), "number", newHeader.Number.Uint64(), "rollback", len(rollback))
 	if len(rollback) == 0 {
 		return
 	}
+	log.Warn("Reset rollback block", "hash", newHeader.Hash(), "number", newHeader.Number.Uint64(), "rollback", len(rollback))
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
