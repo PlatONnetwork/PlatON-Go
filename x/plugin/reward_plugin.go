@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"math"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -600,7 +600,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	return nil
 }
 
-//  Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
+// Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
 func percentageCalculation(mount *big.Int, rate uint64) *big.Int {
 	ratio := new(big.Int).Mul(mount, big.NewInt(int64(rate)))
 	return new(big.Int).Div(ratio, common.Big100)
