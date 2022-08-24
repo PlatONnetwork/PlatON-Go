@@ -285,8 +285,10 @@ func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB
 	if nil != err {
 		return fmt.Errorf("Parsed UnDelegateFreezeDuration is failed: %v", err)
 	}
-	xcom.ResetEconomicExtendConfigUnDelegateFreezeDuration(uint64(num))
-	rawdb.WriteEconomicModelExtend(chainDB, hash, xcom.GetEce())
+	if chainDB != nil {
+		xcom.ResetEconomicExtendConfigUnDelegateFreezeDuration(uint64(num))
+		rawdb.WriteEconomicModelExtend(chainDB, hash, xcom.GetEce())
+	}
 	return nil
 }
 

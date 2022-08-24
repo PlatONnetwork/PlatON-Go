@@ -542,7 +542,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
-	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
+	if config.GenesisVersion >= params.FORKVERSION_1_3_0 {
 		rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
 	}
 
