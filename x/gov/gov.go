@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -148,7 +149,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
-	if err := proposal.Verify(blockNumber, blockHash, state, chainID); err != nil {
+	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
 		if bizError, ok := err.(*common.BizError); ok {
 			return bizError
 		} else {

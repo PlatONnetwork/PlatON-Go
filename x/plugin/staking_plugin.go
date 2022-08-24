@@ -21,12 +21,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	math2 "math"
 	"math/big"
 	"math/rand"
-	"sort"
 	"strconv"
 	"sync"
 
@@ -279,7 +279,6 @@ func (sk *StakingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) e
 		} else {
 			return nil
 		}
-
 	}
 
 	if xutil.IsEndOfEpoch(block.NumberU64()) {
@@ -425,7 +424,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-/// This method may only be called when creatStaking
+// This method may only be called when creatStaking
 func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	addr common.NodeAddress, typ uint16) error {
 

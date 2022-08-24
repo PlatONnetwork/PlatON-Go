@@ -96,7 +96,7 @@ func TestCommon_StorageAvgPackTime(t *testing.T) {
 	assert.Equal(t, uint64(2000), avgPackTime)
 }
 
-func TestStateDB(t *testing.T) {
+func TestAddLogWithRes(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
