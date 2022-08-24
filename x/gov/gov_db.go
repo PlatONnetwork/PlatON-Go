@@ -19,7 +19,10 @@ package gov
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -105,7 +108,7 @@ func GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, err
 	return proposls, nil
 }
 
-//Add the Vote detail
+// Add the Vote detail
 func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOption, blockHash common.Hash) error {
 	voteValueList, err := ListVoteValue(proposalID, blockHash)
 	if err != nil {
@@ -115,7 +118,7 @@ func AddVoteValue(proposalID common.Hash, voter discover.NodeID, option VoteOpti
 	return UpdateVoteValue(proposalID, voteValueList, blockHash)
 }
 
-//list vote detail
+// list vote detail
 func ListVoteValue(proposalID common.Hash, blockHash common.Hash) ([]VoteValue, error) {
 	voteListBytes, err := get(blockHash, KeyVote(proposalID))
 	if err != nil && err != snapshotdb.ErrNotFound {
@@ -254,7 +257,7 @@ func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.State
 	return nil
 }
 
-func Set130Param(hash common.Hash, db snapshotdb.DB) error {
+func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB ethdb.Writer) error {
 	list, err := db.Get(hash, KeyParamItems())
 	if err != nil {
 		return err
@@ -263,18 +266,27 @@ func Set130Param(hash common.Hash, db snapshotdb.DB) error {
 	if err := rlp.DecodeBytes(list, &paramItemList); err != nil {
 		return err
 	}
-	for _, param := range init130VersionParam() {
-		paramItemList = append(paramItemList, param.ParamItem)
-		value := common.MustRlpEncode(param.ParamValue)
-		if err := db.Put(hash, KeyParamValue(param.ParamItem.Module, param.ParamItem.Name), value); err != nil {
-			return fmt.Errorf("failed to Store govern 0140 parameter. error:%s", err.Error())
-		}
-		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
+	unDelegateFreezeDurationParam, err := initUnDelegateFreezeDurationParamVersionUpdate(blockNumber, hash)
+	if err != nil {
+		return err
 	}
-	value := common.MustRlpEncode(paramItemList)
-	if err := db.Put(hash, KeyParamItems(), value); err != nil {
-		return fmt.Errorf("failed to Store govern 0140 parameter list. error:%s", err.Error())
+	paramItemList = append(paramItemList, unDelegateFreezeDurationParam.ParamItem)
+	value := common.MustRlpEncode(unDelegateFreezeDurationParam.ParamValue)
+	if err := db.Put(hash, KeyParamValue(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name), value); err != nil {
+		return fmt.Errorf("failed to Store govern 130 parameter. error:%s", err.Error())
 	}
+	RegGovernParamVerifier(unDelegateFreezeDurationParam.ParamItem.Module, unDelegateFreezeDurationParam.ParamItem.Name, unDelegateFreezeDurationParam.ParamVerifier)
+
+	valueList := common.MustRlpEncode(paramItemList)
+	if err := db.Put(hash, KeyParamItems(), valueList); err != nil {
+		return fmt.Errorf("failed to Store govern 130 parameter list. error:%s", err.Error())
+	}
+	num, err := strconv.Atoi(unDelegateFreezeDurationParam.ParamValue.Value)
+	if nil != err {
+		return fmt.Errorf("Parsed UnDelegateFreezeDuration is failed: %v", err)
+	}
+	xcom.ResetEconomicExtendConfigUnDelegateFreezeDuration(uint64(num))
+	rawdb.WriteEconomicModelExtend(chainDB, hash, xcom.GetEce())
 	return nil
 }
 

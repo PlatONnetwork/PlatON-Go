@@ -132,10 +132,10 @@ func (e *GenesisMismatchError) Error() string {
 // SetupGenesisBlock writes or updates the genesis block in db.
 // The block that will be used is:
 //
-//                          genesis == nil       genesis != nil
-//                       +------------------------------------------
-//     db has no genesis |  main-net default  |  genesis
-//     db has genesis    |  from DB           |  genesis (if compatible)
+//	                     genesis == nil       genesis != nil
+//	                  +------------------------------------------
+//	db has no genesis |  main-net default  |  genesis
+//	db has genesis    |  from DB           |  genesis (if compatible)
 //
 // The stored chain configuration will be updated if it is compatible (i.e. does not
 // specify a fork block below the local head block). In case of a conflict, the
@@ -164,7 +164,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 
 		// check EconomicModel configuration
-		if err := xcom.CheckEconomicModel(); nil != err {
+		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
@@ -189,7 +189,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 
 		// check EconomicModel configuration
-		if err := xcom.CheckEconomicModel(); nil != err {
+		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
@@ -304,7 +304,7 @@ func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
 	return nil
 }
 
-//this is only use to private chain
+// this is only use to private chain
 func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -321,11 +321,6 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	}
 
 	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
-
-	file.Seek(0, io.SeekStart)
-	if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
-		return err
-	}
 
 	file.Seek(0, io.SeekStart)
 	if err := json.NewDecoder(file).Decode(g); err != nil {
@@ -356,6 +351,12 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	if g.Config.PIP7ChainID == nil {
 		g.Config.PIP7ChainID = params.PrivatePIP7ChainID
 	}
+	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
+		file.Seek(0, io.SeekStart)
+		if err := g.UnmarshalEconomicConfigExtend(file); nil != err {
+			return err
+		}
+	}
 
 	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
@@ -363,7 +364,7 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	xcom.SetPerRoundBlocks(uint64(g.Config.Cbft.Amount))
 
 	// check EconomicModel configuration
-	if err := xcom.CheckEconomicModel(); nil != err {
+	if err := xcom.CheckEconomicModel(g.Config.GenesisVersion); nil != err {
 		return fmt.Errorf("Failed CheckEconomicModel configuration: %v", err)
 	}
 	return nil
@@ -540,6 +541,10 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
+
+	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
+		rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
+	}
 
 	return block, nil
 }
