@@ -447,7 +447,7 @@ func initUnDelegateFreezeDurationParamVersionUpdate(blockNumber uint64, blockHas
 	if Duration/3 == 0 {
 		unDelegateFreezeDuration = 1
 	} else {
-		unDelegateFreezeDuration = 3
+		unDelegateFreezeDuration = int(Duration / 3)
 	}
 	return &GovernParam{
 		ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
