@@ -15,10 +15,10 @@ var locks = []DelegationLockPeriod{
 		2, new(big.Int).SetInt64(20), new(big.Int).SetInt64(20),
 	},
 	{
-		2, new(big.Int).SetInt64(5), new(big.Int).SetInt64(5),
+		2, new(big.Int).SetInt64(5), new(big.Int).SetInt64(0),
 	},
 	{
-		3, new(big.Int).SetInt64(30), new(big.Int).SetInt64(30),
+		3, new(big.Int).SetInt64(0), new(big.Int).SetInt64(30),
 	},
 }
 
@@ -46,7 +46,7 @@ func TestDelegationLock_Add(t *testing.T) {
 		t.Error("epoch 2 release should be same")
 	}
 
-	if dlock.Locks[2].Released.Cmp(new(big.Int).SetInt64(30)) != 0 {
+	if dlock.Locks[2].Released.Cmp(new(big.Int).SetInt64(0)) != 0 {
 		t.Error("epoch 3 release should be same")
 	}
 
@@ -55,19 +55,33 @@ func TestDelegationLock_Add(t *testing.T) {
 func TestDelegationLock_AdvanceLockedFunds(t *testing.T) {
 	dlock := newTestDelegationLock()
 
-	released1, restrictingPlan1, err := dlock.AdvanceLockedFunds(big.NewInt(30))
+	released1, restrictingPlan1, err := dlock.AdvanceLockedFunds(big.NewInt(15))
 	if err != nil {
 		t.Error(err)
 	}
-	if restrictingPlan1.Cmp(big.NewInt(30)) != 0 || released1.Cmp(common.Big0) != 0 {
+	if restrictingPlan1.Cmp(big.NewInt(15)) != 0 || released1.Cmp(common.Big0) != 0 {
 		t.Error("release or restrictingPlan seems wrong")
 	}
+	if len(dlock.Locks) != 3 {
+		t.Error("delegationLock length seems wrong")
+	}
 
-	released2, restrictingPlan2, err := dlock.AdvanceLockedFunds(big.NewInt(80))
+	released2, restrictingPlan2, err := dlock.AdvanceLockedFunds(big.NewInt(15))
 	if err != nil {
 		t.Error(err)
 	}
-	if restrictingPlan2.Cmp(big.NewInt(25)) != 0 || released2.Cmp(big.NewInt(55)) != 0 {
+	if restrictingPlan2.Cmp(big.NewInt(15)) != 0 || released2.Cmp(common.Big0) != 0 {
+		t.Error("release or restrictingPlan seems wrong")
+	}
+	if len(dlock.Locks) != 2 {
+		t.Error("delegationLock length seems wrong")
+	}
+
+	released3, restrictingPlan3, err := dlock.AdvanceLockedFunds(big.NewInt(60))
+	if err != nil {
+		t.Error(err)
+	}
+	if restrictingPlan3.Cmp(big.NewInt(30)) != 0 || released3.Cmp(big.NewInt(30)) != 0 {
 		t.Error("release or restrictingPlan seems wrong")
 	}
 	if len(dlock.Locks) != 1 {
@@ -79,7 +93,7 @@ func TestDelegationLock_AdvanceLockedFunds(t *testing.T) {
 		t.Error("should ErrDelegateLockBalanceNotEnough")
 	}
 
-	_, _, err4 := dlock.AdvanceLockedFunds(big.NewInt(20))
+	_, _, err4 := dlock.AdvanceLockedFunds(big.NewInt(5))
 	if err4 != nil {
 		t.Error(err4)
 	}

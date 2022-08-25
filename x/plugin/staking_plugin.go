@@ -21,9 +21,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"math/big"
 	"math/rand"
-	"sort"
 	"strconv"
 	"sync"
 
@@ -350,7 +350,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-/// This method may only be called when creatStaking
+// This method may only be called when creatStaking
 func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	addr common.NodeAddress, typ uint16) error {
 
