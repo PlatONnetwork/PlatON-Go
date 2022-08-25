@@ -800,14 +800,14 @@ func (sk *StakingPlugin) GetDelegateExCompactInfo(blockHash common.Hash, blockNu
 		NodeId:          nodeId,
 		StakingBlockNum: stakeBlockNumber,
 		DelegationHex: staking.DelegationHex{
-			DelegateEpoch:      del.DelegateEpoch,
-			Released:           (*hexutil.Big)(del.Released),
-			ReleasedHes:        (*hexutil.Big)(del.ReleasedHes),
-			RestrictingPlan:    (*hexutil.Big)(del.RestrictingPlan),
-			RestrictingPlanHes: (*hexutil.Big)(del.RestrictingPlanHes),
-			CumulativeIncome:   (*hexutil.Big)(del.CumulativeIncome),
-			LockReleasedHes:    (*hexutil.Big)(del.LockReleasedHes),
-			LockRestrictingHes: (*hexutil.Big)(del.LockRestrictingHes),
+			DelegateEpoch:          del.DelegateEpoch,
+			Released:               (*hexutil.Big)(del.Released),
+			ReleasedHes:            (*hexutil.Big)(del.ReleasedHes),
+			RestrictingPlan:        (*hexutil.Big)(del.RestrictingPlan),
+			RestrictingPlanHes:     (*hexutil.Big)(del.RestrictingPlanHes),
+			CumulativeIncome:       (*hexutil.Big)(del.CumulativeIncome),
+			LockReleasedHes:        (*hexutil.Big)(del.LockReleasedHes),
+			LockRestrictingPlanHes: (*hexutil.Big)(del.LockRestrictingPlanHes),
 		},
 	}, nil
 }
@@ -870,7 +870,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 					"amount", amount, "lockRestrictingHes", lockRestrictingHes, "lockReleasedHes", lockReleasedHes, "err", err)
 				return err
 			}
-			del.LockRestrictingHes = new(big.Int).Add(del.LockRestrictingHes, lockRestrictingHes)
+			del.LockRestrictingPlanHes = new(big.Int).Add(del.LockRestrictingPlanHes, lockRestrictingHes)
 			del.LockReleasedHes = new(big.Int).Add(del.LockReleasedHes, lockReleasedHes)
 		} else {
 			log.Error("Failed to Delegate on stakingPlugin", "err", staking.ErrWrongVonOptType,
@@ -1039,7 +1039,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 
 			// 犹豫期,来自锁定部分
 			if refundAmount.Cmp(common.Big0) > 0 {
-				rm, lockRelease, lockRestrictingPlan := rufundDelegateLockFn(refundAmount, del.LockReleasedHes, del.LockRestrictingHes, lockEndEpoch, delegationLock)
+				rm, lockRelease, lockRestrictingPlan := rufundDelegateLockFn(refundAmount, del.LockReleasedHes, del.LockRestrictingPlanHes, lockEndEpoch, delegationLock)
 
 				if can.IsNotEmpty() {
 					can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
@@ -1048,7 +1048,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				returnLockReleased.Add(returnLockReleased, lockRelease)
 				returnLockRestrictingPlan.Add(returnLockRestrictingPlan, lockRestrictingPlan)
 
-				refundAmount, del.LockReleasedHes, del.LockRestrictingHes = rm, new(big.Int).Sub(del.LockReleasedHes, lockRelease), new(big.Int).Sub(del.LockRestrictingHes, lockRestrictingPlan)
+				refundAmount, del.LockReleasedHes, del.LockRestrictingPlanHes = rm, new(big.Int).Sub(del.LockReleasedHes, lockRelease), new(big.Int).Sub(del.LockRestrictingPlanHes, lockRestrictingPlan)
 			}
 
 			// 生效期
@@ -2888,9 +2888,9 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 		del.Released = new(big.Int).Add(del.Released, del.LockReleasedHes)
 		del.LockReleasedHes = new(big.Int).SetInt64(0)
 	}
-	if del.LockRestrictingHes.Cmp(common.Big0) > 0 {
-		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.LockRestrictingHes)
-		del.LockRestrictingHes = new(big.Int).SetInt64(0)
+	if del.LockRestrictingPlanHes.Cmp(common.Big0) > 0 {
+		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.LockRestrictingPlanHes)
+		del.LockRestrictingPlanHes = new(big.Int).SetInt64(0)
 	}
 
 	log.Debug("lazyCalcDelegateAmount end", "epoch", epoch, "del", del)
@@ -3778,7 +3778,7 @@ func calcDelegateTotalAmount(del *staking.Delegation) *big.Int {
 	release := new(big.Int).Add(del.Released, del.ReleasedHes)
 	release.Add(release, del.LockReleasedHes)
 	restrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
-	restrictingPlan.Add(restrictingPlan, del.LockRestrictingHes)
+	restrictingPlan.Add(restrictingPlan, del.LockRestrictingPlanHes)
 	return new(big.Int).Add(release, restrictingPlan)
 }
 
