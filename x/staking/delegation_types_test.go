@@ -170,7 +170,7 @@ func TestDelegation_rlp(t *testing.T) {
 	if m.LockReleasedHes.Cmp(big.NewInt(100)) != 0 {
 		t.Error("decode fail")
 	}
-	if m.LockRestrictingHes == nil {
+	if m.LockRestrictingPlanHes == nil {
 		t.Error("decode fail")
 	}
 
@@ -182,7 +182,7 @@ func TestDelegation_rlp(t *testing.T) {
 	if x.LockReleasedHes.Cmp(big.NewInt(0)) != 0 {
 		t.Error("decode fail")
 	}
-	if x.LockRestrictingHes == nil {
+	if x.LockRestrictingPlanHes == nil {
 		t.Error("decode fail")
 	}
 }

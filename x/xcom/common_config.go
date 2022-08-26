@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
@@ -169,6 +170,7 @@ type EconomicModelExtend struct {
 }
 
 type stakingConfigExtend struct {
+	// 可治理参数,在版本升级或者私链初始化版本高于1.3.0的时候被写入到快照db,后续通过快照db查询
 	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
 }
 
@@ -209,6 +211,10 @@ func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 
 func ResetEconomicExtendConfig(newEc *EconomicModelExtend) {
 	ece = newEc
+}
+
+func ResetEconomicExtendConfigUnDelegateFreezeDuration(UnDelegateFreezeDuration uint64) {
+	ece.Staking.UnDelegateFreezeDuration = UnDelegateFreezeDuration
 }
 
 const (
@@ -536,7 +542,7 @@ func CheckMinimumRelease(minimumRelease *big.Int) error {
 	return nil
 }
 
-func CheckEconomicModel() error {
+func CheckEconomicModel(version uint32) error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
@@ -646,11 +652,11 @@ func CheckEconomicModel() error {
 	if err := CheckMinimumRelease(ec.Restricting.MinimumRelease); nil != err {
 		return err
 	}
-
-	if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
-		return err
+	if version >= params.FORKVERSION_1_3_0 {
+		if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
+			return err
+		}
 	}
-
 	return nil
 }
 
@@ -821,9 +827,11 @@ func VersionProposal_SupportRate() uint64 {
 	return ec.Gov.VersionProposalSupportRate
 }
 
-/*func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
-}*/
+/*
+	func TextProposalVote_ConsensusRounds() uint64 {
+		return ec.Gov.TextProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
+	}
+*/
 func TextProposalVote_DurationSeconds() uint64 {
 	return ec.Gov.TextProposalVoteDurationSeconds
 }

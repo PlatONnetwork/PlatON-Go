@@ -20,7 +20,7 @@ func NewDelegation() *Delegation {
 	del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	del.CumulativeIncome = new(big.Int).SetInt64(0)
 	del.LockReleasedHes = new(big.Int).SetInt64(0)
-	del.LockRestrictingHes = new(big.Int).SetInt64(0)
+	del.LockRestrictingPlanHes = new(big.Int).SetInt64(0)
 	return del
 }
 
@@ -40,8 +40,8 @@ type Delegation struct {
 	CumulativeIncome *big.Int
 
 	// 处于犹豫期的委托金,源自锁定期
-	LockReleasedHes    *big.Int
-	LockRestrictingHes *big.Int
+	LockReleasedHes        *big.Int
+	LockRestrictingPlanHes *big.Int
 }
 
 type v1StoredDelegationRlp struct {
@@ -65,7 +65,7 @@ func (del *Delegation) CleanCumulativeIncome(epoch uint32) {
 }
 
 func (del *Delegation) String() string {
-	return fmt.Sprintf(`{DelegateEpoch: %d,Released: %d,ReleasedHes: %d,RestrictingPlan: %d,RestrictingPlanHes: %d,CumulativeIncome: %d,LockReleasedHes:%d,LockRestrictingHes,%d}`,
+	return fmt.Sprintf(`{DelegateEpoch: %d,Released: %d,ReleasedHes: %d,RestrictingPlan: %d,RestrictingPlanHes: %d,CumulativeIncome: %d,LockReleasedHes:%d,LockRestrictingPlanHes,%d}`,
 		del.DelegateEpoch,
 		del.Released,
 		del.ReleasedHes,
@@ -73,7 +73,7 @@ func (del *Delegation) String() string {
 		del.RestrictingPlanHes,
 		del.CumulativeIncome,
 		del.LockReleasedHes,
-		del.LockRestrictingHes,
+		del.LockRestrictingPlanHes,
 	)
 }
 
@@ -84,7 +84,7 @@ func (del *Delegation) IsEmpty() bool {
 func (del *Delegation) TotalHes() *big.Int {
 	totalHes := new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes)
 	totalHes.Add(totalHes, del.LockReleasedHes)
-	totalHes.Add(totalHes, del.LockRestrictingHes)
+	totalHes.Add(totalHes, del.LockRestrictingPlanHes)
 	return totalHes
 }
 
@@ -117,7 +117,7 @@ func decodeStoredDelegateRLP(r *DelegationForStorage, blob []byte) error {
 	r.RestrictingPlanHes = stored.RestrictingPlanHes
 	r.CumulativeIncome = stored.CumulativeIncome
 	r.LockReleasedHes = stored.LockReleasedHes
-	r.LockRestrictingHes = stored.LockRestrictingHes
+	r.LockRestrictingPlanHes = stored.LockRestrictingPlanHes
 	return nil
 }
 
@@ -133,7 +133,7 @@ func decodeV1StoredDelegateRLP(r *DelegationForStorage, blob []byte) error {
 	r.RestrictingPlanHes = stored.RestrictingPlanHes
 	r.CumulativeIncome = stored.CumulativeIncome
 	r.LockReleasedHes = new(big.Int)
-	r.LockRestrictingHes = new(big.Int)
+	r.LockRestrictingPlanHes = new(big.Int)
 	return nil
 }
 
@@ -166,8 +166,8 @@ type DelegationHex struct {
 	// Cumulative delegate income (Waiting for withdrawal)
 	CumulativeIncome *hexutil.Big
 
-	LockReleasedHes    *hexutil.Big
-	LockRestrictingHes *hexutil.Big
+	LockReleasedHes        *hexutil.Big
+	LockRestrictingPlanHes *hexutil.Big
 }
 
 type DelegationHexV1 struct {
@@ -186,7 +186,7 @@ type DelegationHexV1 struct {
 }
 
 func (delHex *DelegationHex) String() string {
-	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"LockReleasedHes":%s,"LockRestrictingHes",%s}`,
+	return fmt.Sprintf(`{"DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"LockReleasedHes":%s,"LockRestrictingPlanHes",%s}`,
 		delHex.DelegateEpoch,
 		delHex.Released,
 		delHex.ReleasedHes,
@@ -194,7 +194,7 @@ func (delHex *DelegationHex) String() string {
 		delHex.RestrictingPlanHes,
 		delHex.CumulativeIncome,
 		delHex.LockReleasedHes,
-		delHex.LockRestrictingHes,
+		delHex.LockRestrictingPlanHes,
 	)
 }
 
@@ -206,7 +206,7 @@ type DelegationEx struct {
 }
 
 func (dex *DelegationEx) String() string {
-	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"LockReleasedHes":%s,"LockRestrictingHes",%s}`,
+	return fmt.Sprintf(`{"Addr": "%s","NodeId": "%s","StakingBlockNum": "%d","DelegateEpoch": "%d","Released": "%s","ReleasedHes": %s,"RestrictingPlan": %s,"RestrictingPlanHes": %s,"CumulativeIncome": %s,"LockReleasedHes":%s,"LockRestrictingPlanHes",%s}`,
 		dex.Addr.String(),
 		fmt.Sprintf("%x", dex.NodeId.Bytes()),
 		dex.StakingBlockNum,
@@ -217,7 +217,7 @@ func (dex *DelegationEx) String() string {
 		dex.RestrictingPlanHes,
 		dex.CumulativeIncome,
 		dex.LockReleasedHes,
-		dex.LockRestrictingHes,
+		dex.LockRestrictingPlanHes,
 	)
 }
 

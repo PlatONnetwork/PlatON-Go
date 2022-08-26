@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -59,7 +58,7 @@ var (
 	stateDB xcom.StateDB
 	chainID = big.NewInt(100)
 
-//	stk            *StakingPlugin
+	//	stk            *StakingPlugin
 )
 
 func setup(t *testing.T) func() {
