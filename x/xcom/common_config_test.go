@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package xcom
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -29,7 +29,7 @@ func TestDefaultEMConfig(t *testing.T) {
 		if getDefaultEMConfig(DefaultMainNet) == nil {
 			t.Error("DefaultMainNet can't be nil config")
 		}
-		if err := CheckEconomicModel(); nil != err {
+		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
 			t.Error(err)
 		}
 	})
@@ -37,7 +37,7 @@ func TestDefaultEMConfig(t *testing.T) {
 		if getDefaultEMConfig(DefaultTestNet) == nil {
 			t.Error("DefaultTestNet can't be nil config")
 		}
-		if err := CheckEconomicModel(); nil != err {
+		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
 			t.Error(err)
 		}
 	})
@@ -45,7 +45,7 @@ func TestDefaultEMConfig(t *testing.T) {
 		if getDefaultEMConfig(DefaultUnitTestNet) == nil {
 			t.Error("DefaultUnitTestNet can't be nil config")
 		}
-		if err := CheckEconomicModel(); nil != err {
+		if err := CheckEconomicModel(params.FORKVERSION_1_3_0); nil != err {
 			t.Error(err)
 		}
 	})

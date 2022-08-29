@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package gov
 
 import (
@@ -393,6 +392,11 @@ func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, gene
 
 	initParamList := queryInitParam()
 
+	if genesisVersion >= params.FORKVERSION_1_3_0 {
+		log.Info("init 1.3.0 params")
+		initParamList = append(initParamList, initUnDelegateFreezeDurationParamGenesis())
+	}
+
 	putBasedb_genKVHash_Fn := func(key, val []byte, hash common.Hash) (common.Hash, error) {
 		if err := snapDB.PutBaseDB(key, val); nil != err {
 			return common.ZeroHash, err
@@ -425,10 +429,56 @@ func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, gene
 	return lastHash, nil
 }
 
+func initUnDelegateFreezeDurationParamGenesis() *GovernParam {
+	return &GovernParam{
+		ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
+			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, %d]", new(big.Int).SetUint64(1), new(big.Int).SetInt64(int64(xcom.UnDelegateFreezeDuration())))},
+		ParamValue:    &ParamValue{"", strconv.Itoa(int(xcom.UnDelegateFreezeDuration())), 0},
+		ParamVerifier: UnDelegateFreezeDurationVerifier,
+	}
+}
+
+func initUnDelegateFreezeDurationParamVersionUpdate(blockNumber uint64, blockHash common.Hash) (*GovernParam, error) {
+	Duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	if nil != err {
+		return nil, err
+	}
+	unDelegateFreezeDuration := 0
+	if Duration/3 == 0 {
+		unDelegateFreezeDuration = 1
+	} else {
+		unDelegateFreezeDuration = int(Duration / 3)
+	}
+	return &GovernParam{
+		ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
+			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, %d]", new(big.Int).SetUint64(1), new(big.Int).SetInt64(int64(unDelegateFreezeDuration)))},
+		ParamValue:    &ParamValue{"", strconv.Itoa(unDelegateFreezeDuration), 0},
+		ParamVerifier: UnDelegateFreezeDurationVerifier,
+	}, nil
+}
+
+var UnDelegateFreezeDurationVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
+	num, err := strconv.Atoi(value)
+	if nil != err {
+		return fmt.Errorf("Parsed UnDelegateFreezeDuration is failed: %v", err)
+	}
+
+	Duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	if nil != err {
+		return err
+	}
+	if err := xcom.CheckUnDelegateFreezeDuration(num, int(Duration)); nil != err {
+		return err
+	}
+	return nil
+}
+
 func RegisterGovernParamVerifiers() {
 	for _, param := range queryInitParam() {
 		RegGovernParamVerifier(param.ParamItem.Module, param.ParamItem.Name, param.ParamVerifier)
 	}
+
+	RegGovernParamVerifier(ModuleStaking, KeyUnDelegateFreezeDuration, UnDelegateFreezeDurationVerifier)
 }
 
 func RegGovernParamVerifier(module, name string, callback ParamVerifier) {

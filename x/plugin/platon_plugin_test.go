@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -597,7 +596,6 @@ func build_staking_data(genesisHash common.Hash) {
 		count++
 	}
 
-	fmt.Printf("build staking  data count: %d \n", count)
 	queue := validatorArr[:25]
 
 	epoch_Arr := &staking.ValidatorArray{

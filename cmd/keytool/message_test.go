@@ -34,11 +34,11 @@ func TestMessageSignVerify(t *testing.T) {
 	message := "test message"
 
 	// Create the key.
-	generate := runKeytool(t, "generate", keyfile)
+	generate := runKeytool(t, "generate", "--lightkdf", keyfile)
 	generate.Expect(`
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
-Repeat passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
+Repeat password: {{.InputLine "foobar"}}
 `)
 	_, matches := generate.ExpectRegexp(`Address: (lat1[0-9a-z]{38})\n`)
 
@@ -49,7 +49,7 @@ Repeat passphrase: {{.InputLine "foobar"}}
 	sign := runKeytool(t, "signmessage", keyfile, message)
 	sign.Expect(`
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 `)
 	_, matches = sign.ExpectRegexp(`Signature: ([0-9a-f]+)\n`)
 	signature := matches[1]

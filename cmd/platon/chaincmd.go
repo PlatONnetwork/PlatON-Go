@@ -17,9 +17,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -58,6 +61,18 @@ This is a destructive action and changes the network in which you will be
 participating.
 
 It expects the genesis file as argument.`,
+	}
+	dumpGenesisCommand = cli.Command{
+		Action:    utils.MigrateFlags(dumpGenesis),
+		Name:      "dumpgenesis",
+		Usage:     "Dumps genesis block JSON configuration to stdout",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The dumpgenesis command dumps the genesis block configuration in JSON format to stdout.`,
 	}
 	importPreimagesCommand = cli.Command{
 		Action:    utils.MigrateFlags(importPreimages),
@@ -203,6 +218,17 @@ func initGenesis(ctx *cli.Context) error {
 		utils.Fatalf("Failed Copy Genesis file: %v", err)
 	}
 
+	return nil
+}
+
+func dumpGenesis(ctx *cli.Context) error {
+	genesis := utils.MakeGenesis(ctx)
+	if genesis == nil {
+		genesis = core.DefaultGenesisBlock()
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(genesis); err != nil {
+		utils.Fatalf("could not encode genesis")
+	}
 	return nil
 }
 
@@ -382,6 +408,11 @@ func dump(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
+	opts := &state.DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               eth.AccountRangeMaxResults, // Sanity limit over RPC
+	}
+
 	chain, chainDb := utils.MakeChain(ctx, stack)
 	for _, arg := range ctx.Args() {
 		var block *types.Block
@@ -399,7 +430,7 @@ func dump(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump())
+			fmt.Printf("%s\n", state.Dump(opts))
 		}
 	}
 	chainDb.Close()

@@ -32,23 +32,26 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
-	checker "gopkg.in/check.v1"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
-type StateSuite struct {
+var toAddr = common.BytesToAddress
+
+type stateTest struct {
 	db    ethdb.Database
 	state *StateDB
 }
 
-var _ = checker.Suite(&StateSuite{})
+func newStateTest() *stateTest {
+	db := rawdb.NewMemoryDatabase()
+	sdb, _ := New(common.Hash{}, NewDatabase(db))
+	return &stateTest{db: db, state: sdb}
+}
 
-var toAddr = common.BytesToAddress
-
-func (s *StateSuite) TestDump(c *checker.C) {
+func TestDump(t *testing.T) {
+	s := newStateTest()
 	// generate a few entries
 	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))
@@ -63,47 +66,45 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	s.state.Commit(false)
 
 	// check that dump contains the state objects that are in trie
-	got := string(s.state.Dump())
+	opts := &DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               256, // Sanity limit over RPC
+	}
+	got := string(s.state.Dump(opts))
 	want := `{
     "root": "32d937466d6678befa41bcd94571dde0c612392ee2d2fa21a0d420b8f2b803bc",
     "accounts": {
-        "0000000000000000000000000000000000000001": {
-            "balance": "22",
-            "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
-        },
-        "0000000000000000000000000000000000000002": {
-            "balance": "44",
-            "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-            "code": "",
-            "storage": {}
-        },
-        "0000000000000000000000000000000000000102": {
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqgzywgsrf": {
             "balance": "0",
             "nonce": 0,
-            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
-            "codeHash": "87874902497a5bb968da31a2998d8f22e949d1ef6214bcdedd8bae24cca4b9e3",
-            "code": "03030303030303",
-            "storage": {}
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0x87874902497a5bb968da31a2998d8f22e949d1ef6214bcdedd8bae24cca4b9e3",
+            "code": "0x03030303030303",
+            "key": "0xa17eacbc25cda025e81db9c5c62868822c73ce097cee2a63e33a2e41268358a1"
+        },
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpfr7f80": {
+            "balance": "22",
+            "nonce": 0,
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "key": "0x1468288056310c82aa4c01a7e12a10f8111a0560e72b700555479031b86c357d"
+        },
+        "lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqz8stlfs": {
+            "balance": "44",
+            "nonce": 0,
+            "root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+            "key": "0xd52688a8f926c816ca1e079067caba944f158e764817b83fc43594370ca9cf62"
         }
     }
 }`
 	if got != want {
-		c.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
+		t.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
 	}
 }
 
-func (s *StateSuite) SetUpTest(c *checker.C) {
-	s.db = rawdb.NewMemoryDatabase()
-	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
-}
-
-func (s *StateSuite) TestNull(c *checker.C) {
+func TestNull(t *testing.T) {
+	s := newStateTest()
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	s.state.CreateAccount(address)
 	value := common.FromHex("0x823140710bf13990e4500136726d8b55")
@@ -115,15 +116,16 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	s.state.Commit(false)
 
 	if value := s.state.GetState(address, key); bytes.Compare(value, value) != 0 {
-		c.Error("expected empty current value")
+		t.Error("expected empty current value")
 	}
 }
 
-func (s *StateSuite) TestSnapshot(c *checker.C) {
+func TestSnapshot(t *testing.T) {
 	stateobjaddr := toAddr([]byte("aa"))
 	var storageaddr common.Hash
 	data1 := common.BytesToHash([]byte{42})
 	data2 := common.BytesToHash([]byte{43})
+	s := newStateTest()
 
 	// snapshot the genesis state
 	genesis := s.state.Snapshot()
@@ -136,19 +138,28 @@ func (s *StateSuite) TestSnapshot(c *checker.C) {
 	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data2.Bytes())
 	s.state.RevertToSnapshot(snapshot)
 
-	c.Assert(common.BytesToHash(s.state.GetState(stateobjaddr, storageaddr.Bytes())), checker.DeepEquals, data1)
+	if v := s.state.GetState(stateobjaddr, storageaddr.Bytes()); !bytes.Equal(v, data1.Bytes()) {
+		t.Errorf("wrong storage value %v, want %v", v, data1)
+	}
+	if v := s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()); !bytes.Equal(v, []byte("")) {
+		t.Errorf("wrong committed storage value %v, want %v", v, []byte(""))
+	}
 
 	// revert up to the genesis state and ensure correct content
 	s.state.RevertToSnapshot(genesis)
-	c.Assert(common.BytesToHash(s.state.GetState(stateobjaddr, storageaddr.Bytes())), checker.DeepEquals, common.Hash{})
+	if v := s.state.GetState(stateobjaddr, storageaddr.Bytes()); !bytes.Equal(v, []byte("")) {
+		t.Errorf("wrong storage value %v, want %v", v, []byte(""))
+	}
+	if v := s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()); !bytes.Equal(v, []byte("")) {
+		t.Errorf("wrong committed storage value %v, want %v", v, []byte(""))
+	}
 }
 
-func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
+func TestSnapshotEmpty(t *testing.T) {
+	s := newStateTest()
 	s.state.RevertToSnapshot(s.state.Snapshot())
 }
 
-// use testing instead of checker because checker does not support
-// printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
 	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 

@@ -88,7 +88,7 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		database:   database,
 		blockchain: blockchain,
 		config:     genesis.Config,
-		events:     filters.NewEventSystem(new(event.TypeMux), &filterBackend{database, blockchain}, false),
+		events:     filters.NewEventSystem(&filterBackend{database, blockchain}, false),
 	}
 	backend.rollback()
 	return backend
@@ -117,7 +117,7 @@ func (b *SimulatedBackend) Commit() {
 		panic(err) // This cannot happen unless the simulator is wrong, fail in that case
 	}
 	stateDB, _ := b.blockchain.State()
-	b.blockchain.WriteBlockWithState(b.pendingBlock, b.pendingReceipts, stateDB)
+	b.blockchain.WriteBlockWithState(b.pendingBlock, b.pendingReceipts, nil, stateDB, true)
 	b.rollback()
 }
 

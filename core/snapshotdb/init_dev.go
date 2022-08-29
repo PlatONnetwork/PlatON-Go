@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
+//go:build test
 // +build test
 
 package snapshotdb
@@ -34,8 +34,7 @@ const (
 	//DBPath path of db
 	DBPath = "snapshotdb_test"
 	//DBBasePath path of basedb
-	DBBasePath  = "base"
-	currentPath = "current"
+	DBBasePath = "base"
 )
 
 func init() {
