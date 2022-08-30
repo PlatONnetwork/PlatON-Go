@@ -18,7 +18,6 @@ package plugin
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -4515,7 +4514,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 
 	newChainState()
 
-	curve := elliptic.P256()
+	curve := crypto.S256()
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte(string("nonce")))
@@ -4565,7 +4564,7 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 
 	newChainState()
 
-	curve := elliptic.P256()
+	curve := crypto.S256()
 
 	currentNonce := crypto.Keccak256([]byte("nonce"))
 
@@ -4647,7 +4646,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 		data = vrf.ProofToHash(vrfData)
 		dataList = append(dataList, data)
 
-		tempPrivateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		tempPrivateKey, _ := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
 		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
 		addr := crypto.PubkeyToNodeAddress(tempPrivateKey.PublicKey)
 		v := &staking.Validator{
