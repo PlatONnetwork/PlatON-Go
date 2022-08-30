@@ -132,7 +132,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, false); err != nil {
 			return err
 		}
 		return nil
@@ -333,13 +333,13 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return err
 		}
 
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, false); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.NodeId, can2.CandidateBase.StakingBlockNum, &delegate2); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can2.CandidateBase.NodeId, can2.CandidateBase.StakingBlockNum, &delegate2, false); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.NodeId, can3.CandidateBase.StakingBlockNum, &delegate3); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can3.CandidateBase.NodeId, can3.CandidateBase.StakingBlockNum, &delegate3, false); err != nil {
 			return err
 		}
 		return nil

@@ -117,18 +117,16 @@ func TestRecipientEmpty(t *testing.T) {
 	//	tx, err := decodeTx(common.Hex2Bytes("f8498080808080011ca09b16de9d5bdee2cf56c28d16275a4da68cd30273e2525f3959f5d62557489921a0372ebd8fb3345f7db7b5a86d42e24d36e983e259b0664ceb8c227ec9af572f3d"))
 	tx, err := decodeTx(common.Hex2Bytes(strTxRlpData))
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	from, err := Sender(NewEIP155Signer(new(big.Int)), tx)
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	if addr != from {
-		t.Error("derived address doesn't match")
+		t.Fatal("derived address doesn't match")
 	}
 }
 
@@ -163,14 +161,12 @@ func TestRecipientNormal(t *testing.T) {
 	tx, err := decodeTx(common.Hex2Bytes(str))
 
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	from, err := Sender(NewEIP155Signer(new(big.Int)), tx)
 	if err != nil {
-		t.Error(err)
-		t.FailNow()
+		t.Fatal(err)
 	}
 
 	if addr != from {

@@ -18,14 +18,19 @@ package simulations
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/mattn/go-colorable"
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -34,6 +39,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
+
+func TestMain(m *testing.M) {
+	loglevel := flag.Int("loglevel", 2, "verbosity of logs")
+
+	flag.Parse()
+	log.PrintOrigins(true)
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(*loglevel), log.StreamHandler(colorable.NewColorableStderr(), log.TerminalFormat(true))))
+	os.Exit(m.Run())
+}
 
 // testService implements the node.Service interface and provides protocols
 // and APIs which are useful for testing nodes in a simulation network

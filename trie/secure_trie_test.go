@@ -107,10 +107,10 @@ func TestInsertBlob(t *testing.T) {
 	fmt.Println("duration", time.Since(start))
 	start = time.Now()
 
-	root1, _ := trie1.Commit(leafcallback(triedb1, trie1))
+	root1, _, _ := trie1.Commit(leafcallback(triedb1, trie1))
 	fmt.Println("duration", time.Since(start))
 
-	root2, _ := trie2.Commit(leafcallback(triedb2, trie2))
+	root2, _, _ := trie2.Commit(leafcallback(triedb2, trie2))
 
 	assert.Equal(t, root1, root2)
 	triedb1.Commit(root1, true, true)
@@ -129,8 +129,8 @@ func TestInsertBlob(t *testing.T) {
 		insert(trie1, trie2)
 	}
 
-	root1, _ = trie1.Commit(leafcallback(triedb1, trie1))
-	root2, _ = trie2.Commit(leafcallback(triedb2, trie2))
+	root1, _, _ = trie1.Commit(leafcallback(triedb1, trie1))
+	root2, _, _ = trie2.Commit(leafcallback(triedb2, trie2))
 
 	assert.Equal(t, root1, root2)
 	triedb1.Commit(root1, true, true)

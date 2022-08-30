@@ -130,6 +130,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.HTTPListenAddrFlag,
 			utils.HTTPPortFlag,
 			utils.HTTPApiFlag,
+			utils.HTTPEnabledEthCompatibleFlag,
 			utils.HTTPCORSDomainFlag,
 			utils.HTTPVirtualHostsFlag,
 			utils.WSEnabledFlag,

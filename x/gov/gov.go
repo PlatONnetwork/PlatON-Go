@@ -17,11 +17,14 @@
 package gov
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -70,6 +73,7 @@ const (
 	KeyIncreaseIssuanceRatio      = "increaseIssuanceRatio"
 	KeyZeroProduceFreezeDuration  = "zeroProduceFreezeDuration"
 	KeyRestrictingMinimumAmount   = "minimumRelease"
+	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 )
 
 func Gte110VersionState(state xcom.StateDB) bool {
@@ -87,6 +91,32 @@ func Gte120VersionState(state xcom.StateDB) bool {
 func Gte120Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_2_0
 }
+
+func Gte130VersionState(state xcom.StateDB) bool {
+	return Gte130Version(GetCurrentActiveVersion(state))
+}
+
+func Gte130Version(version uint32) bool {
+	return version >= params.FORKVERSION_1_3_0
+}
+
+func WriteEcHash130(state xcom.StateDB) error {
+	if data, err := xcom.EcParams130(); nil != err {
+		return err
+	} else {
+		SetEcParametersHash(state, data)
+	}
+	return nil
+}
+
+func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {
+	pposHash := state.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
+	var buf bytes.Buffer
+	buf.Write(rlpData)
+	buf.Write(pposHash)
+	state.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), common.RlpHash(buf.Bytes()).Bytes())
+}
+
 func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	preActiveVersion := GetPreActiveVersion(blockHash)
 	if preActiveVersion > 0 {
@@ -119,7 +149,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
-	if err := proposal.Verify(blockNumber, blockHash, state, chainID); err != nil {
+	if err := proposal.Verify(blockNumber, blockHash, state); err != nil {
 		if bizError, ok := err.(*common.BizError); ok {
 			return bizError
 		} else {
@@ -718,6 +748,20 @@ func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, err
 
 func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
 	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
+	if nil != err {
+		return 0, err
+	}
+
+	duration, err := strconv.Atoi(durationStr)
+	if nil != err {
+		return 0, err
+	}
+
+	return uint64(duration), nil
+}
+
+func GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnDelegateFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}

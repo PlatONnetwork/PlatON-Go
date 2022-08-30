@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package xcom
 
 import (
@@ -96,29 +95,26 @@ func NewResult(err *common.BizError, data interface{}) []byte {
 }
 
 // addLog let the result add to event.
-func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
-	AddLogWithRes(state, blockNumber, contractAddr, event, data, nil)
-}
-
-// addLog let the result add to event.
-func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Address, event, code string, res interface{}) {
+// 参数datas可为空,里面的值不能为空
+// Log.data字段编码规则:
+// 如果datas为空,  rlp([code]),
+// 如果datas不为空,rlp([code,rlp(data1),rlp(data2)...]),
+func AddLogWithRes(state StateDB, blockNumber uint64, contractAddr common.Address, event, code string, datas ...interface{}) {
 	buf := new(bytes.Buffer)
-	if res == nil {
-		if err := rlp.Encode(buf, [][]byte{[]byte(code)}); nil != err {
-			log.Error("Cannot RlpEncode the log data", "data", code, "err", err)
-			panic("Cannot RlpEncode the log data")
+	logData := [][]byte{[]byte(code)}
+	if len(datas) != 0 && datas[0] != nil {
+		for _, res := range datas {
+			resByte, err := rlp.EncodeToBytes(res)
+			if err != nil {
+				log.Error("Cannot RlpEncode the log datas", "datas", datas, "err", err, "event", event)
+				panic("Cannot RlpEncode the log data")
+			}
+			logData = append(logData, resByte)
 		}
-	} else {
-		resByte, err := rlp.EncodeToBytes(res)
-		if err != nil {
-			log.Error("Cannot RlpEncode the log res", "res", res, "err", err, "event", event)
-			panic("Cannot RlpEncode the log data")
-		}
-		if err := rlp.Encode(buf, [][]byte{[]byte(code), resByte}); nil != err {
-			log.Error("Cannot RlpEncode the log data", "data", code, "err", err, "event", event)
-			panic("Cannot RlpEncode the log data")
-		}
-
+	}
+	if err := rlp.Encode(buf, logData); nil != err {
+		log.Error("Cannot RlpEncode the log data", "data", code, "err", err, "event", event)
+		panic("Cannot RlpEncode the log data")
 	}
 
 	state.AddLog(&types.Log{

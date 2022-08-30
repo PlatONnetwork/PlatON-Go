@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 	"math"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -61,6 +61,7 @@ const (
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+
 )
 
 var (
@@ -91,7 +92,7 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // EndBlock will handle reward work, if it's time to settle, reward staking. Then reward worker
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
-func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB, downloading Downloading) error {
+func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
 
 	//stats 计算当前增发周期中结算周期数
@@ -155,6 +156,7 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -237,10 +239,10 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
 		// Restore the cumulative issue at this year end
-		/*histIssuance.Add(histIssuance, currIssuance)
+		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
-		*/
+
 		//stats
 		//计算总发行金额
 		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
@@ -410,7 +412,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
+			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, gov.Gte130VersionState(state)); err != nil {
 				return nil, err
 			}
 		}
@@ -727,7 +729,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	return nil
 }
 
-//  Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
+// Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
 func percentageCalculation(mount *big.Int, rate uint64) *big.Int {
 	ratio := new(big.Int).Mul(mount, big.NewInt(int64(rate)))
 	return new(big.Int).Div(ratio, common.Big100)

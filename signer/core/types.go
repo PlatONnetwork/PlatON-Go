@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"math/big"
@@ -60,6 +61,36 @@ type ValidationMessages struct {
 	Messages []ValidationInfo
 }
 
+const (
+	WARN = "WARNING"
+	CRIT = "CRITICAL"
+	INFO = "Info"
+)
+
+func (vs *ValidationMessages) Crit(msg string) {
+	vs.Messages = append(vs.Messages, ValidationInfo{CRIT, msg})
+}
+func (vs *ValidationMessages) Warn(msg string) {
+	vs.Messages = append(vs.Messages, ValidationInfo{WARN, msg})
+}
+func (vs *ValidationMessages) Info(msg string) {
+	vs.Messages = append(vs.Messages, ValidationInfo{INFO, msg})
+}
+
+/// getWarnings returns an error with all messages of type WARN of above, or nil if no warnings were present
+func (v *ValidationMessages) getWarnings() error {
+	var messages []string
+	for _, msg := range v.Messages {
+		if msg.Typ == WARN || msg.Typ == CRIT {
+			messages = append(messages, msg.Message)
+		}
+	}
+	if len(messages) > 0 {
+		return fmt.Errorf("validation failed: %s", strings.Join(messages, ","))
+	}
+	return nil
+}
+
 // SendTxArgs represents the arguments to submit a transaction
 type SendTxArgs struct {
 	From     common.MixedcaseAddress  `json:"from"`
@@ -70,7 +101,7 @@ type SendTxArgs struct {
 	Nonce    hexutil.Uint64           `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons.
 	Data  *hexutil.Bytes `json:"data"`
-	Input *hexutil.Bytes `json:"input"`
+	Input *hexutil.Bytes `json:"input,omitempty"`
 }
 
 func (args SendTxArgs) String() string {

@@ -19,8 +19,6 @@ package core
 
 import (
 	"context"
-	"sync"
-
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -28,7 +26,6 @@ import (
 
 type StdIOUI struct {
 	client rpc.Client
-	mu     sync.Mutex
 }
 
 func NewStdIOUI() *StdIOUI {
