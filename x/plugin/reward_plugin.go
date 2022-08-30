@@ -92,7 +92,7 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 // EndBlock will handle reward work, if it's time to settle, reward staking. Then reward worker
 // for create new block, this is necessary. At last if current block is the last block at the end
 // of year, increasing issuance.
-func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB, downloading Downloading) error {
 	blockNumber := head.Number.Uint64()
 
 	//stats 计算当前增发周期中结算周期数
