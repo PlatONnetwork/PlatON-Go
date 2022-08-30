@@ -778,6 +778,9 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
 		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
 	}
+	if ctx.GlobalBool(HTTPEnabledEthCompatibleFlag.Name) {
+		types2.HttpEthCompatible = true
+	}
 
 	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = splitAndTrim(ctx.GlobalString(LegacyRPCVirtualHostsFlag.Name))

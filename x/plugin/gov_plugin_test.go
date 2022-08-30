@@ -236,7 +236,7 @@ func beginBlock(t *testing.T) {
 }
 
 func endBlock(t *testing.T) {
-	err := govPlugin.EndBlock(lastBlockHash, &lastHeader, stateDB, nil)
+	err := govPlugin.EndBlock(lastBlockHash, &lastHeader, stateDB)
 	if err != nil {
 		t.Fatalf("end block err... %s", err)
 	}

@@ -391,12 +391,14 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 			TxEditorCandidate, staking.ErrCanStatusInvalid)
 	}
 
+	//发起修改交易的钱包地址，必须和发起质押的钱包地址一致
 	if from != canOld.StakingAddress {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 			fmt.Sprintf("contract sender: %s, can stake addr: %s", from, canOld.StakingAddress),
 			TxEditorCandidate, staking.ErrNoSameStakingAddr)
 	}
 
+	//修改收益地址
 	if benefitAddress != nil && canOld.BenefitAddress != vm.RewardManagerPoolAddr {
 		canOld.BenefitAddress = *benefitAddress
 	}
@@ -425,6 +427,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 	}
 
 	if rewardPer != nil && *rewardPer != canOld.NextRewardPer {
+		//分红比例修改时，和原有比例不能变化太大
 		if !verifyRewardPer(*rewardPer) {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("invalid rewardPer: %d", rewardPer),
@@ -437,6 +440,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 				"err", err)
 			return nil, err
 		}
+		//分红比例修改时，不能太频繁。要和上次修改间隔一定的epoch
 		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -452,6 +456,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 
 		canOld.NextRewardPer = *rewardPer
 		difference := uint16(math.Abs(float64(canOld.NextRewardPer) - float64(canOld.RewardPer)))
+		//分红比例修改时，和原有比例不能变化太大
 		if difference > rewardPerMaxChangeRange {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "editCandidate",
 				fmt.Sprintf("invalid rewardPer: %d, modified by more than: %d", rewardPer, rewardPerMaxChangeRange),
@@ -749,6 +754,12 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		"", TxDelegate, common.NoErr)
 }
 
+// 撤消委托，当撤消某个节点的全部委托时，委托奖励将立刻发放到委托用户账户；当撤消某个接的部分委托时，只是计算委托奖励。
+//	stakingBlockNum + nodeId 确定一个质押的节点
+// param: stakingBlockNum	代表着某个node的某次质押的唯一标示
+// param: nodeId			被质押的节点的NodeId
+// param: amount			减持的金额
+// return:
 func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()

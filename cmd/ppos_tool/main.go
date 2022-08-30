@@ -112,6 +112,11 @@ type Ppos_1105 struct {
 	NodeId discover.NodeID
 }
 
+// getDelegationLockInfo
+type Ppos_1106 struct {
+	DelAddr common.Address
+}
+
 // submitText
 type Ppos_2000 struct {
 	Verifier discover.NodeID
@@ -237,6 +242,7 @@ type decDataConfig struct {
 	P1103 Ppos_1103
 	P1104 Ppos_1104
 	P1105 Ppos_1105
+	P1106 Ppos_1106
 	P2000 Ppos_2000
 	P2001 Ppos_2001
 	P2002 Ppos_2002
@@ -394,7 +400,10 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, nodeId)
 		}
 	case 1106:
-
+		{
+			delAddr, _ := rlp.EncodeToBytes(cfg.P1104.DelAddr.Bytes())
+			params = append(params, delAddr)
+		}
 	case 1200:
 	case 1201:
 	case 1202:

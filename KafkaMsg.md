@@ -110,7 +110,8 @@
 			"rewardRatioByPenalties": 10
 		},
 		"stakingSetting": {
-			"operatingThreshold": 1000
+			"operatingThreshold": 1000,
+            "unDelegateFreezeDuration": 300
 		},
 		"stakingFrozenItemList": [
 			{
@@ -321,6 +322,7 @@
     ```
     {
         "operatingThreshold": 10            //委托要求的最小数量；当减持委托时，委托数量少于该值，则全部减持。
+        "unDelegateFreezeDuration": 300     //当前解委托需要冻结的周期
     }
     ```	
 7. stakingFrozenItemList 质押冻结信息。 在解除质押、 零出块惩罚、 双签惩罚、 锁定恢复（blockType = 6）时可能存在。

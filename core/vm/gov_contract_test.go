@@ -1731,7 +1731,7 @@ func beginBlock(chain *mock.Chain, t *testing.T) {
 }
 
 func endBlock(chain *mock.Chain, t *testing.T) {
-	err := govPlugin.EndBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader(), chain.StateDB, nil)
+	err := govPlugin.EndBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader(), chain.StateDB)
 	if err != nil {
 		t.Fatalf("end block err... %s", err)
 	}

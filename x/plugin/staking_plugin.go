@@ -996,10 +996,11 @@ func (sk *StakingPlugin) AdvanceDelegationLockedFunds(blockHash common.Hash, acc
 	log.Debug("Call AdvanceDelegationLockedFunds finished", "blockHash", blockHash, "lockRestrictingHes", lockRestrictingHes, "lockReleasedHes", lockReleasedHes, "delegationLock", d)
 	return lockReleasedHes, lockRestrictingHes, nil
 }
+
 // stats:撤回委托，可以部分撤回。
 // 0.15.0之前，委托用户可以撤销委托，马上到账。待赎回委托：委托的节点如果撤销质押了，委托用户需自己赎回委托，这种委托，成为待赎回委托。
 // 0.15.0之后，委托用户撤销委托，要先发撤回委托交易，委托进入冻结状态，冻结期满；委托进入待赎回状态，委托用户再发赎回委托才能到账；委托的节点如果撤销质押了，委托用户需要自己发送撤回委托交易，待冻结结满，再发赎回交易。待赎回委托：处于冻结期的委托。
-func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
+func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	issueIncome, returnReleased, returnRestrictingPlan, returnLockReleased, returnLockRestrictingPlan := new(big.Int), new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -1038,7 +1039,8 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 		log.Error("Failed to get governParams", "err", err)
 		return nil, nil, nil, nil, nil, common.InternalError
 	}
-	common.CollectStakingSetting(blockNumber.Uint64(), threshold)
+	unDelegateFreezeDuration, _ := gov.GovernUnDelegateFreezeDuration(blockNumber.Uint64(), blockHash)
+	common.CollectStakingSetting(blockNumber.Uint64(), threshold, unDelegateFreezeDuration)
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
@@ -1173,7 +1175,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			//if issueIncome.Sign() > 0 {
 			common.CollectWithdrawDelegation(blockNumber.Uint64(), txHash, delAddr, common.NodeID(nodeId), issueIncome)
 			//}
-			if err := rm.ReturnDelegateReward(delAddr, del.CumulativeIncome, state); err != nil {
+			if err := RewardMgrInstance().ReturnDelegateReward(delAddr, del.CumulativeIncome, state); err != nil {
 				log.Error("Failed to WithdrewDelegation on stakingPlugin: return delegate reward is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
@@ -3067,6 +3069,14 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 		del.RestrictingPlanHes = new(big.Int).SetInt64(0)
 	}
+	if del.LockReleasedHes.Cmp(common.Big0) > 0 {
+		del.Released = new(big.Int).Add(del.Released, del.LockReleasedHes)
+		del.LockReleasedHes = new(big.Int).SetInt64(0)
+	}
+	if del.LockRestrictingPlanHes.Cmp(common.Big0) > 0 {
+		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.LockRestrictingPlanHes)
+		del.LockRestrictingPlanHes = new(big.Int).SetInt64(0)
+	}
 
 	log.Debug("lazyCalcDelegateAmount end", "epoch", epoch, "del", del)
 }
@@ -3118,7 +3128,7 @@ func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.Del
 		}
 	}
 	log.Debug("Call calcDelegateIncome end", "currEpoch", epoch, "perLen", len(per), "delegateRewardReceivesLen", len(delegateRewardReceives),
-		"totalDelegate", totalReleased, "totalHes", new(big.Int).Add(del.ReleasedHes, del.RestrictingPlanHes), "income", del.CumulativeIncome)
+		"totalDelegate", totalReleased, "totalHes", del.TotalHes(), "income", del.CumulativeIncome)
 	return delegateRewardReceives
 }
 
@@ -3965,7 +3975,9 @@ func calcCandidateTotalAmount(can *staking.Candidate) *big.Int {
 
 func calcDelegateTotalAmount(del *staking.Delegation) *big.Int {
 	release := new(big.Int).Add(del.Released, del.ReleasedHes)
+	release.Add(release, del.LockReleasedHes)
 	restrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+	restrictingPlan.Add(restrictingPlan, del.LockRestrictingPlanHes)
 	return new(big.Int).Add(release, restrictingPlan)
 }
 
