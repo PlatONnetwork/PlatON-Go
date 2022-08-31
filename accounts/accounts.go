@@ -18,7 +18,10 @@
 package accounts
 
 import (
+	"fmt"
 	"math/big"
+
+	"golang.org/x/crypto/sha3"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -83,9 +86,13 @@ type Wallet interface {
 	// opposed to decending into a child path to allow discovering accounts starting
 	// from non zero components.
 	//
+	// Some hardware wallets switched derivation paths through their evolution, so
+	// this method supports providing multiple bases to discover old user accounts
+	// too. Only the last base will be used to derive the next empty account.
+	//
 	// You can disable automatic account discovery by calling SelfDerive with a nil
 	// chain state reader.
-	SelfDerive(base DerivationPath, chain ethereum.ChainStateReader)
+	SelfDerive(bases []DerivationPath, chain ethereum.ChainStateReader)
 
 	// SignHash requests the wallet to sign the given hash.
 	//
@@ -146,6 +153,32 @@ type Backend interface {
 	// Subscribe creates an async subscription to receive notifications when the
 	// backend detects the arrival or departure of a wallet.
 	Subscribe(sink chan<- WalletEvent) event.Subscription
+}
+
+// TextHash is a helper function that calculates a hash for the given message that can be
+// safely used to calculate a signature from.
+//
+// The hash is calulcated as
+//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+// This gives context to the signed message and prevents signing of transactions.
+func TextHash(data []byte) []byte {
+	hash, _ := TextAndHash(data)
+	return hash
+}
+
+// TextAndHash is a helper function that calculates a hash for the given message that can be
+// safely used to calculate a signature from.
+//
+// The hash is calulcated as
+//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+// This gives context to the signed message and prevents signing of transactions.
+func TextAndHash(data []byte) ([]byte, string) {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), string(data))
+	hasher := sha3.NewLegacyKeccak256()
+	hasher.Write([]byte(msg))
+	return hasher.Sum(nil), msg
 }
 
 // WalletEventType represents the different event types that can be fired by

@@ -80,7 +80,6 @@ lint: ## Run linters.
 
 clean:
 	./build/clean_deps.sh
-	./build/clean_go_build_cache.sh
 	env GO111MODULE=on go clean -cache
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 

@@ -76,10 +76,12 @@ func buildErrorRestrictingPlanData() ([]byte, error) {
 }
 
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	contract := &RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, nil),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	{
@@ -119,14 +121,15 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 	// build db data for getting info
 	account := addrArr[0]
-	stateDb, _, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	balance, _ := new(big.Int).SetString("20000000000000000000000000", 10)
-	buildDbRestrictingPlan(t, account, balance, 5, stateDb)
+	buildDbRestrictingPlan(t, account, balance, 5, chain.StateDB)
 
 	contract := &RestrictingContract{
 		Plugin:   plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, stateDb),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
 	var params [][]byte

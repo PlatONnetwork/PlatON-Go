@@ -20,12 +20,15 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/tabwriter"
+	"text/template"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/graphql"
@@ -45,6 +48,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	types2 "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -76,11 +80,20 @@ SUBCOMMANDS:
 {{range $categorized.Flags}}{{"\t"}}{{.}}
 {{end}}
 {{end}}{{end}}`
-	OriginCommandHelpTemplate = ""
+
+	OriginCommandHelpTemplate = `{{.Name}}{{if .Subcommands}} command{{end}}{{if .Flags}} [command options]{{end}} [arguments...]
+{{if .Description}}{{.Description}}
+{{end}}{{if .Subcommands}}
+SUBCOMMANDS:
+	{{range .Subcommands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
+	{{end}}{{end}}{{if .Flags}}
+OPTIONS:
+{{range $.Flags}}{{"\t"}}{{.}}
+{{end}}
+{{end}}`
 )
 
 func init() {
-	OriginCommandHelpTemplate = cli.CommandHelpTemplate
 	cli.AppHelpTemplate = `{{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
 
 VERSION:
@@ -94,6 +107,7 @@ GLOBAL OPTIONS:
    {{end}}{{end}}
 `
 	cli.CommandHelpTemplate = CommandHelpTemplate
+	cli.HelpPrinter = printHelp
 }
 
 // NewApp creates an app with sane defaults.
@@ -105,6 +119,17 @@ func NewApp(gitCommit, gitDate, usage string) *cli.App {
 	app.Version = params.VersionWithCommit(gitCommit, gitDate)
 	app.Usage = usage
 	return app
+}
+
+func printHelp(out io.Writer, templ string, data interface{}) {
+	funcMap := template.FuncMap{"join": strings.Join}
+	t := template.Must(template.New("help").Funcs(funcMap).Parse(templ))
+	w := tabwriter.NewWriter(out, 38, 8, 2, ' ', 0)
+	err := t.Execute(w, data)
+	if err != nil {
+		panic(err)
+	}
+	w.Flush()
 }
 
 // These are all the command line flags we support.
@@ -119,7 +144,7 @@ var (
 	DataDirFlag = DirectoryFlag{
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
-		Value: DirectoryString{node.DefaultDataDir()},
+		Value: DirectoryString(node.DefaultDataDir()),
 	}
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
@@ -161,7 +186,7 @@ var (
 	DocRootFlag = DirectoryFlag{
 		Name:  "docroot",
 		Usage: "Document Root for HTTPClient file scheme",
-		Value: DirectoryString{homeDir()},
+		Value: DirectoryString(homeDir()),
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
@@ -329,6 +354,10 @@ var (
 		Name:  "http.api",
 		Usage: "API's offered over the HTTP-RPC interface",
 		Value: "",
+	}
+	HTTPEnabledEthCompatibleFlag = cli.BoolFlag{
+		Name:  "http.ethcompatible",
+		Usage: "Enable eth compatible",
 	}
 	GraphQLEnabledFlag = cli.BoolFlag{
 		Name:  "graphql",
@@ -747,6 +776,9 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
 		cfg.HTTPModules = splitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
+	}
+	if ctx.GlobalBool(HTTPEnabledEthCompatibleFlag.Name) {
+		types2.HttpEthCompatible = true
 	}
 
 	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {

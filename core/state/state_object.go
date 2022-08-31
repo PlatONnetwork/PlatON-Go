@@ -81,15 +81,10 @@ type stateObject struct {
 	trie Trie // storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	//originStorage      Storage      // Storage cache of original entries to dedup rewrites
-	//originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
-	//
-	//dirtyStorage      Storage      // Storage entries that need to be flushed to disk
-	//dirtyValueStorage ReferenceValueStorage // Storage entries that need to be flushed to disk
-
-	originStorage ValueStorage // Storage cache of original entries to dedup rewrites
-	dirtyStorage  ValueStorage // Storage entries that need to be flushed to disk
-	fakeStorage   ValueStorage // Fake storage which constructed by caller for debugging purpose.
+	originStorage  ValueStorage // Storage cache of original entries to dedup rewrites, reset for every transaction
+	pendingStorage ValueStorage // Storage entries that need to be flushed to disk, at the end of an entire block
+	dirtyStorage   ValueStorage // Storage entries that have been modified in the current transaction execution
+	fakeStorage    ValueStorage // Fake storage which constructed by caller for debugging purpose.
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -144,13 +139,17 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
+	if data.Root == (common.Hash{}) {
+		data.Root = emptyRoot
+	}
 	return &stateObject{
-		db:            db,
-		address:       address,
-		addrHash:      crypto.Keccak256Hash(address[:]),
-		data:          data,
-		originStorage: make(ValueStorage),
-		dirtyStorage:  make(ValueStorage),
+		db:             db,
+		address:        address,
+		addrHash:       crypto.Keccak256Hash(address[:]),
+		data:           data,
+		originStorage:  make(ValueStorage),
+		pendingStorage: make(ValueStorage),
+		dirtyStorage:   make(ValueStorage),
 	}
 }
 
@@ -249,9 +248,12 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	if s.fakeStorage != nil {
 		return s.fakeStorage[string(key)]
 	}
+	// If we have a pending write or clean cached, return that
+	if value, pending := s.pendingStorage[string(key)]; pending {
+		return value
+	}
 	// If we have the original value cached, return that
 	if value := s.getCommittedStateCache(key); len(value) != 0 {
-		//log.Trace("GetCommittedState cache", "key", hex.EncodeToString(key), "value", len(value))
 		return value
 	}
 
@@ -350,15 +352,32 @@ func (s *stateObject) removePrefixValue(value []byte) []byte {
 	return []byte{}
 }
 
+// finalise moves all dirty storage slots into the pending area to be hashed or
+// committed later. It is invoked at the end of every transaction.
+func (s *stateObject) finalise() {
+	for key, value := range s.dirtyStorage {
+		s.pendingStorage[key] = value
+	}
+	if len(s.dirtyStorage) > 0 {
+		s.dirtyStorage = make(ValueStorage)
+	}
+}
+
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (s *stateObject) updateTrie(db Database) Trie {
+	// Make sure all dirty slots are finalized into the pending storage area
+	s.finalise()
+	if len(s.pendingStorage) == 0 {
+		return s.trie
+	}
+
+	// Insert all the pending updates into the trie
 	tr := s.getTrie(db)
 	// Track the amount of time wasted on updating the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
-	for key, value := range s.dirtyStorage {
-		delete(s.dirtyStorage, key)
+	for key, value := range s.pendingStorage {
 
 		// Skip noop changes, persist actual changes
 		oldValue := s.originStorage[key]
@@ -378,25 +397,35 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		s.setError(tr.TryUpdate([]byte(key), v))
 	}
 
+	if len(s.pendingStorage) > 0 {
+		s.pendingStorage = make(ValueStorage)
+	}
+
 	return tr
 }
 
 // UpdateRoot sets the trie root to the current root hash of
 func (s *stateObject) updateRoot(db Database) {
-	s.updateTrie(db)
+	// If nothing changed, don't bother with hashing anything
+	if s.updateTrie(db) == nil {
+		return
+	}
 
 	// Track the amount of time wasted on hashing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
 	}
 	//s.data.Root = s.trie.Hash()
-	s.data.Root = s.trie.ParallelHash()
+	s.data.Root = s.trie.Hash()
 }
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
 func (s *stateObject) CommitTrie(db Database) error {
-	s.updateTrie(db)
+	// If nothing changed, don't bother with hashing anything
+	if s.updateTrie(db) == nil {
+		return nil
+	}
 	if s.dbErr != nil {
 		return s.dbErr
 	}
@@ -405,7 +434,7 @@ func (s *stateObject) CommitTrie(db Database) error {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, err := s.trie.Commit(nil)
+	root, _, err := s.trie.Commit(nil)
 
 	if err == nil {
 		s.data.Root = root
@@ -460,6 +489,7 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject.code = s.code
 	stateObject.dirtyStorage = s.dirtyStorage.Copy()
 	stateObject.originStorage = s.originStorage.Copy()
+	stateObject.pendingStorage = s.pendingStorage.Copy()
 	stateObject.suicided = s.suicided
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted

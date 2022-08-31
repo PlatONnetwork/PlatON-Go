@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package xcom
 
 import (
@@ -97,7 +96,7 @@ func TestCommon_StorageAvgPackTime(t *testing.T) {
 	assert.Equal(t, uint64(2000), avgPackTime)
 }
 
-func TestStateDB(t *testing.T) {
+func TestAddLogWithRes(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
@@ -111,6 +110,11 @@ func TestStateDB(t *testing.T) {
 		t.Error("code must same")
 	}
 
-	AddLog(chain.StateDB, 1, common.ZeroAddr, "aa", "bb")
+	AddLogWithRes(chain.StateDB, 1, common.ZeroAddr, "aa", "bb", nil)
 	AddLogWithRes(chain.StateDB, 1, common.ZeroAddr, "aa", "bb", "cc")
+	AddLogWithRes(chain.StateDB, 1, common.ZeroAddr, "aa", "bb", "cc", "dd", "ee")
+	logs := chain.StateDB.Logs[common.ZeroHash]
+	if len(logs) != 3 {
+		t.Error("log not good")
+	}
 }

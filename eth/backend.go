@@ -323,7 +323,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor)
+			handlePlugin(reactor, chainDb)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -511,7 +511,7 @@ func (s *Ethereum) shouldPreserve(block *types.Block) bool {
 	return s.isLocalBlock(block)
 }
 
-//start mining
+// start mining
 func (s *Ethereum) StartMining() error {
 	// If the miner was not running, initialize it
 	if !s.IsMining() {
@@ -614,7 +614,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Writer) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
@@ -623,6 +623,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
+	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	// set rule order

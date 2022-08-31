@@ -292,14 +292,19 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	}
 
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
-	start := time.Now()
+
 	state, err := bcc.MakeStateDB(parent)
+	if err != nil {
+		log.Error("BlockChainCache MakeStateDB failed", "err", err)
+		return err
+	}
 	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state)), block)
-	elapse := time.Since(start)
 	if err != nil {
 		return errors.New("execute block error")
 	}
 
+	start := time.Now()
+	elapse := time.Since(start)
 	t := time.Now()
 	//to execute
 	//stats: 初始化执行区块数据存放对象
@@ -364,7 +369,7 @@ func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 	// Commit block and state to database.
 	//block.SetExtraData(extraData)
 	log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
-	_, err := bcc.WriteBlockWithState(block, _receipts, state)
+	_, err := bcc.WriteBlockWithState(block, _receipts, nil, state, true)
 	if err != nil {
 		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
 		return fmt.Errorf("failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())
