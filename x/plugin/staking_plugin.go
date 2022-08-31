@@ -998,7 +998,7 @@ func (sk *StakingPlugin) AdvanceDelegationLockedFunds(blockHash common.Hash, acc
 // stats:撤回委托，可以部分撤回。
 // 0.15.0之前，委托用户可以撤销委托，马上到账。待赎回委托：委托的节点如果撤销质押了，委托用户需自己赎回委托，这种委托，成为待赎回委托。
 // 0.15.0之后，委托用户撤销委托，要先发撤回委托交易，委托进入冻结状态，冻结期满；委托进入待赎回状态，委托用户再发赎回委托才能到账；委托的节点如果撤销质押了，委托用户需要自己发送撤回委托交易，待冻结结满，再发赎回交易。待赎回委托：处于冻结期的委托。
-func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int,  txHash common.Hash, amount *big.Int,
+func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, amount *big.Int,
 	delAddr common.Address, nodeId discover.NodeID, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	issueIncome, returnReleased, returnRestrictingPlan, returnLockReleased, returnLockRestrictingPlan := new(big.Int), new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -1037,7 +1037,8 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 		log.Error("Failed to get governParams", "err", err)
 		return nil, nil, nil, nil, nil, common.InternalError
 	}
-	common.CollectStakingSetting(blockNumber.Uint64(), threshold)
+	unDelegateFreezeDuration, _ := gov.GovernUnDelegateFreezeDuration(blockNumber.Uint64(), blockHash)
+	common.CollectStakingSetting(blockNumber.Uint64(), threshold, unDelegateFreezeDuration)
 
 	rewardsReceive := calcDelegateIncome(epoch, del, delegateRewardPerList)
 
@@ -1363,7 +1364,7 @@ func calDelegationLockEndEpoch(blockNumber uint64, blockHash common.Hash, curren
 	return currentEpoch + uint32(unDelegateFreezeDuration) - 1, nil
 }
 
-func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64,  epoch uint64, state xcom.StateDB, downloading Downloading) error {
+func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, epoch uint64, state xcom.StateDB, downloading Downloading) error {
 
 	oldIndex, err := sk.getVeriferIndex(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {

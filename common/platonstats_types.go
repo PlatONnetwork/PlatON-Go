@@ -230,7 +230,8 @@ type DuplicatedSignSlashingSetting struct {
 }
 
 type StakingSetting struct {
-	OperatingThreshold *big.Int `json:"operatingThreshold,omitempty"` //质押，委托操作，要求的最小数量；当某次操作后，剩余数量小于此值时，这剩余数量将随此次操作一次处理完。
+	OperatingThreshold       *big.Int `json:"operatingThreshold,omitempty"`       //质押，委托操作，要求的最小数量；当某次操作后，剩余数量小于此值时，这剩余数量将随此次操作一次处理完。
+	UnDelegateFreezeDuration uint64   `json:"unDelegateFreezeDuration,omitempty"` //委托锁定期
 }
 
 type StakingFrozenItem struct {
@@ -357,11 +358,11 @@ func CollectDuplicatedSignSlashingSetting(blockNumber uint64, penaltyRatioByVali
 	}
 }
 
-func CollectStakingSetting(blockNumber uint64, operatingThreshold *big.Int) {
+func CollectStakingSetting(blockNumber uint64, operatingThreshold *big.Int, unDelegateFreezeDuration uint64) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
-		log.Debug("CollectStakingSetting", "blockNumber", blockNumber, "operatingThreshold", operatingThreshold)
+		log.Debug("CollectStakingSetting", "blockNumber", blockNumber, "operatingThreshold", operatingThreshold, "unDelegateFreezeDuration", unDelegateFreezeDuration)
 		if exeBlockData.StakingSetting == nil {
-			exeBlockData.StakingSetting = &StakingSetting{OperatingThreshold: operatingThreshold}
+			exeBlockData.StakingSetting = &StakingSetting{OperatingThreshold: operatingThreshold, UnDelegateFreezeDuration: unDelegateFreezeDuration}
 		}
 	}
 }
