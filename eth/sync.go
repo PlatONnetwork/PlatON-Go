@@ -282,6 +282,7 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
 	err := pm.downloader.Synchronise(op.peer.id, op.head, op.bn, op.mode)
 	if err != nil {
+		atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 		return err
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
