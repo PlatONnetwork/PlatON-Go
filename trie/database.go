@@ -828,6 +828,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		if node.children != nil {
 			size -= common.StorageSize(cachedNodeChildrenSize + len(node.children)*(common.HashLength+2))
 		}
+		oldest = node.flushNext
 	}
 	// Flush out any remainder data from the last batch
 	if err := batch.Write(); err != nil {
