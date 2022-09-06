@@ -161,16 +161,11 @@ func (c *Contract) AsDelegate() *Contract {
 
 // GetOp returns the n'th element in the contract's byte array
 func (c *Contract) GetOp(n uint64) OpCode {
-	return OpCode(c.GetByte(n))
-}
-
-// GetByte returns the n'th byte in the contract's byte array
-func (c *Contract) GetByte(n uint64) byte {
 	if n < uint64(len(c.Code)) {
-		return c.Code[n]
+		return OpCode(c.Code[n])
 	}
 
-	return 0
+	return STOP
 }
 
 // Caller returns the caller of the contract.
@@ -214,11 +209,4 @@ func (c *Contract) SetCodeOptionalHash(addr *common.Address, codeAndHash *codeAn
 	c.Code = codeAndHash.code
 	c.CodeHash = codeAndHash.hash
 	c.CodeAddr = addr
-}
-
-// todo:
-func (c *Contract) SetCallAbi(addr *common.Address, hash common.Hash, abi []byte) {
-	c.ABI = abi
-	c.ABIHash = hash
-	c.ABIAddr = addr
 }

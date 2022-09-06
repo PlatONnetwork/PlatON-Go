@@ -200,8 +200,12 @@ func (cs *chainSyncer) loop() {
 			cs.forced = true
 
 		case <-cs.pm.quitSync:
+			// Disable all insertion on the blockchain. This needs to happen before
+			// terminating the downloader because the downloader waits for blockchain
+			// inserts, and these can take a long time to finish.
+			cs.pm.blockchain.StopInsert()
+			cs.pm.downloader.Terminate()
 			if cs.doneCh != nil {
-				cs.pm.downloader.Cancel()
 				<-cs.doneCh
 			}
 			return

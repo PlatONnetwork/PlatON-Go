@@ -14,31 +14,35 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// +build !ios
-
-package metrics
+package console
 
 import (
-	"github.com/shirou/gopsutil/cpu"
+	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
+	"github.com/dop251/goja"
 )
 
-// ReadCPUStats retrieves the current CPU stats.
-func ReadCPUStats(stats *CPUStats) {
-	// passing false to request all cpu times
-	timeStats, err := cpu.Times(false)
-	if err != nil {
-		log.Error("Could not read cpu stats", "err", err)
-		return
-	}
-	if len(timeStats) == 0 {
-		log.Error("Empty cpu stats")
-		return
-	}
-	// requesting all cpu times will always return an array with only one time stats entry
-	timeStat := timeStats[0]
-	stats.GlobalTime = int64((timeStat.User + timeStat.Nice + timeStat.System) * cpu.ClocksPerSec)
-	stats.GlobalWait = int64((timeStat.Iowait) * cpu.ClocksPerSec)
-	stats.LocalTime = getProcessCPUTime()
+// TestUndefinedAsParam ensures that personal functions can receive
+// `undefined` as a parameter.
+func TestUndefinedAsParam(t *testing.T) {
+	b := bridge{}
+	call := jsre.Call{}
+	call.Arguments = []goja.Value{goja.Undefined()}
+
+	b.UnlockAccount(call)
+	b.Sign(call)
+	b.Sleep(call)
+}
+
+// TestNullAsParam ensures that personal functions can receive
+// `null` as a parameter.
+func TestNullAsParam(t *testing.T) {
+	b := bridge{}
+	call := jsre.Call{}
+	call.Arguments = []goja.Value{goja.Null()}
+
+	b.UnlockAccount(call)
+	b.Sign(call)
+	b.Sleep(call)
 }
