@@ -62,8 +62,8 @@ type Contract struct {
 	ABIHash common.Hash
 	ABIAddr *common.Address
 
-	Gas   uint64
-	value *big.Int
+	Gas            uint64
+	value          *big.Int
 	DeployContract bool
 }
 

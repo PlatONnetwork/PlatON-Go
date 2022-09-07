@@ -58,6 +58,9 @@ type (
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
+		if gov.Gte130VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin
+		}
 
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
@@ -293,6 +296,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
+		if gov.Gte130VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin
+		}
 
 		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
