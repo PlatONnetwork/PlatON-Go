@@ -82,6 +82,7 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
+		utils.TxLookupLimitFlag,
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
