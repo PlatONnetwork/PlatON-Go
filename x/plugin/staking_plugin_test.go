@@ -58,7 +58,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-/**
+/*
+*
 test tool
 */
 func Test_CleanSnapshotDB(t *testing.T) {
