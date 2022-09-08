@@ -73,7 +73,7 @@ func TestUpdateLeaks(t *testing.T) {
 		state.IntermediateRoot(false)
 	}
 	// Ensure that no data was leaked into the database
-	it := db.NewIterator()
+	it := db.NewIterator(nil, nil)
 	for it.Next() {
 		t.Errorf("State leaked into database: %x -> %x", it.Key(), it.Value())
 	}
@@ -183,7 +183,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 			assert.Equal(t, []byte(v), value3)
 		}
 	}
-	it := db.NewIterator()
+	it := db.NewIterator(nil, nil)
 	for it.Next() {
 		if _, err := dbc.Get(it.Key()); err != nil {
 			v, _ := db.Get(it.Key())
@@ -255,7 +255,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false, true))
 	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false, true))
 
-	it2 := db.NewIterator()
+	it2 := db.NewIterator(nil, nil)
 	for it2.Next() {
 		if _, err := dbc.Get(it2.Key()); err != nil {
 			v, _ := db.Get(it2.Key())
@@ -435,7 +435,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	if _, err := finalState.Commit(false); err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
-	it := finalDb.NewIterator()
+	it := finalDb.NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if _, err := transDb.Get(key); err != nil {
@@ -444,7 +444,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	}
 	it.Release()
 
-	it = transDb.NewIterator()
+	it = transDb.NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if _, err := finalDb.Get(key); err != nil {
