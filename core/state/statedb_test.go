@@ -1034,7 +1034,7 @@ func TestMissingTrieNodes(t *testing.T) {
 	// Create a new state on the old root
 	state, _ = New(root, db)
 	// Now we clear out the memdb
-	it := memDb.NewIterator()
+	it := memDb.NewIterator(nil, nil)
 	for it.Next() {
 		k := it.Key()
 		// Leave the root intact
