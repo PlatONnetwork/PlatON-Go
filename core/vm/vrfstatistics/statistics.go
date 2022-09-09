@@ -120,7 +120,8 @@ func (c *Statistics) SumOfRandomNum(database ethdb.KeyValueReader) (uint64, erro
 }
 
 func (c *Statistics) GetRandomNumberTxs(from, to uint64, database ethdb.KeyValueStore) (map[uint64][]TxInfo, error) {
-	iter := database.NewIteratorWithStart(EncodeKeyRandomNumTxs(from))
+	//iter := database.NewIteratorWithStart(EncodeKeyRandomNumTxs(from))
+	iter := database.NewIterator([]byte(""), EncodeKeyRandomNumTxs(from))
 	defer iter.Release()
 	result := make(map[uint64][]TxInfo)
 	for iter.Next() {
