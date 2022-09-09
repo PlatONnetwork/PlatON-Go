@@ -83,6 +83,7 @@ type ProtocolManager struct {
 	txpool      txPool
 	blockchain  *core.BlockChain
 	chainconfig *params.ChainConfig
+	chaindb     ethdb.Database
 	maxPeers    int
 
 	downloader *downloader.Downloader
@@ -121,6 +122,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		eventMux:    mux,
 		txpool:      txpool,
 		blockchain:  blockchain,
+		chaindb:     chaindb,
 		chainconfig: config,
 		peers:       newPeerSet(),
 		txsyncCh:    make(chan *txsync),

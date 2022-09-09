@@ -785,7 +785,7 @@ func TestTwoTrieCollision(t *testing.T) {
 	memdb2.Commit(root2, false, false)
 
 	dup := 0
-	itr := mem1.NewIterator()
+	itr := mem1.NewIterator(nil, nil)
 	for itr.Next() {
 		_, err := mem2.Get(itr.Key())
 		if err != nil {

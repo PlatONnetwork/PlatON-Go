@@ -266,7 +266,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, eth.shouldPreserve, &config.TxLookupLimit)
 	if err != nil {
 		return nil, err
 	}

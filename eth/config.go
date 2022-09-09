@@ -42,12 +42,12 @@ var DefaultConfig = Config{
 		Period:            20000,
 		Amount:            10,
 	},
-	NetworkId:     1,
-	LightPeers:    100,
-	DatabaseCache: 768,
-	TrieCache:     32,
-	TrieTimeout:   60 * time.Minute,
-	TrieDBCache:   512,
+	NetworkId:         1,
+	LightPeers:        100,
+	DatabaseCache:     768,
+	TrieCache:         32,
+	TrieTimeout:       60 * time.Minute,
+	TrieDBCache:       512,
 	DBDisabledGC:      false,
 	DBGCInterval:      86400,
 	DBGCTimeout:       time.Minute,
@@ -117,6 +117,8 @@ type Config struct {
 	DatabaseCache      int
 	DatabaseFreezer    string
 
+	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
+
 	TrieCache    int
 	TrieTimeout  time.Duration
 	TrieDBCache  int
@@ -133,7 +135,7 @@ type Config struct {
 	VmTimeoutDuration uint64
 
 	// Mining options
-	Miner	miner.Config
+	Miner miner.Config
 	// minning conig
 	MiningLogAtDepth       uint          // miningLogAtDepth is the number of confirmations before logging successful mining.
 	TxChanSize             int           // txChanSize is the size of channel listening to NewTxsEvent.The number is referenced from the size of tx pool.
