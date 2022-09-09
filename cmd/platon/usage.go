@@ -78,6 +78,7 @@ var AppHelpFlagGroups = []flagGroup{
 			//utils.EthStatsURLFlag,
 			utils.StatsFlag,
 			utils.IdentityFlag,
+			utils.TxLookupLimitFlag,
 			utils.LightKDFFlag,
 		},
 	},

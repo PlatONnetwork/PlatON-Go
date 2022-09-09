@@ -194,6 +194,11 @@ var (
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
 	}
+	TxLookupLimitFlag = cli.Uint64Flag{
+		Name:  "txlookuplimit",
+		Usage: "Number of recent blocks to maintain transactions index by-hash for (default = index all blocks)",
+		Value: 0,
+	}
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
@@ -1081,6 +1086,10 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
 
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) {
+		cfg.TxLookupLimit = ctx.GlobalUint64(TxLookupLimitFlag.Name)
+	}
+
 	cfg.NoPruning = true
 
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
@@ -1290,7 +1299,7 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 }
 
 // MakeChain creates a chain manager from set command line flags.
-func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chainDb ethdb.Database) {
+func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.BlockChain, chainDb ethdb.Database) {
 	var err error
 	chainDb = MakeChainDatabase(ctx, stack)
 	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
@@ -1322,7 +1331,12 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	vmcfg := vm.Config{}
-	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
+	var limit *uint64
+	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) && !readOnly {
+		l := ctx.GlobalUint64(TxLookupLimitFlag.Name)
+		limit = &l
+	}
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, limit)
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}

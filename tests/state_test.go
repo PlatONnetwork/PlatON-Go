@@ -33,6 +33,8 @@ func TestState(t *testing.T) {
 	st.skipShortMode(`^stQuadraticComplexityTest/`)
 	// Very time consuming
 	st.skipLoad(`^stTimeConsuming/`)
+	// Uses 1GB RAM per tested fork
+	st.skipLoad(`^stStaticCall/static_Call1MB`)
 	// Broken tests:
 	st.skipLoad(`^stTransactionTest/OverflowGasRequire\.json`) // gasLimit > 256 bits
 	st.skipLoad(`^stTransactionTest/zeroSigTransa[^/]*\.json`) // EIP-86 is not supported yet

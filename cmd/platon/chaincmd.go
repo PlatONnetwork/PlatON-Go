@@ -114,6 +114,7 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 			utils.CacheFlag,
 			//	utils.SyncModeFlag,
 			utils.TestnetFlag,
+			utils.TxLookupLimitFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -298,7 +299,7 @@ func copyDb(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	chain, chainDb := utils.MakeChain(ctx, stack, false)
 	syncmode := downloader.FastSync
 	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
 	localSnapshotDB := snapshotdb.Instance()
@@ -415,7 +416,7 @@ func dump(ctx *cli.Context) error {
 		Max:               eth.AccountRangeMaxResults, // Sanity limit over RPC
 	}
 
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	chain, chainDb := utils.MakeChain(ctx, stack, false)
 	for _, arg := range ctx.Args() {
 		var block *types.Block
 		if hashish(arg) {
@@ -443,7 +444,7 @@ func inspect(ctx *cli.Context) error {
 	node, _ := makeConfigNode(ctx)
 	defer node.Close()
 
-	_, chainDb := utils.MakeChain(ctx, node)
+	_, chainDb := utils.MakeChain(ctx, node, false)
 	defer chainDb.Close()
 
 	return rawdb.InspectDatabase(chainDb)

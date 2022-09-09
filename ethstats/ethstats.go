@@ -238,11 +238,11 @@ func (s *Service) loop() {
 			}
 			// Keep sending status updates until the connection breaks
 			fullReport := time.NewTicker(15 * time.Second)
+			defer fullReport.Stop()
 
 			for err == nil {
 				select {
 				case <-quitCh:
-					fullReport.Stop()
 					// Make sure the connection is closed
 					conn.Close()
 					return
@@ -268,7 +268,6 @@ func (s *Service) loop() {
 					}
 				}
 			}
-			fullReport.Stop()
 
 			// Close the current connection and establish a new one
 			conn.Close()
