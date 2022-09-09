@@ -109,7 +109,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	engine.InsertChain(genesis)
 	bft := engine.(*consensus.BftMock)
 	bft.EventMux = mux
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
+	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	blockChainCache := core.NewBlockChainCache(chain)
 
 	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db))
