@@ -353,6 +353,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	defer vdEvent.Unsubscribe()
 
 	timer := time.NewTimer(0)
+	defer timer.Stop()
 	<-timer.C // discard the initial tick
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.

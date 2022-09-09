@@ -73,7 +73,7 @@ func TestUpdateLeaks(t *testing.T) {
 		state.IntermediateRoot(false)
 	}
 	// Ensure that no data was leaked into the database
-	it := db.NewIterator()
+	it := db.NewIterator(nil, nil)
 	for it.Next() {
 		t.Errorf("State leaked into database: %x -> %x", it.Key(), it.Value())
 	}
@@ -183,7 +183,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 			assert.Equal(t, []byte(v), value3)
 		}
 	}
-	it := db.NewIterator()
+	it := db.NewIterator(nil, nil)
 	for it.Next() {
 		if _, err := dbc.Get(it.Key()); err != nil {
 			v, _ := db.Get(it.Key())
@@ -255,7 +255,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	assert.Nil(t, s3.db.TrieDB().Commit(s1.Root(), false, true))
 	assert.Nil(t, s1cc.db.TrieDB().Commit(s1cc.Root(), false, true))
 
-	it2 := db.NewIterator()
+	it2 := db.NewIterator(nil, nil)
 	for it2.Next() {
 		if _, err := dbc.Get(it2.Key()); err != nil {
 			v, _ := db.Get(it2.Key())
@@ -435,7 +435,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	if _, err := finalState.Commit(false); err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
-	it := finalDb.NewIterator()
+	it := finalDb.NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if _, err := transDb.Get(key); err != nil {
@@ -444,7 +444,7 @@ func TestIntermediateLeaks(t *testing.T) {
 	}
 	it.Release()
 
-	it = transDb.NewIterator()
+	it = transDb.NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if _, err := finalDb.Get(key); err != nil {
@@ -1006,5 +1006,52 @@ func TestDeleteCreateRevert(t *testing.T) {
 
 	if state.getStateObject(addr) != nil {
 		t.Fatalf("self-destructed contract came alive")
+	}
+}
+
+// TestMissingTrieNodes tests that if the statedb fails to load parts of the trie,
+// the Commit operation fails with an error
+// If we are missing trie nodes, we should not continue writing to the trie
+func TestMissingTrieNodes(t *testing.T) {
+
+	// Create an initial state with a few accounts
+	memDb := rawdb.NewMemoryDatabase()
+	db := NewDatabase(memDb)
+	var root common.Hash
+	state, _ := New(common.Hash{}, db)
+	addr := toAddr([]byte("so"))
+	{
+		state.SetBalance(addr, big.NewInt(1))
+		state.SetCode(addr, []byte{1, 2, 3})
+		a2 := toAddr([]byte("another"))
+		state.SetBalance(a2, big.NewInt(100))
+		state.SetCode(a2, []byte{1, 2, 4})
+		root, _ = state.Commit(false)
+		t.Logf("root: %x", root)
+		// force-flush
+		state.Database().TrieDB().Cap(0)
+	}
+	// Create a new state on the old root
+	state, _ = New(root, db)
+	// Now we clear out the memdb
+	it := memDb.NewIterator()
+	for it.Next() {
+		k := it.Key()
+		// Leave the root intact
+		if !bytes.Equal(k, root[:]) {
+			t.Logf("key: %x", k)
+			memDb.Delete(k)
+		}
+	}
+	balance := state.GetBalance(addr)
+	// The removed elem should lead to it returning zero balance
+	if exp, got := uint64(0), balance.Uint64(); got != exp {
+		t.Errorf("expected %d, got %d", exp, got)
+	}
+	// Modify the state
+	state.SetBalance(addr, big.NewInt(2))
+	root, err := state.Commit(false)
+	if err == nil {
+		t.Fatalf("expected error, got root :%x", root)
 	}
 }
