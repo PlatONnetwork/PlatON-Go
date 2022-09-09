@@ -275,7 +275,7 @@ func TestTransactionQueue(t *testing.T) {
 
 	pool.enqueueTx(tx.Hash(), tx)
 
-	pool.promoteExecutables([]common.Address{from})
+	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if len(pool.pending) != 1 {
 		t.Error("expected valid txs to be 1 is", len(pool.pending))
 	}
@@ -284,7 +284,7 @@ func TestTransactionQueue(t *testing.T) {
 	from, _ = deriveSender(tx, pool.chainconfig.ChainID)
 	pool.currentState.SetNonce(from, 2)
 	pool.enqueueTx(tx.Hash(), tx)
-	pool.promoteExecutables([]common.Address{from})
+	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 	if _, ok := pool.pending[from].txs.items[tx.Nonce()]; ok {
 		t.Error("expected transaction to be in tx pool")
 	}
@@ -307,7 +307,7 @@ func TestTransactionQueue(t *testing.T) {
 	pool.enqueueTx(tx2.Hash(), tx2)
 	pool.enqueueTx(tx3.Hash(), tx3)
 
-	pool.promoteExecutables([]common.Address{from})
+	<-pool.requestPromoteExecutables(newAccountSet(pool.signer, from))
 
 	if len(pool.pending) != 1 {
 		t.Error("expected tx pool to be 1, got", len(pool.pending))
@@ -854,7 +854,9 @@ func testTransactionQueueGlobalLimiting(t *testing.T, nolocals bool) {
 //
 // This logic should not hold for local transactions, unless the local tracking
 // mechanism is disabled.
-func TestTransactionQueueTimeLimiting(t *testing.T) { testTransactionQueueTimeLimiting(t, false) }
+func TestTransactionQueueTimeLimiting(t *testing.T) {
+	testTransactionQueueTimeLimiting(t, false)
+}
 func TestTransactionQueueTimeLimitingNoLocals(t *testing.T) {
 	testTransactionQueueTimeLimiting(t, true)
 }

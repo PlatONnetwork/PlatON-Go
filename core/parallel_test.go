@@ -183,7 +183,7 @@ func initChain(fromAccountList []*account, toAccountList []*account, contractAcc
 		WasmType:      cvm.Wagon,
 	}
 
-	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil)
+	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil, nil)
 
 	parent := blockchain.Genesis()
 	_, header := NewBlock(parent.Hash(), parent.NumberU64()+1)

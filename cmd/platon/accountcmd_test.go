@@ -17,6 +17,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -86,6 +87,37 @@ Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
 - You must BACKUP your key file! Without the key, it's impossible to access account funds!
 - You must REMEMBER your password! Without the password, it's impossible to decrypt the key!
 `)
+}
+
+func TestAccountImport(t *testing.T) {
+	tests := []struct{ key, output string }{
+		{
+			key:    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			output: "Address: {lat1ljkskxdm982xw3f36mc32gm7z6huudmux9pn7j}\n",
+		},
+		{
+			key:    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef1",
+			output: "Fatal: Failed to load the private key: invalid character '1' at end of key file\n",
+		},
+	}
+	for _, test := range tests {
+		importAccountWithExpect(t, test.key, test.output)
+	}
+}
+
+func importAccountWithExpect(t *testing.T, key string, expected string) {
+	dir := tmpdir(t)
+	keyfile := filepath.Join(dir, "key.prv")
+	if err := ioutil.WriteFile(keyfile, []byte(key), 0600); err != nil {
+		t.Error(err)
+	}
+	passwordFile := filepath.Join(dir, "password.txt")
+	if err := ioutil.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
+		t.Error(err)
+	}
+	platon := runPlatON(t, "account", "import", keyfile, "-password", passwordFile)
+	defer platon.ExpectExit()
+	platon.Expect(expected)
 }
 
 func TestAccountNewBadRepeat(t *testing.T) {

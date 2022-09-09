@@ -169,7 +169,7 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 	var db = rawdb.NewMemoryDatabase()
 	gspec, _ := CreateGenesis(db)
 
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
+	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
 	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, cache)
 
@@ -195,7 +195,7 @@ func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockC
 	}
 	gspec.MustCommit(db)
 
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
+	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
 	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, cache)
 

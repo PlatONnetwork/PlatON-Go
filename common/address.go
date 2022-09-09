@@ -124,7 +124,7 @@ func Bech32ToAddressWithoutCheckHrp(s string) Address {
 // IsHexAddress verifies whether a string can represent a valid hex-encoded
 // Ethereum address or not.
 func IsHexAddress(s string) bool {
-	if hasHexPrefix(s) {
+	if has0xPrefix(s) {
 		s = s[2:]
 	}
 	return len(s) == 2*AddressLength && isHex(s)
