@@ -240,7 +240,7 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	currentBlock := cs.pm.engine.CurrentBlock()
 
 	peerHead, pBn := peer.Head()
-	//modified by alaya
+
 	diff := new(big.Int).Sub(pBn, currentBlock.Number())
 	if diff.Cmp(big.NewInt(2)) < 0 {
 		return nil
