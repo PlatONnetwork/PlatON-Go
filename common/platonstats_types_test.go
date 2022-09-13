@@ -102,7 +102,7 @@ func buildExeBlockData() *ExeBlockData {
 	CollectEmbedTransferTx(blockNumber, Hash{0x01}, address, address, value1)
 	CollectEmbedTransferTx(blockNumber, Hash{0x01}, address, address, value1)
 	CollectEmbedContractTx(blockNumber, Hash{0x03}, address, address, Hex2Bytes("f855838203ec8180b842b84027eff1a24cfd76e7151c0410d6a2c9fe9660b0906862fe3c461f5bae4ce5893d4f975239187510ff4b399ec1daea4f71690e00de3de0c56a2bd896cf5cd37eca8a8902b5e3af16b1880000"))
-	CollectStakingSetting(blockNumber, big.NewInt(1000000))
+	CollectStakingSetting(blockNumber, big.NewInt(1000000), uint64(1))
 	CollectAutoStakingTx(blockNumber, Hash{0x04, 0x05}, big.NewInt(14), big.NewInt(15))
 	CollectAutoStakingTx(blockNumber, Hash{0x07, 0x08}, big.NewInt(14), big.NewInt(15))
 	return GetExeBlockData(blockNumber)
