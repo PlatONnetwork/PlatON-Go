@@ -259,15 +259,6 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 	}
 }
 
-func (bcc *BlockChainCache) StateDBString() string {
-	status := fmt.Sprintf("[")
-	for hash, obj := range bcc.stateDBCache {
-		status += fmt.Sprintf("[%s, %d]", hash, obj.blockNum)
-	}
-	status += fmt.Sprintf("]")
-	return status
-}
-
 func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
 	executed := func() bool {
 		if number, ok := bcc.executed.Load(block.Header().SealHash()); ok && number.(uint64) == block.Number().Uint64() {
