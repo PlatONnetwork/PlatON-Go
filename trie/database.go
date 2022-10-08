@@ -169,17 +169,13 @@ var cachedNodeSize = int(reflect.TypeOf(cachedNode{}).Size())
 // reference map.
 const cachedNodeChildrenSize = 48
 
-// rlp returns the raw rlp encoded blob of the cached node, either directly from
-// the cache, or by regenerating it from the collapsed node.
+// rlp returns the raw rlp encoded blob of the cached trie node, either directly
+// from the cache, or by regenerating it from the collapsed node.
 func (n *cachedNode) rlp() []byte {
 	if node, ok := n.node.(rawNode); ok {
 		return node
 	}
-	blob, err := rlp.EncodeToBytes(n.node)
-	if err != nil {
-		panic(err)
-	}
-	return blob
+	return nodeToBytes(n.node)
 }
 
 // obj returns the decoded and expanded trie node, either directly from the cache,
