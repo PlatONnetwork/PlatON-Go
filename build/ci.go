@@ -514,7 +514,7 @@ func doDebianSource(cmdline []string) {
 		goversion = flag.String("goversion", "", `Go version to build with (will be included in the source package)`)
 		cachedir  = flag.String("cachedir", "./build/cache", `Filesystem path to cache the downloaded Go bundles at`)
 		signer    = flag.String("signer", "", `Signing key name, also used as package author`)
-		upload    = flag.String("upload", "", `Where to upload the source package (usually "alaya/alaya")`)
+		upload    = flag.String("upload", "", `Where to upload the source package (usually "platon/platon")`)
 		sshUser   = flag.String("sftp-user", "", `Username for SFTP upload (usually "geth-ci")`)
 		workdir   = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 		now       = time.Now()

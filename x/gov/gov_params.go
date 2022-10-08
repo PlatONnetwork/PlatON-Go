@@ -432,7 +432,7 @@ func InitGenesisGovernParam(prevHash common.Hash, snapDB snapshotdb.BaseDB, gene
 func initUnDelegateFreezeDurationParamGenesis() *GovernParam {
 	return &GovernParam{
 		ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
-			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, %d]", new(big.Int).SetUint64(1), new(big.Int).SetInt64(int64(xcom.UnDelegateFreezeDuration())))},
+			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, UnStakeFreezeDuration]", 1)},
 		ParamValue:    &ParamValue{"", strconv.Itoa(int(xcom.UnDelegateFreezeDuration())), 0},
 		ParamVerifier: UnDelegateFreezeDurationVerifier,
 	}
@@ -451,8 +451,8 @@ func initUnDelegateFreezeDurationParamVersionUpdate(blockNumber uint64, blockHas
 	}
 	return &GovernParam{
 		ParamItem: &ParamItem{ModuleStaking, KeyUnDelegateFreezeDuration,
-			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, %d]", new(big.Int).SetUint64(1), new(big.Int).SetInt64(int64(unDelegateFreezeDuration)))},
-		ParamValue:    &ParamValue{"", strconv.Itoa(unDelegateFreezeDuration), 0},
+			fmt.Sprintf("quantity of epoch for delegate withdrawal, range:  [%d, UnStakeFreezeDuration]", 1)},
+		ParamValue:    &ParamValue{"", strconv.Itoa(unDelegateFreezeDuration), blockNumber},
 		ParamVerifier: UnDelegateFreezeDurationVerifier,
 	}, nil
 }
