@@ -97,7 +97,7 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	// Verify VRF Proof
 	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
 		"current hash", blockHash, "parentHash", parentBlockHash,
-		"proof", hex.EncodeToString(proof))
+		"proof", hex.EncodeToString(proof), "nodeId", discover.PubkeyID(pk).String())
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentBlockHash)
 	if nil != err {
 		return err
