@@ -40,7 +40,7 @@ var (
 	errBlockInvariant = errors.New("block objects must be instantiated with at least one of num or hash")
 )
 
-// Account represents an Alaya account at a particular block.
+// Account represents an PlatON account at a particular block.
 type Account struct {
 	backend       ethapi.Backend
 	address       common.Address
@@ -120,7 +120,7 @@ func (l *Log) Data(ctx context.Context) hexutil.Bytes {
 	return hexutil.Bytes(l.log.Data)
 }
 
-// Transaction represents an Alaya transaction.
+// Transaction represents an PlatON transaction.
 // backend and hash are mandatory; all others will be fetched when required.
 type Transaction struct {
 	backend ethapi.Backend
@@ -345,7 +345,7 @@ func (t *Transaction) V(ctx context.Context) (hexutil.Big, error) {
 
 type BlockType int
 
-// Block represents an Alaya block.
+// Block represents an PlatON block.
 // backend, and numberOrHash are mandatory. All other fields are lazily fetched
 // when required.
 type Block struct {
@@ -780,8 +780,8 @@ func (b *Block) Account(ctx context.Context, args struct {
 // CallData encapsulates arguments to `call` or `estimateGas`.
 // All arguments are optional.
 type CallData struct {
-	From     *common.Address // The Alaya address the call is from.
-	To       *common.Address // The Alaya address the call is to.
+	From     *common.Address // The PlatON address the call is from.
+	To       *common.Address // The PlatON address the call is to.
 	Gas      *hexutil.Uint64 // The amount of gas provided for the call.
 	GasPrice *hexutil.Big    // The price of each unit of gas, in wei.
 	Value    *hexutil.Big    // The value sent along with the call.

@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.
@@ -34,7 +33,9 @@ type Iterator struct {
 	Err   error
 }
 
-// NewIterator creates a new key-value iterator from a node iterator
+// NewIterator creates a new key-value iterator from a node iterator.
+// Note that the value returned by the iterator is raw. If the content is encoded
+// (e.g. storage value is RLP-encoded), it's caller's duty to decode it.
 func NewIterator(it NodeIterator) *Iterator {
 	return &Iterator{
 		nodeIt: it,
@@ -180,18 +181,17 @@ func (it *nodeIterator) LeafBlob() []byte {
 func (it *nodeIterator) LeafProof() [][]byte {
 	if len(it.stack) > 0 {
 		if _, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			hasher := newHasher(nil)
+			hasher := newHasher()
 			defer returnHasherToPool(hasher)
 
 			proofs := make([][]byte, 0, len(it.stack))
 
 			for i, item := range it.stack[:len(it.stack)-1] {
 				// Gather nodes that end up as hash nodes (or the root)
-				node, _, _ := hasher.hashChildren(item.node, nil)
-				hashed, _ := hasher.store(node, nil, false)
+				node, _, _ := hasher.hashChildren(item.node)
+				hashed, _ := hasher.store(node, false)
 				if _, ok := hashed.(hashNode); ok || i == 0 {
-					enc, _ := rlp.EncodeToBytes(node)
-					proofs = append(proofs, enc)
+					proofs = append(proofs, nodeToBytes(node))
 				}
 			}
 			return proofs

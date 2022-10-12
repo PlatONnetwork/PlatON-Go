@@ -14,13 +14,14 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package xcom
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"sync"
 
@@ -136,7 +137,7 @@ type rewardConfig struct {
 	NewBlockRate                 uint64 `json:"newBlockRate"`                 // This is the package block reward AND staking reward  rate, eg: 20 ==> 20%, newblock: 20%, staking: 80%
 	PlatONFoundationYear         uint32 `json:"platonFoundationYear"`         // Foundation allotment year, representing a percentage of the boundaries of the Foundation each year
 	IncreaseIssuanceRatio        uint16 `json:"increaseIssuanceRatio"`        // According to the total amount issued in the previous year, increase the proportion of issuance
-	TheNumberOfDelegationsReward uint16 `json:"TheNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
+	TheNumberOfDelegationsReward uint16 `json:"theNumberOfDelegationsReward"` // The maximum number of delegates that can receive rewards at a time
 }
 
 type restrictingConfig struct {
@@ -163,9 +164,33 @@ type EconomicModel struct {
 	InnerAcc    innerAccount      `json:"innerAcc"`
 }
 
+// When the chain is started, if new parameters are added, add them to this structure
+type EconomicModelExtend struct {
+	Staking stakingConfigExtend `json:"staking"`
+}
+
+type stakingConfigExtend struct {
+	// 可治理参数,在版本升级或者私链初始化版本高于1.3.0的时候被写入到快照db,后续通过快照db查询
+	UnDelegateFreezeDuration uint64 `json:"unDelegateFreezeDuration"` // The maximum number of delegates that can receive rewards at a time
+}
+
+func EcParams130() ([]byte, error) {
+	params := struct {
+		UnDelegateFreezeDuration uint64
+	}{
+		UnDelegateFreezeDuration: ece.Staking.UnDelegateFreezeDuration,
+	}
+	bytes, err := rlp.EncodeToBytes(params)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
 var (
 	modelOnce sync.Once
 	ec        *EconomicModel
+	ece       *EconomicModelExtend
 )
 
 // Getting the global EconomicModel single instance
@@ -176,8 +201,20 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
+func GetEce() *EconomicModelExtend {
+	return ece
+}
+
 func ResetEconomicDefaultConfig(newEc *EconomicModel) {
 	ec = newEc
+}
+
+func ResetEconomicExtendConfig(newEc *EconomicModelExtend) {
+	ece = newEc
+}
+
+func ResetEconomicExtendConfigUnDelegateFreezeDuration(UnDelegateFreezeDuration uint64) {
+	ece.Staking.UnDelegateFreezeDuration = UnDelegateFreezeDuration
 }
 
 const (
@@ -255,6 +292,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 56,
+			},
+		}
 	case DefaultTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
@@ -308,6 +350,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				PlatONFundBalance: new(big.Int).SetInt64(0),
 				CDFAccount:        common.HexToAddress("0x02CddA362DCA508709a651fDe1513b22D3C2a4e5"),
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
+			},
+		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
 			},
 		}
 	case DefaultUnitTestNet:
@@ -365,6 +412,11 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				CDFBalance:        new(big.Int).Set(cdfundBalance),
 			},
 		}
+		ece = &EconomicModelExtend{
+			Staking: stakingConfigExtend{
+				UnDelegateFreezeDuration: 2,
+			},
+		}
 	default: // DefaultTestNet
 		log.Error("not support chainID", "netId", netId)
 		return nil
@@ -401,6 +453,13 @@ func CheckUnStakeFreezeDuration(duration, maxEvidenceAge, zeroProduceFreezeDurat
 	}
 	if duration <= zeroProduceFreezeDuration || duration > CeilUnStakeFreezeDuration {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnStakeFreezeDuration must be (%d, %d]", zeroProduceFreezeDuration, CeilUnStakeFreezeDuration))
+	}
+	return nil
+}
+
+func CheckUnDelegateFreezeDuration(UnDelegateFreezeDuration, UnStakeFreezeDuration int) error {
+	if UnDelegateFreezeDuration <= Zero || UnDelegateFreezeDuration > UnStakeFreezeDuration {
+		return common.InvalidParameter.Wrap(fmt.Sprintf("The UnDelegateFreezeDuration %d must be (%d, %d]", UnDelegateFreezeDuration, 1, UnStakeFreezeDuration))
 	}
 	return nil
 }
@@ -483,7 +542,7 @@ func CheckMinimumRelease(minimumRelease *big.Int) error {
 	return nil
 }
 
-func CheckEconomicModel() error {
+func CheckEconomicModel(version uint32) error {
 	if nil == ec {
 		return errors.New("EconomicModel config is nil")
 	}
@@ -593,7 +652,11 @@ func CheckEconomicModel() error {
 	if err := CheckMinimumRelease(ec.Restricting.MinimumRelease); nil != err {
 		return err
 	}
-
+	if version >= params.FORKVERSION_1_3_0 {
+		if err := CheckUnDelegateFreezeDuration(int(ece.Staking.UnDelegateFreezeDuration), int(ec.Staking.UnStakeFreezeDuration)); nil != err {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -683,6 +746,10 @@ func RewardPerChangeInterval() uint16 {
 	return ec.Staking.RewardPerChangeInterval
 }
 
+func UnDelegateFreezeDuration() uint64 {
+	return ece.Staking.UnDelegateFreezeDuration
+}
+
 /******
  * Restricting config
  ******/
@@ -760,9 +827,11 @@ func VersionProposal_SupportRate() uint64 {
 	return ec.Gov.VersionProposalSupportRate
 }
 
-/*func TextProposalVote_ConsensusRounds() uint64 {
-	return ec.Gov.TextProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
-}*/
+/*
+	func TextProposalVote_ConsensusRounds() uint64 {
+		return ec.Gov.TextProposalVoteDurationSeconds / (Interval() * ec.Common.PerRoundBlocks * ec.Common.MaxConsensusVals)
+	}
+*/
 func TextProposalVote_DurationSeconds() uint64 {
 	return ec.Gov.TextProposalVoteDurationSeconds
 }
@@ -815,7 +884,22 @@ func CDFBalance() *big.Int {
 
 func EconomicString() string {
 	if nil != ec {
-		ecByte, _ := json.Marshal(ec)
+		type stakingConfigJson struct {
+			stakingConfig
+			stakingConfigExtend
+		}
+		type EconomicModelJson struct {
+			EconomicModel
+			Staking stakingConfigJson `json:"staking"`
+		}
+		emJson := &EconomicModelJson{
+			EconomicModel: *ec,
+			Staking: stakingConfigJson{
+				stakingConfig:       ec.Staking,
+				stakingConfigExtend: ece.Staking,
+			},
+		}
+		ecByte, _ := json.Marshal(emJson)
 		return string(ecByte)
 	} else {
 		return ""

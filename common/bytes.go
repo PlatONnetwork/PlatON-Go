@@ -48,10 +48,8 @@ func ToHexArray(b [][]byte) []string {
 // FromHex returns the bytes represented by the hexadecimal string s.
 // s may be prefixed with "0x".
 func FromHex(s string) []byte {
-	if len(s) > 1 {
-		if s[0:2] == "0x" || s[0:2] == "0X" {
-			s = s[2:]
-		}
+	if has0xPrefix(s) {
+		s = s[2:]
 	}
 	if len(s)%2 == 1 {
 		s = "0" + s
@@ -70,8 +68,8 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return
 }
 
-// hasHexPrefix validates str begins with '0x' or '0X'.
-func hasHexPrefix(str string) bool {
+// has0xPrefix validates str begins with '0x' or '0X'.
+func has0xPrefix(str string) bool {
 	return len(str) >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')
 }
 
@@ -98,34 +96,11 @@ func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
 }
 
-/*func Bytes2Hex0x(d []byte) string {
-	return hexutil.Encode(d)
-}*/
-
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 	return h
 }
-
-/*func Hex0x2Bytes(str string) []byte {
-	h, _ := hexutil.Decode(str)
-	return h
-}*/
-
-/*// Hex2BytesFixed returns bytes of a specified fixed length flen.
-func Hex2BytesFixed(str string, flen int) []byte {
-	h, _ := hex.DecodeString(str)
-	if len(h) == flen {
-		return h
-	}
-	if len(h) > flen {
-		return h[len(h)-flen:]
-	}
-	hh := make([]byte, flen)
-	copy(hh[flen-len(h):flen], h)
-	return hh
-}*/
 
 // RightPadBytes zero-pads slice to the right up to length l.
 func RightPadBytes(slice []byte, l int) []byte {
@@ -150,10 +125,6 @@ func LeftPadBytes(slice []byte, l int) []byte {
 
 	return padded
 }
-
-/*func BytesCombine(pBytes ...[]byte) []byte {
-	return bytes.Join(pBytes, []byte(""))
-}*/
 
 func Int32ToBytes(n int32) []byte {
 	tmp := int32(n)
@@ -207,22 +178,6 @@ func BytesToFloat64(bytes []byte) float64 {
 	return math.Float64frombits(bits)
 }
 
-/*func PaddingLeft(src []byte, bytes int) []byte {
-	if len(src) >= bytes {
-		return src
-	}
-	dst := make([]byte, bytes)
-	copy(dst, src)
-	return reverse(dst)
-}*/
-
-/*func reverse(s []byte) []byte {
-	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
-		s[i], s[j] = s[j], s[i]
-	}
-	return s
-}*/
-
 func BytesToUint32(b []byte) uint32 {
 	b = append(make([]byte, 4-len(b)), b...)
 	return binary.BigEndian.Uint32(b)
@@ -251,7 +206,24 @@ func Uint16ToBytes(val uint16) []byte {
 	return buf[:]
 }
 
-/*func BytesToUint16(b []byte) uint16 {
-	b = append(make([]byte, 2-len(b)), b...)
-	return binary.BigEndian.Uint16(b)
-}*/
+// TrimLeftZeroes returns a subslice of s without leading zeroes
+func TrimLeftZeroes(s []byte) []byte {
+	idx := 0
+	for ; idx < len(s); idx++ {
+		if s[idx] != 0 {
+			break
+		}
+	}
+	return s[idx:]
+}
+
+// TrimRightZeroes returns a subslice of s without trailing zeroes
+func TrimRightZeroes(s []byte) []byte {
+	idx := len(s)
+	for ; idx > 0; idx-- {
+		if s[idx-1] != 0 {
+			break
+		}
+	}
+	return s[:idx]
+}

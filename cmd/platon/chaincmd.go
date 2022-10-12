@@ -17,9 +17,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -59,6 +62,18 @@ participating.
 
 It expects the genesis file as argument.`,
 	}
+	dumpGenesisCommand = cli.Command{
+		Action:    utils.MigrateFlags(dumpGenesis),
+		Name:      "dumpgenesis",
+		Usage:     "Dumps genesis block JSON configuration to stdout",
+		ArgsUsage: "",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+		},
+		Category: "BLOCKCHAIN COMMANDS",
+		Description: `
+The dumpgenesis command dumps the genesis block configuration in JSON format to stdout.`,
+	}
 	importPreimagesCommand = cli.Command{
 		Action:    utils.MigrateFlags(importPreimages),
 		Name:      "import-preimages",
@@ -97,6 +112,7 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 			utils.CacheFlag,
 			//	utils.SyncModeFlag,
 			utils.TestnetFlag,
+			utils.TxLookupLimitFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -206,6 +222,17 @@ func initGenesis(ctx *cli.Context) error {
 	return nil
 }
 
+func dumpGenesis(ctx *cli.Context) error {
+	genesis := utils.MakeGenesis(ctx)
+	if genesis == nil {
+		genesis = core.DefaultGenesisBlock()
+	}
+	if err := json.NewEncoder(os.Stdout).Encode(genesis); err != nil {
+		utils.Fatalf("could not encode genesis")
+	}
+	return nil
+}
+
 type FakeBackend struct {
 	bc *core.BlockChain
 }
@@ -270,7 +297,7 @@ func copyDb(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	chain, chainDb := utils.MakeChain(ctx, stack, false)
 	syncmode := downloader.FastSync
 	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
 	localSnapshotDB := snapshotdb.Instance()
@@ -382,7 +409,12 @@ func dump(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	opts := &state.DumpConfig{
+		OnlyWithAddresses: true,
+		Max:               eth.AccountRangeMaxResults, // Sanity limit over RPC
+	}
+
+	chain, chainDb := utils.MakeChain(ctx, stack, false)
 	for _, arg := range ctx.Args() {
 		var block *types.Block
 		if hashish(arg) {
@@ -399,7 +431,7 @@ func dump(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			fmt.Printf("%s\n", state.Dump())
+			fmt.Printf("%s\n", state.Dump(opts))
 		}
 	}
 	chainDb.Close()
@@ -410,7 +442,7 @@ func inspect(ctx *cli.Context) error {
 	node, _ := makeConfigNode(ctx)
 	defer node.Close()
 
-	_, chainDb := utils.MakeChain(ctx, node)
+	_, chainDb := utils.MakeChain(ctx, node, false)
 	defer chainDb.Close()
 
 	return rawdb.InspectDatabase(chainDb)

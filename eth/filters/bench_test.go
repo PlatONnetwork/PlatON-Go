@@ -28,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 )
 
@@ -122,14 +121,13 @@ func benchmarkBloomBits(b *testing.B, sectionSize uint64) {
 
 	fmt.Println("Running filter benchmarks...")
 	start = time.Now()
-	mux := new(event.TypeMux)
 	var backend *testBackend
 
 	for i := 0; i < benchFilterCnt; i++ {
 		if i%20 == 0 {
 			db.Close()
 			db, _ = rawdb.NewLevelDBDatabase(benchDataDir, 128, 1024, "")
-			backend = &testBackend{mux, db, cnt, new(event.Feed), new(event.Feed), new(event.Feed), new(event.Feed)}
+			backend = &testBackend{db: db, sections: cnt}
 		}
 		var addr common.Address
 		addr[0] = byte(i)
@@ -149,7 +147,7 @@ var bloomBitsPrefix = []byte("bloomBits-")
 
 func clearBloomBits(db ethdb.Database) {
 	fmt.Println("Clearing bloombits data...")
-	it := db.NewIteratorWithPrefix(bloomBitsPrefix)
+	it := db.NewIterator(bloomBitsPrefix, nil)
 	for it.Next() {
 		db.Delete(it.Key())
 	}
@@ -173,8 +171,7 @@ func BenchmarkNoBloomBits(b *testing.B) {
 
 	fmt.Println("Running filter benchmarks...")
 	start := time.Now()
-	mux := new(event.TypeMux)
-	backend := &testBackend{mux, db, 0, new(event.Feed), new(event.Feed), new(event.Feed), new(event.Feed)}
+	backend := &testBackend{db: db}
 	filter := NewRangeFilter(backend, 0, int64(*headNum), []common.Address{{}}, nil)
 	filter.Logs(context.Background())
 	d := time.Since(start)

@@ -82,6 +82,7 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
+		utils.TxLookupLimitFlag,
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
@@ -191,6 +192,7 @@ func init() {
 		copydbCommand,
 		removedbCommand,
 		dumpCommand,
+		dumpGenesisCommand,
 		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
@@ -227,8 +229,7 @@ func init() {
 			return err
 		}
 
-		logdir := ""
-		if err := debug.Setup(ctx, logdir); err != nil {
+		if err := debug.Setup(ctx); err != nil {
 			return err
 		}
 
@@ -243,6 +244,10 @@ func init() {
 		// Check https://github.com/elastic/gosigar#supported-platforms
 		if runtime.GOOS != "openbsd" {
 			if err := mem.Get(); err == nil {
+				if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
+					log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
+					mem.Total = 2 * 1024 * 1024 * 1024
+				}
 				allowance := int(mem.Total / 1024 / 1024 / 3)
 				if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
 					log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
@@ -336,11 +341,13 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
 				status, _ := event.Wallet.Status()
 				log.Info("New wallet appeared", "url", event.Wallet.URL(), "status", status)
 
-				derivationPath := accounts.DefaultBaseDerivationPath
+				var derivationPaths []accounts.DerivationPath
 				if event.Wallet.URL().Scheme == "ledger" {
-					derivationPath = accounts.DefaultLedgerBaseDerivationPath
+					derivationPaths = append(derivationPaths, accounts.LegacyLedgerBaseDerivationPath)
 				}
-				event.Wallet.SelfDerive(derivationPath, stateReader)
+				derivationPaths = append(derivationPaths, accounts.DefaultBaseDerivationPath)
+
+				event.Wallet.SelfDerive(derivationPaths, stateReader)
 
 			case accounts.WalletDropped:
 				log.Info("Old wallet dropped", "url", event.Wallet.URL())

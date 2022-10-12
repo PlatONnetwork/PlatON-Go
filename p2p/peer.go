@@ -25,6 +25,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -350,6 +352,10 @@ func (p *Peer) handle(msg Msg) error {
 		if err != nil {
 			return fmt.Errorf("msg code out of range: %v", msg.Code)
 		}
+		if metrics.Enabled {
+			m := fmt.Sprintf("%s/%s/%d/%#02x", ingressMeterName, proto.Name, proto.Version, msg.Code-proto.offset)
+			metrics.GetOrRegisterMeter(m, nil).Mark(int64(msg.meterSize))
+		}
 		select {
 		case proto.in <- msg:
 			return nil
@@ -448,7 +454,11 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 	if msg.Code >= rw.Length {
 		return newPeerError(errInvalidMsgCode, "not handled")
 	}
+	msg.meterCap = rw.cap()
+	msg.meterCode = msg.Code
+
 	msg.Code += rw.offset
+
 	select {
 	case <-rw.wstart:
 		err = rw.w.WriteMsg(msg)

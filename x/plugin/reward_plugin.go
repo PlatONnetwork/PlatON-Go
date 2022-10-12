@@ -14,16 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"math"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -318,7 +317,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation); err != nil {
+			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, gov.Gte130VersionState(state)); err != nil {
 				return nil, err
 			}
 		}
@@ -601,7 +600,7 @@ func UpdateDelegateRewardPer(blockHash common.Hash, nodeID discover.NodeID, stak
 	return nil
 }
 
-//  Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
+// Calculation percentage ,  input 100,10    cal:  100*10/100 = 10
 func percentageCalculation(mount *big.Int, rate uint64) *big.Int {
 	ratio := new(big.Int).Mul(mount, big.NewInt(int64(rate)))
 	return new(big.Int).Div(ratio, common.Big100)

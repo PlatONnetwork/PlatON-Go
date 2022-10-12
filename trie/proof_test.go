@@ -66,7 +66,7 @@ func TestProof(t *testing.T) {
 			if proof == nil {
 				t.Fatalf("prover %d: missing key %x while constructing proof", i, kv.k)
 			}
-			val, _, err := VerifyProof(root, kv.k, proof)
+			val, err := VerifyProof(root, kv.k, proof)
 			if err != nil {
 				t.Fatalf("prover %d: failed to verify proof for key %x: %v\nraw proof: %x", i, kv.k, err, proof)
 			}
@@ -88,7 +88,7 @@ func TestOneElementProof(t *testing.T) {
 		if proof.Len() != 1 {
 			t.Errorf("prover %d: proof should have one element", i)
 		}
-		val, _, err := VerifyProof(trie.Hash(), []byte("k"), proof)
+		val, err := VerifyProof(trie.Hash(), []byte("k"), proof)
 		if err != nil {
 			t.Fatalf("prover %d: failed to verify proof: %v\nraw proof: %x", i, err, proof)
 		}
@@ -107,7 +107,7 @@ func TestBadProof(t *testing.T) {
 			if proof == nil {
 				t.Fatalf("prover %d: nil proof", i)
 			}
-			it := proof.NewIterator()
+			it := proof.NewIterator(nil, nil)
 			for i, d := 0, mrand.Intn(proof.Len()); i <= d; i++ {
 				it.Next()
 			}
@@ -119,7 +119,7 @@ func TestBadProof(t *testing.T) {
 			mutateByte(val)
 			proof.Put(crypto.Keccak256(val), val)
 
-			if _, _, err := VerifyProof(root, kv.k, proof); err == nil {
+			if _, err := VerifyProof(root, kv.k, proof); err == nil {
 				t.Fatalf("prover %d: expected proof to fail for key %x", i, kv.k)
 			}
 		}
@@ -139,7 +139,7 @@ func TestMissingKeyProof(t *testing.T) {
 		if proof.Len() != 1 {
 			t.Errorf("test %d: proof should have one element", i)
 		}
-		val, _, err := VerifyProof(trie.Hash(), []byte(key), proof)
+		val, err := VerifyProof(trie.Hash(), []byte(key), proof)
 		if err != nil {
 			t.Fatalf("test %d: failed to verify proof: %v\nraw proof: %x", i, err, proof)
 		}
@@ -192,7 +192,7 @@ func BenchmarkVerifyProof(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		im := i % len(keys)
-		if _, _, err := VerifyProof(root, []byte(keys[im]), proofs[im]); err != nil {
+		if _, err := VerifyProof(root, []byte(keys[im]), proofs[im]); err != nil {
 			b.Fatalf("key %x: %v", keys[im], err)
 		}
 	}

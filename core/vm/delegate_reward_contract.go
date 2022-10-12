@@ -18,8 +18,8 @@ package vm
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"math/big"
-	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -154,7 +154,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 			return nil, err
 		}
 	}
-	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), reward), nil
+	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), []interface{}{reward}...), nil
 }
 
 func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {

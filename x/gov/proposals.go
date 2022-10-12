@@ -14,12 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package gov
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -99,7 +97,7 @@ type Proposal interface {
 	GetEndVotingBlock() uint64
 	GetProposer() discover.NodeID
 	GetTallyResult() TallyResult
-	Verify(blockNumber uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error
+	Verify(blockNumber uint64, blockHash common.Hash, state xcom.StateDB) error
 	String() string
 }
 
@@ -141,7 +139,7 @@ func (tp *TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
+func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 	if tp.ProposalType != Text {
 		return ProposalTypeError
 	}
@@ -220,7 +218,7 @@ func (vp *VersionProposal) GetActiveBlock() uint64 {
 	return vp.ActiveBlock
 }
 
-func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
+func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 
 	if vp.ProposalType != Version {
 		return ProposalTypeError
@@ -327,7 +325,7 @@ func (cp *CancelProposal) GetTallyResult() TallyResult {
 	return cp.Result
 }
 
-func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
+func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 	if cp.ProposalType != Cancel {
 		return ProposalTypeError
 	}
@@ -425,7 +423,7 @@ func (pp *ParamProposal) GetTallyResult() TallyResult {
 	return pp.Result
 }
 
-func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB, chainID *big.Int) error {
+func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
 	if pp.ProposalType != Param {
 		return ProposalTypeError
 	}
