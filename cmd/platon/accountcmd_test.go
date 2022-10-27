@@ -17,6 +17,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -71,8 +72,8 @@ func TestAccountNew(t *testing.T) {
 	platon.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
-Repeat passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
+Repeat password: {{.InputLine "foobar"}}
 
 Your new key was generated
 `)
@@ -88,15 +89,46 @@ Path of the secret key file: .*UTC--.+--[0-9a-f]{40}
 `)
 }
 
+func TestAccountImport(t *testing.T) {
+	tests := []struct{ key, output string }{
+		{
+			key:    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			output: "Address: {lat1ljkskxdm982xw3f36mc32gm7z6huudmux9pn7j}\n",
+		},
+		{
+			key:    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef1",
+			output: "Fatal: Failed to load the private key: invalid character '1' at end of key file\n",
+		},
+	}
+	for _, test := range tests {
+		importAccountWithExpect(t, test.key, test.output)
+	}
+}
+
+func importAccountWithExpect(t *testing.T, key string, expected string) {
+	dir := tmpdir(t)
+	keyfile := filepath.Join(dir, "key.prv")
+	if err := ioutil.WriteFile(keyfile, []byte(key), 0600); err != nil {
+		t.Error(err)
+	}
+	passwordFile := filepath.Join(dir, "password.txt")
+	if err := ioutil.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
+		t.Error(err)
+	}
+	platon := runPlatON(t, "account", "import", keyfile, "-password", passwordFile)
+	defer platon.ExpectExit()
+	platon.Expect(expected)
+}
+
 func TestAccountNewBadRepeat(t *testing.T) {
 	platon := runPlatON(t, "account", "new", "--lightkdf")
 	defer platon.ExpectExit()
 	platon.Expect(`
 Your new account is locked with a password. Please give a password. Do not forget this password.
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "something"}}
-Repeat passphrase: {{.InputLine "something else"}}
-Fatal: Passphrases do not match
+Password: {{.InputLine "something"}}
+Repeat password: {{.InputLine "something else"}}
+Fatal: Passwords do not match
 `)
 }
 
@@ -109,10 +141,10 @@ func TestAccountUpdate(t *testing.T) {
 	platon.Expect(`
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 Please give a new password. Do not forget this password.
-Passphrase: {{.InputLine "foobar2"}}
-Repeat passphrase: {{.InputLine "foobar2"}}
+Password: {{.InputLine "foobar2"}}
+Repeat password: {{.InputLine "foobar2"}}
 `)
 }
 
@@ -125,7 +157,7 @@ func TestUnlockFlag(t *testing.T) {
 	platon.Expect(`
 Unlocking account lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 `)
 	platon.ExpectExit()
 
@@ -149,12 +181,12 @@ func TestUnlockFlagWrongPassword(t *testing.T) {
 	platon.Expect(`
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "wrong1"}}
+Password: {{.InputLine "wrong1"}}
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 2/3
-Passphrase: {{.InputLine "wrong2"}}
+Password: {{.InputLine "wrong2"}}
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 3/3
-Passphrase: {{.InputLine "wrong3"}}
-Fatal: Failed to unlock account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 (could not decrypt key with given passphrase)
+Password: {{.InputLine "wrong3"}}
+Fatal: Failed to unlock account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 (could not decrypt key with given password)
 `)
 }
 
@@ -168,9 +200,9 @@ func TestUnlockFlagMultiIndex(t *testing.T) {
 	platon.Expect(`
 Unlocking account 0 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 Unlocking account 2 | Attempt 1/3
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 `)
 	platon.ExpectExit()
 
@@ -213,7 +245,7 @@ func TestUnlockFlagPasswordFileWrongPassword(t *testing.T) {
 		"--password", "testdata/wrong-passwords.txt", "--unlock", "0,2")
 	defer platon.ExpectExit()
 	platon.Expect(`
-Fatal: Failed to unlock account 0 (could not decrypt key with given passphrase)
+Fatal: Failed to unlock account 0 (could not decrypt key with given password)
 `)
 }
 
@@ -233,12 +265,12 @@ func TestUnlockFlagAmbiguous(t *testing.T) {
 	platon.Expect(`
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "foobar"}}
+Password: {{.InputLine "foobar"}}
 Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
-Testing your passphrase against all of them...
-Your passphrase unlocked keystore://{{keypath "1"}}
+Testing your password against all of them...
+Your password unlocked keystore://{{keypath "1"}}
 In order to avoid this warning, you need to remove the following duplicate key files:
    keystore://{{keypath "2"}}
 `)
@@ -270,11 +302,11 @@ func TestUnlockFlagAmbiguousWrongPassword(t *testing.T) {
 	platon.Expect(`
 Unlocking account lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
-Passphrase: {{.InputLine "wrong"}}
+Password: {{.InputLine "wrong"}}
 Multiple key files exist for address lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6:
    keystore://{{keypath "1"}}
    keystore://{{keypath "2"}}
-Testing your passphrase against all of them...
+Testing your password against all of them...
 Fatal: None of the listed files could be unlocked.
 `)
 	platon.ExpectExit()

@@ -83,6 +83,7 @@ type ProtocolManager struct {
 	txpool      txPool
 	blockchain  *core.BlockChain
 	chainconfig *params.ChainConfig
+	chaindb     ethdb.Database
 	maxPeers    int
 
 	downloader *downloader.Downloader
@@ -121,6 +122,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		eventMux:    mux,
 		txpool:      txpool,
 		blockchain:  blockchain,
+		chaindb:     chaindb,
 		chainconfig: config,
 		peers:       newPeerSet(),
 		txsyncCh:    make(chan *txsync),
@@ -867,8 +869,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	return nil
 }
 
-// BroadcastBlock will either propagate a block to a subset of it's peers, or
-// will only announce it's availability (depending what's requested).
+// BroadcastBlock will either propagate a block to a subset of its peers, or
+// will only announce its availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
 	peers := pm.peers.PeersWithoutBlock(hash)

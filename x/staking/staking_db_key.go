@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package staking
 
 import (
@@ -34,6 +33,7 @@ const (
 	UnStakeCountKeyStr         = "UnStakeCount"
 	UnStakeItemKeyStr          = "UnStakeItem"
 	DelegatePrefixStr          = "Del"
+	DelegationLockPrefixStr    = "DelegationLock"
 	EpochIndexKeyStr           = "EpochIndex"
 	EpochValArrPrefixStr       = "EpochValArr"
 	RoundIndexKeyStr           = "RoundIndex"
@@ -51,6 +51,7 @@ var (
 	UnStakeCountKey         = []byte(UnStakeCountKeyStr)
 	UnStakeItemKey          = []byte(UnStakeItemKeyStr)
 	DelegateKeyPrefix       = []byte(DelegatePrefixStr)
+	DelegationLockKeyPrefix = []byte(DelegationLockPrefixStr)
 	EpochIndexKey           = []byte(EpochIndexKeyStr)
 	EpochValArrPrefix       = []byte(EpochValArrPrefixStr)
 	RoundIndexKey           = []byte(RoundIndexKeyStr)
@@ -166,6 +167,10 @@ func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId discover.Node
 	nodeId = discover.MustBytesID(key[delAddrLength:nodeIdLength])
 	stakeBlockNumber = common.BytesToUint64(key[nodeIdLength:])
 	return
+}
+
+func GetDelegationLockKey(delAddr common.Address) []byte {
+	return append(DelegationLockKeyPrefix, delAddr.Bytes()...)
 }
 
 func GetDelegateKeyBySuffix(suffix []byte) []byte {

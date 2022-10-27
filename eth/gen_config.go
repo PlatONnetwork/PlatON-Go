@@ -27,6 +27,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
 		DatabaseFreezer          string
+		TxLookupLimit            uint64 `toml:",omitempty"`
 		TrieCache                int
 		TrieTimeout              time.Duration
 		TrieDBCache              int
@@ -76,6 +77,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
 	enc.DatabaseFreezer = c.DatabaseFreezer
+	enc.TxLookupLimit = c.TxLookupLimit
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
 	enc.TrieDBCache = c.TrieDBCache
@@ -129,6 +131,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
 		DatabaseFreezer          *string
+		TxLookupLimit            *uint64 `toml:",omitempty"`
 		TrieCache                *int
 		TrieTimeout              *time.Duration
 		TrieDBCache              *int
@@ -202,6 +205,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DatabaseFreezer != nil {
 		c.DatabaseFreezer = *dec.DatabaseFreezer
+	}
+	if dec.TxLookupLimit != nil {
+		c.TxLookupLimit = *dec.TxLookupLimit
 	}
 	if dec.TrieCache != nil {
 		c.TrieCache = *dec.TrieCache

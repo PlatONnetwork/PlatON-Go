@@ -109,15 +109,15 @@ func runContractCallResult(contract *StakingContract, params [][]byte, title str
 }
 
 // Custom func
-func create_staking(blockNumber *big.Int, blockHash common.Hash, state *mock.MockStateDB, index int, t *testing.T) *StakingContract {
+func create_staking(blockNumber *big.Int, blockHash common.Hash, chain *mock.Chain, index int, t *testing.T) *StakingContract {
 
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -236,42 +236,34 @@ Standard test cases
 
 func TestStakingContract_createStaking(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
 
-	create_staking(blockNumber, blockHash, state, 1, t)
+	create_staking(blockNumber, blockHash, chain, 1, t)
 }
 
 func TestStakingContract_editCandidate(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -279,7 +271,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -287,13 +279,13 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -320,7 +312,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 
 	runContractSendTransaction(contract2, params, "editCandidate", t)
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -332,24 +324,20 @@ func TestStakingContract_editCandidate(t *testing.T) {
 
 func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -357,7 +345,7 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -365,13 +353,13 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(3), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(3), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -417,24 +405,20 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 
 func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -442,7 +426,7 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -450,13 +434,13 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -502,24 +486,20 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 
 func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -527,7 +507,7 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -535,13 +515,13 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -587,24 +567,20 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 
 func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -612,7 +588,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -620,13 +596,13 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -672,13 +648,13 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	contract2 = &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	params = make([][]byte, 0)
@@ -719,24 +695,20 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 }
 
 func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -744,7 +716,7 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -752,14 +724,14 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, state),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	oldCandidate := getCandidateInfo(contract2, index, t)
 	assert.True(t, oldCandidate != nil)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// edit
 	var params [][]byte
@@ -810,24 +782,20 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 
 func TestStakingContract_increaseStaking(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -835,7 +803,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -843,13 +811,13 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// increase
 
@@ -869,7 +837,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 
 	runContractSendTransaction(contract2, params, "increaseStaking", t)
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -881,25 +849,21 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 
 func TestStakingContract_withdrewCandidate(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -907,7 +871,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -915,13 +879,13 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 
 	// withdrewStaking
 
@@ -936,7 +900,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 
 	runContractSendTransaction(contract2, params, "withdrewStaking", t)
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -945,25 +909,21 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 
 func TestStakingContract_delegate(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -971,7 +931,7 @@ func TestStakingContract_delegate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -979,17 +939,17 @@ func TestStakingContract_delegate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[1], blockHash2, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash2, 1)
 	// delegate
 	create_delegate(contract2, index, t)
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -1001,25 +961,21 @@ func TestStakingContract_delegate(t *testing.T) {
 
 func TestStakingContract_withdrewDelegate(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
-
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1027,14 +983,14 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1)), blockHash2, state),
+		Evm:      newEvm(new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1)), blockHash2, chain),
 	}
 
-	state.Prepare(txHashArr[1], blockHash, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash, 1)
 	// delegate
 	create_delegate(contract, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -1042,7 +998,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -1050,13 +1006,13 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[2], blockHash2, 0)
+	chain.StateDB.Prepare(txHashArr[2], blockHash2, 0)
 
 	// withdrewDelegation
 	var params [][]byte
@@ -1075,7 +1031,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	runContractSendTransaction(contract2, params, "withdrewDelegation", t)
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -1086,28 +1042,24 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 func TestStakingContract_getVerifierList(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
 	// init staking data into block 1
-	build_staking_data(genesis.Hash())
+	build_staking_data(chain.SnapDB, chain.Genesis.Hash())
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
@@ -1124,28 +1076,24 @@ func TestStakingContract_getVerifierList(t *testing.T) {
 
 func TestStakingContract_getValidatorList(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
 	// init staking data into block 1
-	build_staking_data(genesis.Hash())
+	build_staking_data(chain.SnapDB, chain.Genesis.Hash())
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -1162,45 +1110,40 @@ func TestStakingContract_getValidatorList(t *testing.T) {
 
 func TestStakingContract_getCandidateList(t *testing.T) {
 
-	state, genesis, _ := newChainState()
-
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
 
 	for i := 0; i < 2; i++ {
-		state.Prepare(txHashArr[i], blockHash, i)
-		create_staking(blockNumber, blockHash, state, i, t)
+		chain.StateDB.Prepare(txHashArr[i], blockHash, i)
+		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
 
 	for i := 2; i < 4; i++ {
-		state.Prepare(txHashArr[i], blockHash2, i)
-		create_staking(blockNumber2, blockHash2, state, i, t)
+		chain.StateDB.Prepare(txHashArr[i], blockHash2, i)
+		create_staking(blockNumber2, blockHash2, chain, i, t)
 	}
 
 	// getCandidate List
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 	params := make([][]byte, 0)
 
@@ -1214,30 +1157,27 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 
 func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
 	for i := 0; i < 4; i++ {
-		state.Prepare(txHashArr[i], blockHash, i)
-		create_staking(blockNumber, blockHash, state, i, t)
+		chain.StateDB.Prepare(txHashArr[i], blockHash, i)
+		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -1245,16 +1185,16 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// delegate
 	for i := 0; i < 3; i++ {
-		state.Prepare(txHashArr[i], blockHash2, i)
+		chain.StateDB.Prepare(txHashArr[i], blockHash2, i)
 		create_delegate(contract2, i, t)
 	}
 
-	if err := sndb.Commit(blockHash2); nil != err {
+	if err := chain.SnapDB.Commit(blockHash2); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber2, blockHash2.Hex(), err)
 		return
 	}
@@ -1274,39 +1214,36 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 
 func TestStakingContract_getDelegateInfo(t *testing.T) {
 
-	state, genesis, _ := newChainState()
-	newPlugins()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
+	newPlugins()
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	state.Prepare(txHashArr[1], blockHash, 1)
+	chain.StateDB.Prepare(txHashArr[1], blockHash, 1)
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
 	contract := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, delegateSender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 	// delegate
 	create_delegate(contract, index, t)
 
-	if err := sndb.Commit(blockHash); nil != err {
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -1314,7 +1251,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
-	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
 	}
@@ -1322,13 +1259,13 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, chain),
 	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	state.Prepare(txHashArr[2], blockHash2, 2)
+	chain.StateDB.Prepare(txHashArr[2], blockHash2, 2)
 	// get DelegateInfo
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1348,22 +1285,19 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 
 func TestStakingContract_getCandidateInfo(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("Failed to newBlock", err)
 		return
 	}
 
-	state.Prepare(txHashArr[0], blockHash, 0)
-	contract := create_staking(blockNumber, blockHash, state, 1, t)
-	if err := sndb.Commit(blockHash); nil != err {
+	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	contract := create_staking(blockNumber, blockHash, chain, 1, t)
+	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
 		return
 	}
@@ -1378,22 +1312,19 @@ Expand test cases
 
 func TestStakingContract_batchCreateStaking(t *testing.T) {
 
-	state, genesis, _ := newChainState()
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
-
-	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
+	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("Failed to newBlock", err)
 		return
 	}
 
 	for i := 0; i < 4; i++ {
-		state.Prepare(txHashArr[i], blockHash, i)
-		create_staking(blockNumber, blockHash, state, i, t)
+		chain.StateDB.Prepare(txHashArr[i], blockHash, i)
+		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 
 }

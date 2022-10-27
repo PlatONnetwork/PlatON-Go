@@ -96,7 +96,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 		b.SetCoinbase(common.Address{})
 	}
 	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
-	receipt, _, err := ApplyTransaction(b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
+	receipt, err := ApplyTransaction(b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
 	}
@@ -179,7 +179,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
-		blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{}, nil)
+		blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{}, nil, nil)
 		defer blockchain.Stop()
 
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
@@ -234,7 +234,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		DBGCInterval:    86400,
 		DBGCTimeout:     time.Minute,
 	}
-	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
+	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
@@ -248,7 +248,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, statedb)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
 			if err != nil {
 				panic(err)
 			}
@@ -288,7 +288,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		DBGCInterval:    86400,
 		DBGCTimeout:     time.Minute,
 	}
-	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
+	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
@@ -302,7 +302,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, statedb)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
 			if err != nil {
 				panic(err)
 			}

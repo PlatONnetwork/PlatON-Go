@@ -37,6 +37,7 @@ var (
 			getRelatedListByDelAddrCmd,
 			getDelegateInfoCmd,
 			getCandidateInfoCmd,
+			getDelegationLockCmd,
 			getPackageRewardCmd,
 			getStakingRewardCmd,
 			getAvgPackTimeCmd,
@@ -83,6 +84,13 @@ var (
 		Before: netCheck,
 		Action: getCandidateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeIdFlag, jsonFlag},
+	}
+	getDelegationLockCmd = cli.Command{
+		Name:   "getDelegationLock",
+		Usage:  "1106,Query the delegation lock information of the current account,parameter:address",
+		Before: netCheck,
+		Action: getDelegationLock,
+		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
 	}
 	getPackageRewardCmd = cli.Command{
 		Name:   "getPackageReward",
@@ -174,6 +182,18 @@ func getCandidateInfo(c *cli.Context) error {
 		return err
 	}
 	return query(c, 1105, nodeid)
+}
+
+func getDelegationLock(c *cli.Context) error {
+	addstring := c.String(addFlag.Name)
+	if addstring == "" {
+		return errors.New("The Del's account address is not set")
+	}
+	add, err := common.Bech32ToAddress(addstring)
+	if err != nil {
+		return err
+	}
+	return query(c, 1106, add)
 }
 
 func getPackageReward(c *cli.Context) error {

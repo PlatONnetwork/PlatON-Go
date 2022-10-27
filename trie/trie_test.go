@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -29,6 +28,8 @@ import (
 	"testing"
 	"testing/quick"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
 
@@ -58,7 +59,7 @@ func TestEmptyTrie(t *testing.T) {
 	var trie Trie
 	res := trie.Hash()
 	exp := emptyRoot
-	if res != common.Hash(exp) {
+	if res != exp {
 		t.Errorf("expected %x got %x", exp, res)
 	}
 }
@@ -465,80 +466,6 @@ func runRandTest(rt randTest) bool {
 	return true
 }
 
-func runRandParallelTest(rt randTest) bool {
-	triedb := NewDatabase(memorydb.New())
-
-	tr, _ := New(common.Hash{}, triedb)
-	values := make(map[string]string) // tracks content of the trie
-	tmpVals := make(map[string][]byte)
-
-	for i, step := range rt {
-		switch step.op {
-		case opUpdate:
-			//fmt.Printf("%d: opUpdate, len: %d\n", i, len(values))
-			tr.Update(step.key, step.value)
-			values[string(step.key)] = string(step.value)
-			tmpVals[string(step.key)] = step.value
-		case opDelete:
-			//fmt.Printf("%d: opDelete, len: %d\n", i, len(values))
-			tr.Delete(step.key)
-			//fmt.Printf("del -> %x\n", step.key)
-			delete(values, string(step.key))
-			delete(tmpVals, string(step.key))
-		case opGet:
-			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
-			v := tr.Get(step.key)
-			want := values[string(step.key)]
-			if string(v) != want {
-				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
-				tr.Get(step.key)
-			}
-		case opCommit:
-			//fmt.Printf("%d: opGet, len: %d\n", i, len(values))
-			_, rt[i].err = tr.ParallelCommit(nil)
-		case opHash:
-			//fmt.Printf("%d: opHash, len: %d\n", i, len(values))
-			tr.ParallelHash()
-		case opReset:
-			//fmt.Printf("%d: opReset, len: %d\n", i, len(values))
-			hash, err := tr.ParallelCommit(nil)
-			if err != nil {
-				rt[i].err = err
-				return false
-			}
-			newtr, err := New(hash, triedb)
-			if err != nil {
-				rt[i].err = err
-				return false
-			}
-			tr = newtr
-		case opItercheckhash:
-			//fmt.Printf("%d: opItercheckhash, len: %d\n", i, len(values))
-			checktr, _ := New(common.Hash{}, triedb)
-			it := NewIterator(tr.NodeIterator(nil))
-			for it.Next() {
-				checktr.Update(it.Key, it.Value)
-			}
-			if tr.ParallelHash() != checktr.Hash() {
-				//fmt.Printf("phash: %x, chash: %x\n", tr.ParallelHash2(), checktr.Hash())
-				rt[i].err = fmt.Errorf("hash mismatch in opItercheckhash")
-
-				nt, _ := New(common.Hash{}, triedb)
-				it := NewIterator(tr.NodeIterator(nil))
-				for it.Next() {
-					nt.Update(it.Key, it.Value)
-				}
-			}
-		}
-		// Abort the test on error.
-		if rt[i].err != nil {
-			//fmt.Printf("i: %d, err: %v, i-1_op: %d, i_op: %d\n", i, rt[i].err, rt[i-1].op, rt[i].op)
-			return false
-		}
-	}
-	return true
-}
-
 func TestNewFlag(t *testing.T) {
 	trie := &Trie{}
 	trie.newFlag()
@@ -548,15 +475,6 @@ func TestNewFlag(t *testing.T) {
 
 func TestRandom(t *testing.T) {
 	if err := quick.Check(runRandTest, nil); err != nil {
-		if cerr, ok := err.(*quick.CheckError); ok {
-			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
-		}
-		t.Fatal(err)
-	}
-}
-
-func TestRandomParalle(t *testing.T) {
-	if err := quick.Check(runRandParallelTest, nil); err != nil {
 		if cerr, ok := err.(*quick.CheckError); ok {
 			t.Fatalf("random test iteration %d failed: %s", cerr.Count, spew.Sdump(cerr.In))
 		}
@@ -637,44 +555,12 @@ func BenchmarkHash(b *testing.B) {
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
-	trie.dag = nil
 	for i := 0; i < len(addresses); i++ {
 		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
 	}
 	b.ResetTimer()
 	b.ReportAllocs()
 	trie.Hash()
-}
-
-func BenchmarkParallelHash2(b *testing.B) {
-	// Make the random benchmark deterministic
-	random := rand.New(rand.NewSource(0))
-
-	// Create a realistic account trie to hash
-	addresses := make([][20]byte, b.N)
-	for i := 0; i < len(addresses); i++ {
-		for j := 0; j < len(addresses[i]); j++ {
-			addresses[i][j] = byte(random.Intn(256))
-		}
-	}
-	accounts := make([][]byte, len(addresses))
-	for i := 0; i < len(accounts); i++ {
-		var (
-			nonce   = uint64(random.Int63())
-			balance = new(big.Int).Rand(random, new(big.Int).Exp(common.Big2, common.Big256, nil))
-			root    = emptyRoot
-			code    = crypto.Keccak256(nil)
-		)
-		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
-	}
-	// Insert the accounts into the trie and hash it
-	trie := newEmpty()
-	for i := 0; i < len(addresses); i++ {
-		trie.Update(crypto.Keccak256(addresses[i][:]), accounts[i])
-	}
-	b.ResetTimer()
-	b.ReportAllocs()
-	trie.ParallelHash()
 }
 
 func tempDB() (string, *Database) {
@@ -746,7 +632,6 @@ func TestDeepCopy(t *testing.T) {
 		parent = root
 		triedb.Reference(root, common.Hash{})
 		triedb.Commit(root, false, false)
-		//fmt.Println("commit db", "count", j, time.Since(start))
 	}
 
 	tr2, _ := NewSecure(root, triedb)
@@ -900,7 +785,7 @@ func TestTwoTrieCollision(t *testing.T) {
 	memdb2.Commit(root2, false, false)
 
 	dup := 0
-	itr := mem1.NewIterator()
+	itr := mem1.NewIterator(nil, nil)
 	for itr.Next() {
 		_, err := mem2.Get(itr.Key())
 		if err != nil {
@@ -1028,7 +913,7 @@ func TestTrieHashByDisorderedData(t *testing.T) {
 				t.Errorf("TryUpdate Error")
 			}
 		}
-		rootHash2 := trie2.ParallelHash()
+		rootHash2 := trie2.Hash()
 		t.Log("Update trie success", "root", rootHash2.String(), "duration", time.Since(start))
 
 		assert.Equal(t, rootHash, rootHash2)
@@ -1080,7 +965,7 @@ func TestTrieHashByUpdate(t *testing.T) {
 				trie2.TryDelete(triekvPairs[i].k)
 			}
 		}
-		rootHash2 := trie2.ParallelHash()
+		rootHash2 := trie2.Hash()
 		t.Log("Update trie success", "root", rootHash2.String(), "duration", time.Since(start))
 		assert.Equal(t, rootHash, rootHash2)
 	}

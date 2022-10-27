@@ -180,7 +180,7 @@ func TestSignTxRequest(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	fmt.Printf("to %v", to.Address().String())
+	t.Logf("to %v", to.Address().String())
 	resp, err := r.ApproveTx(&core.SignTxRequest{
 		Transaction: core.SendTxArgs{
 			From: *from,
@@ -241,6 +241,7 @@ func (d *dummyUI) ShowInfo(message string) {
 func (d *dummyUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	d.calls = append(d.calls, "OnApprovedTx")
 }
+
 func (d *dummyUI) OnSignerStartup(info core.StartupInfo) {
 }
 
@@ -260,17 +261,15 @@ func TestForwarding(t *testing.T) {
 	}
 	r.ApproveSignData(nil)
 	r.ApproveTx(nil)
-	r.ApproveImport(nil)
 	r.ApproveNewAccount(nil)
 	r.ApproveListing(nil)
-	r.ApproveExport(nil)
 	r.ShowError("test")
 	r.ShowInfo("test")
 
 	//This one is not forwarded
 	r.OnApprovedTx(ethapi.SignTransactionResult{})
 
-	expCalls := 8
+	expCalls := 6
 	if len(ui.calls) != expCalls {
 
 		t.Errorf("Expected %d forwarded calls, got %d: %s", expCalls, len(ui.calls), strings.Join(ui.calls, ","))
@@ -299,30 +298,30 @@ func TestMissingFunc(t *testing.T) {
 	if approved {
 		t.Errorf("Expected missing method to cause non-approval")
 	}
-	fmt.Printf("Err %v", err)
+	t.Logf("Err %v", err)
 
 }
 func TestStorage(t *testing.T) {
 
 	js := `
 	function testStorage(){
-		storage.Put("mykey", "myvalue")
-		a = storage.Get("mykey")
+		storage.put("mykey", "myvalue")
+		a = storage.get("mykey")
 
-		storage.Put("mykey", ["a", "list"])  	// Should result in "a,list"
-		a += storage.Get("mykey")
-
-
-		storage.Put("mykey", {"an": "object"}) 	// Should result in "[object Object]"
-		a += storage.Get("mykey")
+		storage.put("mykey", ["a", "list"])  	// Should result in "a,list"
+		a += storage.get("mykey")
 
 
-		storage.Put("mykey", JSON.stringify({"an": "object"})) // Should result in '{"an":"object"}'
-		a += storage.Get("mykey")
+		storage.put("mykey", {"an": "object"}) 	// Should result in "[object Object]"
+		a += storage.get("mykey")
 
-		a += storage.Get("missingkey")		//Missing keys should result in empty string
-		storage.Put("","missing key==noop") // Can't store with 0-length key
-		a += storage.Get("")				// Should result in ''
+
+		storage.put("mykey", JSON.stringify({"an": "object"})) // Should result in '{"an":"object"}'
+		a += storage.get("mykey")
+
+		a += storage.get("missingkey")		//Missing keys should result in empty string
+		storage.put("","missing key==noop") // Can't store with 0-length key
+		a += storage.get("")				// Should result in ''
 
 		var b = new BigNumber(2)
 		var c = new BigNumber(16)//"0xf0",16)
@@ -342,8 +341,7 @@ func TestStorage(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
-
-	retval, err := v.ToString()
+	retval := v.ToString().String()
 
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -352,7 +350,7 @@ func TestStorage(t *testing.T) {
 	if retval != exp {
 		t.Errorf("Unexpected data, expected '%v', got '%v'", exp, retval)
 	}
-	fmt.Printf("Err %v", err)
+	t.Logf("Err %v", err)
 
 }
 
@@ -374,7 +372,7 @@ const ExampleTxWindow = `
 		var windowstart = new Date().getTime() - window;
 
 		var txs = [];
-		var stored = storage.Get('txs');
+		var stored = storage.get('txs');
 
 		if(stored != ""){
 			txs = JSON.parse(stored)
@@ -419,19 +417,18 @@ const ExampleTxWindow = `
 		var value = big(resp.tx.value)
 		var txs = []
 		// Load stored transactions
-		var stored = storage.Get('txs');
+		var stored = storage.get('txs');
 		if(stored != ""){
 			txs = JSON.parse(stored)
 		}
 		// Add this to the storage
 		txs.push({tstamp: new Date().getTime(), value: value});
-		storage.Put("txs", JSON.stringify(txs));
+		storage.put("txs", JSON.stringify(txs));
 	}
 
 `
 
 func dummyTx(value hexutil.Big) *core.SignTxRequest {
-
 	to, _ := mixAddr("000000000000000000000000000000000000dead")
 	from, _ := mixAddr("000000000000000000000000000000000000dead")
 	n := hexutil.Uint64(3)
@@ -453,28 +450,27 @@ func dummyTx(value hexutil.Big) *core.SignTxRequest {
 		Meta: core.Metadata{Remote: "remoteip", Local: "localip", Scheme: "inproc"},
 	}
 }
-func dummyTxWithV(value uint64) *core.SignTxRequest {
 
+func dummyTxWithV(value uint64) *core.SignTxRequest {
 	v := big.NewInt(0).SetUint64(value)
 	h := hexutil.Big(*v)
 	return dummyTx(h)
 }
+
 func dummySigned(value *big.Int) *types.Transaction {
 	to := common.HexToAddress("000000000000000000000000000000000000dead")
 	gas := uint64(21000)
 	gasPrice := big.NewInt(2000000)
 	data := make([]byte, 0)
 	return types.NewTransaction(3, to, value, gas, gasPrice, data)
-
 }
-func TestLimitWindow(t *testing.T) {
 
+func TestLimitWindow(t *testing.T) {
 	r, err := initRuleEngine(ExampleTxWindow)
 	if err != nil {
 		t.Errorf("Couldn't create evaluator %v", err)
 		return
 	}
-
 	// 0.3 ether: 429D069189E0000 wei
 	v := big.NewInt(0).SetBytes(common.Hex2Bytes("0429D069189E0000"))
 	h := hexutil.Big(*v)
@@ -501,7 +497,6 @@ func TestLimitWindow(t *testing.T) {
 	if resp.Approved {
 		t.Errorf("Expected check to resolve to 'Reject'")
 	}
-
 }
 
 // dontCallMe is used as a next-handler that does not want to be called - it invokes test failure

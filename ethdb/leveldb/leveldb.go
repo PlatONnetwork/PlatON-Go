@@ -122,9 +122,9 @@ func New(file string, cache int, handles int, namespace string) (*Database, erro
 	ldb.compTimeMeter = metrics.NewRegisteredMeter(namespace+"compact/time", nil)
 	ldb.compReadMeter = metrics.NewRegisteredMeter(namespace+"compact/input", nil)
 	ldb.compWriteMeter = metrics.NewRegisteredMeter(namespace+"compact/output", nil)
+	ldb.diskSizeGauge = metrics.NewRegisteredGauge(namespace+"disk/size", nil)
 	ldb.diskReadMeter = metrics.NewRegisteredMeter(namespace+"disk/read", nil)
 	ldb.diskWriteMeter = metrics.NewRegisteredMeter(namespace+"disk/write", nil)
-	ldb.diskSizeGauge = metrics.NewRegisteredGauge(namespace+"disk/size", nil)
 	ldb.writeDelayMeter = metrics.NewRegisteredMeter(namespace+"compact/writedelay/duration", nil)
 	ldb.writeDelayNMeter = metrics.NewRegisteredMeter(namespace+"compact/writedelay/counter", nil)
 	ldb.memCompGauge = metrics.NewRegisteredGauge(namespace+"compact/memory", nil)
@@ -187,23 +187,11 @@ func (db *Database) NewBatch() ethdb.Batch {
 	}
 }
 
-// NewIterator creates a binary-alphabetical iterator over the entire keyspace
-// contained within the leveldb database.
-func (db *Database) NewIterator() ethdb.Iterator {
-	return db.db.NewIterator(new(util.Range), nil)
-}
-
-// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
-// database content starting at a particular initial key (or after, if it does
-// not exist).
-func (db *Database) NewIteratorWithStart(start []byte) ethdb.Iterator {
-	return db.db.NewIterator(&util.Range{Start: start}, nil)
-}
-
-// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
-// of database content with a particular key prefix.
-func (db *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
-	return db.db.NewIterator(util.BytesPrefix(prefix), nil)
+// NewIterator creates a binary-alphabetical iterator over a subset
+// of database content with a particular key prefix, starting at a particular
+// initial key (or after, if it does not exist).
+func (db *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
+	return db.db.NewIterator(bytesPrefixRange(prefix, start), nil)
 }
 
 // Stat returns a particular internal stat of the database.
@@ -248,13 +236,14 @@ func walkDir(dir string) int64 {
 // the metrics subsystem.
 //
 // This is how a LevelDB stats table looks like (currently):
-//   Compactions
-//    Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
-//   -------+------------+---------------+---------------+---------------+---------------
-//      0   |          0 |       0.00000 |       1.27969 |       0.00000 |      12.31098
-//      1   |         85 |     109.27913 |      28.09293 |     213.92493 |     214.26294
-//      2   |        523 |    1000.37159 |       7.26059 |      66.86342 |      66.77884
-//      3   |        570 |    1113.18458 |       0.00000 |       0.00000 |       0.00000
+//
+//	Compactions
+//	 Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
+//	-------+------------+---------------+---------------+---------------+---------------
+//	   0   |          0 |       0.00000 |       1.27969 |       0.00000 |      12.31098
+//	   1   |         85 |     109.27913 |      28.09293 |     213.92493 |     214.26294
+//	   2   |        523 |    1000.37159 |       7.26059 |      66.86342 |      66.77884
+//	   3   |        570 |    1113.18458 |       0.00000 |       0.00000 |       0.00000
 //
 // This is how the write delay look like (currently):
 // DelayN:5 Delay:406.604657ms Paused: false
@@ -324,10 +313,10 @@ func (db *Database) meter(refresh time.Duration) {
 				compactions[i%2][idx] += value
 			}
 		}
+		// Update all the requested meters
 		if db.diskSizeGauge != nil {
 			db.diskSizeGauge.Update(int64(compactions[i%2][0] * 1024 * 1024))
 		}
-		// Update all the requested meters
 		if db.compTimeMeter != nil {
 			db.compTimeMeter.Mark(int64((compactions[i%2][1] - compactions[(i-1)%2][1]) * 1000 * 1000 * 1000))
 		}
@@ -337,7 +326,6 @@ func (db *Database) meter(refresh time.Duration) {
 		if db.compWriteMeter != nil {
 			db.compWriteMeter.Mark(int64((compactions[i%2][3] - compactions[(i-1)%2][3]) * 1024 * 1024))
 		}
-
 		// Retrieve the write delay statistic
 		writedelay, err := db.db.GetProperty("leveldb.writedelay")
 		if err != nil {
@@ -518,4 +506,13 @@ func (r *replayer) Delete(key []byte) {
 		return
 	}
 	r.failure = r.writer.Delete(key)
+}
+
+// bytesPrefixRange returns key range that satisfy
+// - the given prefix, and
+// - the given seek position
+func bytesPrefixRange(prefix, start []byte) *util.Range {
+	r := util.BytesPrefix(prefix)
+	r.Start = append(r.Start, start...)
+	return r
 }

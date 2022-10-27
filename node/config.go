@@ -330,7 +330,7 @@ func (c *Config) ResolvePath(path string) string {
 		}
 		if oldpath != "" && common.FileExist(oldpath) {
 			if warn {
-				c.warnOnce(&c.oldGethResourceWarning, "Using deprecated resource file %s, please move this file to the 'geth' subdirectory of datadir.", oldpath)
+				c.warnOnce(&c.oldGethResourceWarning, "Using deprecated resource file %s, please move this file to the 'platon' subdirectory of datadir.", oldpath)
 			}
 			return oldpath
 		}

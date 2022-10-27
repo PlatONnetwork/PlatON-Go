@@ -271,6 +271,9 @@ func TestChildPrefixedRegistryOfChildRegister(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	err = r2.Register("baz", NewCounter())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	c := NewCounter()
 	Register("bars", c)
 
@@ -278,7 +281,7 @@ func TestChildPrefixedRegistryOfChildRegister(t *testing.T) {
 	r2.Each(func(name string, m interface{}) {
 		i++
 		if name != "prefix.prefix2.baz" {
-			//t.Fatal(name)
+			t.Fatal(name)
 		}
 	})
 	if i != 1 {
@@ -294,6 +297,9 @@ func TestWalkRegistries(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	err = r2.Register("baz", NewCounter())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	c := NewCounter()
 	Register("bars", c)
 

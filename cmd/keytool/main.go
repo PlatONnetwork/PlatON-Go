@@ -45,6 +45,7 @@ func init() {
 		commandGenblskeypair,
 		commandAddressHexToBech32,
 	}
+	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
 }
 
 // Commonly used command line flags.

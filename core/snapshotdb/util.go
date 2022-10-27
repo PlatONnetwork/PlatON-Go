@@ -14,13 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
 	"bytes"
 	"golang.org/x/crypto/sha3"
-	"io"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -45,14 +43,6 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
-}
-
-func encode(x interface{}) ([]byte, error) {
-	return rlp.EncodeToBytes(x)
-}
-
-func decode(r io.Reader, val interface{}) error {
-	return rlp.Decode(r, val)
 }
 
 func generateHeader(num *big.Int, parentHash common.Hash) *types.Header {

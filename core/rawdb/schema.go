@@ -44,6 +44,12 @@ var (
 	// fastTrieProgressKey tracks the number of trie entries imported during fast sync.
 	fastTrieProgressKey = []byte("TrieSync")
 
+	// txIndexTailKey tracks the oldest block whose transactions have been indexed.
+	txIndexTailKey = []byte("TransactionIndexTail")
+
+	// fastTxLookupLimitKey tracks the transaction lookup limit during fast sync.
+	fastTxLookupLimitKey = []byte("FastTransactionLookupLimit")
+
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	headerPrefix       = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
@@ -55,9 +61,10 @@ var (
 	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 
-	preimagePrefix      = []byte("secure-key-")        // preimagePrefix + hash -> preimage
-	configPrefix        = []byte("ethereum-config-")   // config prefix for the db
-	economicModelPrefix = []byte("economicModel-key-") // economicModel prefix for the db
+	preimagePrefix            = []byte("secure-key-")              // preimagePrefix + hash -> preimage
+	configPrefix              = []byte("ethereum-config-")         // config prefix for the db
+	economicModelPrefix       = []byte("economicModel-key-")       // economicModel prefix for the db
+	economicModelExtendPrefix = []byte("economicModelExtend-key-") // economicModelExtend prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
@@ -162,4 +169,9 @@ func configKey(hash common.Hash) []byte {
 // economicModelKey = economicModelPrefix + hash
 func economicModelKey(hash common.Hash) []byte {
 	return append(economicModelPrefix, hash.Bytes()...)
+}
+
+// economicModelExtendKey = economicModelExtendPrefix + hash
+func economicModelExtendKey(hash common.Hash) []byte {
+	return append(economicModelExtendPrefix, hash.Bytes()...)
 }

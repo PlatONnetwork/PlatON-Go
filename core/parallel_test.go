@@ -183,7 +183,7 @@ func initChain(fromAccountList []*account, toAccountList []*account, contractAcc
 		WasmType:      cvm.Wagon,
 	}
 
-	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil)
+	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil, nil)
 
 	parent := blockchain.Genesis()
 	_, header := NewBlock(parent.Hash(), parent.NumberU64()+1)
@@ -358,7 +358,7 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
 		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
-		receipt, _, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
+		receipt, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
 
 		if err != nil {
 			t.Logf("apply tx error, err:%v", err)

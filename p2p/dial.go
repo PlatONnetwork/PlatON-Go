@@ -300,9 +300,16 @@ var (
 	errAlreadyConnected = errors.New("already connected")
 	errRecentlyDialed   = errors.New("recently dialed")
 	errNotWhitelisted   = errors.New("not contained in netrestrict whitelist")
+	errNoPort           = errors.New("node does not provide TCP port")
 )
 
 func (s *dialstate) checkDial(n *discover.Node, peers map[discover.NodeID]*Peer) error {
+	if n.IP != nil && n.TCP == 0 {
+		// This check can trigger if a non-TCP node is found
+		// by discovery. If there is no IP, the node is a static
+		// node and the actual endpoint will be resolved later in dialTask.
+		return errNoPort
+	}
 	_, dialing := s.dialing[n.ID]
 	switch {
 	case dialing:

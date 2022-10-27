@@ -17,7 +17,6 @@
 package runtime
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -27,7 +26,7 @@ func NewEnv(cfg *Config) *vm.EVM {
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
-		GetHash:     func(uint64) common.Hash { return common.Hash{} },
+		GetHash:     cfg.GetHashFn,
 		GetNonce:    func(uint64) []byte { return nil },
 		Origin:      cfg.Origin,
 		Coinbase:    cfg.Coinbase,
