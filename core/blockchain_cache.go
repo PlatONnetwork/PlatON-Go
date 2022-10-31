@@ -229,6 +229,7 @@ func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.St
 		// Create a StateDB instance from the blockchain based on stateRoot
 		return state, nil
 	}
+	log.Error("Make stateDB err")
 	return nil, errMakeStateDB
 }
 
@@ -279,6 +280,8 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	}
 
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
+	bcc.executeWG.Add(1)
+	defer bcc.executeWG.Done()
 
 	state, err := bcc.MakeStateDB(parent)
 	if err != nil {

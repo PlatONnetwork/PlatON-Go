@@ -596,6 +596,7 @@ func (s *Ethereum) Stop() error {
 	s.protocolManager.Stop()
 
 	// Then stop everything else.
+	s.engine.Stop()
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()

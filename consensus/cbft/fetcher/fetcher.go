@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package fetcher
 
 import (
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 )
 
 var (
@@ -60,6 +60,7 @@ type Fetcher struct {
 	lock    sync.Mutex
 	newTask chan *task
 	quit    chan struct{}
+	stoped  int32
 	tasks   map[string]*task
 }
 
@@ -78,13 +79,21 @@ func (f *Fetcher) Start() {
 	go f.loop()
 }
 
+func (f *Fetcher) IsStoped() bool {
+	return utils.True(&f.stoped)
+}
+
 // Stop turns off for Fetch.
 func (f *Fetcher) Stop() {
+	utils.SetTrue(&f.stoped)
 	close(f.quit)
 }
 
 // AddTask adds a fetcher task.
 func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, expire ExpireFunc) {
+	if f.IsStoped() {
+		return
+	}
 	select {
 	case <-f.quit:
 	case f.newTask <- &task{id: id, match: match, executor: executor, expire: expire, time: time.Now()}:

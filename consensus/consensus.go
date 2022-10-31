@@ -134,8 +134,11 @@ type Engine interface {
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 
+	Stop() error
+
 	// Pause consensus
 	Pause()
+
 	// Resume consensus
 	Resume()
 

@@ -89,7 +89,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 		var asyncCallErr error
 		// Handle block
 		for i, block := range blockList.Blocks {
-			if asyncCallErr != nil {
+			if asyncCallErr != nil || cbft.fetcher.IsStoped() {
 				return
 			}
 			if block.ParentHash() != parentBlock.Hash() {
@@ -167,7 +167,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 
 		// Verify forked block and execute.
 		for i, forkedBlock := range filteredForkedBlocks {
-			if asyncCallErr != nil {
+			if asyncCallErr != nil || cbft.fetcher.IsStoped() {
 				return
 			}
 			parentBlock := cbft.blockTree.FindBlockByHash(forkedBlock.ParentHash())
