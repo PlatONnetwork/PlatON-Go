@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -66,7 +65,6 @@ type AsyncExecutor struct {
 
 	// A channel for notify stop signal
 	closed chan struct{}
-	stoped int32
 }
 
 // NewAsyncExecutor new a async block executor.
@@ -83,21 +81,13 @@ func NewAsyncExecutor(executeFn Executor) *AsyncExecutor {
 	return exe
 }
 
-func (exe *AsyncExecutor) isStoped() bool {
-	return utils.True(&exe.stoped)
-}
-
 // Stop stop async exector.
 func (exe *AsyncExecutor) Stop() {
-	utils.SetTrue(&exe.stoped)
 	close(exe.closed)
 }
 
 // Execute async execute block.
 func (exe *AsyncExecutor) Execute(block *types.Block, parent *types.Block) error {
-	if exe.isStoped() {
-		return fmt.Errorf("asyncExecutor is stoped")
-	}
 	return exe.newTask(block, parent)
 }
 

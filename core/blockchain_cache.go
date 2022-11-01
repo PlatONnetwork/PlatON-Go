@@ -277,13 +277,10 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 	result := make(chan error)
 
 	select {
-	case bcc.executeCh <- &executeTask{parent: parent, block: block, result: result}:
-		select {
-		case err := <-result:
-			return err
-		}
 	case <-bcc.quit:
 		return fmt.Errorf("blockChainCache is stopped")
+	case bcc.executeCh <- &executeTask{parent: parent, block: block, result: result}:
+		return <-result
 	}
 }
 
@@ -309,10 +306,6 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 			return true
 		}
 		return false
-	}
-
-	if executed() {
-		return nil
 	}
 
 	if executed() {

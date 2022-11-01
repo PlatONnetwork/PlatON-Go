@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 )
 
 var (
@@ -60,7 +59,6 @@ type Fetcher struct {
 	lock    sync.Mutex
 	newTask chan *task
 	quit    chan struct{}
-	stoped  int32
 	tasks   map[string]*task
 }
 
@@ -79,21 +77,13 @@ func (f *Fetcher) Start() {
 	go f.loop()
 }
 
-func (f *Fetcher) isStoped() bool {
-	return utils.True(&f.stoped)
-}
-
 // Stop turns off for Fetch.
 func (f *Fetcher) Stop() {
-	utils.SetTrue(&f.stoped)
 	close(f.quit)
 }
 
 // AddTask adds a fetcher task.
 func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, expire ExpireFunc) {
-	if f.isStoped() {
-		return
-	}
 	select {
 	case <-f.quit:
 	case f.newTask <- &task{id: id, match: match, executor: executor, expire: expire, time: time.Now()}:
