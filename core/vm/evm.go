@@ -58,7 +58,7 @@ type (
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte130VersionState(evm.StateDB) {
+		if gov.Gte140VersionState(evm.StateDB) {
 			precompiles = PrecompiledContractsBerlin
 		}
 
@@ -296,7 +296,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte130VersionState(evm.StateDB) {
+		if gov.Gte140VersionState(evm.StateDB) {
 			precompiles = PrecompiledContractsBerlin
 		}
 

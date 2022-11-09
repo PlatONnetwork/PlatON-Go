@@ -161,8 +161,8 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 	return nil, ErrOutOfGas
 }
 
-func IsEVMPrecompiledContract(addr common.Address, gte130Version bool) bool {
-	if gte130Version {
+func IsEVMPrecompiledContract(addr common.Address, gte140Version bool) bool {
+	if gte140Version {
 		if _, ok := PrecompiledContractsBerlin[addr]; ok {
 			return true
 		}
@@ -187,8 +187,8 @@ func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
 	return false
 }
 
-func IsPrecompiledContract(addr common.Address, gte120Version bool, gte130Version bool) bool {
-	if IsEVMPrecompiledContract(addr, gte130Version) {
+func IsPrecompiledContract(addr common.Address, gte120Version bool, gte140Version bool) bool {
+	if IsEVMPrecompiledContract(addr, gte140Version) {
 		return true
 	} else {
 		return IsPlatONPrecompiledContract(addr, gte120Version)
