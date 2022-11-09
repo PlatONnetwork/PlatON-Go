@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -344,7 +343,7 @@ func TestPB06(t *testing.T) {
 	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, lockQC, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
 
-	_, ok := err.(authFailedError)
+	_, ok := err.(handleError)
 	assert.True(t, ok)
 	if ok {
 		assert.True(t, strings.HasPrefix(err.Error(), MismatchedPrepareQC))

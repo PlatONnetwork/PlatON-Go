@@ -328,7 +328,6 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	}
 
 	err := cbft.recordMessage(msg)
-	//cbft.log.Debug("Record message", "type", fmt.Sprintf("%T", msg.Msg), "msgHash", msg.Msg.MsgHash(), "duration", time.Since(begin))
 	if err != nil {
 		cbft.log.Warn("ReceiveMessage failed", "err", err)
 		return err
@@ -337,7 +336,6 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 	// Repeat filtering on consensus messages.
 	// First check.
 	if cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
-		//cbft.log.Trace("Processed message for ReceiveMessage, no need to process", "msgHash", msg.Msg.MsgHash())
 		cbft.forgetMessage(msg.PeerID)
 		return nil
 	}
@@ -667,8 +665,6 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 
 // VerifyHeaders is used to verify the validity of block headers in batch.
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	//cbft.log.Trace("Verify headers", "total", len(headers))
-
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
 
@@ -689,7 +685,6 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	//cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
 	if header.Number.Uint64() == 0 {
 		return ErrorUnKnowBlock
 	}
@@ -777,7 +772,7 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		ViewNumber:    cbft.state.ViewNumber(),
 		Block:         block,
 		BlockIndex:    cbft.state.NextViewBlockIndex(),
-		ProposalIndex: uint32(me.Index),
+		ProposalIndex: me.Index,
 	}
 
 	// Next index is equal zero, This view does not produce a block.
@@ -1088,10 +1083,20 @@ func (cbft *Cbft) Close() error {
 		}
 		close(cbft.exitCh)
 	})
+	cbft.bridge.Close()
+	return nil
+}
+
+// Stop turns off the consensus asyncExecutor and fetcher.
+func (cbft *Cbft) Stop() error {
+	cbft.log.Info("Stop cbft consensus")
 	if cbft.asyncExecutor != nil {
 		cbft.asyncExecutor.Stop()
 	}
-	cbft.bridge.Close()
+	if cbft.fetcher != nil {
+		cbft.fetcher.Stop()
+	}
+	cbft.blockCacheWriter.Stop()
 	return nil
 }
 
@@ -1533,7 +1538,7 @@ func (cbft *Cbft) verifyConsensusMsg(msg ctypes.ConsensusMsg) (*cbfttypes.Valida
 	switch cm := msg.(type) {
 	case *protocols.PrepareBlock:
 		proposer := cbft.currentProposer()
-		if uint32(proposer.Index) != msg.NodeIndex() {
+		if proposer.Index != msg.NodeIndex() {
 			return nil, fmt.Errorf("current proposer index:%d, prepare block author index:%d", proposer.Index, msg.NodeIndex())
 		}
 		// BlockNum equal 1, the parent's block is genesis, doesn't has prepareQC
@@ -1727,7 +1732,7 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 	}
 	// check if the corresponding block QC
 	if oriNum != qc.BlockNumber || oriHash != qc.BlockHash {
-		return authFailedError{
+		return handleError{
 			err: fmt.Errorf("verify prepare qc failed,not the corresponding qc,oriNum:%d,oriHash:%s,qcNum:%d,qcHash:%s",
 				oriNum, oriHash.String(), qc.BlockNumber, qc.BlockHash.String())}
 	}

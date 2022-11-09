@@ -290,6 +290,10 @@ func (bm *BftMock) Close() error {
 	return nil
 }
 
+func (bm *BftMock) Stop() error {
+	return nil
+}
+
 // ConsensusNodes returns the current consensus node address list.
 func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
 	return nil, nil
