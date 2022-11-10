@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
@@ -64,24 +64,26 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.KeyValueWriter) e
 			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
 		}
 	}
-	hasher := newHasher(false)
+	hasher := newHasher()
 	defer returnHasherToPool(hasher)
 
 	for i, n := range nodes {
-		if fromLevel > 0 {
-			fromLevel--
-			continue
-		}
-		var hn node
-		n, hn = hasher.proofHash(n)
+		// Don't bother checking for errors here since hasher panics
+		// if encoding doesn't work and we're not writing to any database.
+		n, _, _ = hasher.hashChildren(n)
+		hn, _ := hasher.store(n, false)
 		if hash, ok := hn.(hashNode); ok || i == 0 {
 			// If the node's database encoding is a hash (or is the
 			// root node), it becomes a proof element.
-			enc, _ := rlp.EncodeToBytes(n)
-			if !ok {
-				hash = hasher.hashData(enc)
+			if fromLevel > 0 {
+				fromLevel--
+			} else {
+				enc := nodeToBytes(n)
+				if !ok {
+					hash = crypto.Keccak256(enc)
+				}
+				proofDb.Put(hash, enc)
 			}
-			proofDb.Put(hash, enc)
 		}
 	}
 	return nil

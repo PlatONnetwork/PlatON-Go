@@ -100,7 +100,7 @@ type Ethereum struct {
 func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run eth.PlatON in light sync mode, use les.LightPlatON")
+		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -596,6 +596,9 @@ func (s *Ethereum) Stop() error {
 	s.protocolManager.Stop()
 
 	// Then stop everything else.
+	// Only the operations related to block execution are stopped here
+	// and engine.Close cannot be called directly because it has a dependency on the following modules
+	s.engine.Stop()
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()

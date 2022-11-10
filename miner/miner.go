@@ -18,10 +18,11 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -52,7 +53,6 @@ type Config struct {
 type Miner struct {
 	mux    *event.TypeMux
 	worker *worker
-	eth    Backend
 	engine consensus.Engine
 	exitCh chan struct{}
 
@@ -64,7 +64,6 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningCon
 	engine consensus.Engine, isLocalBlock func(block *types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
 	miner := &Miner{
-		eth:      eth,
 		mux:      mux,
 		engine:   engine,
 		exitCh:   make(chan struct{}),
