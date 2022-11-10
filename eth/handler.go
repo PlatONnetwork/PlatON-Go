@@ -673,6 +673,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return errResp(ErrDecode, "msg %v: %v", msg, err)
 			}
 			// Retrieve the requested state entry, stopping if enough was found
+			// todo now the code and trienode is mixed in the protocol level,
+			// separate these two types.
+			if !pm.downloader.SyncBloomContains(hash[:]) {
+				// Only lookup the trie node if there's chance that we actually have it
+				continue
+			}
+			// Retrieve the requested state entry, stopping if enough was found
 			if entry, err := pm.blockchain.TrieNode(hash); err == nil {
 				data = append(data, entry)
 				bytes += len(entry)
