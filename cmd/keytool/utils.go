@@ -34,7 +34,7 @@ import (
 func promptPassphrase(confirmation bool) string {
 	passphrase, err := prompt.Stdin.PromptPassword("Password: ")
 	if err != nil {
-		utils.Fatalf("Failed to read Password: %v", err)
+		utils.Fatalf("Failed to read password: %v", err)
 	}
 
 	if confirmation {
@@ -43,7 +43,7 @@ func promptPassphrase(confirmation bool) string {
 			utils.Fatalf("Failed to read password confirmation: %v", err)
 		}
 		if passphrase != confirm {
-			utils.Fatalf("passwords do not match")
+			utils.Fatalf("Passwords do not match")
 		}
 	}
 
@@ -73,7 +73,8 @@ func getPassphrase(ctx *cli.Context, confirmation bool) string {
 // that can be safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func signHash(data []byte) []byte {
