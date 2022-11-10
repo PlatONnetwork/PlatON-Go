@@ -86,9 +86,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
-
-	//MPCPool: core.DefaultMPCPoolConfig,
-	//VCPool:  core.DefaultVCPoolConfig,
+	RPCTxFeeCap: 1, // 1 lat
 }
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go
@@ -172,4 +170,8 @@ type Config struct {
 
 	// RPCGasCap is the global gas cap for eth-call variants.
 	RPCGasCap *big.Int `toml:",omitempty"`
+
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ether.
+	RPCTxFeeCap float64 `toml:",omitempty"`
 }

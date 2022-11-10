@@ -64,6 +64,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
 		RPCGasCap                *big.Int `toml:",omitempty"`
+		RPCTxFeeCap              float64  `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -114,6 +115,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DocRoot = c.DocRoot
 	enc.Debug = c.Debug
 	enc.RPCGasCap = c.RPCGasCap
+	enc.RPCTxFeeCap = c.RPCTxFeeCap
 	return &enc, nil
 }
 
@@ -168,6 +170,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
 		RPCGasCap                *big.Int `toml:",omitempty"`
+		RPCTxFeeCap              *float64 `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -316,6 +319,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.RPCGasCap != nil {
 		c.RPCGasCap = dec.RPCGasCap
+	}
+	if dec.RPCTxFeeCap != nil {
+		c.RPCTxFeeCap = *dec.RPCTxFeeCap
 	}
 	return nil
 }
