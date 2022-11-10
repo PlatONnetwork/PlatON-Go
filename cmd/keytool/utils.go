@@ -19,26 +19,26 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"io/ioutil"
 	"strings"
 
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // promptPassphrase prompts the user for a passphrase.  Set confirmation to true
 // to require the user to confirm the passphrase.
 func promptPassphrase(confirmation bool) string {
-	passphrase, err := console.Stdin.PromptPassword("Password: ")
+	passphrase, err := prompt.Stdin.PromptPassword("Password: ")
 	if err != nil {
 		utils.Fatalf("Failed to read Password: %v", err)
 	}
 
 	if confirmation {
-		confirm, err := console.Stdin.PromptPassword("Repeat password: ")
+		confirm, err := prompt.Stdin.PromptPassword("Repeat password: ")
 		if err != nil {
 			utils.Fatalf("Failed to read password confirmation: %v", err)
 		}
