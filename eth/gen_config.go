@@ -27,7 +27,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
 		DatabaseFreezer          string
-		TxLookupLimit            uint64 `toml:",omitempty"`
+		TrieCleanCacheJournal    string        `toml:",omitempty"`
+		TrieCleanCacheRejournal  time.Duration `toml:",omitempty"`
+		TxLookupLimit            uint64        `toml:",omitempty"`
 		TrieCache                int
 		TrieTimeout              time.Duration
 		TrieDBCache              int
@@ -77,6 +79,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
 	enc.DatabaseFreezer = c.DatabaseFreezer
+	enc.TrieCleanCacheJournal = c.TrieCleanCacheJournal
+	enc.TrieCleanCacheRejournal = c.TrieCleanCacheRejournal
 	enc.TxLookupLimit = c.TxLookupLimit
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
@@ -131,7 +135,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
 		DatabaseFreezer          *string
-		TxLookupLimit            *uint64 `toml:",omitempty"`
+		TrieCleanCacheJournal    *string        `toml:",omitempty"`
+		TrieCleanCacheRejournal  *time.Duration `toml:",omitempty"`
+		TxLookupLimit            *uint64        `toml:",omitempty"`
 		TrieCache                *int
 		TrieTimeout              *time.Duration
 		TrieDBCache              *int
@@ -205,6 +211,12 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DatabaseFreezer != nil {
 		c.DatabaseFreezer = *dec.DatabaseFreezer
+	}
+	if dec.TrieCleanCacheJournal != nil {
+		c.TrieCleanCacheJournal = *dec.TrieCleanCacheJournal
+	}
+	if dec.TrieCleanCacheRejournal != nil {
+		c.TrieCleanCacheRejournal = *dec.TrieCleanCacheRejournal
 	}
 	if dec.TxLookupLimit != nil {
 		c.TxLookupLimit = *dec.TxLookupLimit
