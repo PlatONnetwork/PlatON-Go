@@ -3,7 +3,6 @@
 package eth
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -63,8 +62,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
-		RPCGasCap                *big.Int `toml:",omitempty"`
-		RPCTxFeeCap              float64  `toml:",omitempty"`
+		RPCGasCap                uint64  `toml:",omitempty"`
+		RPCTxFeeCap              float64 `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -169,7 +168,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
-		RPCGasCap                *big.Int `toml:",omitempty"`
+		RPCGasCap                *uint64  `toml:",omitempty"`
 		RPCTxFeeCap              *float64 `toml:",omitempty"`
 	}
 	var dec Config
@@ -318,7 +317,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		c.Debug = *dec.Debug
 	}
 	if dec.RPCGasCap != nil {
-		c.RPCGasCap = dec.RPCGasCap
+		c.RPCGasCap = *dec.RPCGasCap
 	}
 	if dec.RPCTxFeeCap != nil {
 		c.RPCTxFeeCap = *dec.RPCTxFeeCap

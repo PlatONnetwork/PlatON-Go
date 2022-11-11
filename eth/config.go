@@ -81,7 +81,8 @@ var DefaultConfig = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool: core.DefaultTxPoolConfig,
+	TxPool:    core.DefaultTxPoolConfig,
+	RPCGasCap: 25000000,
 	GPO: gasprice.Config{
 		Blocks:     20,
 		Percentile: 60,
@@ -169,7 +170,7 @@ type Config struct {
 	Debug bool
 
 	// RPCGasCap is the global gas cap for eth-call variants.
-	RPCGasCap *big.Int `toml:",omitempty"`
+	RPCGasCap uint64 `toml:",omitempty"`
 
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transction variants. The unit is ether.
