@@ -51,7 +51,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 	// Create some arbitrary test state to iterate
 	db, root, _, valueKeys := makeTestState()
-	db.TrieDB().Commit(root, false, nil)
+	db.TrieDB().Commit(root, false, true)
 
 	state, err := New(root, db)
 	if err != nil {
