@@ -19,15 +19,42 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"hash"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
+
+// testHasher is the helper tool for transaction/receipt list hashing.
+// The original hasher is trie, in order to get rid of import cycle,
+// use the testing hasher instead.
+type testHasher struct {
+	hasher hash.Hash
+}
+
+func newHasher() *testHasher {
+	return &testHasher{hasher: sha3.NewLegacyKeccak256()}
+}
+
+func (h *testHasher) Reset() {
+	h.hasher.Reset()
+}
+
+func (h *testHasher) Update(key, val []byte) {
+	h.hasher.Write(key)
+	h.hasher.Write(val)
+}
+
+func (h *testHasher) Hash() common.Hash {
+	return common.BytesToHash(h.hasher.Sum(nil))
+}
 
 // from bcValidBlockTest.json, "SimpleTx"
 func TestBlockEncoding(t *testing.T) {

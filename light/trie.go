@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -74,7 +76,8 @@ func (db *odrDatabase) ContractCode(addrHash, codeHash common.Hash) ([]byte, err
 	if codeHash == sha3Nil {
 		return nil, nil
 	}
-	if code, err := db.backend.Database().Get(codeHash[:]); err == nil {
+	code := rawdb.ReadCode(db.backend.Database(), codeHash)
+	if len(code) != 0 {
 		return code, nil
 	}
 	id := *db.id

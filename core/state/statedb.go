@@ -26,6 +26,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -45,9 +47,6 @@ type revision struct {
 var (
 	// emptyRoot is the known root hash of an empty trie.
 	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
-	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
 
 	emptyStorage = crypto.Keccak256Hash(nil)
 )
@@ -748,7 +747,10 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 	}
 	newobj.setNonce(0) // sets the object to dirty
 	s.setStateObject(newobj)
-	return newobj, prev
+	if prev != nil && !prev.deleted {
+		return newobj, prev
+	}
+	return newobj, nil
 }
 
 // CreateAccount explicitly creates a state object. If a state object with the address
@@ -1010,7 +1012,7 @@ func (s *StateDB) clearJournalAndRefund() {
 }
 
 // Commit writes the state to the underlying in-memory trie database.
-func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
+func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -1020,12 +1022,13 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	// Increasing node version in memory database
 	s.db.TrieDB().IncrVersion()
 
-	// Commit objects to the trie.
+	// Commit objects to the trie, measuring the elapsed time
+	codeWriter := s.db.TrieDB().DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
 		if obj := s.stateObjects[addr]; !obj.deleted {
 			// Write any contract code associated with the state object
 			if obj.code != nil && obj.dirtyCode {
-				s.db.TrieDB().InsertBlob(common.BytesToHash(obj.CodeHash()), obj.code)
+				rawdb.WriteCode(codeWriter, common.BytesToHash(obj.CodeHash()), obj.code)
 				obj.dirtyCode = false
 			}
 			// Write any storage changes in the state object to its storage trie
@@ -1037,22 +1040,23 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	if len(s.stateObjectsDirty) > 0 {
 		s.stateObjectsDirty = make(map[common.Address]struct{})
 	}
+	if codeWriter.ValueSize() > 0 {
+		if err := codeWriter.Write(); err != nil {
+			log.Crit("Failed to commit dirty codes", "error", err)
+		}
+	}
 	// Write the account trie changes, measuing the amount of wasted time
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountCommits += time.Since(start) }(time.Now())
 	}
 	// Write trie changes.
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
+	root, err := s.trie.Commit(func(leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
 		}
 		if account.Root != emptyRoot {
 			s.db.TrieDB().Reference(account.Root, parent)
-		}
-		code := common.BytesToHash(account.CodeHash)
-		if code != emptyCode {
-			s.db.TrieDB().Reference(code, parent)
 		}
 		return nil
 	})
