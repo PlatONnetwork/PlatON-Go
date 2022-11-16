@@ -648,7 +648,7 @@ func testCanonicalSynchronisation(t *testing.T, protocol int, mode SyncMode) {
 
 // Tests that if a large batch of blocks are being downloaded, it is throttled
 // until the cached blocks are retrieved.
-func TestThrottling62(t *testing.T) { testThrottling(t, 62, FullSync) }
+func TestThrottling63(t *testing.T) { testThrottling(t, 63, FullSync) }
 
 func TestThrottling63Full(t *testing.T) { testThrottling(t, 63, FullSync) }
 
@@ -905,7 +905,7 @@ func TestInactiveDownloader63(t *testing.T) {
 }
 
 // Tests that a canceled download wipes all previously accumulated state.
-func TestCancel62(t *testing.T) { testCancel(t, 62, FullSync) }
+func TestCancel63(t *testing.T) { testCancel(t, 63, FullSync) }
 
 func TestCancel63Full(t *testing.T) { testCancel(t, 63, FullSync) }
 
@@ -942,7 +942,7 @@ func testCancel(t *testing.T, protocol int, mode SyncMode) {
 }
 
 // Tests that synchronisation from multiple peers works as intended (multi thread sanity test).
-func TestMultiSynchronisation62(t *testing.T) { testMultiSynchronisation(t, 62, FullSync) }
+func TestMultiSynchronisation63(t *testing.T) { testMultiSynchronisation(t, 63, FullSync) }
 
 func TestMultiSynchronisation63Full(t *testing.T) { testMultiSynchronisation(t, 63, FullSync) }
 
@@ -974,7 +974,7 @@ func testMultiSynchronisation(t *testing.T, protocol int, mode SyncMode) {
 
 // Tests that synchronisations behave well in multi-version protocol environments
 // and not wreak havoc on other nodes in the network.
-func TestMultiProtoSynchronisation62(t *testing.T) { testMultiProtoSync(t, 62, FullSync) }
+func TestMultiProtoSynchronisation63(t *testing.T) { testMultiProtoSync(t, 63, FullSync) }
 
 func TestMultiProtoSynchronisation63Full(t *testing.T) { testMultiProtoSync(t, 63, FullSync) }
 
@@ -1074,7 +1074,7 @@ func testEmptyShortCircuit(t *testing.T, protocol int, mode SyncMode) {
 
 // Tests that headers are enqueued continuously, preventing malicious nodes from
 // stalling the downloader by feeding gapped header chains.
-func TestMissingHeaderAttack62(t *testing.T) { testMissingHeaderAttack(t, 62, FullSync) }
+func TestMissingHeaderAttack63(t *testing.T) { testMissingHeaderAttack(t, 63, FullSync) }
 
 func TestMissingHeaderAttack63Full(t *testing.T) { testMissingHeaderAttack(t, 63, FullSync) }
 
@@ -1320,7 +1320,7 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol int) {
 
 // Tests that synchronisation progress (origin block number, current block number
 // and highest block number) is tracked and updated correctly.
-func TestSyncProgress62(t *testing.T) { testSyncProgress(t, 62, FullSync) }
+func TestSyncProgress63(t *testing.T) { testSyncProgress(t, 63, FullSync) }
 
 func TestSyncProgress63Full(t *testing.T) { testSyncProgress(t, 63, FullSync) }
 
