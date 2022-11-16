@@ -311,9 +311,6 @@ func (p *peer) SendNewBlockHashes(hashes []common.Hash, numbers []uint64) error 
 	for _, hash := range hashes {
 		p.knownBlocks.Add(hash)
 	}
-	for p.knownBlocks.Cardinality() >= maxKnownBlocks {
-		p.knownBlocks.Pop()
-	}
 	request := make(newBlockHashesData, len(hashes))
 	for i := 0; i < len(hashes); i++ {
 		request[i].Hash = hashes[i]
