@@ -282,7 +282,11 @@ func (s *PrivateAccountAPI) OpenWallet(url string, passphrase *string) error {
 
 // NewAccount will create a new account and returns the address for the new account.
 func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
-	acc, err := fetchKeystore(s.am).NewAccount(password)
+	ks, err := fetchKeystore(s.am)
+	if err != nil {
+		return common.Address{}, err
+	}
+	acc, err := ks.NewAccount(password)
 	if err == nil {
 		log.Info("Your new key was generated", "address", acc.Address)
 		log.Warn("Please backup your key file!", "path", acc.URL.Path)
@@ -292,9 +296,12 @@ func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) 
 	return common.Address{}, err
 }
 
-// fetchKeystore retrives the encrypted keystore from the account manager.
-func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
-	return am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+// fetchKeystore retrieves the encrypted keystore from the account manager.
+func fetchKeystore(am *accounts.Manager) (*keystore.KeyStore, error) {
+	if ks := am.Backends(keystore.KeyStoreType); len(ks) > 0 {
+		return ks[0].(*keystore.KeyStore), nil
+	}
+	return nil, errors.New("local keystore not used")
 }
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
@@ -304,7 +311,11 @@ func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (commo
 	if err != nil {
 		return common.Address{}, err
 	}
-	acc, err := fetchKeystore(s.am).ImportECDSA(key, password)
+	ks, err := fetchKeystore(s.am)
+	if err != nil {
+		return common.Address{}, err
+	}
+	acc, err := ks.ImportECDSA(key, password)
 	return acc.Address, err
 }
 
@@ -328,7 +339,11 @@ func (s *PrivateAccountAPI) UnlockAccount(ctx context.Context, addr common.Addre
 	} else {
 		d = time.Duration(*duration) * time.Second
 	}
-	err := fetchKeystore(s.am).TimedUnlock(accounts.Account{Address: addr}, password, d)
+	ks, err := fetchKeystore(s.am)
+	if err != nil {
+		return false, err
+	}
+	err = ks.TimedUnlock(accounts.Account{Address: addr}, password, d)
 	if err != nil {
 		log.Warn("Failed account unlock attempt", "address", addr, "err", err)
 	}
@@ -337,7 +352,10 @@ func (s *PrivateAccountAPI) UnlockAccount(ctx context.Context, addr common.Addre
 
 // LockAccount will lock the account associated with the given address when it's unlocked.
 func (s *PrivateAccountAPI) LockAccount(addr common.Address) bool {
-	return fetchKeystore(s.am).Lock(addr) == nil
+	if ks, err := fetchKeystore(s.am); err == nil {
+		return ks.Lock(addr) == nil
+	}
+	return false
 }
 
 // signTransaction sets defaults and signs the given transaction
@@ -712,7 +730,7 @@ type CallArgs struct {
 }
 
 // ToMessage converts CallArgs to the Message type used by the core evm
-func (args *CallArgs) ToMessage(globalGasCap *big.Int) types.Message {
+func (args *CallArgs) ToMessage(globalGasCap uint64) types.Message {
 	// Set sender address or use zero address if none specified.
 	var addr common.Address
 	if args.From != nil {
@@ -720,13 +738,16 @@ func (args *CallArgs) ToMessage(globalGasCap *big.Int) types.Message {
 	}
 
 	// Set default gas & gas price if none were set
-	gas := uint64(math.MaxUint64 / 2)
+	gas := globalGasCap
+	if gas == 0 {
+		gas = uint64(math.MaxUint64 / 2)
+	}
 	if args.Gas != nil {
 		gas = uint64(*args.Gas)
 	}
-	if globalGasCap != nil && globalGasCap.Uint64() < gas {
+	if globalGasCap != 0 && globalGasCap < gas {
 		log.Warn("Caller gas above allowance, capping", "requested", gas, "cap", globalGasCap)
-		gas = globalGasCap.Uint64()
+		gas = globalGasCap
 	}
 	gasPrice := new(big.Int)
 	if args.GasPrice != nil {
@@ -799,7 +820,7 @@ func (diff *StateOverride) Apply(state *state.StateDB) error {
 	return nil
 }
 
-func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, vmCfg vm.Config, timeout time.Duration, globalGasCap *big.Int) (*core.ExecutionResult, error) {
+func DoCall(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, vmCfg vm.Config, timeout time.Duration, globalGasCap uint64) (*core.ExecutionResult, error) {
 	defer func(start time.Time) { log.Debug("Executing VM call finished", "runtime", time.Since(start)) }(time.Now())
 
 	state, header, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
@@ -871,7 +892,7 @@ func (s *PublicBlockChainAPI) Call(ctx context.Context, args CallArgs, blockNrOr
 	return result.Return(), result.Err
 }
 
-func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.BlockNumberOrHash, gasCap *big.Int) (hexutil.Uint64, error) {
+func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash rpc.BlockNumberOrHash, gasCap uint64) (hexutil.Uint64, error) {
 	// Binary search the gas requirement, as it may be higher than the amount used
 	var (
 		lo  uint64 = params.TxGas - 1
@@ -894,7 +915,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 		hi = block.GasLimit()
 	}
 	// Recap the highest gas limit with account's available balance.
-	if args.GasPrice != nil && args.GasPrice.ToInt().Uint64() != 0 {
+	if args.GasPrice != nil && args.GasPrice.ToInt().BitLen() != 0 {
 		state, _, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
 		if err != nil {
 			return 0, err
@@ -908,7 +929,9 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 			available.Sub(available, args.Value.ToInt())
 		}
 		allowance := new(big.Int).Div(available, args.GasPrice.ToInt())
-		if hi > allowance.Uint64() {
+
+		// If the allowance is larger than maximum uint64, skip checking
+		if allowance.IsUint64() && hi > allowance.Uint64() {
 			transfer := args.Value
 			if transfer == nil {
 				transfer = new(hexutil.Big)
@@ -920,9 +943,9 @@ func DoEstimateGas(ctx context.Context, b Backend, args CallArgs, blockNrOrHash 
 	}
 
 	// Recap the highest gas allowance with specified gascap.
-	if gasCap != nil && hi > gasCap.Uint64() {
+	if gasCap != 0 && hi > gasCap {
 		log.Warn("Caller gas above allowance, capping", "requested", hi, "cap", gasCap)
-		hi = gasCap.Uint64()
+		hi = gasCap
 	}
 	cap = hi
 
@@ -1525,6 +1548,13 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 
 // SubmitTransaction is a helper function that submits tx to txPool and logs a message.
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
+	// If the transaction fee cap is already specified, ensure the
+	// fee of the given transaction is _reasonable_.
+	feeLat := new(big.Float).Quo(new(big.Float).SetInt(new(big.Int).Mul(tx.GasPrice(), new(big.Int).SetUint64(tx.Gas()))), new(big.Float).SetInt(big.NewInt(params.LAT)))
+	feeFloat, _ := feeLat.Float64()
+	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
+		return common.Hash{}, fmt.Errorf("tx fee (%.2f lat) exceeds the configured cap (%.2f lat)", feeFloat, b.RPCTxFeeCap())
+	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}

@@ -63,21 +63,23 @@ type KeccakState interface {
 
 // Keccak256 calculates and returns the Keccak256 hash of the input data.
 func Keccak256(data ...[]byte) []byte {
-	d := sha3.NewLegacyKeccak256()
+	b := make([]byte, 32)
+	d := sha3.NewLegacyKeccak256().(KeccakState)
 	for _, b := range data {
 		d.Write(b)
 	}
-	return d.Sum(nil)
+	d.Read(b)
+	return b
 }
 
 // Keccak256Hash calculates and returns the Keccak256 hash of the input data,
 // converting it to an internal Hash data structure.
 func Keccak256Hash(data ...[]byte) (h common.Hash) {
-	d := sha3.NewLegacyKeccak256()
+	d := sha3.NewLegacyKeccak256().(KeccakState)
 	for _, b := range data {
 		d.Write(b)
 	}
-	d.Sum(h[:0])
+	d.Read(h[:])
 	return h
 }
 

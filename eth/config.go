@@ -29,6 +29,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 )
 
+// DefaultFullGPOConfig contains default gasprice oracle settings for full node.
+var DefaultFullGPOConfig = gasprice.Config{
+	Blocks:     20,
+	Percentile: 60,
+}
+
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
@@ -81,14 +87,10 @@ var DefaultConfig = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool: core.DefaultTxPoolConfig,
-	GPO: gasprice.Config{
-		Blocks:     20,
-		Percentile: 60,
-	},
-
-	//MPCPool: core.DefaultMPCPoolConfig,
-	//VCPool:  core.DefaultVCPoolConfig,
+	TxPool:      core.DefaultTxPoolConfig,
+	RPCGasCap:   25000000,
+	GPO:         DefaultFullGPOConfig,
+	RPCTxFeeCap: 1, // 1 lat
 }
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go
@@ -171,5 +173,9 @@ type Config struct {
 	Debug bool
 
 	// RPCGasCap is the global gas cap for eth-call variants.
-	RPCGasCap *big.Int `toml:",omitempty"`
+	RPCGasCap uint64 `toml:",omitempty"`
+
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ether.
+	RPCTxFeeCap float64 `toml:",omitempty"`
 }

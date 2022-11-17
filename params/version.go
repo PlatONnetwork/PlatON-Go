@@ -73,7 +73,8 @@ func FormatVersion(version uint32) string {
 
 // ArchiveVersion holds the textual version string used for PlatON archives.
 // e.g. "1.8.11-dea1ce05" for stable releases, or
-//      "1.8.13-unstable-21c059b6" for unstable releases
+//
+//	"1.8.13-unstable-21c059b6" for unstable releases
 func ArchiveVersion(gitCommit string) string {
 	vsn := Version
 	if VersionMeta != "stable" {
