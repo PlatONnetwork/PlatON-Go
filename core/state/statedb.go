@@ -697,7 +697,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		defer func(start time.Time) { s.AccountReads += time.Since(start) }(time.Now())
 	}
 	// Load the object from the database.
-	enc, err := s.trie.TryGet(addr[:])
+	enc, err := s.trie.TryGet(addr.Bytes())
 	if len(enc) == 0 {
 		s.setError(err)
 		return nil
@@ -757,8 +757,8 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 // CreateAccount is called during the EVM CREATE operation. The situation might arise that
 // a contract does the following:
 //
-//   1. sends funds to sha(account ++ (nonce + 1))
-//   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
+//  1. sends funds to sha(account ++ (nonce + 1))
+//  2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
 //
 // Carrying over the balance ensures that Ether doesn't disappear.
 func (s *StateDB) CreateAccount(addr common.Address) {

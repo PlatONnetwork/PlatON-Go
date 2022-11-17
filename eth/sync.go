@@ -55,7 +55,7 @@ func (pm *ProtocolManager) syncTransactions(p *peer) {
 		return
 	}
 	select {
-	case pm.txsyncCh <- &txsync{p, txs}:
+	case pm.txsyncCh <- &txsync{p: p, txs: txs}:
 	case <-pm.quitSync:
 	}
 }
@@ -174,9 +174,9 @@ func (cs *chainSyncer) handlePeerEvent(p *peer) bool {
 func (cs *chainSyncer) loop() {
 	defer cs.pm.wg.Done()
 
-	cs.pm.fetcher.Start()
+	cs.pm.blockFetcher.Start()
 	cs.pm.txFetcher.Start()
-	defer cs.pm.fetcher.Stop()
+	defer cs.pm.blockFetcher.Stop()
 	defer cs.pm.txFetcher.Stop()
 	defer cs.pm.downloader.Terminate()
 
@@ -189,7 +189,6 @@ func (cs *chainSyncer) loop() {
 		if op := cs.nextSyncOp(); op != nil {
 			cs.startSync(op)
 		}
-
 		select {
 		case <-cs.peerEventCh:
 			// Peer information changed, recheck.

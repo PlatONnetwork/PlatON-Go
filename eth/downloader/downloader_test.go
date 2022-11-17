@@ -207,7 +207,12 @@ func (dl *downloadTester) HasFastBlock(hash common.Hash, number uint64) bool {
 func (dl *downloadTester) GetHeaderByHash(hash common.Hash) *types.Header {
 	dl.lock.RLock()
 	defer dl.lock.RUnlock()
+	return dl.getHeaderByHash(hash)
+}
 
+// getHeaderByHash returns the header if found either within ancients or own blocks)
+// This method assumes that the caller holds at least the read-lock (dl.lock)
+func (dl *downloadTester) getHeaderByHash(hash common.Hash) *types.Header {
 	header := dl.ancientHeaders[hash]
 	if header != nil {
 		return header
@@ -291,29 +296,34 @@ func (dl *downloadTester) FastSyncCommitHead(hash common.Hash) error {
 }
 
 // InsertHeaderChain injects a new batch of headers into the simulated chain.
-func (dl *downloadTester) InsertHeaderChain(headers []*types.Header, checkFreq int) (int, error) {
+func (dl *downloadTester) InsertHeaderChain(headers []*types.Header, checkFreq int) (i int, err error) {
 	dl.lock.Lock()
 	defer dl.lock.Unlock()
-
 	// Do a quick check, as the blockchain.InsertHeaderChain doesn't insert anything in case of errors
-	if _, ok := dl.ownHeaders[headers[0].ParentHash]; !ok {
-		return 0, errors.New("unknown parent")
+	if dl.getHeaderByHash(headers[0].ParentHash) == nil {
+		return 0, fmt.Errorf("InsertHeaderChain: unknown parent at first position, parent of number %d", headers[0].Number)
 	}
+	var hashes []common.Hash
 	for i := 1; i < len(headers); i++ {
+		hash := headers[i-1].Hash()
 		if headers[i].ParentHash != headers[i-1].Hash() {
-			return i, errors.New("unknown parent")
+			return i, fmt.Errorf("non-contiguous import at position %d", i)
 		}
+		hashes = append(hashes, hash)
 	}
+	hashes = append(hashes, headers[len(headers)-1].Hash())
 	// Do a full insert if pre-checks passed
 	for i, header := range headers {
-		if _, ok := dl.ownHeaders[header.Hash()]; ok {
+		hash := hashes[i]
+		if dl.getHeaderByHash(hash) != nil {
 			continue
 		}
-		if _, ok := dl.ownHeaders[header.ParentHash]; !ok {
-			return i, errors.New("unknown parent")
+		if dl.getHeaderByHash(header.ParentHash) == nil {
+			// This _should_ be impossible, due to precheck and induction
+			return i, fmt.Errorf("InsertHeaderChain: unknown parent at position %d", i)
 		}
-		dl.ownHashes = append(dl.ownHashes, header.Hash())
-		dl.ownHeaders[header.Hash()] = header
+		dl.ownHashes = append(dl.ownHashes, hash)
+		dl.ownHeaders[hash] = header
 	}
 	return len(headers), nil
 }
@@ -322,7 +332,6 @@ func (dl *downloadTester) InsertHeaderChain(headers []*types.Header, checkFreq i
 func (dl *downloadTester) InsertChain(blocks types.Blocks) (int, error) {
 	dl.lock.Lock()
 	defer dl.lock.Unlock()
-
 	for i, block := range blocks {
 		if parent, ok := dl.ownBlocks[block.ParentHash()]; !ok {
 			return i, errors.New("unknown parent")
@@ -592,7 +601,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 		blocks += length - common
 		receipts += length - common
 	}
-	if tester.downloader.mode == LightSync {
+	if tester.downloader.getMode() == LightSync {
 		blocks, receipts = 1, 1
 	}
 	if hs := len(tester.ownHeaders) + len(tester.ancientHeaders) - 1; hs != headers {
@@ -605,7 +614,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 		t.Fatalf("synchronised receipts mismatch: have %v, want %v", rs, receipts)
 	}
 	// test ppos
-	if tester.downloader.mode == FastSync {
+	if tester.downloader.getMode() == FastSync {
 		baseNum, err := tester.snapshotdb.BaseNum()
 		if err != nil {
 			t.Error(err)

@@ -20,9 +20,9 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -304,7 +304,13 @@ var (
 	}
 	RPCGlobalGasCap = cli.Uint64Flag{
 		Name:  "rpc.gascap",
-		Usage: "Sets a cap on gas that can be used in platon_call/estimateGas",
+		Usage: "Sets a cap on gas that can be used in eth_call/estimateGas (0=infinite)",
+		Value: eth.DefaultConfig.RPCGasCap,
+	}
+	RPCGlobalTxFeeCap = cli.Float64Flag{
+		Name:  "rpc.txfeecap",
+		Usage: "Sets a cap on transaction fee (in ether) that can be sent via the RPC APIs (0 = no cap)",
+		Value: eth.DefaultConfig.RPCTxFeeCap,
 	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
@@ -495,6 +501,21 @@ var (
 	MetricsEnabledExpensiveFlag = cli.BoolFlag{
 		Name:  "metrics.expensive",
 		Usage: "Enable expensive metrics collection and reporting",
+	}
+
+	// MetricsHTTPFlag defines the endpoint for a stand-alone metrics HTTP endpoint.
+	// Since the pprof service enables sensitive/vulnerable behavior, this allows a user
+	// to enable a public-OK metrics endpoint without having to worry about ALSO exposing
+	// other profiling behavior or information.
+	MetricsHTTPFlag = cli.StringFlag{
+		Name:  "metrics.addr",
+		Usage: "Enable stand-alone metrics HTTP server listening interface",
+		Value: "127.0.0.1",
+	}
+	MetricsPortFlag = cli.IntFlag{
+		Name:  "metrics.port",
+		Usage: "Metrics HTTP server listening port",
+		Value: 6060,
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
 		Name:  "metrics.influxdb",
@@ -1096,7 +1117,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 
 	if ctx.GlobalIsSet(RPCGlobalGasCap.Name) {
-		cfg.RPCGasCap = new(big.Int).SetUint64(ctx.GlobalUint64(RPCGlobalGasCap.Name))
+		cfg.RPCGasCap = ctx.GlobalUint64(RPCGlobalGasCap.Name)
+	}
+	if cfg.RPCGasCap != 0 {
+		log.Info("Set global gas cap", "cap", cfg.RPCGasCap)
+	} else {
+		log.Info("Global gas cap disabled")
+	}
+	if ctx.GlobalIsSet(RPCGlobalTxFeeCap.Name) {
+		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCap.Name)
 	}
 
 	// Override any default configs for hard coded networks.
@@ -1237,6 +1266,12 @@ func SetupMetrics(ctx *cli.Context) {
 
 			log.Info("Enabling metrics export to InfluxDB")
 			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "platon.", tagsMap)
+		}
+
+		if ctx.GlobalIsSet(MetricsHTTPFlag.Name) {
+			address := fmt.Sprintf("%s:%d", ctx.GlobalString(MetricsHTTPFlag.Name), ctx.GlobalInt(MetricsPortFlag.Name))
+			log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
+			exp.Setup(address)
 		}
 	}
 }

@@ -32,7 +32,7 @@ const (
 // node internals and at the same time rate limits queued data.
 func (p *peer) broadcastTransactions() {
 	var (
-		queue  []*types.Transaction  // Queue of hashes to broadcast as full transactions
+		queue  []common.Hash         // Queue of hashes to broadcast as full transactions
 		done   chan struct{}         // Non-nil if background broadcaster is running
 		fail   = make(chan error, 1) // Channel used to receive network error
 		failed bool                  // Flag whether a send failed, discard everything onward
@@ -42,17 +42,20 @@ func (p *peer) broadcastTransactions() {
 		if done == nil && len(queue) > 0 {
 			// Pile transaction until we reach our allowed network limit
 			var (
-				count int
-				txs   []*types.Transaction
-				size  common.StorageSize
+				hashesCount uint64
+				txs         []*types.Transaction
+				size        common.StorageSize
 			)
 
-			for count = 0; count < len(queue) && size < maxTxPacketSize; count++ {
-				txs = append(txs, queue[count])
-				size += queue[count].Size()
+			for i := 0; i < len(queue) && size < maxTxPacketSize; i++ {
+				if tx := p.getPooledTx(queue[i]); tx != nil {
+					txs = append(txs, tx)
+					size += tx.Size()
+				}
+				hashesCount++
 			}
 			// Shift and trim queue
-			queue = queue[:copy(queue, queue[count:])]
+			queue = queue[:copy(queue, queue[hashesCount:])]
 
 			// If there's anything available to transfer, fire up an async writer
 			if len(txs) > 0 {
