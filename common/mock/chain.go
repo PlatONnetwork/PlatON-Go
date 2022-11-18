@@ -156,7 +156,7 @@ func (c *Chain) CurrentBlock() *types.Block {
 
 func (c *Chain) GetBlockByNumber(number uint64) *types.Block {
 	header := c.GetHeaderByNumber(number)
-	return types.NewBlock(header, c.txs[header.Hash()], nil, new(trie.Trie)
+	return types.NewBlock(header, c.txs[header.Hash()], nil, new(trie.Trie))
 }
 
 func (c *Chain) CurrentHeader() *types.Header {
