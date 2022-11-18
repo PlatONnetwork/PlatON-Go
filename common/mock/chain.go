@@ -19,12 +19,12 @@ package mock
 import (
 	"encoding/json"
 	"fmt"
+	"hash"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -43,6 +43,30 @@ const (
 // MockNonce       = "mock_nonce"
 // MockSuicided    = "mock_suicided"
 )
+
+// testHasher is the helper tool for transaction/receipt list hashing.
+// The original hasher is trie, in order to get rid of import cycle,
+// use the testing hasher instead.
+type testHasher struct {
+	hasher hash.Hash
+}
+
+func newHasher() *testHasher {
+	return &testHasher{hasher: sha3.NewLegacyKeccak256()}
+}
+
+func (h *testHasher) Reset() {
+	h.hasher.Reset()
+}
+
+func (h *testHasher) Update(key, val []byte) {
+	h.hasher.Write(key)
+	h.hasher.Write(val)
+}
+
+func (h *testHasher) Hash() common.Hash {
+	return common.BytesToHash(h.hasher.Sum(nil))
+}
 
 type Chain struct {
 	Genesis *types.Block
@@ -151,12 +175,12 @@ func (c *Chain) AddBlockWithTx(txs []*types.Transaction) {
 }
 
 func (c *Chain) CurrentBlock() *types.Block {
-	return types.NewBlock(c.h[len(c.h)-1], c.txs[c.CurrentHeader().Hash()], nil, new(trie.Trie))
+	return types.NewBlock(c.h[len(c.h)-1], c.txs[c.CurrentHeader().Hash()], nil, newHasher())
 }
 
 func (c *Chain) GetBlockByNumber(number uint64) *types.Block {
 	header := c.GetHeaderByNumber(number)
-	return types.NewBlock(header, c.txs[header.Hash()], nil, new(trie.Trie))
+	return types.NewBlock(header, c.txs[header.Hash()], nil, newHasher())
 }
 
 func (c *Chain) CurrentHeader() *types.Header {

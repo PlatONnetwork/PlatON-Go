@@ -24,8 +24,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -152,5 +150,5 @@ func makeBenchBlock() *Block {
 			Extra:    []byte("benchmark uncle"),
 		}
 	}
-	return NewBlock(header, txs, receipts, new(trie.Trie))
+	return NewBlock(header, txs, receipts, newHasher())
 }
