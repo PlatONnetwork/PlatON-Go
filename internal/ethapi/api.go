@@ -511,26 +511,6 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{b}
 }
 
-// SetActor set address for mpc compute.
-//func (s *PublicBlockChainAPI) SetActor(address common.Address) error {
-//	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
-//	if err != nil {
-//		return fmt.Errorf("File not exists : %v", err.Error())
-//	}
-//	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
-//	if err != nil {
-//		return fmt.Errorf("open file error : %v ", err.Error())
-//	}
-//	f.Write(address.Bytes())
-//	f.Close()
-//
-//	if core.MPC_POOL != nil {
-//		core.MPC_POOL.LoadActor()
-//	}
-//
-//	return nil
-//}
-
 // ChainId is the PIP-7 replay-protection chain id for the current chain config.
 func (s *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 	stateDB, _, err := s.b.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(s.b.CurrentBlock().Number().Uint64()))
