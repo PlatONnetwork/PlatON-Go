@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethstats"
-	"github.com/PlatONnetwork/PlatON-Go/les"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
@@ -304,7 +303,7 @@ var (
 	}
 	RPCGlobalGasCap = cli.Uint64Flag{
 		Name:  "rpc.gascap",
-		Usage: "Sets a cap on gas that can be used in eth_call/estimateGas (0=infinite)",
+		Usage: "Sets a cap on gas that can be used in platon_call/estimateGas (0=infinite)",
 		Value: eth.DefaultConfig.RPCGasCap,
 	}
 	RPCGlobalTxFeeCap = cli.Float64Flag{
@@ -1205,21 +1204,12 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
 	if cfg.SyncMode == downloader.LightSync {
-		backend, err := les.New(stack, cfg)
-		if err != nil {
-			Fatalf("Failed to register the Ethereum service: %v", err)
-		}
-		return backend.ApiBackend
+		Fatalf("Failed to register the Platon service: not les")
+		return nil
 	} else {
 		backend, err := eth.New(stack, cfg)
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
-		}
-		if cfg.LightServ > 0 {
-			_, err := les.NewLesServer(stack, backend, cfg)
-			if err != nil {
-				Fatalf("Failed to create the LES server: %v", err)
-			}
 		}
 		return backend.APIBackend
 	}
