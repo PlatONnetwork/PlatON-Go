@@ -171,7 +171,7 @@ func TestSelectorUnmarshalling(t *testing.T) {
 		abistruct abi.ABI
 	)
 
-	db, err = NewAbiDBFromFile("../../cmd/clef/4byte.json")
+	db, err = NewAbiDBFromFile("./4byte.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestCustomABI(t *testing.T) {
 		t.Fatal(err)
 	}
 	filename := fmt.Sprintf("%s/4byte_custom.json", d)
-	abidb, err := NewAbiDBFromFiles("../../cmd/clef/4byte.json", filename)
+	abidb, err := NewAbiDBFromFiles("./4byte.json", filename)
 	if err != nil {
 		t.Fatal(err)
 	}

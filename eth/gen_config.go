@@ -3,7 +3,6 @@
 package eth
 
 import (
-	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -21,8 +20,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		NetworkId                uint64
 		SyncMode                 downloader.SyncMode
 		NoPruning                bool
-		LightServ                int  `toml:",omitempty"`
-		LightPeers               int  `toml:",omitempty"`
 		SkipBcVersionCheck       bool `toml:"-"`
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
@@ -65,7 +62,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
-		RPCGasCap                *big.Int `toml:",omitempty"`
+		RPCGasCap                uint64  `toml:",omitempty"`
+		RPCTxFeeCap              float64 `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -73,8 +71,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
-	enc.LightServ = c.LightServ
-	enc.LightPeers = c.LightPeers
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
@@ -118,6 +114,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DocRoot = c.DocRoot
 	enc.Debug = c.Debug
 	enc.RPCGasCap = c.RPCGasCap
+	enc.RPCTxFeeCap = c.RPCTxFeeCap
 	return &enc, nil
 }
 
@@ -129,8 +126,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		NetworkId                *uint64
 		SyncMode                 *downloader.SyncMode
 		NoPruning                *bool
-		LightServ                *int  `toml:",omitempty"`
-		LightPeers               *int  `toml:",omitempty"`
 		SkipBcVersionCheck       *bool `toml:"-"`
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
@@ -173,7 +168,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
-		RPCGasCap                *big.Int `toml:",omitempty"`
+		RPCGasCap                *uint64  `toml:",omitempty"`
+		RPCTxFeeCap              *float64 `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -193,12 +189,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.NoPruning != nil {
 		c.NoPruning = *dec.NoPruning
-	}
-	if dec.LightServ != nil {
-		c.LightServ = *dec.LightServ
-	}
-	if dec.LightPeers != nil {
-		c.LightPeers = *dec.LightPeers
 	}
 	if dec.SkipBcVersionCheck != nil {
 		c.SkipBcVersionCheck = *dec.SkipBcVersionCheck
@@ -327,7 +317,10 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		c.Debug = *dec.Debug
 	}
 	if dec.RPCGasCap != nil {
-		c.RPCGasCap = dec.RPCGasCap
+		c.RPCGasCap = *dec.RPCGasCap
+	}
+	if dec.RPCTxFeeCap != nil {
+		c.RPCTxFeeCap = *dec.RPCTxFeeCap
 	}
 	return nil
 }

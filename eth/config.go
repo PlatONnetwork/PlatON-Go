@@ -29,6 +29,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 )
 
+// DefaultFullGPOConfig contains default gasprice oracle settings for full node.
+var DefaultFullGPOConfig = gasprice.Config{
+	Blocks:     20,
+	Percentile: 60,
+}
+
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
@@ -43,7 +49,6 @@ var DefaultConfig = Config{
 		Amount:            10,
 	},
 	NetworkId:               1,
-	LightPeers:              100,
 	DatabaseCache:           768,
 	TrieCache:               32,
 	TrieTimeout:             60 * time.Minute,
@@ -83,14 +88,10 @@ var DefaultConfig = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool: core.DefaultTxPoolConfig,
-	GPO: gasprice.Config{
-		Blocks:     20,
-		Percentile: 60,
-	},
-
-	//MPCPool: core.DefaultMPCPoolConfig,
-	//VCPool:  core.DefaultVCPoolConfig,
+	TxPool:      core.DefaultTxPoolConfig,
+	RPCGasCap:   25000000,
+	GPO:         DefaultFullGPOConfig,
+	RPCTxFeeCap: 1, // 1 lat
 }
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go
@@ -106,10 +107,6 @@ type Config struct {
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode
 	NoPruning bool
-
-	// Light client options
-	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
-	LightPeers int `toml:",omitempty"` // Maximum number of LES client peers
 
 	// Database options
 	SkipBcVersionCheck      bool `toml:"-"`
@@ -175,5 +172,9 @@ type Config struct {
 	Debug bool
 
 	// RPCGasCap is the global gas cap for eth-call variants.
-	RPCGasCap *big.Int `toml:",omitempty"`
+	RPCGasCap uint64 `toml:",omitempty"`
+
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ether.
+	RPCTxFeeCap float64 `toml:",omitempty"`
 }

@@ -96,7 +96,7 @@ func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 	platon := runPlatON(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
-		"--rpc", "--rpcport", port)
+		"--http", "--http.port", port)
 
 	defer func() {
 		platon.Interrupt()
@@ -114,7 +114,7 @@ func TestWSAttachWelcome(t *testing.T) {
 
 	platon := runPlatON(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
-		"--ws", "--wsport", port /*, "--testnet"*/)
+		"--ws", "--ws.port", port /*, "--testnet"*/)
 
 	defer func() {
 		platon.Interrupt()

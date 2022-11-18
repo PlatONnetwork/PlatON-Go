@@ -36,10 +36,10 @@ import (
 )
 
 const (
-//MockCodeKey     = "mock_code"
-//MockCodeHashKey = "mock_codeHash"
-//MockNonce       = "mock_nonce"
-//MockSuicided    = "mock_suicided"
+// MockCodeKey     = "mock_code"
+// MockCodeHashKey = "mock_codeHash"
+// MockNonce       = "mock_nonce"
+// MockSuicided    = "mock_suicided"
 )
 
 type Chain struct {
@@ -48,6 +48,7 @@ type Chain struct {
 	//	headerm  map[common.Hash]*types.Header
 	//	blockm   map[common.Hash]*types.Block
 	//	receiptm map[common.Hash][]*types.Receipt
+	txs              map[common.Hash][]*types.Transaction
 	StateDB          *MockStateDB
 	SnapDB           snapshotdb.DB
 	h                []*types.Header
@@ -55,7 +56,7 @@ type Chain struct {
 	coinBaseGenerate func() common.Address
 }
 
-//notic AddBlock will not append snapshotdb
+// notic AddBlock will not append snapshotdb
 func (c *Chain) AddBlock() {
 	header := generateHeader(new(big.Int).Add(c.h[len(c.h)-1].Number, common.Big1), c.h[len(c.h)-1].Hash(), c.timeGenerate(c.CurrentHeader().Time), c.coinBaseGenerate())
 	c.h = append(c.h, header)
@@ -142,6 +143,20 @@ func (c *Chain) AddBlockWithSnapDB(miner bool, beforeTxHook, afterTxHook func(ha
 	return c.commitWithSnapshotDB(miner, beforeTxHook, afterTxHook, txs)
 }
 
+func (c *Chain) AddBlockWithTx(txs []*types.Transaction) {
+	c.AddBlock()
+	c.txs[c.CurrentHeader().Hash()] = txs
+}
+
+func (c *Chain) CurrentBlock() *types.Block {
+	return types.NewBlock(c.h[len(c.h)-1], c.txs[c.CurrentHeader().Hash()], nil)
+}
+
+func (c *Chain) GetBlockByNumber(number uint64) *types.Block {
+	header := c.GetHeaderByNumber(number)
+	return types.NewBlock(header, c.txs[header.Hash()], nil)
+}
+
 func (c *Chain) CurrentHeader() *types.Header {
 	return c.h[len(c.h)-1]
 }
@@ -192,6 +207,7 @@ func NewChain() *Chain {
 	c.Genesis = block
 	c.h = make([]*types.Header, 0)
 	c.h = append(c.h, header)
+	c.txs = make(map[common.Hash][]*types.Transaction)
 
 	db := NewMockStateDB()
 	db.State = make(map[common.Address]map[string][]byte)
