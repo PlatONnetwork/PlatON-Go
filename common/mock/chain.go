@@ -19,11 +19,13 @@ package mock
 import (
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -149,12 +151,12 @@ func (c *Chain) AddBlockWithTx(txs []*types.Transaction) {
 }
 
 func (c *Chain) CurrentBlock() *types.Block {
-	return types.NewBlock(c.h[len(c.h)-1], c.txs[c.CurrentHeader().Hash()], nil)
+	return types.NewBlock(c.h[len(c.h)-1], c.txs[c.CurrentHeader().Hash()], nil, new(trie.Trie))
 }
 
 func (c *Chain) GetBlockByNumber(number uint64) *types.Block {
 	header := c.GetHeaderByNumber(number)
-	return types.NewBlock(header, c.txs[header.Hash()], nil)
+	return types.NewBlock(header, c.txs[header.Hash()], nil, new(trie.Trie)
 }
 
 func (c *Chain) CurrentHeader() *types.Header {
