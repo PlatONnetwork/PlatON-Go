@@ -17,12 +17,13 @@
 package rawdb
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 func TestChainIterator(t *testing.T) {
@@ -33,11 +34,11 @@ func TestChainIterator(t *testing.T) {
 	var txs []*types.Transaction
 	for i := uint64(0); i <= 10; i++ {
 		if i == 0 {
-			block = types.NewBlock(&types.Header{Number: big.NewInt(int64(i))}, nil, nil) // Empty genesis block
+			block = types.NewBlock(&types.Header{Number: big.NewInt(int64(i))}, nil, nil, newHasher()) // Empty genesis block
 		} else {
 			tx := types.NewTransaction(i, common.BytesToAddress([]byte{0x11}), big.NewInt(111), 1111, big.NewInt(11111), []byte{0x11, 0x11, 0x11})
 			txs = append(txs, tx)
-			block = types.NewBlock(&types.Header{Number: big.NewInt(int64(i))}, []*types.Transaction{tx}, nil)
+			block = types.NewBlock(&types.Header{Number: big.NewInt(int64(i))}, []*types.Transaction{tx}, nil, newHasher())
 		}
 		WriteBlock(chainDb, block)
 		WriteCanonicalHash(chainDb, block.Hash(), block.NumberU64())

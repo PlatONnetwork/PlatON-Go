@@ -131,12 +131,7 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.getSecKeyCache()[string(shaKey)]; ok {
 		return key
 	}
-	if key, err := t.trie.db.Preimage(common.BytesToHash(shaKey)); err == nil {
-		return key
-	}
-
-	key, _ := t.trie.db.Node(common.BytesToHash(shaKey))
-	return key
+	return t.trie.db.preimage(common.BytesToHash(shaKey))
 }
 
 // Commit writes all nodes and the secure hash pre-images to the trie's database.

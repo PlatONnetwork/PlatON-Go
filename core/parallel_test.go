@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -241,7 +242,7 @@ func Prepare(header *types.Header) error {
 
 func Finalize(chain consensus.ChainReader, header *types.Header, state *state2.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
-	return types.NewBlock(header, txs, receipts), nil
+	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
 }
 
 func signFn(m []byte) ([]byte, error) {
