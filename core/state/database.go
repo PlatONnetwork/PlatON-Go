@@ -71,14 +71,13 @@ type Trie interface {
 // intermediate trie-node memory pool between the low level storage layer and the
 // high level trie abstraction.
 func NewDatabase(db ethdb.Database) Database {
-	return NewDatabaseWithCache(db, 0)
+	return NewDatabaseWithCache(db, 0, "")
 }
 
-func NewDatabaseWithCache(db ethdb.Database, cache int) Database {
-	//LRU
+func NewDatabaseWithCache(db ethdb.Database, cache int, journal string) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
-		db:            trie.NewDatabaseWithCache(db, cache),
+		db:            trie.NewDatabaseWithCache(db, cache, journal),
 		codeSizeCache: csc,
 	}
 }

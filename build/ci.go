@@ -227,6 +227,7 @@ func doInstall(cmdline []string) {
 		if runtime.GOARCH == "arm64" {
 			goinstall.Args = append(goinstall.Args, "-p", "1")
 		}
+		goinstall.Args = append(goinstall.Args, "-trimpath")
 		goinstall.Args = append(goinstall.Args, "-v")
 		index := 0
 		packages2 := []string{}
@@ -271,6 +272,7 @@ func doInstall(cmdline []string) {
 	}
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
+	goinstall.Args = append(goinstall.Args, "-trimpath")
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
 	goinstall.Args = append(goinstall.Args, packages...)

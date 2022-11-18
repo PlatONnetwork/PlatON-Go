@@ -86,6 +86,8 @@ var (
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
+		utils.CacheTrieJournalFlag,
+		utils.CacheTrieRejournalFlag,
 		utils.CacheGCFlag,
 		utils.CacheTrieDBFlag,
 		utils.ListenPortFlag,
