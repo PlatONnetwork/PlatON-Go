@@ -13,7 +13,6 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
-//
 package core
 
 import (
@@ -36,7 +35,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-//Used for testing
+// Used for testing
 type HeadlessUI struct {
 	controller chan string
 }
@@ -125,7 +124,7 @@ func setup(t *testing.T) (*SignerAPI, chan string) {
 
 	controller := make(chan string, 10)
 
-	db, err := NewAbiDBFromFile("../../cmd/clef/4byte.json")
+	db, err := NewAbiDBFromFile("./4byte.json")
 	if err != nil {
 		utils.Fatalf(err.Error())
 	}
