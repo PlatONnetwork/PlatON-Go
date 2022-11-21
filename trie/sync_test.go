@@ -26,10 +26,10 @@ import (
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.
-func makeTestTrie() (*Database, *Trie, map[string][]byte) {
+func makeTestTrie() (*Database, *SecureTrie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(memorydb.New())
-	trie, _ := New(common.Hash{}, triedb)
+	trie, _ := NewSecure(common.Hash{}, triedb)
 
 	// Fill it with some arbitrary data
 	content := make(map[string][]byte)
@@ -60,7 +60,7 @@ func makeTestTrie() (*Database, *Trie, map[string][]byte) {
 // content map.
 func checkTrieContents(t *testing.T, db *Database, root []byte, content map[string][]byte) {
 	// Check root availability and trie contents
-	trie, err := New(common.BytesToHash(root), db)
+	trie, err := NewSecure(common.BytesToHash(root), db)
 	if err != nil {
 		t.Fatalf("failed to create trie at %x: %v", root, err)
 	}
@@ -77,7 +77,7 @@ func checkTrieContents(t *testing.T, db *Database, root []byte, content map[stri
 // checkTrieConsistency checks that all nodes in a trie are indeed present.
 func checkTrieConsistency(db *Database, root common.Hash) error {
 	// Create and iterate a trie rooted in a subnode
-	trie, err := New(root, db)
+	trie, err := NewSecure(root, db)
 	if err != nil {
 		return nil // Consider a non existent state consistent
 	}
