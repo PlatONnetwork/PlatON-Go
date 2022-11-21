@@ -21,10 +21,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"

@@ -56,14 +56,27 @@ const (
 	NetSstoreResetRefund      uint64 = 4800  // Once per SSTORE operation for resetting to the original non-zero value
 	NetSstoreResetClearRefund uint64 = 19800 // Once per SSTORE operation for resetting to the original zero value
 
-	SstoreSentryGasEIP2200   uint64 = 2300  // Minimum gas required to be present for an SSTORE call, not consumed
-	SstoreNoopGasEIP2200     uint64 = 800   // Once per SSTORE operation if the value doesn't change.
-	SstoreDirtyGasEIP2200    uint64 = 800   // Once per SSTORE operation if a dirty value is changed.
-	SstoreInitGasEIP2200     uint64 = 20000 // Once per SSTORE operation from clean zero to non-zero
-	SstoreInitRefundEIP2200  uint64 = 19200 // Once per SSTORE operation for resetting to the original zero value
-	SstoreCleanGasEIP2200    uint64 = 5000  // Once per SSTORE operation from clean non-zero to something else
-	SstoreCleanRefundEIP2200 uint64 = 4200  // Once per SSTORE operation for resetting to the original non-zero value
-	SstoreClearRefundEIP2200 uint64 = 15000 // Once per SSTORE operation for clearing an originally existing storage slot
+	SstoreSentryGasEIP2200            uint64 = 2300  // Minimum gas required to be present for an SSTORE call, not consumed
+	SstoreNoopGasEIP2200              uint64 = 800   // Once per SSTORE operation if the value doesn't change.
+	SstoreDirtyGasEIP2200             uint64 = 800   // Once per SSTORE operation if a dirty value is changed.
+	SstoreInitGasEIP2200              uint64 = 20000 // Once per SSTORE operation from clean zero to non-zero
+	SstoreInitRefundEIP2200           uint64 = 19200 // Once per SSTORE operation for resetting to the original zero value
+	SstoreCleanGasEIP2200             uint64 = 5000  // Once per SSTORE operation from clean non-zero to something else
+	SstoreCleanRefundEIP2200          uint64 = 4200  // Once per SSTORE operation for resetting to the original non-zero value
+	SstoreClearRefundEIP2200          uint64 = 15000 // Once per SSTORE operation for clearing an originally existing storage slot
+	SstoreSetGasEIP2200               uint64 = 20000 // Once per SSTORE operation from clean zero to non-zero
+	SstoreResetGasEIP2200             uint64 = 5000  // Once per SSTORE operation from clean non-zero to something else
+	SstoreClearsScheduleRefundEIP2200 uint64 = 15000 // Once per SSTORE operation for clearing an originally existing storage slot
+
+	ColdAccountAccessCostEIP2929 = uint64(2600) // COLD_ACCOUNT_ACCESS_COST
+	ColdSloadCostEIP2929         = uint64(2100) // COLD_SLOAD_COST
+	WarmStorageReadCostEIP2929   = uint64(100)  // WARM_STORAGE_READ_COST
+
+	// In EIP-2200: SstoreResetGas was 5000.
+	// In EIP-2929: SstoreResetGas was changed to '5000 - COLD_SLOAD_COST'.
+	// In EIP-3529: SSTORE_CLEARS_SCHEDULE is defined as SSTORE_RESET_GAS + ACCESS_LIST_STORAGE_KEY_COST
+	// Which becomes: 5000 - 2100 + 1900 = 4800
+	SstoreClearsScheduleRefundEIP3529 uint64 = SstoreResetGasEIP2200 - ColdSloadCostEIP2929 + TxAccessListStorageKeyGas
 
 	JumpdestGas   uint64 = 1     // Once per JUMPDEST operation.
 	EpochDuration uint64 = 30000 // Duration between proof-of-work epochs.
@@ -84,6 +97,9 @@ const (
 	MemoryGas                  uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas           uint64 = 16    // Per byte of non zero data attached to a transaction after EIP 2028 (part in Istanbul)
 	TxDataNonZeroWasmDeployGas uint64 = 4     // Per byte of data attached to a transaction that is not equal to zero for wasm deploying. NOTE: Not payable on data of calls between transactions.
+	TxDataNonZeroGasEIP2028    uint64 = 16    // Per byte of non zero data attached to a transaction after EIP 2028 (part in Istanbul)
+	TxAccessListAddressGas     uint64 = 2400  // Per address specified in EIP 2930 access list
+	TxAccessListStorageKeyGas  uint64 = 1900  // Per storage key specified in EIP 2930 access list
 
 	// These have been changed during the course of the chain
 	CallGasFrontier              uint64 = 40  // Once per CALL operation & message call transaction.
