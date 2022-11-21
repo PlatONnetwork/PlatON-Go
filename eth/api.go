@@ -323,7 +323,7 @@ func (api *PrivateDebugAPI) AccountRange(ctx context.Context, start *common.Hash
 			return AccountRangeResult{}, err
 		}
 	} else {
-		_, _, statedb, err = api.computeTxEnv(block.Hash(), len(block.Transactions())-1, 0)
+		_, _, statedb, err = api.computeTxEnv(block, len(block.Transactions())-1, 0)
 		if err != nil {
 			return AccountRangeResult{}, err
 		}
