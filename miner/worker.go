@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -779,6 +780,7 @@ func (w *worker) updateSnapshot() {
 		w.current.header,
 		w.current.txs,
 		w.current.receipts,
+		new(trie.Trie),
 	)
 
 	w.snapshotState = w.current.state.Copy()
@@ -1179,11 +1181,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	if parent != nil {
 		state, err := w.blockChainCache.MakeStateDB(parent)
 		if err == nil {
-			block := types.NewBlock(
-				parent.Header(),
-				parent.Transactions(),
-				nil,
-			)
+			block := types.NewBlock(parent.Header(), parent.Transactions(), nil, new(trie.Trie))
 
 			return block, state
 		}

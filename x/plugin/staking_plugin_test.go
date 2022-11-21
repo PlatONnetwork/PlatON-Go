@@ -21,11 +21,13 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -1044,7 +1046,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	StakingInstance().SetEventMux(eventMux)
 	go watching(eventMux, t)
 
-	blockElection := types.NewBlock(header, nil, nil)
+	blockElection := types.NewBlock(header, nil, nil, new(trie.Trie))
 
 	next, err := StakingInstance().getNextValList(blockElection.Hash(), blockElection.Number().Uint64(), QueryStartNotIrr)
 

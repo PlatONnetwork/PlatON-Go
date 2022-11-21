@@ -24,6 +24,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -233,7 +234,7 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 	header.Root = state.IntermediateRoot(true)
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, receipts), nil
+	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
 }
 
 // Seal generates a new sealing request for the given input block and pushes
