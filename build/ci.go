@@ -133,7 +133,6 @@ var (
 		"xenial": "golang-go",
 		"bionic": "golang-go",
 		"disco":  "golang-go",
-		"eoan":   "golang-go",
 		"focal":  "golang-go",
 	}
 
