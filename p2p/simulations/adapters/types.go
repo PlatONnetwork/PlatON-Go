@@ -99,6 +99,9 @@ type NodeConfig struct {
 	// service lifecycles registered by calling the RegisterLifecycle function)
 	Lifecycles []string
 
+	// ExternalSigner specifies an external URI for a clef-type signer
+	ExternalSigner string
+
 	// function to sanction or prevent suggesting a peer
 	Reachable func(id discover.NodeID) bool
 
