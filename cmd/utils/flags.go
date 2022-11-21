@@ -23,6 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -500,6 +501,11 @@ var (
 		Name:  "gpo.percentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
 		Value: eth.DefaultConfig.GPO.Percentile,
+	}
+	GpoMaxGasPriceFlag = cli.Int64Flag{
+		Name:  "gpo.maxprice",
+		Usage: "Maximum gas price will be recommended by gpo",
+		Value: eth.DefaultConfig.GPO.MaxPrice.Int64(),
 	}
 
 	// Metrics flags
@@ -1029,6 +1035,9 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 	}
 	if ctx.GlobalIsSet(GpoPercentileFlag.Name) {
 		cfg.Percentile = ctx.GlobalInt(GpoPercentileFlag.Name)
+	}
+	if ctx.GlobalIsSet(GpoMaxGasPriceFlag.Name) {
+		cfg.MaxPrice = big.NewInt(ctx.GlobalInt64(GpoMaxGasPriceFlag.Name))
 	}
 }
 
