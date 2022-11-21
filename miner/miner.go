@@ -84,6 +84,7 @@ func (miner *Miner) update() {
 	defer events.Unsubscribe()
 
 	shouldStart := false
+	canStart := true
 	for {
 		select {
 		case ev := <-events.Chan():
@@ -97,12 +98,14 @@ func (miner *Miner) update() {
 				if bft, ok := miner.engine.(consensus.Bft); ok {
 					bft.Pause()
 				}
+				canStart = false
 				if wasMining {
 					// Resume mining after sync was finished
 					shouldStart = true
 					log.Info("Mining aborted due to sync")
 				}
 			case downloader.DoneEvent, downloader.FailedEvent:
+				canStart = true
 				if shouldStart {
 					miner.worker.start()
 					if bft, ok := miner.engine.(consensus.Bft); ok {
@@ -114,11 +117,15 @@ func (miner *Miner) update() {
 				return
 			}
 		case <-miner.startCh:
-			miner.worker.start()
-			if bft, ok := miner.engine.(consensus.Bft); ok {
-				bft.Resume()
+			if canStart {
+				miner.worker.start()
+				if bft, ok := miner.engine.(consensus.Bft); ok {
+					bft.Resume()
+				}
 			}
+			shouldStart = true
 		case <-miner.stopCh:
+			shouldStart = false
 			miner.worker.stop()
 			if bft, ok := miner.engine.(consensus.Bft); ok {
 				bft.Pause()
