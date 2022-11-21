@@ -75,7 +75,6 @@ var (
 		executablePath("bootnode"),
 		executablePath("platon"),
 		executablePath("rlpdump"),
-		executablePath("wnode"),
 	}
 
 	// A debian package is created for all executables listed here.
@@ -99,10 +98,6 @@ var (
 		{
 			BinaryName:  "rlpdump",
 			Description: "Developer utility tool that prints RLP structures.",
-		},
-		{
-			BinaryName:  "wnode",
-			Description: "PlatON Whisper diagnostic tool",
 		},
 	}
 
