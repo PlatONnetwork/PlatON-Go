@@ -18,17 +18,17 @@ package core
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"os"
 	"strings"
 
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/davecgh/go-spew/spew"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type CommandlineUI struct {
@@ -38,6 +38,10 @@ type CommandlineUI struct {
 
 func NewCommandlineUI() *CommandlineUI {
 	return &CommandlineUI{in: bufio.NewReader(os.Stdin)}
+}
+
+func (ui *CommandlineUI) RegisterUIServer(api *UIServerAPI) {
+	// noop
 }
 
 // readString reads a single line from stdin, trimming if from spaces, enforcing
@@ -55,32 +59,20 @@ func (ui *CommandlineUI) readString() string {
 	}
 }
 
-// readPassword reads a single line from stdin, trimming it from the trailing new
-// line and returns it. The input will not be echoed.
-func (ui *CommandlineUI) readPassword() string {
-	fmt.Printf("Enter password to approve:\n")
-	fmt.Printf("> ")
+func (ui *CommandlineUI) OnInputRequired(info UserInputRequest) (UserInputResponse, error) {
 
-	text, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Crit("Failed to read password", "err", err)
+	fmt.Printf("## %s\n\n%s\n", info.Title, info.Prompt)
+	defer fmt.Println("-----------------------")
+	if info.IsPassword {
+		text, err := prompt.Stdin.PromptPassword("> ")
+		if err != nil {
+			log.Error("Failed to read password", "error", err)
+			return UserInputResponse{}, err
+		}
+		return UserInputResponse{text}, nil
 	}
-	fmt.Println()
-	fmt.Println("-----------------------")
-	return string(text)
-}
-
-// readPassword reads a single line from stdin, trimming it from the trailing new
-// line and returns it. The input will not be echoed.
-func (ui *CommandlineUI) readPasswordText(inputstring string) string {
-	fmt.Printf("Enter %s:\n", inputstring)
-	fmt.Printf("> ")
-	text, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Crit("Failed to read password", "err", err)
-	}
-	fmt.Println("-----------------------")
-	return string(text)
+	text := ui.readString()
+	return UserInputResponse{text}, nil
 }
 
 // confirm returns true if user enters 'Yes', otherwise false
@@ -93,8 +85,19 @@ func (ui *CommandlineUI) confirm() bool {
 	return false
 }
 
+// sanitize quotes and truncates 'txt' if longer than 'limit'. If truncated,
+// and ellipsis is added after the quoted string
+func sanitize(txt string, limit int) string {
+	if len(txt) > limit {
+		return fmt.Sprintf("%q...", txt[:limit])
+	}
+	return fmt.Sprintf("%q", txt)
+}
+
 func showMetadata(metadata Metadata) {
 	fmt.Printf("Request context:\n\t%v -> %v -> %v\n", metadata.Remote, metadata.Scheme, metadata.Local)
+	fmt.Printf("\nAdditional HTTP header data, provided by the external caller:\n")
+	fmt.Printf("\tUser-Agent: %v\n\tOrigin: %v\n", sanitize(metadata.UserAgent, 200), sanitize(metadata.Origin, 100))
 }
 
 // ApproveTx prompt the user for confirmation to request to sign Transaction
@@ -111,18 +114,21 @@ func (ui *CommandlineUI) ApproveTx(request *SignTxRequest) (SignTxResponse, erro
 	} else {
 		fmt.Printf("to:    <contact creation>\n")
 	}
-	fmt.Printf("from:  %v\n", request.Transaction.From.String())
-	fmt.Printf("value: %v wei\n", weival)
+	fmt.Printf("from:     %v\n", request.Transaction.From.String())
+	fmt.Printf("value:    %v wei\n", weival)
+	fmt.Printf("gas:      %v (%v)\n", request.Transaction.Gas, uint64(request.Transaction.Gas))
+	fmt.Printf("gasprice: %v wei\n", request.Transaction.GasPrice.ToInt())
+	fmt.Printf("nonce:    %v (%v)\n", request.Transaction.Nonce, uint64(request.Transaction.Nonce))
 	if request.Transaction.Data != nil {
 		d := *request.Transaction.Data
 		if len(d) > 0 {
-			fmt.Printf("data:  %v\n", common.Bytes2Hex(d))
+			fmt.Printf("data:     %v\n", hexutil.Encode(d))
 		}
 	}
 	if request.Callinfo != nil {
 		fmt.Printf("\nTransaction validation:\n")
 		for _, m := range request.Callinfo {
-			fmt.Printf("  * %s : %s", m.Typ, m.Message)
+			fmt.Printf("  * %s : %s\n", m.Typ, m.Message)
 		}
 		fmt.Println()
 
@@ -131,9 +137,9 @@ func (ui *CommandlineUI) ApproveTx(request *SignTxRequest) (SignTxResponse, erro
 	showMetadata(request.Meta)
 	fmt.Printf("-------------------------------------------\n")
 	if !ui.confirm() {
-		return SignTxResponse{request.Transaction, false, ""}, nil
+		return SignTxResponse{request.Transaction, false}, nil
 	}
-	return SignTxResponse{request.Transaction, true, ui.readPassword()}, nil
+	return SignTxResponse{request.Transaction, true}, nil
 }
 
 // ApproveSignData prompt the user for confirmation to request to sign data
@@ -143,52 +149,30 @@ func (ui *CommandlineUI) ApproveSignData(request *SignDataRequest) (SignDataResp
 
 	fmt.Printf("-------- Sign data request--------------\n")
 	fmt.Printf("Account:  %s\n", request.Address.String())
-	fmt.Printf("message:  \n%q\n", request.Message)
-	fmt.Printf("raw data: \n%v\n", request.Rawdata)
-	fmt.Printf("message hash:  %v\n", request.Hash)
+	if len(request.Callinfo) != 0 {
+		fmt.Printf("\nValidation messages:\n")
+		for _, m := range request.Callinfo {
+			fmt.Printf("  * %s : %s\n", m.Typ, m.Message)
+		}
+		fmt.Println()
+	}
+	fmt.Printf("messages:\n")
+	for _, nvt := range request.Messages {
+		fmt.Printf("\u00a0\u00a0%v\n", strings.TrimSpace(nvt.Pprint(1)))
+	}
+	fmt.Printf("raw data:  \n\t%q\n", request.Rawdata)
+	fmt.Printf("data hash:  %v\n", request.Hash)
 	fmt.Printf("-------------------------------------------\n")
 	showMetadata(request.Meta)
 	if !ui.confirm() {
-		return SignDataResponse{false, ""}, nil
+		return SignDataResponse{false}, nil
 	}
-	return SignDataResponse{true, ui.readPassword()}, nil
-}
-
-// ApproveExport prompt the user for confirmation to export encrypted Account json
-func (ui *CommandlineUI) ApproveExport(request *ExportRequest) (ExportResponse, error) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-
-	fmt.Printf("-------- Export Account request--------------\n")
-	fmt.Printf("A request has been made to export the (encrypted) keyfile\n")
-	fmt.Printf("Approving this operation means that the caller obtains the (encrypted) contents\n")
-	fmt.Printf("\n")
-	fmt.Printf("Account:  %x\n", request.Address)
-	//fmt.Printf("keyfile:  \n%v\n", request.file)
-	fmt.Printf("-------------------------------------------\n")
-	showMetadata(request.Meta)
-	return ExportResponse{ui.confirm()}, nil
-}
-
-// ApproveImport prompt the user for confirmation to import Account json
-func (ui *CommandlineUI) ApproveImport(request *ImportRequest) (ImportResponse, error) {
-	ui.mu.Lock()
-	defer ui.mu.Unlock()
-
-	fmt.Printf("-------- Import Account request--------------\n")
-	fmt.Printf("A request has been made to import an encrypted keyfile\n")
-	fmt.Printf("-------------------------------------------\n")
-	showMetadata(request.Meta)
-	if !ui.confirm() {
-		return ImportResponse{false, "", ""}, nil
-	}
-	return ImportResponse{true, ui.readPasswordText("Old password"), ui.readPasswordText("New password")}, nil
+	return SignDataResponse{true}, nil
 }
 
 // ApproveListing prompt the user for confirmation to list accounts
 // the list of accounts to list can be modified by the UI
 func (ui *CommandlineUI) ApproveListing(request *ListRequest) (ListResponse, error) {
-
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
@@ -196,7 +180,8 @@ func (ui *CommandlineUI) ApproveListing(request *ListRequest) (ListResponse, err
 	fmt.Printf("A request has been made to list all accounts. \n")
 	fmt.Printf("You can select which accounts the caller can see\n")
 	for _, account := range request.Accounts {
-		fmt.Printf("\t[x] %v\n", account.Address.String())
+		fmt.Printf("  [x] %v\n", account.Address.Hex())
+		fmt.Printf("    URL: %v\n", account.URL)
 	}
 	fmt.Printf("-------------------------------------------\n")
 	showMetadata(request.Meta)
@@ -212,31 +197,35 @@ func (ui *CommandlineUI) ApproveNewAccount(request *NewAccountRequest) (NewAccou
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
-	fmt.Printf("-------- New Account request--------------\n")
-	fmt.Printf("A request has been made to create a new. \n")
-	fmt.Printf("Approving this operation means that a new Account is created,\n")
-	fmt.Printf("and the address show to the caller\n")
+	fmt.Printf("-------- New Account request--------------\n\n")
+	fmt.Printf("A request has been made to create a new account. \n")
+	fmt.Printf("Approving this operation means that a new account is created,\n")
+	fmt.Printf("and the address is returned to the external caller\n\n")
 	showMetadata(request.Meta)
 	if !ui.confirm() {
-		return NewAccountResponse{false, ""}, nil
+		return NewAccountResponse{false}, nil
 	}
-	return NewAccountResponse{true, ui.readPassword()}, nil
+	return NewAccountResponse{true}, nil
 }
 
 // ShowError displays error message to user
 func (ui *CommandlineUI) ShowError(message string) {
-
-	fmt.Printf("ERROR: %v\n", message)
+	fmt.Printf("## Error \n%s\n", message)
+	fmt.Printf("-------------------------------------------\n")
 }
 
 // ShowInfo displays info message to user
 func (ui *CommandlineUI) ShowInfo(message string) {
-	fmt.Printf("Info: %v\n", message)
+	fmt.Printf("## Info \n%s\n", message)
 }
 
 func (ui *CommandlineUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	fmt.Printf("Transaction signed:\n ")
-	spew.Dump(tx.Tx)
+	if jsn, err := json.MarshalIndent(tx.Tx, "  ", "  "); err != nil {
+		fmt.Printf("WARN: marshalling error %v\n", err)
+	} else {
+		fmt.Println(string(jsn))
+	}
 }
 
 func (ui *CommandlineUI) OnSignerStartup(info StartupInfo) {
