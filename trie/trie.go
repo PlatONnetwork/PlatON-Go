@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -520,6 +521,11 @@ func (t *Trie) hashRoot() (node, node, error) {
 	h := newHasher()
 	defer returnHasherToPool(h)
 	return h.hash(t.root, true)
+}
+
+// Reset drops the referenced root node and cleans all internal state.
+func (t *Trie) Reset() {
+	t.root = nil
 }
 
 func (t *Trie) commitRoot(db *Database, onleaf LeafCallback) (node, node, error) {

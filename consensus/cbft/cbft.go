@@ -28,6 +28,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/pkg/errors"
 
@@ -715,7 +716,7 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
 	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts), "root", header.Root.String())
-	return types.NewBlock(header, txs, receipts), nil
+	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
 }
 
 // Seal is used to generate a block, and block data is

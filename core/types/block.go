@@ -42,7 +42,7 @@ import (
 )
 
 var (
-	EmptyRootHash = DeriveSha(Transactions{})
+	EmptyRootHash = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 	// Extra field in the block header, maximum length
 	ExtraMaxSize      = 97
 	HttpEthCompatible = false
@@ -375,14 +375,14 @@ type storageblock struct {
 // The values of TxHash, ReceiptHash and Bloom in header
 // are ignored and set to values derived from the given txs
 // and receipts.
-func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
+func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher Hasher) *Block {
 	b := &Block{header: CopyHeader(header)}
 
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
 		b.header.TxHash = EmptyRootHash
 	} else {
-		b.header.TxHash = DeriveSha(Transactions(txs))
+		b.header.TxHash = DeriveSha(Transactions(txs), hasher)
 		b.transactions = make(Transactions, len(txs))
 		copy(b.transactions, txs)
 	}
@@ -390,7 +390,7 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt) *Block {
 	if len(receipts) == 0 {
 		b.header.ReceiptHash = EmptyRootHash
 	} else {
-		b.header.ReceiptHash = DeriveSha(Receipts(receipts))
+		b.header.ReceiptHash = DeriveSha(Receipts(receipts), hasher)
 		b.header.Bloom = CreateBloom(receipts)
 	}
 

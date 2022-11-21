@@ -26,6 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 func TestBlockChainReactorClose(t *testing.T) {
@@ -41,7 +42,7 @@ func TestBlockChainReactorClose(t *testing.T) {
 				header.Number = big.NewInt(int64(i))
 				header.Time = uint64(i)
 				header.ParentHash = parenthash
-				block := types.NewBlock(header, nil, nil)
+				block := types.NewBlock(header, nil, nil, new(trie.Trie))
 				snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, block.Hash())
 				parenthash = block.Hash()
 				cbftress <- cbfttypes.CbftResult{Block: block}
