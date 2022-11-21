@@ -294,10 +294,10 @@ func logDiff(original *SignTxRequest, new *SignTxResponse) bool {
 		d0s := ""
 		d1s := ""
 		if d0 != nil {
-			d0s = common.ToHex(*d0)
+			d0s = hexutil.Encode(*d0)
 		}
 		if d1 != nil {
-			d1s = common.ToHex(*d1)
+			d1s = hexutil.Encode(*d1)
 		}
 		if d1s != d0s {
 			modified = true

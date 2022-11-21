@@ -24,6 +24,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"bytes"
 	"os"
@@ -218,7 +219,7 @@ func (db *AbiDb) LookupMethodSelector(id []byte) (string, error) {
 	if len(id) < 4 {
 		return "", fmt.Errorf("Expected 4-byte id, got %d", len(id))
 	}
-	sig := common.ToHex(id[:4])
+	sig := hexutil.Encode(id[:4])
 	if key, exists := db.db[sig]; exists {
 		return key, nil
 	}
@@ -256,6 +257,6 @@ func (db *AbiDb) AddSignature(selector string, data []byte) error {
 	if err == nil {
 		return nil
 	}
-	sig := common.ToHex(data[:4])
+	sig := hexutil.Encode(data[:4])
 	return db.saveCustomAbi(selector, sig)
 }
