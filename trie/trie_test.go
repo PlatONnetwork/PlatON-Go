@@ -608,7 +608,7 @@ func TestDeepCopy(t *testing.T) {
 	tr, _ := NewSecure(root, triedb)
 	kv := make(map[common.Hash][]byte)
 	codeWriter := triedb.DiskDB().NewBatch()
-	leafCB := func(leaf []byte, parent common.Hash) error {
+	leafCB := func(path []byte, leaf []byte, parent common.Hash) error {
 		var valueKey common.Hash
 		_, content, _, err := rlp.Split(leaf)
 		assert.Nil(t, err)

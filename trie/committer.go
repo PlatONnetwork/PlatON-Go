@@ -172,12 +172,12 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 		switch n := n.(type) {
 		case *shortNode:
 			if child, ok := n.Val.(valueNode); ok {
-				c.onleaf(child, hash2)
+				c.onleaf(nil, child, hash2)
 			}
 		case *fullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(valueNode); ok {
-					c.onleaf(child, hash2)
+					c.onleaf(nil, child, hash2)
 				}
 			}
 		}
