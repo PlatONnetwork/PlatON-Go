@@ -256,7 +256,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 	defer cancelFn()
 	// set req context to vm context
-	st.evm.Ctx = ctx
+	st.evm.Context.Ctx = ctx
 
 	var (
 		ret []byte
@@ -275,7 +275,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	if vmerr != nil {
-		log.Error("VM returned with error", "blockNumber", st.evm.BlockNumber, "txHash", st.evm.StateDB.TxHash().TerminalString(), "err", vmerr)
+		log.Error("VM returned with error", "blockNumber", st.evm.Context.BlockNumber, "txHash", st.evm.StateDB.TxHash().TerminalString(), "err", vmerr)
 		// A possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
@@ -292,7 +292,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	st.refundGas()
 
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return &ExecutionResult{
 		UsedGas:    st.gasUsed(),

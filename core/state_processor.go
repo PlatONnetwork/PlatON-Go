@@ -68,7 +68,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs  []*types.Log
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
-
+	blockContext := NewEVMBlockContext(header, p.bc)
+	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, p.config, cfg)
 	if bcr != nil {
 		// BeginBlocker()
 		if err := bcr.BeginBlocker(header, statedb); nil != err {
@@ -80,10 +81,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
+		msg, err := tx.AsMessage(types.MakeSigner(p.config, gov.Gte120VersionState(statedb)))
+		if err != nil {
+			return nil, nil, 0, err
+		}
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		//preUsedGas := uint64(0)
 
-		receipt, err := ApplyTransaction(p.config, p.bc, gp, statedb, header, tx, usedGas, cfg)
+		receipt, err := applyTransaction(msg, p.config, p.bc, gp, statedb, header, tx, usedGas, vmenv)
 		if err != nil {
 			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
@@ -109,29 +114,16 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	return receipts, allLogs, *usedGas, nil
 }
 
-// ApplyTransaction attempts to apply a transaction to the given state database
-// and uses the input parameters for its environment. It returns the receipt
-// for the transaction, gas used and an error if the transaction failed,
-// indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
-	statedb *state.StateDB, header *types.Header, tx *types.Transaction,
-	usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
-
-	msg, err := tx.AsMessage(types.MakeSigner(config, gov.Gte120VersionState(statedb)))
-
-	if err != nil {
-		return nil, err
-	}
+func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {
 	// Create a new context to be used in the EVM environment
-	context := NewEVMContext(msg, header, bc)
-	// Create a new environment which holds all relevant information
-	// about the transaction and calling mechanisms.
-	vmenv := vm.NewEVM(context, snapshotdb.Instance(), statedb, config, cfg)
-
+	txContext := NewEVMTxContext(msg)
+	// Add addresses to access list if applicable
 	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
 
+	// Update the evm with the new transaction context.
+	evm.Reset(txContext, statedb)
 	// Apply the transaction to the current state (included in the env)
-	result, err := ApplyMessage(vmenv, msg, gp)
+	result, err := ApplyMessage(evm, msg, gp)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +140,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	receipt.GasUsed = result.UsedGas
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
-		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
+		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 	}
 	// Set the receipt logs
 	if result.Failed() {
@@ -179,4 +171,19 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool,
 	receipt.BlockNumber = header.Number
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 	return receipt, err
+}
+
+// ApplyTransaction attempts to apply a transaction to the given state database
+// and uses the input parameters for its environment. It returns the receipt
+// for the transaction, gas used and an error if the transaction failed,
+// indicating the block was invalid.
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
+	msg, err := tx.AsMessage(types.MakeSigner(config, gov.Gte120VersionState(statedb)))
+	if err != nil {
+		return nil, err
+	}
+	// Create a new context to be used in the EVM environment
+	blockContext := NewEVMBlockContext(header, bc)
+	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, config, cfg)
+	return applyTransaction(msg, config, bc, gp, statedb, header, tx, usedGas, vmenv)
 }

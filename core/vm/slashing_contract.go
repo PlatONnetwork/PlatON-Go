@@ -76,8 +76,8 @@ func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]byte, error) {
 
 	txHash := sc.Evm.StateDB.TxHash()
-	blockNumber := sc.Evm.BlockNumber
-	blockHash := sc.Evm.BlockHash
+	blockNumber := sc.Evm.Context.BlockNumber
+	blockHash := sc.Evm.Context.BlockHash
 	from := sc.Contract.CallerAddress
 
 	if !sc.Contract.UseGas(params.ReportDuplicateSignGas) {
