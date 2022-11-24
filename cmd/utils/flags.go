@@ -1365,7 +1365,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
 	}
-	if cache.TrieDirtyDisabled && !cache.Preimages {
+	if !cache.Preimages {
 		cache.Preimages = true
 		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
