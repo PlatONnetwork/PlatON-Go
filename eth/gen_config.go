@@ -23,13 +23,14 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		SkipBcVersionCheck       bool `toml:"-"`
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
-		DatabaseFreezer          string
 		TrieCleanCacheJournal    string        `toml:",omitempty"`
 		TrieCleanCacheRejournal  time.Duration `toml:",omitempty"`
-		TxLookupLimit            uint64        `toml:",omitempty"`
+		DatabaseFreezer          string
+		TxLookupLimit            uint64 `toml:",omitempty"`
 		TrieCache                int
 		TrieTimeout              time.Duration
 		TrieDBCache              int
+		Preimages                bool
 		DBDisabledGC             bool
 		DBGCInterval             uint64
 		DBGCTimeout              time.Duration
@@ -74,13 +75,14 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
-	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TrieCleanCacheJournal = c.TrieCleanCacheJournal
 	enc.TrieCleanCacheRejournal = c.TrieCleanCacheRejournal
+	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TxLookupLimit = c.TxLookupLimit
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
 	enc.TrieDBCache = c.TrieDBCache
+	enc.Preimages = c.Preimages
 	enc.DBDisabledGC = c.DBDisabledGC
 	enc.DBGCInterval = c.DBGCInterval
 	enc.DBGCTimeout = c.DBGCTimeout
@@ -129,13 +131,14 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		SkipBcVersionCheck       *bool `toml:"-"`
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
-		DatabaseFreezer          *string
 		TrieCleanCacheJournal    *string        `toml:",omitempty"`
 		TrieCleanCacheRejournal  *time.Duration `toml:",omitempty"`
-		TxLookupLimit            *uint64        `toml:",omitempty"`
+		DatabaseFreezer          *string
+		TxLookupLimit            *uint64 `toml:",omitempty"`
 		TrieCache                *int
 		TrieTimeout              *time.Duration
 		TrieDBCache              *int
+		Preimages                *bool
 		DBDisabledGC             *bool
 		DBGCInterval             *uint64
 		DBGCTimeout              *time.Duration
@@ -199,14 +202,14 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
 	}
-	if dec.DatabaseFreezer != nil {
-		c.DatabaseFreezer = *dec.DatabaseFreezer
-	}
 	if dec.TrieCleanCacheJournal != nil {
 		c.TrieCleanCacheJournal = *dec.TrieCleanCacheJournal
 	}
 	if dec.TrieCleanCacheRejournal != nil {
 		c.TrieCleanCacheRejournal = *dec.TrieCleanCacheRejournal
+	}
+	if dec.DatabaseFreezer != nil {
+		c.DatabaseFreezer = *dec.DatabaseFreezer
 	}
 	if dec.TxLookupLimit != nil {
 		c.TxLookupLimit = *dec.TxLookupLimit
@@ -219,6 +222,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.TrieDBCache != nil {
 		c.TrieDBCache = *dec.TrieDBCache
+	}
+	if dec.Preimages != nil {
+		c.Preimages = *dec.Preimages
 	}
 	if dec.DBDisabledGC != nil {
 		c.DBDisabledGC = *dec.DBDisabledGC

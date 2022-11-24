@@ -291,6 +291,10 @@ var (
 		Usage: "Megabytes of memory allocated to triedb internal caching",
 		Value: eth.DefaultConfig.TrieDBCache,
 	}
+	CachePreimagesFlag = cli.BoolTFlag{
+		Name:  "cache.preimages",
+		Usage: "Enable recording the SHA3/keccak preimages of trie keys (default: true)",
+	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
@@ -1115,6 +1119,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
 
+	// Read the value from the flag no matter if it's set or not.
+	cfg.Preimages = ctx.GlobalBool(CachePreimagesFlag.Name)
+	if cfg.NoPruning && !cfg.Preimages {
+		cfg.Preimages = true
+		log.Info("Enabling recording of key preimages since archive mode is used")
+	}
 	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) {
 		cfg.TxLookupLimit = ctx.GlobalUint64(TxLookupLimitFlag.Name)
 	}
@@ -1353,6 +1363,11 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
 		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
+		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
+	}
+	if cache.TrieDirtyDisabled && !cache.Preimages {
+		cache.Preimages = true
+		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieDirtyLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100

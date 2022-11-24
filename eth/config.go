@@ -121,6 +121,7 @@ type Config struct {
 	TrieCache    int
 	TrieTimeout  time.Duration
 	TrieDBCache  int
+	Preimages    bool
 	DBDisabledGC bool
 	DBGCInterval uint64
 	DBGCTimeout  time.Duration
