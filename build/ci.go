@@ -25,7 +25,7 @@ Available commands are:
 	install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
 	test       [ -coverage ] [ packages... ]                                                    -- runs the tests
 	lint                                                                                        -- runs certain pre-selected linters
-	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -upload dest ] -- archives build artifacts
+   	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -signify key-envvar ] [ -upload dest ] -- archives build artifacts
 	importkeys                                                                                  -- imports signing keys from env
 	debsrc     [ -signer key-id ] [ -upload dest ]                                              -- creates a debian source package
 	nsis                                                                                        -- creates a Windows NSIS installer
@@ -413,11 +413,12 @@ func downloadLinter(cachedir string) string {
 // Release Packaging
 func doArchive(cmdline []string) {
 	var (
-		arch   = flag.String("arch", runtime.GOARCH, "Architecture cross packaging")
-		atype  = flag.String("type", "zip", "Type of archive to write (zip|tar)")
-		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
-		upload = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
-		ext    string
+		arch    = flag.String("arch", runtime.GOARCH, "Architecture cross packaging")
+		atype   = flag.String("type", "zip", "Type of archive to write (zip|tar)")
+		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. LINUX_SIGNING_KEY)`)
+		signify = flag.String("signify", "", `Environment variable holding the signify key (e.g. LINUX_SIGNIFY_KEY)`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		ext     string
 	)
 	flag.CommandLine.Parse(cmdline)
 	switch *atype {
@@ -445,7 +446,7 @@ func doArchive(cmdline []string) {
 	}
 
 	for _, archive := range []string{geth, alltools} {
-		if err := archiveUpload(archive, *upload, *signer); err != nil {
+		if err := archiveUpload(archive, *upload, *signer, *signify); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -465,7 +466,7 @@ func archiveBasename(arch string, archiveVersion string) string {
 	return platform + "-" + archiveVersion
 }
 
-func archiveUpload(archive string, blobstore string, signer string) error {
+func archiveUpload(archive string, blobstore string, signer string, signify string) error {
 	// If signing was requested, generate the signature files
 	if signer != "" {
 		pgpkey, err := base64.StdEncoding.DecodeString(os.Getenv(signer))
@@ -473,6 +474,12 @@ func archiveUpload(archive string, blobstore string, signer string) error {
 			return fmt.Errorf("invalid base64 %s", signer)
 		}
 		if err := build.PGPSignFile(archive, archive+".asc", string(pgpkey)); err != nil {
+			return err
+		}
+	}
+	if signify != "" {
+		key := getenvBase64(string(signify))
+		if err := signifyPkg.SignifySignFile(archive, archive+".sig", string(key), "verify with geth.pub", fmt.Sprintf("%d", time.Now().UTC().Unix())); err != nil {
 			return err
 		}
 	}
@@ -488,6 +495,11 @@ func archiveUpload(archive string, blobstore string, signer string) error {
 		}
 		if signer != "" {
 			if err := build.AzureBlobstoreUpload(archive+".asc", filepath.Base(archive+".asc"), auth); err != nil {
+				return err
+			}
+		}
+		if signify != "" {
+			if err := build.AzureBlobstoreUpload(archive+".sig", filepath.Base(archive+".sig"), auth); err != nil {
 				return err
 			}
 		}
@@ -788,6 +800,7 @@ func doWindowsInstaller(cmdline []string) {
 	var (
 		arch    = flag.String("arch", runtime.GOARCH, "Architecture for cross build packaging")
 		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. WINDOWS_SIGNING_KEY)`)
+		signify = flag.String("signify key", "", `Environment variable holding the signify signing key (e.g. WINDOWS_SIGNIFY_KEY)`)
 		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
 		workdir = flag.String("workdir", "", `Output directory for packages (uses temp dir if unset)`)
 	)
@@ -847,7 +860,7 @@ func doWindowsInstaller(cmdline []string) {
 	)
 
 	// Sign and publish installer.
-	if err := archiveUpload(installer, *upload, *signer); err != nil {
+	if err := archiveUpload(installer, *upload, *signer, *signify); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -856,10 +869,11 @@ func doWindowsInstaller(cmdline []string) {
 
 func doAndroidArchive(cmdline []string) {
 	var (
-		local  = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
-		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. ANDROID_SIGNING_KEY)`)
-		deploy = flag.String("deploy", "", `Destination to deploy the archive (usually "https://oss.sonatype.org")`)
-		upload = flag.String("upload", "", `Destination to upload the archive (usually "gethstore/builds")`)
+		local   = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
+		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. ANDROID_SIGNING_KEY)`)
+		signify = flag.String("signify", "", `Environment variable holding the signify signing key (e.g. ANDROID_SIGNIFY_KEY)`)
+		deploy  = flag.String("deploy", "", `Destination to deploy the archive (usually "https://oss.sonatype.org")`)
+		upload  = flag.String("upload", "", `Destination to upload the archive (usually "gethstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -891,7 +905,7 @@ func doAndroidArchive(cmdline []string) {
 	archive := "platon-" + archiveBasename("android", params.ArchiveVersion(env.Commit)) + ".aar"
 	os.Rename("platon.aar", archive)
 
-	if err := archiveUpload(archive, *upload, *signer); err != nil {
+	if err := archiveUpload(archive, *upload, *signer, *signify); err != nil {
 		log.Fatal(err)
 	}
 	// Sign and upload all the artifacts to Maven Central
@@ -990,10 +1004,11 @@ func newMavenMetadata(env build.Environment) mavenMetadata {
 
 func doXCodeFramework(cmdline []string) {
 	var (
-		local  = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
-		signer = flag.String("signer", "", `Environment variable holding the signing key (e.g. IOS_SIGNING_KEY)`)
-		deploy = flag.String("deploy", "", `Destination to deploy the archive (usually "trunk")`)
-		upload = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
+		local   = flag.Bool("local", false, `Flag whether we're only doing a local build (skip Maven artifacts)`)
+		signer  = flag.String("signer", "", `Environment variable holding the signing key (e.g. IOS_SIGNING_KEY)`)
+		signify = flag.String("signify", "", `Environment variable holding the signify signing key (e.g. IOS_SIGNIFY_KEY)`)
+		deploy  = flag.String("deploy", "", `Destination to deploy the archive (usually "trunk")`)
+		upload  = flag.String("upload", "", `Destination to upload the archives (usually "gethstore/builds")`)
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -1021,7 +1036,7 @@ func doXCodeFramework(cmdline []string) {
 	maybeSkipArchive(env)
 
 	// Sign and upload the framework to Azure
-	if err := archiveUpload(archive+".tar.gz", *upload, *signer); err != nil {
+	if err := archiveUpload(archive+".tar.gz", *upload, *signer, *signify); err != nil {
 		log.Fatal(err)
 	}
 	// Prepare and upload a PodSpec to CocoaPods
