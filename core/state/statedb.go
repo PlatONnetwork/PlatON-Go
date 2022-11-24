@@ -152,6 +152,7 @@ func (s *StateDB) NewStateDB() *StateDB {
 		preimages:           make(map[common.Hash][]byte),
 		journal:             newJournal(),
 		parent:              s,
+		accessList:          newAccessList(),
 		clearReferenceFunc:  make([]func(), 0),
 		originRoot:          s.Root(),
 	}
