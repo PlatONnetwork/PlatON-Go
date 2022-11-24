@@ -41,12 +41,6 @@ jobs:
       - name: Test
         run: go test -tags=test -covermode=atomic -coverprofile=coverage.txt  `go list ./...`
 
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v1
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          name: codecov-umbrella
 
       - name: SonarCloud
         uses: SonarSource/sonarcloud-github-action@master
