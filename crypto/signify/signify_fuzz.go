@@ -22,19 +22,18 @@ package signify
 import (
 	"bufio"
 	"fmt"
+	fuzz "github.com/google/gofuzz"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-
-	fuzz "github.com/google/gofuzz"
-	"github.com/jedisct1/go-minisign"
 )
 
 func Fuzz(data []byte) int {
 	if len(data) < 32 {
 		return -1
 	}
-	tmpFile, err := os.CreateTemp("", "")
+	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		panic(err)
 	}
@@ -68,14 +67,14 @@ func Fuzz(data []byte) int {
 		signify = path
 	}
 
-	_, err := exec.LookPath(signify)
+	_, err = exec.LookPath(signify)
 	if err != nil {
 		panic(err)
 	}
 
 	// Write the public key into the file to pass it as
 	// an argument to signify-openbsd
-	pubKeyFile, err := os.CreateTemp("", "")
+	pubKeyFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		panic(err)
 	}
@@ -127,10 +126,7 @@ func getKey(fileS string) (string, error) {
 
 func createKeyPair() (string, string) {
 	// Create key and put it in correct format
-	tmpKey, err := os.CreateTemp("", "")
-	if err != nil {
-		panic(err)
-	}
+	tmpKey, err := ioutil.TempFile("", "")
 	defer os.Remove(tmpKey.Name())
 	defer os.Remove(tmpKey.Name() + ".pub")
 	defer os.Remove(tmpKey.Name() + ".sec")

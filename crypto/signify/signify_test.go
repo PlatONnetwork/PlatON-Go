@@ -20,6 +20,7 @@
 package signify
 
 import (
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
@@ -34,7 +35,7 @@ var (
 )
 
 func TestSignify(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "")
+	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +52,7 @@ func TestSignify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "clé", "croissants")
+	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "clé", "croissants")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestSignify(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "")
+	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +96,7 @@ func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "crois\nsants")
+	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "crois\nsants")
 	if err == nil || err.Error() == "" {
 		t.Fatalf("should have errored on a multi-line trusted comment, got %v", err)
 	}
@@ -103,7 +104,7 @@ func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "")
+	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +121,7 @@ func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "crois\rsants", "")
+	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "crois\rsants", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +129,7 @@ func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentEmpty(t *testing.T) {
-	tmpFile, err := os.CreateTemp("", "")
+	tmpFile, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +146,7 @@ func TestSignifyTrustedCommentEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "")
+	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
