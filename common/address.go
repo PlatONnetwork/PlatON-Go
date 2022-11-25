@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
@@ -150,7 +149,7 @@ func (a Address) Hash() Hash { return BytesToHash(a[:]) }
 
 // Hex returns an EIP55-compliant hex string representation of the address.it's use for node address
 func (a Address) Hex() string {
-	return string(a.checksumHex())
+	return "0x" + a.HexWithNoPrefix()
 }
 
 func (a *Address) checksumHex() []byte {
@@ -223,28 +222,11 @@ func (a Address) Bech32WithHRP(hrp string) string {
 // Format implements fmt.Formatter, forcing the byte slice to be formatted as is,
 // without going through the stringer interface used for logging.
 func (a Address) Format(s fmt.State, c rune) {
-	switch c {
-	case 'v', 's':
-		s.Write(a.checksumHex())
-	case 'q':
-		q := []byte{'"'}
-		s.Write(q)
-		s.Write(a.checksumHex())
-		s.Write(q)
-	case 'x', 'X':
-		// %x disables the checksum.
-		hex := a.hex()
-		if !s.Flag('#') {
-			hex = hex[2:]
-		}
-		if c == 'X' {
-			hex = bytes.ToUpper(hex)
-		}
-		s.Write(hex)
-	case 'd':
-		fmt.Fprint(s, ([len(a)]byte)(a))
+	switch string(c) {
+	case "s":
+		fmt.Fprintf(s, "%"+string(c), a.String())
 	default:
-		fmt.Fprintf(s, "%%!%c(address=%x)", c, a)
+		fmt.Fprintf(s, "%"+string(c), a[:])
 	}
 }
 
