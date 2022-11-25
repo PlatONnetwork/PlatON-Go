@@ -41,11 +41,38 @@ jobs:
       - name: Test
         run: go test -tags=test -covermode=atomic -coverprofile=coverage.txt  `go list ./...`
 
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          name: codecov-umbrella
 
-      - name: SonarCloud
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: Archive code coverage results
+        if: ${{ false && 'github.event.pull_request.head.repo.fork' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: coverage.txt
+
+
+  sonarCloudTrigger:
+    name: SonarCloud Trigger
+    if: ${{ false && 'github.event.pull_request.head.repo.fork' }}
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@master
+      - name: Download code coverage results
+        uses: actions/download-artifact@v3
+        with:
+          name: code-coverage-report
+          path: coverage.txt
+      - name: Analyze with SonarCloud
+        uses: sonarsource/sonarcloud-github-action@master
         with:
           args: -X
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
