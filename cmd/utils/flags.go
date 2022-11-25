@@ -1119,12 +1119,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.DatabaseFreezer = ctx.GlobalString(AncientFlag.Name)
 	}
 
-	// Read the value from the flag no matter if it's set or not.
-	cfg.Preimages = ctx.GlobalBool(CachePreimagesFlag.Name)
-	if cfg.NoPruning && !cfg.Preimages {
-		cfg.Preimages = true
-		log.Info("Enabling recording of key preimages since archive mode is used")
-	}
 	if ctx.GlobalIsSet(TxLookupLimitFlag.Name) {
 		cfg.TxLookupLimit = ctx.GlobalUint64(TxLookupLimitFlag.Name)
 	}
@@ -1181,6 +1175,13 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}
+	}
+
+	// Read the value from the flag no matter if it's set or not.
+	cfg.Preimages = ctx.GlobalBool(CachePreimagesFlag.Name)
+	if cfg.DBDisabledGC && !cfg.Preimages {
+		cfg.Preimages = true
+		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
 
 	// vm options
@@ -1365,7 +1366,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
 	}
-	if !cache.Preimages {
+	if eth.DefaultConfig.DBDisabledGC && !cache.Preimages {
 		cache.Preimages = true
 		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
