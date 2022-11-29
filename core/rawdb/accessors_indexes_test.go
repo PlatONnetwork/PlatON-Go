@@ -62,7 +62,7 @@ func TestLookupStorage(t *testing.T) {
 		{
 			"DatabaseV6",
 			func(db ethdb.Writer, block *types.Block) {
-				WriteTxLookupEntries(db, block)
+				WriteTxLookupEntriesByBlock(db, block)
 			},
 		},
 		{
