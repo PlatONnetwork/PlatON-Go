@@ -203,6 +203,7 @@ type BlockChain struct {
 	// procInterrupt must be atomically called
 	procInterrupt int32          // interrupt signaler for block processing
 	wg            sync.WaitGroup // chain processing wait group for shutting down
+	executeWG     sync.WaitGroup // execute block processing wait group for shutting down
 
 	engine    consensus.Engine
 	processor Processor // block processor interface
@@ -859,6 +860,8 @@ func (bc *BlockChain) Stop() {
 	if !atomic.CompareAndSwapInt32(&bc.running, 0, 1) {
 		return
 	}
+
+	bc.executeWG.Wait()
 	// Unsubscribe all subscriptions registered from blockchain
 	bc.scope.Close()
 	close(bc.quit)
