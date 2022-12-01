@@ -33,6 +33,7 @@ import (
 var DefaultFullGPOConfig = gasprice.Config{
 	Blocks:     20,
 	Percentile: 60,
+	MaxPrice:   gasprice.DefaultMaxPrice,
 }
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
@@ -48,18 +49,20 @@ var DefaultConfig = Config{
 		Period:            20000,
 		Amount:            10,
 	},
-	NetworkId:         1,
-	DatabaseCache:     768,
-	TrieCache:         32,
-	TrieTimeout:       60 * time.Minute,
-	TrieDBCache:       512,
-	DBDisabledGC:      false,
-	DBGCInterval:      86400,
-	DBGCTimeout:       time.Minute,
-	DBGCMpt:           true,
-	DBGCBlock:         10,
-	VMWasmType:        "wagon",
-	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
+	NetworkId:               1,
+	DatabaseCache:           768,
+	TrieCache:               32,
+	TrieTimeout:             60 * time.Minute,
+	TrieDBCache:             512,
+	DBDisabledGC:            false,
+	DBGCInterval:            86400,
+	DBGCTimeout:             time.Minute,
+	DBGCMpt:                 true,
+	DBGCBlock:               10,
+	VMWasmType:              "wagon",
+	VmTimeoutDuration:       0, // default 0 ms for vm exec timeout
+	TrieCleanCacheJournal:   "triecache",
+	TrieCleanCacheRejournal: 60 * time.Minute,
 	Miner: miner.Config{
 		GasFloor: params.GenesisGasLimit,
 		GasPrice: big.NewInt(params.GVon),
@@ -107,10 +110,12 @@ type Config struct {
 	NoPruning bool
 
 	// Database options
-	SkipBcVersionCheck bool `toml:"-"`
-	DatabaseHandles    int  `toml:"-"`
-	DatabaseCache      int
-	DatabaseFreezer    string
+	SkipBcVersionCheck      bool `toml:"-"`
+	DatabaseHandles         int  `toml:"-"`
+	DatabaseCache           int
+	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
+	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
+	DatabaseFreezer         string
 
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 

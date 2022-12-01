@@ -109,6 +109,8 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
+			utils.CacheTrieJournalFlag,
+			utils.CacheTrieRejournalFlag,
 			utils.CacheGCFlag,
 			utils.CacheTrieDBFlag,
 		},
@@ -177,6 +179,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
+			utils.GpoMaxGasPriceFlag,
 		},
 	},
 	{

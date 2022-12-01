@@ -95,7 +95,7 @@ var (
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
-	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
+	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 63)")
 )
 
 type Downloader struct {
@@ -445,7 +445,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 			d.mux.Post(DoneEvent{})
 		}
 	}()
-	if p.version < 62 {
+	if p.version < 63 {
 		return errTooOld
 	}
 	mode := d.getMode()
@@ -1553,7 +1553,13 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
 	sync := d.syncState(latest.Root)
-	defer sync.Cancel()
+	defer func() {
+		// The `sync` object is replaced every time the pivot moves. We need to
+		// defer close the very last active one, hence the lazy evaluation vs.
+		// calling defer sync.Cancel() !!!
+		sync.Cancel()
+	}()
+
 	closeOnErr := func(s *stateSync) {
 		if err := s.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
 			d.queue.Close() // wake up Results
@@ -1598,9 +1604,8 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 			// If new pivot block found, cancel old state retrieval and restart
 			if oldPivot != P {
 				sync.Cancel()
-
 				sync = d.syncState(P.Header.Root)
-				defer sync.Cancel()
+
 				go closeOnErr(sync)
 				oldPivot = P
 			}

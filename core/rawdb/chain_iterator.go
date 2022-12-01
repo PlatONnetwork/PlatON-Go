@@ -226,7 +226,7 @@ func indexTransactions(db ethdb.Database, from uint64, to uint64, interrupt chan
 			// Next block available, pop it off and index it
 			delivery := queue.PopItem().(*blockTxHashes)
 			lastNum = delivery.number
-			WriteTxLookupEntriesByHash(batch, delivery.number, delivery.hashes)
+			WriteTxLookupEntries(batch, delivery.number, delivery.hashes)
 			blocks++
 			txs += len(delivery.hashes)
 			// If enough data was accumulated in memory or we're at the last block, dump to disk
