@@ -197,12 +197,7 @@ func (d *Downloader) runStateSync(s *stateSync) *stateSync {
 			}
 			// Start a timer to notify the sync loop if the peer stalled.
 			req.timer = time.AfterFunc(req.timeout, func() {
-				select {
-				case timeout <- req:
-				case <-s.done:
-					// Prevent leaking of timer goroutines in the unlikely case where a
-					// timer is fired just before exiting runStateSync.
-				}
+				timeout <- req
 			})
 			active[req.peer.id] = req
 		}

@@ -244,7 +244,9 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
 			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache,
-			DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
+			TrieCleanJournal:   stack.ResolvePath(config.TrieCleanCacheJournal),
+			TrieCleanRejournal: config.TrieCleanCacheRejournal,
+			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
 		}
 
