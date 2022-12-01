@@ -62,6 +62,7 @@ instance: PlatONnetwork/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 at block: 0 ({{niltime}})
  datadir: {{.Datadir}}
  modules: {{apis}}
+To exit, press ctrl-d
 
 > {{.InputLine "exit"}}
 `)
@@ -155,6 +156,7 @@ at block: 0 ({{niltime}}){{if ipc}}
  datadir: {{datadir}}{{end}}
  modules: {{apis}}
 
+To exit, press ctrl-d
 > {{.InputLine "exit" }}
 `)
 	attach.ExpectExit()
