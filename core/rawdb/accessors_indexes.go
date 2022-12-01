@@ -82,6 +82,13 @@ func DeleteTxLookupEntry(db ethdb.KeyValueWriter, hash common.Hash) {
 }
 
 // DeleteTxLookupEntries removes all transaction lookups for a given block.
+func DeleteTxLookupEntries(db ethdb.KeyValueWriter, hashes []common.Hash) {
+	for _, hash := range hashes {
+		DeleteTxLookupEntry(db, hash)
+	}
+}
+
+// DeleteTxLookupEntries removes all transaction lookups for a given block.
 func DeleteTxLookupEntriesByHash(db ethdb.KeyValueWriter, hashes []common.Hash) {
 	for _, hash := range hashes {
 		if err := db.Delete(txLookupKey(hash)); err != nil {
