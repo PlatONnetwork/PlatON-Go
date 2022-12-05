@@ -51,7 +51,7 @@ func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byt
 func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string, fncode int, errCode *common.BizError) ([]byte, error) {
 	event := strconv.Itoa(fncode)
 	receipt := strconv.Itoa(int(errCode.Code))
-	blockNumber := evm.BlockNumber.Uint64()
+	blockNumber := evm.Context.BlockNumber.Uint64()
 	if errCode.Code != 0 {
 		txHash := evm.StateDB.TxHash()
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
@@ -67,7 +67,7 @@ func txResultHandler(contractAddr common.Address, evm *EVM, title, reason string
 func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason string, fncode, errCode int, res ...interface{}) []byte {
 	event := strconv.Itoa(fncode)
 	receipt := strconv.Itoa(errCode)
-	blockNumber := evm.BlockNumber.Uint64()
+	blockNumber := evm.Context.BlockNumber.Uint64()
 	if errCode != 0 {
 		txHash := evm.StateDB.TxHash()
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),
@@ -79,7 +79,7 @@ func txResultHandlerWithRes(contractAddr common.Address, evm *EVM, title, reason
 
 func callResultHandler(evm *EVM, title string, resultValue interface{}, err *common.BizError) []byte {
 	txHash := evm.StateDB.TxHash()
-	blockNumber := evm.BlockNumber.Uint64()
+	blockNumber := evm.Context.BlockNumber.Uint64()
 
 	if nil != err {
 		log.Error("Failed to "+title, "txHash", txHash.Hex(),

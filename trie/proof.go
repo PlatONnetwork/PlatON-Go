@@ -171,7 +171,7 @@ func proofToPath(rootHash common.Hash, root node, key []byte, proofDb ethdb.KeyV
 		keyrest, child = get(parent, key, false)
 		switch cld := child.(type) {
 		case nil:
-			/// The trie doesn't contain the key. It's possible
+			// The trie doesn't contain the key. It's possible
 			// the proof is a non-existing proof, but at least
 			// we can prove all resolved nodes are correct, it's
 			// enough for us to prove range.

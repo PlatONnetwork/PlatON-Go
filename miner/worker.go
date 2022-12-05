@@ -18,6 +18,7 @@ package miner
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
@@ -877,33 +878,33 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 		logs, err := w.commitTransaction(tx)
 
-		switch err {
-		case core.ErrGasLimitReached:
+		switch {
+		case errors.Is(err, core.ErrGasLimitReached):
 			// Pop the current out-of-gas transaction without shifting in the next from the account
 			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 			txs.Pop()
 
-		case core.ErrNonceTooLow:
+		case errors.Is(err, core.ErrNonceTooLow):
 			// New head notification data race between the transaction pool and miner, shift
 			log.Warn("Skipping transaction with low nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Shift()
 
-		case core.ErrNonceTooHigh:
+		case errors.Is(err, core.ErrNonceTooHigh):
 			// Reorg notification data race between the transaction pool and miner, skip account =
 			log.Warn("Skipping account with high nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Pop()
 
-		case nil:
+		case errors.Is(err, nil):
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
 			w.current.tcount++
 			txs.Shift()
 
-		case vm.ErrAbort:
+		case errors.Is(err, vm.ErrAbort):
 			log.Warn("Skipping account with exec timeout tx", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 			txs.Pop()
 
-		case vm.ErrWASMUndefinedPanic:
+		case errors.Is(err, vm.ErrWASMUndefinedPanic):
 			log.Warn("Skipping account with wasm vm exec undefined err", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 			txs.Pop()
 
