@@ -17,6 +17,7 @@
 package keystore
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
@@ -103,6 +104,16 @@ func (w *keystoreWallet) SignTx(account accounts.Account, tx *types.Transaction,
 	}
 	// Account seems valid, request the keystore to sign
 	return w.keystore.SignTx(account, tx, chainID)
+}
+
+// SignDataWithPassphrase signs keccak256(data). The mimetype parameter describes the type of data being signed.
+func (w *keystoreWallet) SignDataWithPassphrase(account accounts.Account, passphrase, mimeType string, data []byte) ([]byte, error) {
+	// Make sure the requested account is contained within
+	if !w.Contains(account) {
+		return nil, accounts.ErrUnknownAccount
+	}
+	// Account seems valid, request the keystore to sign
+	return w.keystore.SignHashWithPassphrase(account, passphrase, crypto.Keccak256(data))
 }
 
 // SignHashWithPassphrase implements accounts.Wallet, attempting to sign the

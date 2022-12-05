@@ -31,7 +31,7 @@ import (
 )
 
 var (
-	BigNumberJs = deps.MustAsset("bignumber.js")
+	BigNumber_JS = deps.MustAsset("bignumber.js")
 )
 
 // consoleOutput is an override for the console.log and console.error methods to
@@ -48,31 +48,22 @@ func consoleOutput(call goja.FunctionCall) goja.Value {
 // rulesetUI provides an implementation of UIClientAPI that evaluates a javascript
 // file for each defined UI-method
 type rulesetUI struct {
-	next        core.SignerUI // The next handler, for manual processing
-	storage     storage.Storage
-	credentials storage.Storage
-	jsRules     string // The rules to use
+	next    core.UIClientAPI // The next handler, for manual processing
+	storage storage.Storage
+	jsRules string // The rules to use
 }
 
-func (r *rulesetUI) ApproveExport(request *core.ExportRequest) (core.ExportResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *rulesetUI) ApproveImport(request *core.ImportRequest) (core.ImportResponse, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func NewRuleEvaluator(next core.SignerUI, jsbackend, credentialsBackend storage.Storage) (*rulesetUI, error) {
+func NewRuleEvaluator(next core.UIClientAPI, jsbackend storage.Storage) (*rulesetUI, error) {
 	c := &rulesetUI{
-		next:        next,
-		storage:     jsbackend,
-		credentials: credentialsBackend,
-		jsRules:     "",
+		next:    next,
+		storage: jsbackend,
+		jsRules: "",
 	}
 
 	return c, nil
+}
+func (r *rulesetUI) RegisterUIServer(api *core.UIServerAPI) {
+	// TODO, make it possible to query from js
 }
 
 func (r *rulesetUI) Init(javascriptRules string) error {
@@ -108,7 +99,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	vm.Set("storage", storageObj)
 
 	// Load bootstrap libraries
-	script, err := goja.Compile("bignumber.js", string(BigNumberJs), true)
+	script, err := goja.Compile("bignumber.js", string(BigNumber_JS), true)
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
 		return goja.Undefined(), err
@@ -193,9 +184,9 @@ func (r *rulesetUI) ApproveSignData(request *core.SignDataRequest) (core.SignDat
 }
 
 // OnInputRequired not handled by rules
-/*func (r *rulesetUI) OnInputRequired(info core.UserInputRequest) (core.UserInputResponse, error) {
+func (r *rulesetUI) OnInputRequired(info core.UserInputRequest) (core.UserInputResponse, error) {
 	return r.next.OnInputRequired(info)
-}*/
+}
 
 func (r *rulesetUI) ApproveListing(request *core.ListRequest) (core.ListResponse, error) {
 	jsonreq, err := json.Marshal(request)

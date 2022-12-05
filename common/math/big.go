@@ -47,6 +47,13 @@ const (
 // HexOrDecimal256 marshals big.Int as hex or decimal.
 type HexOrDecimal256 big.Int
 
+// NewHexOrDecimal256 creates a new HexOrDecimal256
+func NewHexOrDecimal256(x int64) *HexOrDecimal256 {
+	b := big.NewInt(x)
+	h := HexOrDecimal256(*b)
+	return &h
+}
+
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (i *HexOrDecimal256) UnmarshalText(input []byte) error {
 	bigint, ok := ParseBig256(string(input))
@@ -63,6 +70,40 @@ func (i *HexOrDecimal256) MarshalText() ([]byte, error) {
 		return []byte("0x0"), nil
 	}
 	return []byte(fmt.Sprintf("%#x", (*big.Int)(i))), nil
+}
+
+// Decimal256 unmarshals big.Int as a decimal string. When unmarshalling,
+// it however accepts either "0x"-prefixed (hex encoded) or non-prefixed (decimal)
+type Decimal256 big.Int
+
+// NewHexOrDecimal256 creates a new Decimal256
+func NewDecimal256(x int64) *Decimal256 {
+	b := big.NewInt(x)
+	d := Decimal256(*b)
+	return &d
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (i *Decimal256) UnmarshalText(input []byte) error {
+	bigint, ok := ParseBig256(string(input))
+	if !ok {
+		return fmt.Errorf("invalid hex or decimal integer %q", input)
+	}
+	*i = Decimal256(*bigint)
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (i *Decimal256) MarshalText() ([]byte, error) {
+	return []byte(i.String()), nil
+}
+
+// String implements Stringer.
+func (i *Decimal256) String() string {
+	if i == nil {
+		return "0"
+	}
+	return fmt.Sprintf("%#d", (*big.Int)(i))
 }
 
 // ParseBig256 parses s as a 256 bit integer in decimal or hexadecimal syntax.
@@ -191,10 +232,10 @@ func U256Bytes(n *big.Int) []byte {
 // S256 interprets x as a two's complement number.
 // x must not exceed 256 bits (the result is undefined if it does) and is not modified.
 //
-//   S256(0)        = 0
-//   S256(1)        = 1
-//   S256(2**255)   = -2**255
-//   S256(2**256-1) = -1
+//	S256(0)        = 0
+//	S256(1)        = 1
+//	S256(2**255)   = -2**255
+//	S256(2**256-1) = -1
 func S256(x *big.Int) *big.Int {
 	if x.Cmp(tt255) < 0 {
 		return x

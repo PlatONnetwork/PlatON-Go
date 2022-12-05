@@ -81,15 +81,22 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningCon
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
 	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
-	defer events.Unsubscribe()
+	defer func() {
+		if !events.Closed() {
+			events.Unsubscribe()
+		}
+	}()
 
 	shouldStart := false
 	canStart := true
+	dlEventCh := events.Chan()
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev := <-dlEventCh:
 			if ev == nil {
-				return
+				// Unsubscription done, stop listening
+				dlEventCh = nil
+				continue
 			}
 			switch ev.Data.(type) {
 			case downloader.StartEvent:
@@ -104,7 +111,7 @@ func (miner *Miner) update() {
 					shouldStart = true
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
+			case downloader.FailedEvent:
 				canStart = true
 				if shouldStart {
 					miner.worker.start()
@@ -112,9 +119,16 @@ func (miner *Miner) update() {
 						bft.Resume()
 					}
 				}
-
-				// stop immediately and ignore all further pending events
-				return
+			case downloader.DoneEvent:
+				canStart = true
+				if shouldStart {
+					miner.worker.start()
+					if bft, ok := miner.engine.(consensus.Bft); ok {
+						bft.Resume()
+					}
+				}
+				// Stop reacting to downloader events
+				events.Unsubscribe()
 			}
 		case <-miner.startCh:
 			if canStart {
