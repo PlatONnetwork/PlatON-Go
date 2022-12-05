@@ -18,7 +18,7 @@ func TestWasmRun(t *testing.T) {
 
 	// good deploy
 	engine := &wagonEngine{
-		evm: &EVM{Context: Context{
+		evm: &EVM{Context: BlockContext{
 			CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 				return db.GetBalance(addr).Cmp(amount) >= 0
 			},
@@ -84,7 +84,7 @@ func TestWasmRun(t *testing.T) {
 
 	// bad deploy for validate funcName
 	badEngine := &wagonEngine{
-		evm: &EVM{Context: Context{
+		evm: &EVM{Context: BlockContext{
 			CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 				return db.GetBalance(addr).Cmp(amount) >= 0
 			},
@@ -120,7 +120,7 @@ func TestWasmRun(t *testing.T) {
 
 	// bad deploy for bad rlp
 	badEngine2 := &wagonEngine{
-		evm: &EVM{Context: Context{
+		evm: &EVM{Context: BlockContext{
 			CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 				return db.GetBalance(addr).Cmp(amount) >= 0
 			},
@@ -156,7 +156,7 @@ func TestWasmRun(t *testing.T) {
 
 	// bad deploy for bad code
 	badEngine3 := &wagonEngine{
-		evm: &EVM{Context: Context{
+		evm: &EVM{Context: BlockContext{
 			CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 				return db.GetBalance(addr).Cmp(amount) >= 0
 			},

@@ -87,6 +87,7 @@ type CacheConfig struct {
 	TrieCleanRejournal time.Duration // Time interval to dump clean cache to disk periodically
 	TrieDirtyLimit     int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit      time.Duration // Time limit after which to flush the current in-memory trie to disk
+	Preimages          bool          // Whether to store preimage of trie key to the disk
 
 	BodyCacheLimit  int
 	BlockCacheLimit int
@@ -248,11 +249,15 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(cacheConfig.BadBlockLimit)
 
 	bc := &BlockChain{
-		chainConfig:    chainConfig,
-		cacheConfig:    cacheConfig,
-		db:             db,
-		triegc:         prque.New(nil),
-		stateCache:     state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit, cacheConfig.TrieCleanJournal),
+		chainConfig: chainConfig,
+		cacheConfig: cacheConfig,
+		db:          db,
+		triegc:      prque.New(nil),
+		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
+			Cache:     cacheConfig.TrieCleanLimit,
+			Journal:   cacheConfig.TrieCleanJournal,
+			Preimages: cacheConfig.Preimages,
+		}),
 		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
 		bodyCache:      bodyCache,

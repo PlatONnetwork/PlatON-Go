@@ -441,7 +441,7 @@ func TestRunPlatONPrecompiledContract(t *testing.T) {
 	restricting := &RestrictingContract{
 		Plugin: plugin.RestrictingInstance(),
 		Evm: &EVM{
-			Context: Context{Coinbase: vm.StakingContractAddr},
+			Context: BlockContext{Coinbase: vm.StakingContractAddr},
 			StateDB: &mock.MockStateDB{
 				Journal: mock.NewJournal(),
 				Balance: map[common.Address]*big.Int{common.Address{1}: big.NewInt(99)}},

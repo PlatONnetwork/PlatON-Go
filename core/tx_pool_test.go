@@ -235,7 +235,7 @@ func TestInvalidTransactions(t *testing.T) {
 	from, _ := deriveSender(tx, pool.chainconfig.ChainID)
 
 	pool.currentState.AddBalance(from, big.NewInt(1))
-	if err := pool.AddRemote(tx); err != ErrInsufficientFunds {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrInsufficientFunds) {
 		t.Error("expected", err)
 	}
 
@@ -250,13 +250,13 @@ func TestInvalidTransactions(t *testing.T) {
 	pool.currentState.SetNonce(from, 2)
 	pool.currentState.AddBalance(from, big.NewInt(0xffffffffffffff))
 	tx = transaction(1, 100000, key, pool.chainconfig.ChainID)
-	if err := pool.AddRemote(tx); err != ErrNonceTooLow {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrNonceTooLow) {
 		t.Error("expected", ErrNonceTooLow)
 	}
 
 	tx = transaction(2, 100000, key, pool.chainconfig.ChainID)
 	pool.gasPrice = big.NewInt(1000)
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
 		t.Error("expected", ErrUnderpriced, "got", err)
 	}
 	if err := pool.AddLocal(tx); err == nil {
