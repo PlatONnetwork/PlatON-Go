@@ -1215,9 +1215,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			// range. In this case, all tx indices of newly imported blocks should be
 			// generated.
 			if bc.txLookupLimit == 0 || ancientLimit <= bc.txLookupLimit || block.NumberU64() >= ancientLimit-bc.txLookupLimit {
-				rawdb.WriteTxLookupEntries(batch, block)
+				rawdb.WriteTxLookupEntriesByBlock(batch, block)
 			} else if rawdb.ReadTxIndexTail(bc.db) != nil {
-				rawdb.WriteTxLookupEntries(batch, block)
+				rawdb.WriteTxLookupEntriesByBlock(batch, block)
 			}
 			stats.processed++
 		}
@@ -1303,7 +1303,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			if receiptChain != nil {
 				rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receiptChain[i])
 			}
-			rawdb.WriteTxLookupEntries(batch, block) // Always write tx indices for live blocks, we assume they are needed
+			rawdb.WriteTxLookupEntriesByBlock(batch, block) // Always write tx indices for live blocks, we assume they are needed
 
 			stats.processed++
 			if batch.ValueSize() >= ethdb.IdealBatchSize {
@@ -1536,7 +1536,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			}
 		}
 		// Write the positional metadata for transaction/receipt lookups and preimages
-		rawdb.WriteTxLookupEntries(batch, block)
+		rawdb.WriteTxLookupEntriesByBlock(batch, block)
 		rawdb.WritePreimages(batch, state.Preimages())
 
 		status = CanonStatTy
@@ -1545,7 +1545,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	}
 
 	// Write the positional metadata for transaction/receipt lookups and preimages
-	rawdb.WriteTxLookupEntries(batch, block)
+	rawdb.WriteTxLookupEntriesByBlock(batch, block)
 	rawdb.WritePreimages(batch, state.Preimages())
 
 	status = CanonStatTy
@@ -1882,7 +1882,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		collectLogs(newChain[i].Hash(), false)
 
 		// Write lookup entries for hash based transaction/receipt searches
-		rawdb.WriteTxLookupEntries(bc.db, newChain[i])
+		rawdb.WriteTxLookupEntriesByBlock(bc.db, newChain[i])
 		addedTxs = append(addedTxs, newChain[i].Transactions()...)
 	}
 	// When transactions get deleted from the database, the receipts that were

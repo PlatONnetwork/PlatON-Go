@@ -13,7 +13,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
-	github.com/dop251/goja v0.0.0-20200219165308-d1232e640a87
+	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fatih/color v1.3.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
