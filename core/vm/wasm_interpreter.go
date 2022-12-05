@@ -32,7 +32,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 	return &WASMInterpreter{
 		evm:      evm,
 		cfg:      cfg,
-		gasTable: evm.ChainConfig().GasTable(evm.BlockNumber),
+		gasTable: evm.ChainConfig().GasTable(evm.Context.BlockNumber),
 	}
 }
 

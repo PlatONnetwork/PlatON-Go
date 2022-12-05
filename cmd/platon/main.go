@@ -90,6 +90,7 @@ var (
 		utils.CacheTrieRejournalFlag,
 		utils.CacheGCFlag,
 		utils.CacheTrieDBFlag,
+		utils.CachePreimagesFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
