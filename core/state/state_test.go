@@ -51,7 +51,10 @@ func newStateTest() *stateTest {
 }
 
 func TestDump(t *testing.T) {
-	s := newStateTest()
+	db := rawdb.NewMemoryDatabase()
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil))
+	s := &stateTest{db: db, state: sdb}
+
 	// generate a few entries
 	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))

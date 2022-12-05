@@ -1022,13 +1022,13 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	if seedNum > vrfMaxNumWords {
 		return nil, errVrfNumWords
 	}
-	currentBlockNum := v.Evm.BlockNumber.Uint64()
+	currentBlockNum := v.Evm.Context.BlockNumber.Uint64()
 
 	if currentBlockNum < uint64(seedNum) {
 		return nil, errVrfNonceNotEnough
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)
-	currentNonces := vrf2.ProofToHash(v.Evm.Nonce.Bytes())
+	currentNonces := vrf2.ProofToHash(v.Evm.Context.Nonce.Bytes())
 
 	txHash := v.Evm.StateDB.TxHash()
 	for i := 0; i < common.HashLength; i++ {
@@ -1039,14 +1039,14 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	}
 
 	vrf := handler.GetVrfHandlerInstance()
-	nonceInVrf, err := vrf.Load(v.Evm.ParentHash)
+	nonceInVrf, err := vrf.Load(v.Evm.Context.ParentHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// cache nonce
 	if seedNum > uint64(len(nonceInVrf)) {
-		if v.Evm.GetNonce(currentBlockNum-seedNum) == nil {
+		if v.Evm.Context.GetNonce(currentBlockNum-seedNum) == nil {
 			return nil, fmt.Errorf("run vrf contract fail, can't get nonce from db,num %v", currentBlockNum-seedNum)
 		}
 	}
@@ -1055,7 +1055,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	for i := 1; i < int(seedNum); i++ {
 		// 优先从VrfHandler中获取nonce, 当获取不到则从区块中拿
 		if i+1 > len(nonceInVrf) {
-			preNonce = vrf2.ProofToHash(v.Evm.GetNonce(currentBlockNum - uint64(i) - 1))
+			preNonce = vrf2.ProofToHash(v.Evm.Context.GetNonce(currentBlockNum - uint64(i) - 1))
 		} else {
 			preNonce = nonceInVrf[len(nonceInVrf)-i-1]
 		}

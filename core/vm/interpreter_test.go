@@ -27,7 +27,7 @@ func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func TestRun(t *testing.T) {
 	var (
-		env            = NewEVM(Context{Ctx: context.TODO()}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
+		env            = NewEVM(BlockContext{Ctx: context.TODO()}, TxContext{}, nil, &mock.MockStateDB{}, params.TestChainConfig, Config{})
 		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
 	)
 	contract := NewContract(account{}, account{}, big.NewInt(0), 1)

@@ -1428,7 +1428,7 @@ func newStakingContact(add common.Address, blockHash common.Hash, blockNum *big.
 	contact.Contract.CallerAddress = add
 	contact.Evm = &EVM{
 		StateDB: statedb,
-		Context: Context{
+		Context: BlockContext{
 			BlockNumber: blockNum,
 			BlockHash:   blockHash,
 		},

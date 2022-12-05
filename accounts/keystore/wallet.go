@@ -57,7 +57,7 @@ func (w *keystoreWallet) Open(passphrase string) error { return nil }
 func (w *keystoreWallet) Close() error { return nil }
 
 // Accounts implements accounts.Wallet, returning an account list consisting of
-// a single account that the plain kestore wallet contains.
+// a single account that the plain keystore wallet contains.
 func (w *keystoreWallet) Accounts() []accounts.Account {
 	return []accounts.Account{w.account}
 }

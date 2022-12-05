@@ -73,8 +73,8 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	//sender := rc.Contract.Caller()
 	from := rc.Contract.CallerAddress
 	txHash := rc.Evm.StateDB.TxHash()
-	blockNum := rc.Evm.BlockNumber
-	blockHash := rc.Evm.BlockHash
+	blockNum := rc.Evm.Context.BlockNumber
+	blockHash := rc.Evm.Context.BlockHash
 	state := rc.Evm.StateDB
 
 	log.Debug("Call createRestrictingPlan of RestrictingContract", "blockNumber", blockNum.Uint64(),

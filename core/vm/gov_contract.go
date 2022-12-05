@@ -116,8 +116,8 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 
 func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitText of GovContract",
@@ -152,8 +152,8 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, newVersion uint32, endVotingRounds uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitVersion of GovContract",
@@ -194,8 +194,8 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitCancel of GovContract",
@@ -234,8 +234,8 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 
 func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, module, name, newValue string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call submitParam of GovContract",
@@ -276,8 +276,8 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 
 	log.Debug("call vote of GovContract",
@@ -312,8 +312,8 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 
 func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call declareVersion of GovContract",
 		"from", from,
@@ -338,7 +338,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion
 
 func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getProposal of GovContract",
@@ -354,7 +354,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getTallyResult of GovContract",
@@ -373,7 +373,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 
 func (gc *GovContract) listProposal() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listProposal of GovContract",
@@ -381,14 +381,14 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	proposalList, err := gov.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
+	proposalList, err := gov.ListProposal(gc.Evm.Context.BlockHash, gc.Evm.StateDB)
 
 	return gc.callHandler("listProposal", proposalList, err)
 }
 
 func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getActiveVersion of GovContract",
@@ -403,7 +403,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 
 func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	//blockHash := gc.Evm.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getAccuVerifiesCount of GovContract",
@@ -437,8 +437,8 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 // getGovernParamValue returns the govern parameter's value in current block.
 func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call getGovernParamValue of GovContract",
 		"from", from,
@@ -455,8 +455,8 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 // listGovernParam returns the module's govern parameters; if module is empty, return all govern parameters
 func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	blockNumber := gc.Evm.BlockNumber.Uint64()
-	blockHash := gc.Evm.BlockHash
+	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
+	blockHash := gc.Evm.Context.BlockHash
 	txHash := gc.Evm.StateDB.TxHash()
 	log.Debug("call listGovernParam of GovContract",
 		"from", from,
@@ -475,7 +475,7 @@ func (gc *GovContract) nonCallHandler(funcName string, fcode uint16, err error) 
 			return txResultHandler(vm.GovContractAddr, gc.Evm, funcName+" of GovContract",
 				bizErr.Error(), int(fcode), bizErr)
 		} else {
-			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),
+			log.Error("Execute GovContract failed.(System error)", "method", funcName, "blockNumber", gc.Evm.Context.BlockNumber.Uint64(),
 				"txHash", gc.Evm.StateDB.TxHash(), "err", err)
 			return nil, err
 		}

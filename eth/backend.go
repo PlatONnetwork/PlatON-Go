@@ -243,7 +243,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache,
+			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache, Preimages: config.Preimages,
 			TrieCleanJournal:   stack.ResolvePath(config.TrieCleanCacheJournal),
 			TrieCleanRejournal: config.TrieCleanCacheRejournal,
 			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
