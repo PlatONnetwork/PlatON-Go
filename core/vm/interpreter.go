@@ -39,6 +39,8 @@ type Config struct {
 	// may be left uninitialised and will be set to the default table.
 	JumpTable [256]*operation
 
+	ExtraEips []int // Additional EIPS that are to be enabled
+
 	ConsoleOutput bool
 
 	// The actual implementation type of the wasm instance
