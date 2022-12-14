@@ -53,6 +53,7 @@ var DefaultConfig = Config{
 	DatabaseCache:           768,
 	TrieCache:               32,
 	TrieTimeout:             60 * time.Minute,
+	SnapshotCache:           256,
 	TrieDBCache:             512,
 	DBDisabledGC:            false,
 	DBGCInterval:            86400,
@@ -119,15 +120,16 @@ type Config struct {
 
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 
-	TrieCache    int
-	TrieTimeout  time.Duration
-	TrieDBCache  int
-	Preimages    bool
-	DBDisabledGC bool
-	DBGCInterval uint64
-	DBGCTimeout  time.Duration
-	DBGCMpt      bool
-	DBGCBlock    int
+	TrieCache     int
+	TrieTimeout   time.Duration
+	SnapshotCache int
+	TrieDBCache   int
+	Preimages     bool
+	DBDisabledGC  bool
+	DBGCInterval  uint64
+	DBGCTimeout   time.Duration
+	DBGCMpt       bool
+	DBGCBlock     int
 
 	// VM options
 	VMWasmType        string

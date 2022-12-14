@@ -157,7 +157,7 @@ func initTx(fromAccountList []*account, contractAccountList []*account) types.Tr
 
 func initChain(fromAccountList []*account, toAccountList []*account, contractAccountList []*account) (*BlockChain, *state2.StateDB, *types.Header) {
 	db := rawdb.NewMemoryDatabase()
-	stateDb, _ := state2.New(common.Hash{}, state2.NewDatabase(db))
+	stateDb, _ := state2.New(common.Hash{}, state2.NewDatabase(db), nil)
 
 	nodePriKey := crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
 	nodeID := crypto.PubkeyToAddress(nodePriKey.PublicKey)
