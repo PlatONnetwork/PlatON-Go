@@ -659,7 +659,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block == nil {
 			break
 		}
-		if statedb, err = state.New(block.Root(), database); err == nil {
+		if statedb, err = state.New(block.Root(), database, nil); err == nil {
 			break
 		}
 	}
