@@ -390,9 +390,6 @@ func (s *stateObject) updateTrie(db Database) Trie {
 	if len(s.pendingStorage) == 0 {
 		return s.trie
 	}
-
-	// Insert all the pending updates into the trie
-	tr := s.getTrie(db)
 	// Track the amount of time wasted on updating the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
@@ -407,8 +404,9 @@ func (s *stateObject) updateTrie(db Database) Trie {
 			s.db.snapStorage[s.addrHash] = storage
 		}
 	}
+	// Insert all the pending updates into the trie
+	tr := s.getTrie(db)
 	for key, value := range s.pendingStorage {
-
 		// Skip noop changes, persist actual changes
 		oldValue := s.originStorage[key]
 		if bytes.Equal(value, oldValue) {
