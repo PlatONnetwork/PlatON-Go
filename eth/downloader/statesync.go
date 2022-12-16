@@ -350,7 +350,6 @@ func (s *stateSync) loop() (err error) {
 			return errCanceled
 
 		case req := <-s.deliver:
-			deliveryTime := time.Now()
 			// Response, disconnect or timeout triggered, drop the peer if stalling
 			log.Trace("Received node data response", "peer", req.peer.id, "count", len(req.response), "dropped", req.dropped, "timeout", !req.dropped && req.timedOut())
 			if req.nItems <= 2 && !req.dropped && req.timedOut() {

@@ -221,7 +221,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, stateBloom *trie.Sync
 		stateDB:          stateDb,
 		stateBloom:       stateBloom,
 		mux:              mux,
-		queue:            newQueue(blockCacheItems, decodeExtra),
+		queue:            newQueue(blockCacheMaxItems, blockCacheInitialItems, decodeExtra),
 		peers:            newPeerSet(),
 		rttEstimate:      uint64(rttMaxEstimate),
 		rttConfidence:    uint64(1000000),
@@ -385,7 +385,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 		d.stateBloom.Close()
 	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
-	d.queue.Reset(blockCacheItems)
+	d.queue.Reset(blockCacheMaxItems, blockCacheInitialItems)
 	d.peers.Reset()
 
 	for _, ch := range []chan bool{d.bodyWakeCh, d.receiptWakeCh} {

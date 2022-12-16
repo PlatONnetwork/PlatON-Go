@@ -49,7 +49,6 @@ func init() {
 	rand.Seed(time.Now().Unix())
 	maxForkAncestry = 10000
 	fsHeaderContCheck = 500 * time.Millisecond
-	//	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(5), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 // downloadTester is a test simulator for mocking out local block chain.
@@ -709,8 +708,8 @@ func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 			}
 			tester.lock.Unlock()
 
-			if cached == blockCacheItems ||
-				cached == blockCacheItems-reorgProtHeaderDelay ||
+			if cached == blockCacheMaxItems ||
+				cached == blockCacheMaxItems-reorgProtHeaderDelay ||
 				retrieved+cached+frozen == targetBlocks+1 ||
 				retrieved+cached+frozen == targetBlocks+1-reorgProtHeaderDelay {
 				break
@@ -721,8 +720,8 @@ func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 		tester.lock.RLock()
 		retrieved = len(tester.ownBlocks)
 		tester.lock.RUnlock()
-		if cached != blockCacheItems && cached != blockCacheItems-reorgProtHeaderDelay && retrieved+cached+frozen != targetBlocks+1 && retrieved+cached+frozen != targetBlocks+1-reorgProtHeaderDelay {
-			t.Fatalf("block count mismatch: have %v, want %v (owned %v, blocked %v, target %v)", cached, blockCacheItems, retrieved, frozen, targetBlocks+1)
+		if cached != blockCacheMaxItems && cached != blockCacheMaxItems-reorgProtHeaderDelay && retrieved+cached+frozen != targetBlocks+1 && retrieved+cached+frozen != targetBlocks+1-reorgProtHeaderDelay {
+			t.Fatalf("block count mismatch: have %v, want %v (owned %v, blocked %v, target %v)", cached, blockCacheMaxItems, retrieved, frozen, targetBlocks+1)
 		}
 
 		// Permit the blocked blocks to import
@@ -1012,7 +1011,7 @@ func testEmptyShortCircuit(t *testing.T, protocol int, mode SyncMode) {
 	defer tester.terminate()
 
 	// Create a block chain to download
-	targetBlocks := 2*blockCacheItems - 15
+	targetBlocks := 2*blockCacheMaxItems - 15
 	chain := testChainBase.shorten(targetBlocks)
 	brokenChain := chain.shorten(chain.len())
 
@@ -1119,7 +1118,7 @@ func testShiftedHeaderAttack(t *testing.T, protocol int, mode SyncMode) {
 	if err := tester.sync("valid", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, chain.len(), int64(blockCacheItems-15))
+	assertOwnChain(t, tester, chain.len(), int64(blockCacheMaxItems-15))
 }
 
 // Tests that upon detecting an invalid header, the recent ones are rolled back
@@ -1456,12 +1455,10 @@ func checkProgress(t *testing.T, d *Downloader, stage string, want ethereum.Sync
 // Tests that if synchronisation is aborted due to some failure, then the progress
 // origin is not updated in the next sync cycle, as it should be considered the
 // continuation of the previous sync and not a new instance.
-func TestFailedSyncProgress63(t *testing.T)      { testFailedSyncProgress(t, 63, FullSync) }
-func TestFailedSyncProgress63Full(t *testing.T)  { testFailedSyncProgress(t, 63, FullSync) }
-func TestFailedSyncProgress63Fast(t *testing.T)  { testFailedSyncProgress(t, 63, FastSync) }
-func TestFailedSyncProgress64Full(t *testing.T)  { testFailedSyncProgress(t, 64, FullSync) }
-func TestFailedSyncProgress64Fast(t *testing.T)  { testFailedSyncProgress(t, 64, FastSync) }
-func TestFailedSyncProgress64Light(t *testing.T) { testFailedSyncProgress(t, 64, LightSync) }
+func TestFailedSyncProgress63Full(t *testing.T) { testFailedSyncProgress(t, 63, FullSync) }
+func TestFailedSyncProgress63Fast(t *testing.T) { testFailedSyncProgress(t, 63, FastSync) }
+func TestFailedSyncProgress64Full(t *testing.T) { testFailedSyncProgress(t, 64, FullSync) }
+func TestFailedSyncProgress64Fast(t *testing.T) { testFailedSyncProgress(t, 64, FastSync) }
 
 func testFailedSyncProgress(t *testing.T, protocol int, mode SyncMode) {
 	t.Parallel()
