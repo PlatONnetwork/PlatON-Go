@@ -48,6 +48,7 @@ func (pcc *TestPrecompiledContractCheck) IsPlatONPrecompiledContract(address com
 
 // Tests that the node iterator indeed walks over the entire database contents.
 func TestNodeIteratorCoverage(t *testing.T) {
+	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 	// Create some arbitrary test state to iterate
 	db, root, _ := makeTestState()
 	db.TrieDB().Commit(root, false, true)

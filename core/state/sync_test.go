@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -163,6 +164,7 @@ func TestIterativeStateSyncBatchedByPath(t *testing.T) {
 }
 
 func testIterativeStateSync(t *testing.T, count int, commit bool, bypath bool) {
+	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 	// Create a random state to copy
 	srcDb, srcRoot, srcAccounts := makeTestState()
 	if commit {
