@@ -897,7 +897,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	// Verifies block
 	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
 	if err != nil {
-		cbft.log.Error("Decode block extra date fail", "number", block.Number(), "hash", block.Hash())
+		cbft.log.Error("Decode block extra date fail", "number", block.Number(), "hash", block.Hash(), "err", err.Error())
 		return errors.New("failed to decode block extra data")
 	}
 
