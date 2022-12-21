@@ -23,6 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.
@@ -95,18 +96,21 @@ func TestEmptySync(t *testing.T) {
 	emptyB, _ := New(emptyRoot, dbB)
 
 	for i, trie := range []*Trie{emptyA, emptyB} {
-		if req := NewSync(trie.Hash(), memorydb.New(), nil, NewSyncBloom(1, memorydb.New())).Missing(1); len(req) != 0 {
-			t.Errorf("test %d: content requested for empty trie: %v", i, req)
+		sync := NewSync(trie.Hash(), memorydb.New(), nil, NewSyncBloom(1, memorydb.New()))
+		if nodes, paths, codes := sync.Missing(1); len(nodes) != 0 || len(paths) != 0 || len(codes) != 0 {
+			t.Errorf("test %d: content requested for empty trie: %v, %v, %v", i, nodes, paths, codes)
 		}
 	}
 }
 
 // Tests that given a root hash, a trie can sync iteratively on a single thread,
 // requesting retrieval tasks and returning all of them in one go.
-func TestIterativeSyncIndividual(t *testing.T) { testIterativeSync(t, 1) }
-func TestIterativeSyncBatched(t *testing.T)    { testIterativeSync(t, 100) }
+func TestIterativeSyncIndividual(t *testing.T)       { testIterativeSync(t, 1, false) }
+func TestIterativeSyncBatched(t *testing.T)          { testIterativeSync(t, 100, false) }
+func TestIterativeSyncIndividualByPath(t *testing.T) { testIterativeSync(t, 1, true) }
+func TestIterativeSyncBatchedByPath(t *testing.T)    { testIterativeSync(t, 100, true) }
 
-func testIterativeSync(t *testing.T, count int) {
+func testIterativeSync(t *testing.T, count int, bypath bool) {
 	// Create a random trie to copy
 	srcDb, srcTrie, srcData := makeTestTrie()
 
@@ -115,15 +119,32 @@ func testIterativeSync(t *testing.T, count int) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
-	queue := append([]common.Hash{}, sched.Missing(count)...)
-	for len(queue) > 0 {
-		results := make([]SyncResult, len(queue))
-		for i, hash := range queue {
+	nodes, paths, codes := sched.Missing(count)
+	var (
+		hashQueue []common.Hash
+		pathQueue []SyncPath
+	)
+	if !bypath {
+		hashQueue = append(append(hashQueue[:0], nodes...), codes...)
+	} else {
+		hashQueue = append(hashQueue[:0], codes...)
+		pathQueue = append(pathQueue[:0], paths...)
+	}
+	for len(hashQueue)+len(pathQueue) > 0 {
+		results := make([]SyncResult, len(hashQueue)+len(pathQueue))
+		for i, hash := range hashQueue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve node data for hash %x: %v", hash, err)
 			}
 			results[i] = SyncResult{hash, data}
+		}
+		for i, path := range pathQueue {
+			data, _, err := srcTrie.TryGetNode(path[0])
+			if err != nil {
+				t.Fatalf("failed to retrieve node data for path %x: %v", path, err)
+			}
+			results[len(hashQueue)+i] = SyncResult{crypto.Keccak256Hash(data), data}
 		}
 		for _, result := range results {
 			if err := sched.Process(result); err != nil {
@@ -135,7 +156,14 @@ func testIterativeSync(t *testing.T, count int) {
 			t.Fatalf("failed to commit data: %v", err)
 		}
 		batch.Write()
-		queue = append(queue[:0], sched.Missing(count)...)
+
+		nodes, paths, codes = sched.Missing(count)
+		if !bypath {
+			hashQueue = append(append(hashQueue[:0], nodes...), codes...)
+		} else {
+			hashQueue = append(hashQueue[:0], codes...)
+			pathQueue = append(pathQueue[:0], paths...)
+		}
 	}
 	// Cross check that the two tries are in sync
 	checkTrieContents(t, triedb, srcTrie.Hash().Bytes(), srcData)
@@ -152,7 +180,9 @@ func TestIterativeDelayedSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
-	queue := append([]common.Hash{}, sched.Missing(10000)...)
+	nodes, _, codes := sched.Missing(10000)
+	queue := append(append([]common.Hash{}, nodes...), codes...)
+
 	for len(queue) > 0 {
 		// Sync only half of the scheduled nodes
 		results := make([]SyncResult, len(queue)/2+1)
@@ -173,7 +203,9 @@ func TestIterativeDelayedSync(t *testing.T) {
 			t.Fatalf("failed to commit data: %v", err)
 		}
 		batch.Write()
-		queue = append(queue[len(results):], sched.Missing(10000)...)
+
+		nodes, _, codes = sched.Missing(10000)
+		queue = append(append(queue[len(results):], nodes...), codes...)
 	}
 	// Cross check that the two tries are in sync
 	checkTrieContents(t, triedb, srcTrie.Hash().Bytes(), srcData)
@@ -195,7 +227,8 @@ func testIterativeRandomSync(t *testing.T, count int) {
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
 	queue := make(map[common.Hash]struct{})
-	for _, hash := range sched.Missing(count) {
+	nodes, _, codes := sched.Missing(count)
+	for _, hash := range append(nodes, codes...) {
 		queue[hash] = struct{}{}
 	}
 	for len(queue) > 0 {
@@ -219,8 +252,10 @@ func testIterativeRandomSync(t *testing.T, count int) {
 			t.Fatalf("failed to commit data: %v", err)
 		}
 		batch.Write()
+
 		queue = make(map[common.Hash]struct{})
-		for _, hash := range sched.Missing(count) {
+		nodes, _, codes = sched.Missing(count)
+		for _, hash := range append(nodes, codes...) {
 			queue[hash] = struct{}{}
 		}
 	}
@@ -240,7 +275,8 @@ func TestIterativeRandomDelayedSync(t *testing.T) {
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
 	queue := make(map[common.Hash]struct{})
-	for _, hash := range sched.Missing(10000) {
+	nodes, _, codes := sched.Missing(10000)
+	for _, hash := range append(nodes, codes...) {
 		queue[hash] = struct{}{}
 	}
 	for len(queue) > 0 {
@@ -271,7 +307,8 @@ func TestIterativeRandomDelayedSync(t *testing.T) {
 		for _, result := range results {
 			delete(queue, result.Hash)
 		}
-		for _, hash := range sched.Missing(10000) {
+		nodes, _, codes = sched.Missing(10000)
+		for _, hash := range append(nodes, codes...) {
 			queue[hash] = struct{}{}
 		}
 	}
@@ -290,7 +327,8 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 	triedb := NewDatabase(diskdb)
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
-	queue := append([]common.Hash{}, sched.Missing(0)...)
+	nodes, _, codes := sched.Missing(0)
+	queue := append(append([]common.Hash{}, nodes...), codes...)
 	requested := make(map[common.Hash]struct{})
 
 	for len(queue) > 0 {
@@ -317,7 +355,9 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 			t.Fatalf("failed to commit data: %v", err)
 		}
 		batch.Write()
-		queue = append(queue[:0], sched.Missing(0)...)
+
+		nodes, _, codes = sched.Missing(0)
+		queue = append(append(queue[:0], nodes...), codes...)
 	}
 	// Cross check that the two tries are in sync
 	checkTrieContents(t, triedb, srcTrie.Hash().Bytes(), srcData)
@@ -335,7 +375,10 @@ func TestIncompleteSync(t *testing.T) {
 	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
 
 	var added []common.Hash
-	queue := append([]common.Hash{}, sched.Missing(1)...)
+
+	nodes, _, codes := sched.Missing(1)
+	queue := append(append([]common.Hash{}, nodes...), codes...)
+
 	for len(queue) > 0 {
 		// Fetch a batch of trie nodes
 		results := make([]SyncResult, len(queue))
@@ -367,7 +410,8 @@ func TestIncompleteSync(t *testing.T) {
 			}
 		}
 		// Fetch the next batch to retrieve
-		queue = append(queue[:0], sched.Missing(1)...)
+		nodes, _, codes = sched.Missing(1)
+		queue = append(append(queue[:0], nodes...), codes...)
 	}
 	// Sanity check that removing any node from the database is detected
 	for _, node := range added[1:] {
@@ -379,5 +423,60 @@ func TestIncompleteSync(t *testing.T) {
 			t.Fatalf("trie inconsistency not caught, missing: %x", key)
 		}
 		diskdb.Put(key, value)
+	}
+}
+
+// Tests that trie nodes get scheduled lexicographically when having the same
+// depth.
+func TestSyncOrdering(t *testing.T) {
+	// Create a random trie to copy
+	srcDb, srcTrie, srcData := makeTestTrie()
+
+	// Create a destination trie and sync with the scheduler, tracking the requests
+	diskdb := memorydb.New()
+	triedb := NewDatabase(diskdb)
+	sched := NewSync(srcTrie.Hash(), diskdb, nil, NewSyncBloom(1, diskdb))
+
+	nodes, paths, _ := sched.Missing(1)
+	queue := append([]common.Hash{}, nodes...)
+	reqs := append([]SyncPath{}, paths...)
+
+	for len(queue) > 0 {
+		results := make([]SyncResult, len(queue))
+		for i, hash := range queue {
+			data, err := srcDb.Node(hash)
+			if err != nil {
+				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+			}
+			results[i] = SyncResult{hash, data}
+		}
+		for _, result := range results {
+			if err := sched.Process(result); err != nil {
+				t.Fatalf("failed to process result %v", err)
+			}
+		}
+		batch := diskdb.NewBatch()
+		if err := sched.Commit(batch); err != nil {
+			t.Fatalf("failed to commit data: %v", err)
+		}
+		batch.Write()
+
+		nodes, paths, _ = sched.Missing(1)
+		queue = append(queue[:0], nodes...)
+		reqs = append(reqs, paths...)
+	}
+	// Cross check that the two tries are in sync
+	checkTrieContents(t, triedb, srcTrie.Hash().Bytes(), srcData)
+
+	// Check that the trie nodes have been requested path-ordered
+	for i := 0; i < len(reqs)-1; i++ {
+		if len(reqs[i]) > 1 || len(reqs[i+1]) > 1 {
+			// In the case of the trie tests, there's no storage so the tuples
+			// must always be single items. 2-tuples should be tested in state.
+			t.Errorf("Invalid request tuples: len(%v) or len(%v) > 1", reqs[i], reqs[i+1])
+		}
+		if bytes.Compare(compactToHex(reqs[i][0]), compactToHex(reqs[i+1][0])) > 0 {
+			t.Errorf("Invalid request order: %v before %v", compactToHex(reqs[i][0]), compactToHex(reqs[i+1][0]))
+		}
 	}
 }
