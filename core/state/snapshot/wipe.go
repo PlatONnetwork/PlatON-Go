@@ -92,7 +92,7 @@ func wipeKeyRange(db ethdb.KeyValueStore, kind string, prefix []byte, keylen int
 	// Iterate over the key-range and delete all of them
 	start, logged := time.Now(), time.Now()
 
-	it := db.NewIterator(prefix, nil)
+	it := db.NewIterator(nil, prefix)
 	for it.Next() {
 		// Skip any keys with the correct prefix but wrong lenth (trie nodes)
 		key := it.Key()
@@ -113,7 +113,7 @@ func wipeKeyRange(db ethdb.KeyValueStore, kind string, prefix []byte, keylen int
 				return err
 			}
 			batch.Reset()
-			it = db.NewIterator(key, nil)
+			it = db.NewIterator(nil, key)
 
 			if time.Since(logged) > 8*time.Second {
 				log.Info("Deleting state snapshot leftovers", "kind", kind, "wiped", items, "elapsed", common.PrettyDuration(time.Since(start)))
