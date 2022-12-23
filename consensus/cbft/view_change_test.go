@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -25,9 +24,10 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/stretchr/testify/suite"
 )
 
 func TestViewChangeSuite(t *testing.T) {
@@ -156,7 +156,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckErr() {
 		},
 	}
 	for _, testcase := range testcases {
-		if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), testcase.data); err == nil {
+		if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), testcase.data); err == nil {
 			suit.T().Errorf("CASE:%s is failefd", testcase.name)
 		} else {
 			fmt.Println(err.Error())
@@ -170,7 +170,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckCorrect() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
@@ -181,7 +181,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckCorrect() {
 func (suit *ViewChangeTestSuite) TestViewChangeCheckZero() {
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
@@ -197,7 +197,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeCheckZeroPrepareQCNotNil() {
 	errQC := mockErrBlockQC(notConsensusNodes, block, 8, nil)
 	errViewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		h, 0, suit.view.firstProposerIndex(), errQC.BlockQC)
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), errViewChange); err == nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), errViewChange); err == nil {
 		suit.T().Fatal("fail")
 	}
 }
@@ -211,7 +211,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeLeadHighestQCBlock() {
 	suit.view.firstProposer().insertQCBlock(block2, block2QC.BlockQC)
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber(), block2.Hash(),
 		block2.NumberU64(), suit.view.firstProposerIndex(), block2QC.BlockQC)
-	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	suit.Equal(1, suit.view.secondProposer().state.ViewChangeLen())
@@ -226,7 +226,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeBehindHighestQCBlock() {
 	suit.view.secondProposer().insertQCBlock(block2, block2QC.BlockQC)
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), suit.view.firstProposerIndex(), suit.blockOneQC.BlockQC)
-	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	suit.Equal(1, suit.view.secondProposer().state.ViewChangeLen())
@@ -239,7 +239,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeViewNumberBehind() {
 	suit.view.secondProposer().state.ResetView(1, 2)
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), suit.view.firstProposerIndex(), suit.blockOneQC.BlockQC)
-	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().NodeID().String(), viewChange); err == nil {
+	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().Node().ID().String(), viewChange); err == nil {
 		suit.T().Fatal("FAIL")
 	} else if err.Error() != "viewNumber too low(local:2, msg:0)" {
 		suit.T().Fatal(err.Error())
@@ -253,7 +253,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeViewNumberLead() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber()+1, suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), suit.view.firstProposerIndex(), suit.blockOneQC.BlockQC)
-	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().NodeID().String(), viewChange); err == nil {
+	if err := suit.view.secondProposer().OnViewChange(suit.view.firstProposer().Node().ID().String(), viewChange); err == nil {
 		suit.T().Fatal("FAIL")
 	} else {
 		suit.EqualValues("viewNumber higher than local(local:0, msg:1)", err.Error())
@@ -268,10 +268,10 @@ func (suit *ViewChangeTestSuite) TestCheckCorrectViewChangeRepeat() {
 	viewChange := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
 
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Fatal(err.Error())
 	}
 	suit.Equal(1, suit.view.firstProposer().state.ViewChangeLen())
@@ -288,10 +288,10 @@ func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
 		suit.blockOne.Hash(), suit.blockOne.NumberU64(), suit.view.secondProposerIndex(), suit.blockOneQC.BlockQC)
 	viewChange2 := mockViewChange(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.view.secondProposer().state.ViewNumber(),
 		suit.view.genesisBlock.Hash(), suit.view.genesisBlock.NumberU64(), suit.view.secondProposerIndex(), nil)
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange1); err != nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().NodeID().String(), viewChange2); err == nil {
+	if err := suit.view.firstProposer().OnViewChange(suit.view.secondProposer().Node().ID().String(), viewChange2); err == nil {
 		suit.T().Fatal("fail")
 	} else {
 		reg := regexp.MustCompile(`DuplicateViewChangeEvidence`)
@@ -309,7 +309,7 @@ func (suit *ViewChangeTestSuite) TestViewChangeNotConsensus() {
 	suit.insertOneBlock()
 	viewChange := mockViewChange(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.view.firstProposer().state.ViewNumber(), suit.blockOne.Hash(),
 		suit.blockOne.NumberU64(), suit.view.firstProposerIndex(), suit.blockOneQC.BlockQC)
-	if err := notConsensusNodes[0].engine.OnViewChange(suit.view.firstProposer().NodeID().String(), viewChange); err != nil {
+	if err := notConsensusNodes[0].engine.OnViewChange(suit.view.firstProposer().Node().ID().String(), viewChange); err != nil {
 		suit.T().Error(err.Error())
 	}
 }

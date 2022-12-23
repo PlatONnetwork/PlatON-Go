@@ -19,12 +19,13 @@ package vm
 import (
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -114,7 +115,7 @@ func (gc *GovContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error {
 	return nil
 }
 
-func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byte, error) {
+func (gc *GovContract) submitText(verifier enode.IDv0, pipID string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	blockHash := gc.Evm.Context.BlockHash
@@ -149,7 +150,7 @@ func (gc *GovContract) submitText(verifier discover.NodeID, pipID string) ([]byt
 	return gc.nonCallHandler("submitText", SubmitText, err)
 }
 
-func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, newVersion uint32, endVotingRounds uint64) ([]byte, error) {
+func (gc *GovContract) submitVersion(verifier enode.IDv0, pipID string, newVersion uint32, endVotingRounds uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
@@ -191,7 +192,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, pipID string, new
 	return gc.nonCallHandler("submitVersion", SubmitVersion, err)
 }
 
-func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
+func (gc *GovContract) submitCancel(verifier enode.IDv0, pipID string, endVotingRounds uint64, tobeCanceledProposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
@@ -232,7 +233,7 @@ func (gc *GovContract) submitCancel(verifier discover.NodeID, pipID string, endV
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
-func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, module, name, newValue string) ([]byte, error) {
+func (gc *GovContract) submitParam(verifier enode.IDv0, pipID string, module, name, newValue string) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	blockHash := gc.Evm.Context.BlockHash
@@ -274,7 +275,7 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, pipID string, modul
 	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
-func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
+func (gc *GovContract) vote(verifier enode.IDv0, proposalID common.Hash, op uint8, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	blockHash := gc.Evm.Context.BlockHash
@@ -310,7 +311,7 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	return gc.nonCallHandler("vote", Vote, err)
 }
 
-func (gc *GovContract) declareVersion(activeNode discover.NodeID, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
+func (gc *GovContract) declareVersion(activeNode enode.IDv0, programVersion uint32, programVersionSign common.VersionSign) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	blockNumber := gc.Evm.Context.BlockNumber.Uint64()
 	blockHash := gc.Evm.Context.BlockHash

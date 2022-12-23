@@ -18,12 +18,12 @@ package p2p
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -32,11 +32,11 @@ func TestProtocolHandshake(t *testing.T) {
 	var (
 		prv0, _ = crypto.GenerateKey()
 		pub0    = crypto.FromECDSAPub(&prv0.PublicKey)[1:]
-		hs0     = &protoHandshake{Version: 3, ID: discover.MustBytesID(pub0), Caps: []Cap{{"a", 0}, {"b", 2}}}
+		hs0     = &protoHandshake{Version: 3, ID: pub0, Caps: []Cap{{"a", 0}, {"b", 2}}}
 
 		prv1, _ = crypto.GenerateKey()
 		pub1    = crypto.FromECDSAPub(&prv1.PublicKey)[1:]
-		hs1     = &protoHandshake{Version: 3, ID: discover.MustBytesID(pub1), Caps: []Cap{{"c", 1}, {"d", 3}}}
+		hs1     = &protoHandshake{Version: 3, ID: pub1, Caps: []Cap{{"c", 1}, {"d", 3}}}
 
 		wg sync.WaitGroup
 	)

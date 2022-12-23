@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -23,13 +22,13 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
@@ -90,7 +89,7 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 }
 
 // Confirmed is empty function
-func (rp *RestrictingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (rp *RestrictingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 

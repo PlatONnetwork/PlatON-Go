@@ -29,13 +29,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // DefaultClient is the default simulation API client which expects the API
@@ -384,12 +386,6 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 	sub := s.network.events.Subscribe(events)
 	defer sub.Unsubscribe()
 
-	// stop the stream if the client goes away
-	var clientGone <-chan bool
-	if cn, ok := w.(http.CloseNotifier); ok {
-		clientGone = cn.CloseNotify()
-	}
-
 	// write writes the given event and data to the stream like:
 	//
 	// event: <event>
@@ -455,6 +451,7 @@ func (s *Server) StreamNetworkEvents(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	clientGone := req.Context().Done()
 	for {
 		select {
 		case event := <-events:
@@ -710,11 +707,12 @@ func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
-		ctx := context.Background()
+		ctx := req.Context()
 
 		if id := params.ByName("nodeid"); id != "" {
+			var nodeID enode.ID
 			var node *Node
-			if nodeID, err := discover.HexID(id); err == nil {
+			if nodeID.UnmarshalText([]byte(id)) == nil {
 				node = s.network.GetNode(nodeID)
 			} else {
 				node = s.network.GetNodeByName(id)
@@ -727,8 +725,9 @@ func (s *Server) wrapHandler(handler http.HandlerFunc) httprouter.Handle {
 		}
 
 		if id := params.ByName("peerid"); id != "" {
+			var peerID enode.ID
 			var peer *Node
-			if peerID, err := discover.HexID(id); err == nil {
+			if peerID.UnmarshalText([]byte(id)) == nil {
 				peer = s.network.GetNode(peerID)
 			} else {
 				peer = s.network.GetNodeByName(id)

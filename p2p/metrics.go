@@ -30,6 +30,9 @@ const (
 
 	// egressMeterName is the prefix of the per-packet outbound metrics.
 	egressMeterName = "p2p/egress"
+
+	// HandleHistName is the prefix of the per-packet serving time histograms.
+	HandleHistName = "p2p/handle"
 )
 
 var (
@@ -43,18 +46,18 @@ var (
 // meteredConn is a wrapper around a net.Conn that meters both the
 // inbound and outbound network traffic.
 type meteredConn struct {
-	net.Conn // Network connection to wrap with metering
+	net.Conn
 }
 
-// newMeteredConn creates a new metered connection, also bumping the ingress or
-// egress connection meter. If the metrics system is disabled, this function
-// returns the original object.
-func newMeteredConn(conn net.Conn, ingress bool) net.Conn {
+// newMeteredConn creates a new metered connection, bumps the ingress or egress
+// connection meter and also increases the metered peer count. If the metrics
+// system is disabled, function returns the original connection.
+func newMeteredConn(conn net.Conn, ingress bool, addr *net.TCPAddr) net.Conn {
 	// Short circuit if metrics are disabled
 	if !metrics.Enabled {
 		return conn
 	}
-	// Otherwise bump the connection counters and wrap the connection
+	// Bump the connection counters and wrap the connection
 	if ingress {
 		ingressConnectMeter.Mark(1)
 	} else {

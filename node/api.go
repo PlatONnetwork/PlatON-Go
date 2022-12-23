@@ -21,13 +21,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -71,7 +72,7 @@ func (api *privateAdminAPI) AddPeer(url string) (bool, error) {
 		return false, ErrNodeStopped
 	}
 	// Try to add the url as a static peer and return
-	node, err := discover.ParseNode(url)
+	node, err := enode.Parse(enode.ValidSchemes, url)
 	if err != nil {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}
@@ -87,7 +88,7 @@ func (api *privateAdminAPI) RemovePeer(url string) (bool, error) {
 		return false, ErrNodeStopped
 	}
 	// Try to remove the url as a static peer and return
-	node, err := discover.ParseNode(url)
+	node, err := enode.Parse(enode.ValidSchemes, url)
 	if err != nil {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package evidence
 
 import (
@@ -23,11 +22,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -73,7 +72,7 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 			Index:   uint32(i),
 			Address: crypto.PubkeyToNodeAddress(pk[i].PublicKey),
 			PubKey:  &pk[i].PublicKey,
-			NodeID:  discover.PubkeyID(&pk[i].PublicKey),
+			NodeID:  enode.PubkeyToIDV4(&pk[i].PublicKey),
 		}
 		nodes[i].BlsPubKey = sk[i].GetPublicKey()
 

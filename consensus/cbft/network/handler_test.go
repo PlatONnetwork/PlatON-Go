@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -28,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -40,25 +41,24 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // fakeCbft is a fake cbft for testing.It implements all
 // methods of the Cbft interface.
 type fakeCbft struct {
 	localPeer      *peer             // Represents a local peer
-	consensusNodes []discover.NodeID // All consensus nodes
+	consensusNodes []enode.ID        // All consensus nodes
 	writer         p2p.MsgReadWriter // Pipeline for receiving data.
 	peers          []*peer           // Pre-initialized node for testing.
 }
 
 // Returns the ID of the local node.
-func (s *fakeCbft) NodeID() discover.NodeID {
-	return s.localPeer.Peer.ID()
+func (s *fakeCbft) Node() *enode.Node {
+	return s.localPeer.Peer.Node()
 }
 
 // Return all consensus nodes.
-func (s *fakeCbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (s *fakeCbft) ConsensusNodes() ([]enode.ID, error) {
 	return s.consensusNodes, nil
 }
 
@@ -144,10 +144,10 @@ func (s *fakeCbft) BlockExists(blockNumber uint64, blockHash common.Hash) error 
 // Create a new EngineManager.
 func newHandle(t *testing.T) (*EngineManager, *fakeCbft) {
 	// init local peer and engineManager.
-	var consensusNodes []discover.NodeID
+	var consensusNodes []enode.ID
 	var peers []*peer
 	writer, reader := p2p.MsgPipe()
-	var localID discover.NodeID
+	var localID enode.ID
 	rand.Read(localID[:])
 	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 
@@ -223,7 +223,7 @@ func Test_EngineManager_Handle(t *testing.T) {
 	//
 	protocols := h.Protocols()
 	protocols[0].NodeInfo()
-	pi := protocols[0].PeerInfo(fake.NodeID())
+	pi := protocols[0].PeerInfo(fake.Node().ID())
 	assert.Nil(t, pi)
 	err := protocols[0].Run(fakePeer.Peer, fakePeer.rw)
 	//err := h.handler(fakePeer.Peer, fakePeer.rw)
