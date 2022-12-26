@@ -250,6 +250,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			TriesInMemory:   128,
 			DBGCInterval:    86400,
 			DBGCTimeout:     time.Minute,
+			Preimages:       true,
 		}
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)

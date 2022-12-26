@@ -26,18 +26,20 @@ import (
 // Account is a slim version of a state.Account, where the root and code hash
 // are replaced with a nil byte slice for empty accounts.
 type Account struct {
-	Nonce    uint64
-	Balance  *big.Int
-	Root     []byte
-	CodeHash []byte
+	Nonce            uint64
+	Balance          *big.Int
+	Root             []byte
+	CodeHash         []byte
+	StorageKeyPrefix []byte
 }
 
 // AccountRLP converts a state.Account content into a slim snapshot version RLP
 // encoded.
-func AccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte) []byte {
+func AccountRLP(nonce uint64, balance *big.Int, root common.Hash, codehash []byte, StorageKeyPrefix []byte) []byte {
 	slim := Account{
-		Nonce:   nonce,
-		Balance: balance,
+		Nonce:            nonce,
+		Balance:          balance,
+		StorageKeyPrefix: StorageKeyPrefix,
 	}
 	if root != emptyRoot {
 		slim.Root = root[:]
