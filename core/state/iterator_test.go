@@ -53,7 +53,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	db, root, _ := makeTestState()
 	db.TrieDB().Commit(root, false, true)
 
-	state, err := New(root, db)
+	state, err := New(root, db, nil)
 	if err != nil {
 		t.Fatalf("failed to create state trie at %x: %v", root, err)
 	}

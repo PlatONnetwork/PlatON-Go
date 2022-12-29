@@ -112,6 +112,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.CacheTrieJournalFlag,
 			utils.CacheTrieRejournalFlag,
 			utils.CacheGCFlag,
+			utils.CacheSnapshotFlag,
 			utils.CacheTrieDBFlag,
 			utils.CachePreimagesFlag,
 		},

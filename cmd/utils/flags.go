@@ -283,10 +283,19 @@ var (
 		Usage: "Time interval to regenerate the trie cache journal",
 		Value: eth.DefaultConfig.TrieCleanCacheRejournal,
 	}
+	SnapshotFlag = cli.BoolFlag{
+		Name:  "snapshot",
+		Usage: `Enables snapshot-database mode -- experimental work in progress feature`,
+	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
 		Usage: "Percentage of cache memory allowance to use for trie pruning (default = 25% full mode, 0% archive mode)",
 		Value: 25,
+	}
+	CacheSnapshotFlag = cli.IntFlag{
+		Name:  "cache.snapshot",
+		Usage: "Percentage of cache memory allowance to use for snapshot caching (default = 10% full mode, 20% archive mode)",
+		Value: 10,
 	}
 	CacheTrieDBFlag = cli.IntFlag{
 		Name:  "cache.triedb",
@@ -1138,6 +1147,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
+		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
+	}
+	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+		cfg.SnapshotCache = 0 // Disabled
+	}
 	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
 		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
 	}
@@ -1376,6 +1391,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
+		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
+	}
+	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+		cache.SnapshotLimit = 0 // Disabled
 	}
 	if eth.DefaultConfig.DBDisabledGC && !cache.Preimages {
 		cache.Preimages = true

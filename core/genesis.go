@@ -182,7 +182,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// We have the genesis block in database(perhaps in ancient database)
 	// but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil)); err != nil {
+	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil), nil); err != nil {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
 		}
@@ -398,7 +398,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 
 	genesisIssuance := new(big.Int)
 
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), nil)
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())

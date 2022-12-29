@@ -60,7 +60,7 @@ func (h resultHash) Less(i, j int) bool { return bytes.Compare(h[i].Bytes(), h[j
 func TestAccountRange(t *testing.T) {
 	var (
 		statedb  = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), nil)
-		state, _ = state.New(common.Hash{}, statedb)
+		state, _ = state.New(common.Hash{}, statedb, nil)
 		addrs    = [AccountRangeMaxResults * 2]common.Address{}
 		m        = map[common.Address]bool{}
 	)
@@ -158,7 +158,7 @@ func TestAccountRange(t *testing.T) {
 func TestEmptyAccountRange(t *testing.T) {
 	var (
 		statedb  = state.NewDatabase(rawdb.NewMemoryDatabase())
-		state, _ = state.New(common.Hash{}, statedb)
+		state, _ = state.New(common.Hash{}, statedb, nil)
 	)
 
 	state.Commit(true)

@@ -112,7 +112,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	blockChainCache := core.NewBlockChainCache(chain)
 
-	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db))
+	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db), nil)
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 
