@@ -14,20 +14,21 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
 	"crypto/ecdsa"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type OptionsConfig struct {
 	NodePriKey *ecdsa.PrivateKey `json:"-"`
-	NodeID     discover.NodeID   `json:"nodeID"`
+	NodeID     enode.IDv0        `json:"nodeID"`
+	Node       *enode.Node       `json:"-"`
 	BlsPriKey  *bls.SecretKey    `json:"-"`
 	WalMode    bool              `json:"walMode"`
 

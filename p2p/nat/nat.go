@@ -25,8 +25,9 @@ import (
 	"sync"
 	"time"
 
+	natpmp "github.com/jackpal/go-nat-pmp"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/jackpal/go-nat-pmp"
 )
 
 // An implementation of nat.Interface can map local ports to ports
@@ -53,12 +54,12 @@ type Interface interface {
 // The following formats are currently accepted.
 // Note that mechanism names are not case-sensitive.
 //
-//     "" or "none"         return nil
-//     "extip:77.12.33.4"   will assume the local machine is reachable on the given IP
-//     "any"                uses the first auto-detected mechanism
-//     "upnp"               uses the Universal Plug and Play protocol
-//     "pmp"                uses NAT-PMP with an auto-detected gateway address
-//     "pmp:192.168.0.1"    uses NAT-PMP with the given gateway address
+//	"" or "none"         return nil
+//	"extip:77.12.33.4"   will assume the local machine is reachable on the given IP
+//	"any"                uses the first auto-detected mechanism
+//	"upnp"               uses the Universal Plug and Play protocol
+//	"pmp"                uses NAT-PMP with an auto-detected gateway address
+//	"pmp:192.168.0.1"    uses NAT-PMP with the given gateway address
 func Parse(spec string) (Interface, error) {
 	var (
 		parts = strings.SplitN(spec, ":", 2)
@@ -128,21 +129,15 @@ func Map(m Interface, c <-chan struct{}, protocol string, extport, intport int, 
 // ExtIP assumes that the local machine is reachable on the given
 // external IP address, and that any required ports were mapped manually.
 // Mapping operations will not return an error but won't actually do anything.
-func ExtIP(ip net.IP) Interface {
-	if ip == nil {
-		panic("IP must not be nil")
-	}
-	return extIP(ip)
-}
+type ExtIP net.IP
 
-type extIP net.IP
-
-func (n extIP) ExternalIP() (net.IP, error) { return net.IP(n), nil }
-func (n extIP) String() string              { return fmt.Sprintf("ExtIP(%v)", net.IP(n)) }
+func (n ExtIP) ExternalIP() (net.IP, error) { return net.IP(n), nil }
+func (n ExtIP) String() string              { return fmt.Sprintf("ExtIP(%v)", net.IP(n)) }
 
 // These do nothing.
-func (extIP) AddMapping(string, int, int, string, time.Duration) error { return nil }
-func (extIP) DeleteMapping(string, int, int) error                     { return nil }
+
+func (ExtIP) AddMapping(string, int, int, string, time.Duration) error { return nil }
+func (ExtIP) DeleteMapping(string, int, int) error                     { return nil }
 
 // Any returns a port mapper that tries to discover any supported
 // mechanism on the local network.

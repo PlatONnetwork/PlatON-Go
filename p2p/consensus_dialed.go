@@ -2,9 +2,10 @@ package p2p
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 type dialedTasks struct {
@@ -51,12 +52,12 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 	return nil
 }
 
-func (tasks *dialedTasks) RemoveTask(NodeID discover.NodeID) error {
+func (tasks *dialedTasks) RemoveTask(NodeID *enode.Node) error {
 
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
-			if t.dest.ID == NodeID {
+			if t.dest.ID() == NodeID.ID() {
 				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
 				break
 			}
@@ -104,7 +105,7 @@ func (tasks *dialedTasks) pollIndex(index int) *dialTask {
 // index of task in the queue
 func (tasks *dialedTasks) index(task *dialTask) int {
 	for i, t := range tasks.queue {
-		if t.dest.ID == task.dest.ID {
+		if t.dest.ID() == task.dest.ID() {
 			return i
 		}
 	}
@@ -140,7 +141,7 @@ func (tasks *dialedTasks) isEmpty() bool {
 func (tasks *dialedTasks) description() string {
 	var description []string
 	for _, t := range tasks.queue {
-		description = append(description, fmt.Sprintf("%x", t.dest.ID[:8]))
+		description = append(description, fmt.Sprintf("%x", t.dest.ID().TerminalString()))
 	}
 	return strings.Join(description, ",")
 }

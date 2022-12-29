@@ -1,15 +1,16 @@
 package staking
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // about delegate ...
 
-func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) (*Delegation, error) {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
@@ -47,7 +48,7 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 	return infos, nil
 }
 
-func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
 	stakeBlockNumber uint64, del *Delegation, lock bool) error {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
@@ -67,7 +68,7 @@ func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Addr
 	return db.put(blockHash, key, delByte)
 }
 
-func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId discover.NodeID,
+func (db *StakingDB) DelDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
 	stakeBlockNumber uint64) error {
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 

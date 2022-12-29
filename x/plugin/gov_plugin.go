@@ -18,14 +18,14 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -62,7 +62,7 @@ func (govPlugin *GovPlugin) SetChainDB(chainDB ethdb.Writer) {
 	govPlugin.chainDB = chainDB
 }
 
-func (govPlugin *GovPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 

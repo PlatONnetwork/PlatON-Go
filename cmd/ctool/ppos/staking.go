@@ -19,11 +19,11 @@ package ppos
 import (
 	"errors"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -164,7 +164,7 @@ func getDelegateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
+	nodeid, err := enode.HexIDv0(nodeIDstring)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func getCandidateInfo(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The verifier's node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
+	nodeid, err := enode.HexIDv0(nodeIDstring)
 	if err != nil {
 		return err
 	}

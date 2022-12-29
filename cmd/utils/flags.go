@@ -20,7 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -31,6 +30,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/graphql"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
@@ -62,7 +64,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -703,10 +704,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
 		if url != "" {
-			node, err := discover.ParseNode(url)
+			node, err := enode.Parse(enode.ValidSchemes, url)
 			if err != nil {
 				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
 			}
@@ -1206,7 +1207,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if nodeCfg.P2P.PrivateKey != nil {
 		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
-		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+		cfg.Node = enode.NewV4(&cfg.NodePriKey.PublicKey, nil, 0, 0)
+		cfg.NodeID = cfg.Node.IDv0()
 	}
 
 	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {

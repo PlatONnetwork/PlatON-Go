@@ -19,9 +19,9 @@ package ppos
 import (
 	"errors"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -67,7 +67,7 @@ func checkDuplicateSign(c *cli.Context) error {
 	if nodeIDstring == "" {
 		return errors.New("The reported node ID is not set")
 	}
-	nodeid, err := discover.HexID(nodeIDstring)
+	nodeid, err := enode.HexIDv0(nodeIDstring)
 	if err != nil {
 		return err
 	}

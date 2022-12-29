@@ -20,14 +20,16 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/rlpx"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/rlpx"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -61,6 +63,10 @@ func (t *rlpxTransport) ReadMsg() (Msg, error) {
 	t.conn.SetReadDeadline(time.Now().Add(frameReadTimeout))
 	code, data, wireSize, err := t.conn.Read()
 	if err == nil {
+		// Protocol messages are dispatched to subprotocol handlers asynchronously,
+		// but package rlpx may reuse the returned 'data' buffer on the next call
+		// to Read. Copy the message data to avoid this being an issue.
+		data = common.CopyBytes(data)
 		msg = Msg{
 			ReceivedAt: time.Now(),
 			Code:       code,
@@ -169,7 +175,7 @@ func readProtocolHandshake(rw MsgReader) (*protoHandshake, error) {
 	if err := msg.Decode(&hs); err != nil {
 		return nil, err
 	}
-	if len(hs.ID) != 64 || !bitutil.TestBytes(hs.ID.Bytes()) {
+	if len(hs.ID) != 64 || !bitutil.TestBytes(hs.ID) {
 		return nil, DiscInvalidIdentity
 	}
 	return &hs, nil

@@ -14,17 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package byteutil
 
 import (
-	"encoding/hex"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 )
@@ -45,8 +44,8 @@ var Bytes2X_CMD = map[string]interface{}{
 
 	"*big.Int":              BytesToBigInt,
 	"[]*big.Int":            BytesToBigIntArr,
-	"discover.NodeID":       BytesToNodeId,
-	"[]discover.NodeID":     BytesToNodeIdArr,
+	"enode.IDv0":            BytesToNodeId,
+	"[]enode.IDv0":          BytesToNodeIdArr,
 	"common.Hash":           BytesToHash,
 	"[]common.Hash":         BytesToHashArr,
 	"common.Address":        BytesToAddress,
@@ -186,27 +185,16 @@ func BytesToBigIntArr(curByte []byte) []*big.Int {
 	return arr
 }
 
-func BytesToNodeId(curByte []byte) discover.NodeID {
-	//str := BytesToString(curByte)
-	//nodeId, _ := discover.HexID(str)
-	//return nodeId
-	var nodeId discover.NodeID
+func BytesToNodeId(curByte []byte) enode.IDv0 {
+	var nodeId enode.IDv0
 	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
 		panic("BytesToNodeId:" + err.Error())
 	}
 	return nodeId
 }
 
-func BytesToNodeIdArr(curByte []byte) []discover.NodeID {
-	/*str := BytesToString(curByte)
-	strArr := strings.Split(str, ":")
-	var ANodeID []discover.NodeID
-	for i := 0; i < len(strArr); i++ {
-		nodeId, _ := discover.HexID(strArr[i])
-		ANodeID = append(ANodeID, nodeId)
-	}
-	return ANodeID*/
-	var nodeIdArr []discover.NodeID
+func BytesToNodeIdArr(curByte []byte) []enode.IDv0 {
+	var nodeIdArr []enode.IDv0
 	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
 		panic("BytesToNodeIdArr:" + err.Error())
 	}
@@ -326,10 +314,6 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return planArr
-}
-
-func PrintNodeID(nodeID discover.NodeID) string {
-	return hex.EncodeToString(nodeID.Bytes()[:8])
 }
 
 func Concat(s1 []byte, s2 ...byte) []byte {

@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"bytes"
 
 	"encoding/json"
@@ -30,7 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -47,7 +48,7 @@ const (
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
-	NodeID    discover.NodeID    `json:"nodeID"`
+	NodeID    enode.IDv0         `json:"nodeID"`
 	Address   common.NodeAddress `json:"-"`
 	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
 }

@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -180,7 +181,7 @@ type ChainConfig struct {
 }
 
 type CbftNode struct {
-	Node      discover.Node `json:"node"`
+	Node      *enode.Node   `json:"node"`
 	BlsPubKey bls.PublicKey `json:"blsPubKey"`
 }
 
@@ -333,8 +334,8 @@ func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
 
 		cbftNode := new(CbftNode)
 
-		if node, err := discover.ParseNode(n.Enode); nil == err {
-			cbftNode.Node = *node
+		if node, err := enode.Parse(enode.ValidSchemes, n.Enode); nil == err {
+			cbftNode.Node = node
 		}
 
 		if n.BlsPubkey != "" {

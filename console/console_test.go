@@ -20,19 +20,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth"
@@ -76,8 +77,8 @@ func (p *hookedPrompter) PromptPassword(prompt string) (string, error) {
 func (p *hookedPrompter) PromptConfirm(prompt string) (bool, error) {
 	return false, errors.New("not implemented")
 }
-func (p *hookedPrompter) SetHistory(history []string)              {}
-func (p *hookedPrompter) AppendHistory(command string)             {}
+func (p *hookedPrompter) SetHistory(history []string)                     {}
+func (p *hookedPrompter) AppendHistory(command string)                    {}
 func (p *hookedPrompter) ClearHistory()                                   {}
 func (p *hookedPrompter) SetWordCompleter(completer prompt.WordCompleter) {}
 
@@ -108,12 +109,13 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 	ethConf := &eth.DefaultConfig
 	ethConf.Genesis = core.DefaultGrapeGenesisBlock()
-	n, _ := discover.ParseNode("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
+
+	n, _ := enode.ParseV4("enode://73f48a69ae73b85c0a578258954936300b305cb063cbd658d680826ebc0d47cedb890f01f15df2f2e510342d16e7bf5aaf3d7be4ba05a3490de0e9663663addc@127.0.0.1:16789")
 
 	var nodes []params.CbftNode
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
-	nodes = append(nodes, params.CbftNode{Node: *n, BlsPubKey: *blsKey.GetPublicKey()})
+	nodes = append(nodes, params.CbftNode{Node: n, BlsPubKey: *blsKey.GetPublicKey()})
 	ethConf.Genesis.Config.Cbft = &params.CbftConfig{
 		InitialNodes: nodes,
 	}
