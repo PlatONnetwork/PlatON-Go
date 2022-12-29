@@ -17,9 +17,10 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -62,8 +63,10 @@ var DefaultConfig = Config{
 	DBGCBlock:               10,
 	VMWasmType:              "wagon",
 	VmTimeoutDuration:       0, // default 0 ms for vm exec timeout
+	TrieCleanCache:          154,
 	TrieCleanCacheJournal:   "triecache",
 	TrieCleanCacheRejournal: 60 * time.Minute,
+	TrieDirtyCache:          256,
 	Miner: miner.Config{
 		GasFloor: params.GenesisGasLimit,
 		GasPrice: big.NewInt(params.GVon),
@@ -114,8 +117,10 @@ type Config struct {
 	SkipBcVersionCheck      bool `toml:"-"`
 	DatabaseHandles         int  `toml:"-"`
 	DatabaseCache           int
+	TrieCleanCache          int
 	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
 	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
+	TrieDirtyCache          int
 	DatabaseFreezer         string
 
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.

@@ -191,7 +191,7 @@ var (
 	defaultSyncMode = eth.DefaultConfig.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
+		Usage: `Blockchain sync mode ("fast", "full", "snap" or "light")`,
 		Value: &defaultSyncMode,
 	}
 	TxLookupLimitFlag = cli.Uint64Flag{
@@ -271,7 +271,12 @@ var (
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
 		Usage: "Percentage of cache memory allowance to use for database io",
-		Value: 75,
+		Value: 50,
+	}
+	CacheTrieFlag = cli.IntFlag{
+		Name:  "cache.trie",
+		Usage: "Percentage of cache memory allowance to use for trie caching",
+		Value: 25,
 	}
 	CacheTrieJournalFlag = cli.StringFlag{
 		Name:  "cache.trie.journal",
@@ -1144,14 +1149,24 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	cfg.NoPruning = true
 
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cfg.TrieCleanCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
+	}
+
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		cfg.TrieDirtyCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
 		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
 	}
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
-		cfg.SnapshotCache = 0 // Disabled
+		// If snap-sync is requested, this flag is also required
+		if cfg.SyncMode == downloader.SnapSync {
+			log.Info("Snap sync requested, enabling --snapshot")
+			ctx.Set(SnapshotFlag.Name, "true")
+		} else {
+			cfg.SnapshotCache = 0 // Disabled
+		}
 	}
 	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
 		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
@@ -1383,6 +1398,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 
 	cache := &core.CacheConfig{
 		Disabled:        true,
+		TrieCleanLimit:  eth.DefaultConfig.TrieCleanCache,
 		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
@@ -1392,6 +1408,9 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
 		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
+		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
 		cache.SnapshotLimit = 0 // Disabled

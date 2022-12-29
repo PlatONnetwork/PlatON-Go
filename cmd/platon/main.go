@@ -19,7 +19,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"math"
 	"os"
 	"runtime"
@@ -28,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/panjf2000/ants/v2"
 	"gopkg.in/urfave/cli.v1"
@@ -87,6 +88,7 @@ var (
 		utils.LightKDFFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
+		utils.CacheTrieFlag,
 		utils.CacheTrieJournalFlag,
 		utils.CacheTrieRejournalFlag,
 		utils.CacheGCFlag,
