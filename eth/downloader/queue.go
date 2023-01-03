@@ -81,7 +81,7 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	//	item.pending |= (1 << bodyType)
 	//}
 	if fastSync && !header.EmptyReceipts() {
-		//item.pending |= (1 << receiptType)	// The receipt is not synchronized in PlatON FastSync mode, so comment here
+		//item.pending |= (1 << receiptType)	// The receipt is not synchronized in PlatON SnapSync mode, so comment here
 	}
 	return item
 }
@@ -324,7 +324,7 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 			q.blockTaskQueue.Push(header, -int64(header.Number.Uint64()))
 		}
 		// Queue for receipt retrieval
-		if q.mode == FastSync && !header.EmptyReceipts() {
+		if q.mode == SnapSync && !header.EmptyReceipts() {
 			if _, ok := q.receiptTaskPool[hash]; ok {
 				log.Warn("Header already scheduled for receipt fetch", "number", header.Number, "hash", hash)
 			} else {
@@ -506,7 +506,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		// we can ask the resultcache if this header is within the
 		// "prioritized" segment of blocks. If it is not, we need to throttle
 
-		stale, throttle, item, err := q.resultCache.AddFetch(header, q.mode == FastSync)
+		stale, throttle, item, err := q.resultCache.AddFetch(header, q.mode == SnapSync)
 		if stale {
 			// Don't put back in the task queue, this item has already been
 			// delivered upstream

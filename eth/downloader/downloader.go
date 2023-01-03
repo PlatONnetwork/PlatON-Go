@@ -268,7 +268,7 @@ func (d *Downloader) Progress() ethereum.SyncProgress {
 	switch {
 	case d.blockchain != nil && mode == FullSync:
 		current = d.blockchain.CurrentBlock().NumberU64()
-	case d.blockchain != nil && mode == FastSync:
+	case d.blockchain != nil && mode == SnapSync:
 		current = d.blockchain.CurrentFastBlock().NumberU64()
 	case d.lightchain != nil:
 		current = d.lightchain.CurrentHeader().Number.Uint64()
@@ -471,7 +471,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
-	if mode == FastSync {
+	if mode == SnapSync {
 		if pivoth.Number.Uint64() > origin {
 			// fetch latest ppos storage cache from remote peer
 			latest, pivoth, err = d.fetchPPOSInfo(p)
@@ -506,7 +506,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	d.syncStatsChainHeight = height
 	d.syncStatsLock.Unlock()
 
-	if mode == FastSync {
+	if mode == SnapSync {
 		// Set the ancient data limitation.
 		// If we are running fast sync, all block data older than ancientLimit will be
 		// written to the ancient store. More recent data will be written to the active
@@ -558,7 +558,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		func() error { return d.fetchReceipts(origin + 1) },                         // Receipts are retrieved during fast sync
 		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
 	}
-	if mode == FastSync {
+	if mode == SnapSync {
 		if err := d.snapshotDB.SetEmpty(); err != nil {
 			p.log.Error("set  snapshotDB empty fail")
 			return errors.New("set  snapshotDB empty fail:" + err.Error())
@@ -585,7 +585,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 	mode := d.getMode()
 	if mode == FullSync {
 		current = d.blockchain.CurrentBlock().Header()
-	} else if mode == FastSync {
+	} else if mode == SnapSync {
 		current = d.blockchain.CurrentFastBlock().Header()
 	} else {
 		current = d.lightchain.CurrentHeader()
@@ -810,7 +810,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 	}
 	mode := d.getMode()
-	if mode == FastSync {
+	if mode == SnapSync {
 		if failed {
 			if err := d.setFastSyncStatus(FastSyncFail); err != nil {
 				return err
@@ -1418,7 +1418,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 				// This check cannot be executed "as is" for full imports, since blocks may still be
 				// queued for processing when the header download completes. However, as long as the
 				// peer gave us something useful, we're already happy/progressed (above check).
-				if mode == FastSync || mode == LightSync {
+				if mode == SnapSync || mode == LightSync {
 					head := d.lightchain.CurrentHeader()
 					if bn.Cmp(head.Number) > 0 {
 						return errStallingPeer
@@ -1445,7 +1445,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 				}
 				chunk := headers[:limit]
 				// In case of header only syncing, validate the chunk immediately
-				if mode == FastSync || mode == LightSync {
+				if mode == SnapSync || mode == LightSync {
 					// Collect the yet unknown headers to mark them as uncertain
 					unknown := make([]*types.Header, 0, len(chunk))
 					for _, header := range chunk {
@@ -1474,7 +1474,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 					}
 				}
 				// Unless we're doing light chains, schedule the headers for associated content retrieval
-				if mode == FullSync || mode == FastSync {
+				if mode == FullSync || mode == SnapSync {
 					// If we've reached the allowed number of pending headers, stall a bit
 					for d.queue.PendingBlocks() >= maxQueuedHeaders || d.queue.PendingReceipts() >= maxQueuedHeaders {
 						select {

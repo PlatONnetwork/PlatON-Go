@@ -35,12 +35,12 @@ func TestFastSyncDisabling(t *testing.T) {
 
 	// Create a pristine protocol manager, check that fast sync is left enabled
 	// TODO test
-	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
+	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.SnapSync, 0, nil, nil)
 	if atomic.LoadUint32(&pmEmpty.fastSync) == 0 {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
 	// Create a full protocol manager, check that fast sync gets disabled
-	pmFull, _ := newTestProtocolManagerMust(t, downloader.FastSync, 1024, nil, nil)
+	pmFull, _ := newTestProtocolManagerMust(t, downloader.SnapSync, 1024, nil, nil)
 	if atomic.LoadUint32(&pmFull.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled on non-empty blockchain")
 	}
@@ -55,7 +55,7 @@ func TestFastSyncDisabling(t *testing.T) {
 	peerHead, pBn := bestPeer.Head()
 	currentBlock := pmEmpty.engine.CurrentBlock()
 
-	op := &chainSyncOp{mode: downloader.FastSync, peer: bestPeer, bn: pBn, head: peerHead, diff: new(big.Int).Sub(pBn, currentBlock.Number())}
+	op := &chainSyncOp{mode: downloader.SnapSync, peer: bestPeer, bn: pBn, head: peerHead, diff: new(big.Int).Sub(pBn, currentBlock.Number())}
 	if err := pmEmpty.doSync(op); err != nil {
 		t.Fatal("sync failed:", err)
 	}

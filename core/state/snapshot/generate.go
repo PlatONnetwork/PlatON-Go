@@ -110,6 +110,7 @@ func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache i
 		genAbort:   make(chan chan *generatorStats),
 	}
 	go base.generate(&generatorStats{wiping: wiper, start: time.Now()})
+	log.Debug("Start snapshot generation", "root", root)
 	return base
 }
 

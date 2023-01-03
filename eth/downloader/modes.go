@@ -24,7 +24,7 @@ type SyncMode uint32
 
 const (
 	FullSync  SyncMode = iota // Synchronise the entire blockchain history from full blocks
-	FastSync                  // Quickly download the headers, full sync only at the chain head
+	SnapSync                  // Quickly download the headers, full sync only at the chain head
 	LightSync                 // Download only the headers and terminate afterwards
 )
 
@@ -37,7 +37,7 @@ func (mode SyncMode) String() string {
 	switch mode {
 	case FullSync:
 		return "full"
-	case FastSync:
+	case SnapSync:
 		return "fast"
 	case LightSync:
 		return "light"
@@ -50,7 +50,7 @@ func (mode SyncMode) MarshalText() ([]byte, error) {
 	switch mode {
 	case FullSync:
 		return []byte("full"), nil
-	case FastSync:
+	case SnapSync:
 		return []byte("fast"), nil
 	case LightSync:
 		return []byte("light"), nil
@@ -64,7 +64,7 @@ func (mode *SyncMode) UnmarshalText(text []byte) error {
 	case "full":
 		*mode = FullSync
 	case "fast":
-		*mode = FastSync
+		*mode = SnapSync
 	case "light":
 		*mode = LightSync
 	default:

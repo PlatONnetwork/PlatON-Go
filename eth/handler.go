@@ -131,7 +131,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		engine:      engine,
 	}
 	// If fast sync was requested and our database is empty, grant it
-	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() == 0 {
+	if mode == downloader.SnapSync && blockchain.CurrentBlock().NumberU64() == 0 {
 		manager.fastSync = uint32(1)
 	}
 	// Initiate a sub-protocol for every implemented version we can handle

@@ -1161,7 +1161,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
 		// If snap-sync is requested, this flag is also required
-		if cfg.SyncMode == downloader.FastSync {
+		if cfg.SyncMode == downloader.SnapSync {
 			log.Info("Snap sync requested, enabling --snapshot")
 			ctx.Set(SnapshotFlag.Name, "true")
 		} else {
