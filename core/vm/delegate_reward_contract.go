@@ -85,8 +85,8 @@ func (rc *DelegateRewardContract) CheckGasPrice(gasPrice *big.Int, fcode uint16)
 func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	from := rc.Contract.CallerAddress
 	txHash := rc.Evm.StateDB.TxHash()
-	blockNum := rc.Evm.BlockNumber
-	blockHash := rc.Evm.BlockHash
+	blockNum := rc.Evm.Context.BlockNumber
+	blockHash := rc.Evm.Context.BlockHash
 	state := rc.Evm.StateDB
 
 	log.Debug("Call withdrawDelegateReward of DelegateRewardContract", "blockNumber", blockNum.Uint64(),
@@ -160,8 +160,8 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {
 	state := rc.Evm.StateDB
 
-	blockNum := rc.Evm.BlockNumber
-	blockHash := rc.Evm.BlockHash
+	blockNum := rc.Evm.Context.BlockNumber
+	blockHash := rc.Evm.Context.BlockHash
 
 	res, err := rc.Plugin.GetDelegateReward(blockHash, blockNum.Uint64(), address, nodeIDs, state)
 	if err != nil {

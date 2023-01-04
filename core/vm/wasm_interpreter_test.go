@@ -14,7 +14,7 @@ import (
 func TestWASMInterpreterRun(t *testing.T) {
 	// good deploy
 	interp := &WASMInterpreter{
-		evm: &EVM{Context: Context{
+		evm: &EVM{Context: BlockContext{
 			CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 				return db.GetBalance(addr).Cmp(amount) >= 0
 			},

@@ -35,23 +35,23 @@ const (
 	eth65 = 65
 )
 
-// ProtocolName is the official short name of the protocol used during capability negotiation.
-var ProtocolName = "platon"
+// protocolName is the official short name of the protocol used during capability negotiation.
+var protocolName = "platon"
 
 // ProtocolVersions are the upported versions of the eth protocol (first is primary).
 var ProtocolVersions = []uint{eth65, eth63, eth62}
 
-// ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{40, 23, 8}
+// protocolLengths are the number of implemented message corresponding to different protocol versions.
+var protocolLengths = []uint64{40, 23, 8}
 
-const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
+const protocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
 // eth protocol message codes
 const (
 	// Protocol messages belonging to eth/62
 	StatusMsg          = 0x00
 	NewBlockHashesMsg  = 0x01
-	TxMsg              = 0x02
+	TransactionMsg     = 0x02
 	GetBlockHeadersMsg = 0x03
 	BlockHeadersMsg    = 0x04
 	GetBlockBodiesMsg  = 0x05
