@@ -462,7 +462,7 @@ func (bc *BlockChain) loadLastState() error {
 		if diskRoot != (common.Hash{}) {
 			log.Warn("Head state missing, repairing", "number", currentBlock.Number(), "hash", head, "snaproot", diskRoot)
 
-			snapDisk, err := bc.SetHeadBeyondRoot(head.NumberU64(), diskRoot)
+			snapDisk, err := bc.SetHeadBeyondRoot(currentBlock.Number().Uint64(), diskRoot)
 			if err != nil {
 				return err
 			}
@@ -471,7 +471,7 @@ func (bc *BlockChain) loadLastState() error {
 				rawdb.WriteSnapshotRecoveryNumber(bc.db, snapDisk)
 			}
 		} else {
-			log.Warn("Head state missing, repairing", "number", head.Number(), "hash", head.Hash())
+			log.Warn("Head state missing, repairing", "number", currentBlock.Number(), "hash", currentBlock.Hash())
 			if err := bc.repair(&currentBlock); err != nil {
 				return err
 			}
