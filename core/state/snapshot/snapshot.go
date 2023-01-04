@@ -147,6 +147,9 @@ type snapshot interface {
 
 	// AccountIterator creates an account iterator over an arbitrary layer.
 	AccountIterator(seek common.Hash) AccountIterator
+
+	// StorageIterator creates a storage iterator over an arbitrary layer.
+	StorageIterator(account common.Hash, seek common.Hash) (StorageIterator, bool)
 }
 
 // SnapshotTree is an Ethereum state snapshot tree. It consists of one persistent
