@@ -488,7 +488,6 @@ func (dl *diffLayer) flatten() snapshot {
 //
 // Note, the returned slice is not a copy, so do not modify it.
 func (dl *diffLayer) AccountList() []common.Hash {
-	// If an old list already exists, return it
 	dl.lock.RLock()
 	list := dl.accountList
 	dl.lock.RUnlock()

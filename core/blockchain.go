@@ -515,7 +515,7 @@ func (bc *BlockChain) loadLastState() error {
 // was fast synced or full synced and in which state, the method will try to
 // delete minimal data from disk whilst retaining chain consistency.
 func (bc *BlockChain) SetHead(head uint64) error {
-	_, err := bc.SetHeadBeyondRoot(head, common.Hash{}, false)
+	_, err := bc.SetHeadBeyondRoot(head, common.Hash{})
 	return err
 }
 
