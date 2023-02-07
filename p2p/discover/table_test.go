@@ -55,7 +55,7 @@ func testPingReplace(t *testing.T, newNodeIsResponding, lastInBucketIsResponding
 	<-tab.initDone
 
 	// Fill up the sender's bucket.
-	pingSender := NewNode(MustHexID("a502af0f59b2aab7746995408c79e9ca312d2793cc997e44fc55eda62f0150bbb8c59a6f9269ba3a081518b62699ee807c7c19c20125ddfccca872608af9e370"), net.IP{}, 99, 99)
+	pingSender := NewNode(MustHexID("a502af0f59b2aab7746995408c79e9ca312d2793cc997e44fc55eda62f0150bbb8c59a6f9269ba3a081518b62699ee807c7c19c20125ddfccca872608af9e370"), net.IP{127, 0, 0, 1}, 99, 99)
 	last := fillBucket(tab, pingSender)
 
 	// Add the sender as if it just pinged us. Revalidate should replace the last node in
@@ -335,7 +335,7 @@ func TestTable_Lookup(t *testing.T) {
 		t.Fatalf("lookup on empty table returned %d results: %#v", len(results), results)
 	}
 	// seed table with initial node (otherwise lookup will terminate immediately)
-	seed := NewNode(lookupTestnet.dists[256][0], net.IP{}, 256, 0)
+	seed := NewNode(lookupTestnet.dists[256][0], net.IP{127, 0, 0, 1}, 256, 0)
 	tab.stuff([]*Node{seed})
 
 	results := tab.Lookup(lookupTestnet.target)

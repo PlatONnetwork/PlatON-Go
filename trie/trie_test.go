@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
 
@@ -606,13 +607,14 @@ func TestDeepCopy(t *testing.T) {
 	root := common.Hash{}
 	tr, _ := NewSecure(root, triedb)
 	kv := make(map[common.Hash][]byte)
-	leafCB := func(leaf []byte, parent common.Hash) error {
+	codeWriter := triedb.DiskDB().NewBatch()
+	leafCB := func(path []byte, leaf []byte, parent common.Hash) error {
 		var valueKey common.Hash
 		_, content, _, err := rlp.Split(leaf)
 		assert.Nil(t, err)
 		valueKey.SetBytes(content)
 		if value, ok := kv[valueKey]; ok {
-			tr.trie.db.InsertBlob(valueKey, value)
+			rawdb.WriteCode(codeWriter, valueKey, value)
 		}
 
 		tr.trie.db.Reference(valueKey, parent)
@@ -629,6 +631,11 @@ func TestDeepCopy(t *testing.T) {
 		}
 
 		root, _ = tr.Commit(leafCB)
+		if codeWriter.ValueSize() > 0 {
+			if err := codeWriter.Write(); err != nil {
+				t.Fatal("Failed to commit dirty codes", "error", err)
+			}
+		}
 		parent = root
 		triedb.Reference(root, common.Hash{})
 		triedb.Commit(root, false, false)
@@ -682,12 +689,22 @@ func TestDeepCopy(t *testing.T) {
 	}
 	assert.Equal(t, len(kv), keys)
 	root, _ = tr2.Commit(leafCB)
+	if codeWriter.ValueSize() > 0 {
+		if err := codeWriter.Write(); err != nil {
+			t.Fatal("Failed to commit dirty codes", "error", err)
+		}
+	}
 	triedb.Reference(root, common.Hash{})
 	assert.Nil(t, triedb.Commit(root, false, false))
 	triedb.DereferenceDB(parent)
 	cpyRoot, _ := cpy.Commit(leafCB)
 	if root != cpyRoot {
 		t.Fatal("cpyroot failed")
+	}
+	if codeWriter.ValueSize() > 0 {
+		if err := codeWriter.Write(); err != nil {
+			t.Fatal("Failed to commit dirty codes", "error", err)
+		}
 	}
 	triedb.Reference(cpyRoot, common.Hash{})
 

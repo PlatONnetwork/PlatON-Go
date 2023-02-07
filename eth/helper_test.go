@@ -193,7 +193,7 @@ func newTestPeer(name string, version int, pm *ProtocolManager, shake bool) (*te
 	// Start the peer on a new thread
 	var id discover.NodeID
 	rand.Read(id[:])
-	peer := pm.newPeer(version, p2p.NewPeer(id, name, nil), net)
+	peer := pm.newPeer(version, p2p.NewPeer(id, name, nil), net, pm.txpool.Get)
 
 	// Start the peer on a new thread
 	errc := make(chan error, 1)

@@ -14,11 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package executor
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -101,11 +100,13 @@ func (exe *AsyncExecutor) ExecuteStatus() <-chan *BlockExecuteStatus {
 // If execute channel if full, will return a error.
 func (exe *AsyncExecutor) newTask(block *types.Block, parent *types.Block) error {
 	select {
+	case <-exe.closed:
+		return fmt.Errorf("asyncExecutor is stoped")
 	case exe.executeTasks <- &executeTask{parent: parent, block: block}:
 		return nil
-	default:
-		// FIXME: blocking if channel is full?
-		return errors.New("execute task queue is full")
+		//default:
+		//	// FIXME: blocking if channel is full?
+		//	return errors.New("execute task queue is full")
 	}
 }
 

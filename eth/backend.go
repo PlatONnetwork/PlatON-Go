@@ -243,8 +243,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache,
-			DBGCInterval: config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
+			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache, Preimages: config.Preimages,
+			TrieCleanJournal:   stack.ResolvePath(config.TrieCleanCacheJournal),
+			TrieCleanRejournal: config.TrieCleanCacheRejournal,
+			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
 		}
 
@@ -564,12 +566,6 @@ func (s *Ethereum) Start() error {
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := s.p2pServer.MaxPeers
-	if s.config.LightServ > 0 {
-		if s.config.LightPeers >= s.p2pServer.MaxPeers {
-			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, s.p2pServer.MaxPeers)
-		}
-		maxPeers -= s.config.LightPeers
-	}
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
 
@@ -596,6 +592,9 @@ func (s *Ethereum) Stop() error {
 	s.protocolManager.Stop()
 
 	// Then stop everything else.
+	// Only the operations related to block execution are stopped here
+	// and engine.Close cannot be called directly because it has a dependency on the following modules
+	s.engine.Stop()
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()

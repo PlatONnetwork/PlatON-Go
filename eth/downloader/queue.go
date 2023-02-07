@@ -30,6 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 var (
@@ -710,6 +711,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 		}
 	}
 	if accepted {
+		parentHash := headers[0].Hash()
 		for i, header := range headers[1:] {
 			hash := header.Hash()
 			if want := request.From + 1 + uint64(i); header.Number.Uint64() != want {
@@ -717,11 +719,13 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 				accepted = false
 				break
 			}
-			if headers[i].Hash() != header.ParentHash {
+			if parentHash != header.ParentHash {
 				log.Warn("Header broke chain ancestry", "peer", id, "number", header.Number, "hash", hash)
 				accepted = false
 				break
 			}
+			// Set-up parent hash for next round
+			parentHash = hash
 		}
 	}
 	// If the batch of headers wasn't accepted, mark as unavailable
@@ -782,7 +786,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 	}
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash && !equalExtra(header, extraData[index]) {
+		if types.DeriveSha(types.Transactions(txLists[index]), trie.NewStackTrie(nil)) != header.TxHash && !equalExtra(header, extraData[index]) {
 			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
@@ -800,7 +804,7 @@ func (q *queue) DeliverReceipts(id string, receiptList [][]*types.Receipt) (int,
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Receipts(receiptList[index])) != header.ReceiptHash {
+		if types.DeriveSha(types.Receipts(receiptList[index]), trie.NewStackTrie(nil)) != header.ReceiptHash {
 			return errInvalidReceipt
 		}
 		result.Receipts = receiptList[index]

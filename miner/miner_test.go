@@ -2,6 +2,7 @@ package miner
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"testing"
 	"time"
 
@@ -13,9 +14,11 @@ func minerStart(t *testing.T) *Miner {
 	cbft := consensus.NewFaker()
 
 	miner := &Miner{
-		engine:   cbft,
-		exitCh:   make(chan struct{}),
-		canStart: 1,
+		engine:  cbft,
+		mux:     new(event.TypeMux),
+		exitCh:  make(chan struct{}),
+		startCh: make(chan struct{}),
+		stopCh:  make(chan struct{}),
 		worker: &worker{
 			running:            0,
 			startCh:            make(chan struct{}),
@@ -23,6 +26,8 @@ func minerStart(t *testing.T) *Miner {
 			resubmitIntervalCh: make(chan time.Duration),
 		},
 	}
+
+	go miner.update()
 
 	go func() {
 		select {
@@ -41,8 +46,7 @@ func TestMiner_Start(t *testing.T) {
 
 	miner := minerStart(t)
 
-	assert.Equal(t, int32(1), miner.shouldStart,
-		fmt.Sprintf("After Start, the miner flag `shouldStart` expect: %d, got: %d", int32(1), miner.shouldStart))
+	assert.True(t, miner.Mining())
 	close(miner.worker.startCh)
 
 }
@@ -51,18 +55,19 @@ func TestMiner_Stop(t *testing.T) {
 	cbft := consensus.NewFaker()
 
 	miner := &Miner{
-		engine:      cbft,
-		exitCh:      make(chan struct{}),
-		shouldStart: 1,
+		mux:     new(event.TypeMux),
+		engine:  cbft,
+		exitCh:  make(chan struct{}),
+		startCh: make(chan struct{}),
+		stopCh:  make(chan struct{}),
 		worker: &worker{
 			running: 1,
 			//startCh: make(chan struct{}),
 		},
 	}
+	go miner.update()
 
 	miner.Stop()
-	assert.Equal(t, int32(0), miner.shouldStart,
-		fmt.Sprintf("After Stop, the miner flag `shouldStart` expect: %d, got: %d", int32(0), miner.shouldStart))
 	assert.Equal(t, int32(0), miner.worker.running,
 		fmt.Sprintf("After Stop, the worker flag `running` expect: %d, got: %d", int32(0), miner.worker.running))
 }

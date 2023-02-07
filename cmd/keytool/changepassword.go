@@ -52,13 +52,13 @@ Change the password of a keyfile.`,
 			}
 			newPhrase = strings.TrimRight(string(content), "\r\n")
 		} else {
-			newPhrase = promptPassphrase(true)
+			newPhrase = utils.GetPassPhrase("", true)
 		}
 
 		// Encrypt the key with the new passphrase.
 		newJson, err := keystore.EncryptKey(key, newPhrase, keystore.StandardScryptN, keystore.StandardScryptP)
 		if err != nil {
-			utils.Fatalf("Error encrypting with new passphrase: %v", err)
+			utils.Fatalf("Error encrypting with new password: %v", err)
 		}
 
 		// Then write the new keyfile in place of the old one.

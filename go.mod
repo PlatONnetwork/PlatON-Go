@@ -13,8 +13,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/docker/docker v17.12.0-ce-rc1.0.20180625184442-8e610b2b55bf+incompatible
-	github.com/dop251/goja v0.0.0-20200219165308-d1232e640a87
-	github.com/elastic/gosigar v0.14.1
+	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fatih/color v1.3.0
 	github.com/fjl/memsize v0.0.0-20180418122429-ca190fb6ffbc
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
@@ -23,17 +22,20 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
+	github.com/google/gofuzz v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/herumi/bls v1.30.0
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
+	github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/karalabe/hid v0.0.0-20170821103837-f00545f9f374
 	github.com/mattn/go-colorable v0.0.8-0.20170210172801-5411d3eea597
-	github.com/mattn/go-isatty v0.0.12
+	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5
@@ -59,7 +61,7 @@ require (
 	golang.org/x/tools v0.1.10
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
-	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200316214253-d7b0ff38cac9
+	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gotest.tools v2.2.0+incompatible
 )
