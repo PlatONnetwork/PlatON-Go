@@ -106,6 +106,7 @@ var (
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
+		utils.DNSDiscoveryFlag,
 		utils.DeveloperPeriodFlag,
 		utils.MainFlag,
 		utils.TestnetFlag,

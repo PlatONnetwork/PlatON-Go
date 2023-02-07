@@ -58,6 +58,8 @@ func (h resultHash) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h resultHash) Less(i, j int) bool { return bytes.Compare(h[i].Bytes(), h[j].Bytes()) < 0 }
 
 func TestAccountRange(t *testing.T) {
+	t.Parallel()
+
 	var (
 		statedb  = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), nil)
 		state, _ = state.New(common.Hash{}, statedb, nil)
@@ -156,6 +158,8 @@ func TestAccountRange(t *testing.T) {
 }
 
 func TestEmptyAccountRange(t *testing.T) {
+	t.Parallel()
+
 	var (
 		statedb  = state.NewDatabase(rawdb.NewMemoryDatabase())
 		state, _ = state.New(common.Hash{}, statedb, nil)

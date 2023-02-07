@@ -108,6 +108,11 @@ type Config struct {
 
 	CbftConfig types.OptionsConfig `toml:",omitempty"`
 
+	// This can be set to list of enrtree:// URLs which will be queried for
+	// for nodes to connect to.
+	// EthDiscoveryURLs  []string
+	SnapDiscoveryURLs []string
+
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
 	SyncMode  downloader.SyncMode

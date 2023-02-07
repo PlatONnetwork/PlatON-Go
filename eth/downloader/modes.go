@@ -38,7 +38,7 @@ func (mode SyncMode) String() string {
 	case FullSync:
 		return "full"
 	case SnapSync:
-		return "fast"
+		return "snap"
 	case LightSync:
 		return "light"
 	default:
@@ -51,7 +51,7 @@ func (mode SyncMode) MarshalText() ([]byte, error) {
 	case FullSync:
 		return []byte("full"), nil
 	case SnapSync:
-		return []byte("fast"), nil
+		return []byte("snap"), nil
 	case LightSync:
 		return []byte("light"), nil
 	default:
@@ -63,12 +63,12 @@ func (mode *SyncMode) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "full":
 		*mode = FullSync
-	case "fast":
+	case "snap":
 		*mode = SnapSync
 	case "light":
 		*mode = LightSync
 	default:
-		return fmt.Errorf(`unknown sync mode %q, want "full", "fast" or "light"`, text)
+		return fmt.Errorf(`unknown sync mode %q, want "full", "snap" or "light"`, text)
 	}
 	return nil
 }

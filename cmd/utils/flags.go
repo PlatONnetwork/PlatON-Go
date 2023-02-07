@@ -502,6 +502,10 @@ var (
 		Name:  "netrestrict",
 		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
 	}
+	DNSDiscoveryFlag = cli.StringFlag{
+		Name:  "discovery.dns",
+		Usage: "Sets DNS discovery entry points (use \"\" to disable DNS)",
+	}
 
 	// ATM the url is left to the user and deployment to
 	JSpathFlag = cli.StringFlag{
@@ -708,9 +712,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
-			urls = strings.Split(ctx.GlobalString(BootnodesV4Flag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV4Flag.Name))
 		} else {
-			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
@@ -738,9 +742,9 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV5Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV5Flag.Name) {
-			urls = strings.Split(ctx.GlobalString(BootnodesV5Flag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
 		} else {
-			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
+			urls = splitAndTrim(ctx.GlobalString(BootnodesV5Flag.Name))
 		}
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
