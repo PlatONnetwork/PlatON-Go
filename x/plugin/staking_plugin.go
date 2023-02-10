@@ -27,6 +27,7 @@ import (
 	"math/big"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -184,7 +185,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				historyValidatorIDList[i] = id
 				if sk.enableValidatorsHistory {
 					// Check that the simplified historical node information has been stored in the DB.
-					if v, err := sk.chainReaderDB.Get(staking.HistoryValidatorDBKey(id)); err != nil && err.Error() != "not found" {
+					if v, err := sk.chainReaderDB.Get(staking.HistoryValidatorDBKey(id)); err != nil && !strings.Contains(err.Error(), "not found") {
 						log.Error("Failed to get history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 						return err
 					} else if len(v) == 0 {
