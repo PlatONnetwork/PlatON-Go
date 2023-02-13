@@ -184,8 +184,9 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				historyValidatorList[i] = hv
 				historyValidatorIDList[i] = id
 				if sk.enableValidatorsHistory {
+					dbKey := staking.HistoryValidatorDBKey(id)
 					// Check that the simplified historical node information has been stored in the DB.
-					if v, err := sk.chainReaderDB.Get(staking.HistoryValidatorDBKey(id)); err != nil && !strings.Contains(err.Error(), "not found") {
+					if v, err := sk.chainReaderDB.Get(dbKey); err != nil && !strings.Contains(err.Error(), "not found") {
 						log.Error("Failed to get history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 						return err
 					} else if len(v) == 0 {
@@ -193,11 +194,11 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 							log.Error("rlp failed to encode historical node information", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 							return err
 						} else {
-							if err := sk.chainWriterDB.Put(staking.HistoryValidatorDBKey(id), enVal); err != nil {
+							if err := sk.chainWriterDB.Put(dbKey, enVal); err != nil {
 								log.Error("Failed to write to history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 								return err
 							}
-							log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(staking.HistoryValidatorDBKey(id)))
+							log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(dbKey))
 						}
 					}
 				}
@@ -215,7 +216,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 					return err
 				}
 				log.Debug("History validator list ID written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", next.Start, "nextRound", xutil.CalculateRound(blockNumber))
+					"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", next.Start, "nextRound", xutil.CalculateRound(next.Start))
 			}
 			listHash, err := historyValidatorList.Hash()
 			if err != nil {
