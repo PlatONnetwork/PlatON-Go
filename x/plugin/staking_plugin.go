@@ -197,6 +197,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 								log.Error("Failed to write to history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 								return err
 							}
+							log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(staking.HistoryValidatorDBKey(id)))
 						}
 					}
 				}
@@ -208,10 +209,13 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 					log.Error("rlp failed to encode ID list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
-				if err := sk.chainWriterDB.Put(staking.HistoryValidatorIDListKey(next.Start), hvIDListEnVal); err != nil {
+				dbKey := staking.HistoryValidatorIDListKey(next.Start)
+				if err := sk.chainWriterDB.Put(dbKey, hvIDListEnVal); err != nil {
 					log.Error("Failed to write to historical consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
+				log.Debug("History validator list ID written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+					"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", next.Start, "nextRound", xutil.CalculateRound(blockNumber))
 			}
 			listHash, err := historyValidatorList.Hash()
 			if err != nil {
@@ -260,6 +264,8 @@ func (sk *StakingPlugin) GetValidatorHistoryList(targetBlockNumber uint64) ([]*s
 		}
 		resultList = append(resultList, hve)
 	}
+	log.Debug("Query the list of nodes in a given consensus wheel", "targetBlockNumber", targetBlockNumber,
+		"targetRound", xutil.CalculateRound(targetBlockNumber), "listLength", len(resultList))
 	return resultList, nil
 }
 
