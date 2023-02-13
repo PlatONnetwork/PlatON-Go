@@ -165,7 +165,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 			// 1. Simplify the consensus node information
 			// 2. Calculate the identification ID
 			// 3. Compute the hash of the simplified list of node information
-			// 4. Store Hash in header.extra[0:32]
+			// 4. Replace the value of header.extra[0:32] with the Hash value.
 			// 5. Form a list of identification IDs in the order of block generation and write them into the DB
 			next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
 			if err != nil {
