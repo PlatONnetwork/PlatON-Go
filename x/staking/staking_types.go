@@ -17,6 +17,7 @@
 package staking
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -1102,4 +1103,12 @@ type HistoryValidatorEx struct {
 	Address   common.NodeAddress
 	NodeId    discover.NodeID
 	BlsPubKey bls.PublicKeyHex
+}
+
+func (h *HistoryValidatorEx) String() string {
+	v, err := json.Marshal(h)
+	if err != nil {
+		panic(err)
+	}
+	return string(v)
 }
