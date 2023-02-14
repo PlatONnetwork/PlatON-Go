@@ -183,51 +183,75 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 				id := hv.ID()
 				historyValidatorList[i] = hv
 				historyValidatorIDList[i] = id
-				if sk.enableValidatorsHistory {
-					dbKey := staking.HistoryValidatorDBKey(id)
-					// Check that the simplified historical node information has been stored in the DB.
-					if v, err := sk.chainReaderDB.Get(dbKey); err != nil && !strings.Contains(err.Error(), "not found") {
-						log.Error("Failed to get history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-						return err
-					} else if len(v) == 0 {
-						if enVal, err := hv.Encode(); err != nil {
-							log.Error("rlp failed to encode historical node information", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-							return err
-						} else {
-							if err := sk.chainWriterDB.Put(dbKey, enVal); err != nil {
-								log.Error("Failed to write to history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-								return err
-							}
-							log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(dbKey))
-						}
-					}
+				if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
+					return err
 				}
 			}
-			if sk.enableValidatorsHistory {
-				// rlp encoded and written to DB
-				hvIDListEnVal, err := historyValidatorIDList.Encode()
-				if err != nil {
-					log.Error("rlp failed to encode ID list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-				dbKey := staking.HistoryValidatorIDListKey(next.Start)
-				if err := sk.chainWriterDB.Put(dbKey, hvIDListEnVal); err != nil {
-					log.Error("Failed to write to historical consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-				log.Debug("History validator list ID written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
-					"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", next.Start, "nextRound", xutil.CalculateRound(next.Start))
+			if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
+				return err
 			}
 			listHash, err := historyValidatorList.Hash()
 			if err != nil {
 				log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 				return err
 			}
-			// The hash value will be signed by the node.
-			// will also be counted in the block Hash.
-			copy(header.Extra[:32], listHash.Bytes())
+			// The outgoing block node writes to extra.
+			// Non-outgoing block nodes validate extra.
+			if xutil.IsWorker(header.Extra) {
+				// The hash value will be signed by the node.
+				// will also be counted in the block Hash.
+				copy(header.Extra[:32], listHash.Bytes())
+			} else {
+				if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
+					return errors.New("historical validator list Hash is not the same")
+				}
+			}
 			log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
 		}
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) writeHistoryValidator(id common.Hash, hv *staking.HistoryValidator, blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	if sk.enableValidatorsHistory {
+		blockNumber := header.Number.Uint64()
+		dbKey := staking.HistoryValidatorDBKey(id)
+		// Check that the simplified historical node information has been stored in the DB.
+		if v, err := sk.chainReaderDB.Get(dbKey); err != nil && !strings.Contains(err.Error(), "not found") {
+			log.Error("Failed to get history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		} else if len(v) == 0 {
+			if enVal, err := hv.Encode(); err != nil {
+				log.Error("rlp failed to encode historical node information", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return err
+			} else {
+				if err := sk.chainWriterDB.Put(dbKey, enVal); err != nil {
+					log.Error("Failed to write to history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
+				log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(dbKey))
+			}
+		}
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) writeHistoryValidatorIDList(idList staking.HistoryValidatorIDList, nextStart uint64, blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	if sk.enableValidatorsHistory {
+		blockNumber := header.Number.Uint64()
+		// rlp encoded and written to DB
+		hvIDListEnVal, err := idList.Encode()
+		if err != nil {
+			log.Error("rlp failed to encode ID list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		dbKey := staking.HistoryValidatorIDListKey(nextStart)
+		if err := sk.chainWriterDB.Put(dbKey, hvIDListEnVal); err != nil {
+			log.Error("Failed to write to historical consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		log.Debug("History validator list ID written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", nextStart, "nextRound", xutil.CalculateRound(nextStart))
 	}
 	return nil
 }
