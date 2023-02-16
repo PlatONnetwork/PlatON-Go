@@ -101,6 +101,52 @@ type Signer interface {
 	//	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
 }
 
+// HomesteadSigner implements Signer interface using the
+// homestead rules.
+type HomesteadSigner struct {
+}
+
+func (hs HomesteadSigner) Equal(s2 Signer) bool {
+	_, ok := s2.(HomesteadSigner)
+	return ok
+}
+
+// Hash returns the hash to be signed by the sender.
+// It does not uniquely identify the transaction.
+func (hs HomesteadSigner) Hash(tx *Transaction, chainId *big.Int) common.Hash {
+	return rlpHash([]interface{}{
+		tx.data.AccountNonce,
+		tx.data.Price,
+		tx.data.GasLimit,
+		tx.data.Recipient,
+		tx.data.Amount,
+		tx.data.Payload,
+		uint(0), uint(0),
+	})
+}
+
+// SignatureValues returns signature values. This signature
+// needs to be in the [R || S || V] format where V is 0 or 1.
+func (hs HomesteadSigner) SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
+	r, s, v = decodeSignature(sig)
+	return r, s, v, nil
+}
+
+func (hs HomesteadSigner) Sender(tx *Transaction) (common.Address, error) {
+	v, r, s := tx.RawSignatureValues()
+	return recoverPlain(hs.Hash(tx, nil), r, s, v, true)
+}
+
+func decodeSignature(sig []byte) (r, s, v *big.Int) {
+	if len(sig) != crypto.SignatureLength {
+		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), crypto.SignatureLength))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v
+}
+
 // EIP155Transaction implements Signer using the EIP155 rules.
 type EIP155Signer struct {
 	chainId, chainIdMul *big.Int
@@ -124,6 +170,9 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
+	if !tx.Protected() {
+		return HomesteadSigner{}.Sender(tx)
+	}
 	txChainId := tx.ChainId()
 	if txChainId.Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
@@ -137,14 +186,9 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s EIP155Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != crypto.SignatureLength {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
-	}
-	R = new(big.Int).SetBytes(sig[:32])
-	S = new(big.Int).SetBytes(sig[32:64])
+	R, S, V = decodeSignature(sig)
 	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
 	V.Add(V, s.chainIdMul)
-
 	return R, S, V, nil
 }
 
@@ -201,6 +245,9 @@ func (s PIP7Signer) Equal(s2 Signer) bool {
 }
 
 func (s PIP7Signer) Sender(tx *Transaction) (common.Address, error) {
+	if !tx.Protected() {
+		return HomesteadSigner{}.Sender(tx)
+	}
 	txChainId := tx.ChainId()
 	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
@@ -248,14 +295,9 @@ func (s PIP7Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte,
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != 65 {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
-	}
-	R = new(big.Int).SetBytes(sig[:32])
-	S = new(big.Int).SetBytes(sig[32:64])
+	R, S, V = decodeSignature(sig)
 	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
 	V.Add(V, s.chainIdMul)
-
 	return R, S, V, nil
 }
 
