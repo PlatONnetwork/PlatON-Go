@@ -177,6 +177,7 @@ var (
 		utils.DBGCTimeoutFlag,
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
+		utils.DBValidatorsHistoryFlag,
 	}
 
 	vmFlags = []cli.Flag{

@@ -119,15 +119,16 @@ type Config struct {
 
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 
-	TrieCache    int
-	TrieTimeout  time.Duration
-	TrieDBCache  int
-	Preimages    bool
-	DBDisabledGC bool
-	DBGCInterval uint64
-	DBGCTimeout  time.Duration
-	DBGCMpt      bool
-	DBGCBlock    int
+	TrieCache           int
+	TrieTimeout         time.Duration
+	TrieDBCache         int
+	Preimages           bool
+	DBDisabledGC        bool
+	DBGCInterval        uint64
+	DBGCTimeout         time.Duration
+	DBGCMpt             bool
+	DBGCBlock           int
+	DBValidatorsHistory bool
 
 	// VM options
 	VMWasmType        string

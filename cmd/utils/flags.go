@@ -625,6 +625,10 @@ var (
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
 	}
+	DBValidatorsHistoryFlag = cli.BoolFlag{
+		Name:  "db.validators_history",
+		Usage: "Store the list of validators for each consensus round",
+	}
 
 	VMWasmType = cli.StringFlag{
 		Name:   "vm.wasm_type",
@@ -1191,6 +1195,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}
+	}
+	if ctx.GlobalIsSet(DBValidatorsHistoryFlag.Name) {
+		cfg.DBValidatorsHistory = ctx.GlobalBool(DBValidatorsHistoryFlag.Name)
 	}
 
 	// Read the value from the flag no matter if it's set or not.
