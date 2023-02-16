@@ -17,7 +17,10 @@
 package staking
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"strings"
 
@@ -1031,4 +1034,81 @@ func (queue SlashQueue) String() string {
 		arr[i] = s.String()
 	}
 	return "[" + strings.Join(arr, ",") + "]"
+}
+
+// For historical node records.
+// Store historical node information and participate in hash calculation.
+type HistoryValidator struct {
+	NodeId    discover.NodeID
+	BlsPubKey bls.PublicKeyHex
+}
+
+func (hv *HistoryValidator) ID() common.Hash {
+	rawVal := make([]byte, 0)
+	rawVal = append(rawVal, hv.NodeId[:]...)
+	rawVal = append(rawVal, hv.BlsPubKey[:]...)
+	return crypto.Keccak256Hash(rawVal)
+}
+
+func HistoryValidatorDBKey(ID common.Hash) []byte {
+	prefix := []byte("hn")
+	return append(prefix, ID.Bytes()...)
+}
+
+func (hv *HistoryValidator) Encode() ([]byte, error) {
+	enVal, err := rlp.EncodeToBytes(hv)
+	if err != nil {
+		return nil, err
+	}
+	return enVal, nil
+}
+
+func (hv *HistoryValidator) Decode(enVal []byte) error {
+	return rlp.DecodeBytes(enVal, &hv)
+}
+
+type HistoryValidatorIDList []common.Hash
+
+func HistoryValidatorIDListKey(blockNumber uint64) []byte {
+	prefix := []byte("hl")
+	roundBytes := common.Uint32ToBytes(uint32(xutil.CalculateRound(blockNumber)))
+	return append(prefix, roundBytes...)
+}
+
+func (hvil HistoryValidatorIDList) Encode() ([]byte, error) {
+	enVal, err := rlp.EncodeToBytes(hvil)
+	if err != nil {
+		return nil, err
+	}
+	return enVal, nil
+}
+
+func (hvil HistoryValidatorIDList) Decode(enVal []byte) error {
+	return rlp.DecodeBytes(enVal, &hvil)
+}
+
+type HistoryValidatorList []*HistoryValidator
+
+// Calculating the Hash of the Consensus Wheel Node List.
+func (hvl HistoryValidatorList) Hash() (common.Hash, error) {
+	enVal, err := rlp.EncodeToBytes(hvl)
+	if err != nil {
+		return common.ZeroHash, err
+	}
+	return crypto.Keccak256Hash(enVal), nil
+}
+
+// Structure returned to the external caller.
+type HistoryValidatorEx struct {
+	Address   common.NodeAddress
+	NodeId    discover.NodeID
+	BlsPubKey bls.PublicKeyHex
+}
+
+func (h *HistoryValidatorEx) String() string {
+	v, err := json.Marshal(h)
+	if err != nil {
+		panic(err)
+	}
+	return string(v)
 }
