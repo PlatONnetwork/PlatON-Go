@@ -39,9 +39,11 @@ type sigCache struct {
 }
 
 // MakeSigner returns a Signer based on the given chain config and block number.
-func MakeSigner(config *params.ChainConfig, pip7 bool) Signer {
+func MakeSigner(config *params.ChainConfig, pip7 bool, gte140 bool) Signer {
 	var signer Signer
-	if pip7 {
+	if gte140 {
+		signer = NewUnprotectedSigner(config.ChainID, config.PIP7ChainID)
+	} else if pip7 {
 		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
 	} else {
 		signer = NewEIP155Signer(config.ChainID)
@@ -170,9 +172,6 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	if !tx.Protected() {
-		return HomesteadSigner{}.Sender(tx)
-	}
 	txChainId := tx.ChainId()
 	if txChainId.Cmp(s.chainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
@@ -210,16 +209,6 @@ func (s EIP155Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	})
 }
 
-func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
-
-	if tx.ChainId().Cmp(s.chainId) != 0 {
-		return common.Address{}, []byte{}, ErrInvalidChainId
-	}
-	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
-	V.Sub(V, big8)
-	return recoverPubKeyAndSender(s.Hash(tx, s.chainId), tx.data.R, tx.data.S, V, true)
-}
-
 type PIP7Signer struct {
 	EIP155Signer
 	chainId, chainIdMul         *big.Int
@@ -245,9 +234,6 @@ func (s PIP7Signer) Equal(s2 Signer) bool {
 }
 
 func (s PIP7Signer) Sender(tx *Transaction) (common.Address, error) {
-	if !tx.Protected() {
-		return HomesteadSigner{}.Sender(tx)
-	}
 	txChainId := tx.ChainId()
 	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
 		return common.Address{}, ErrInvalidChainId
@@ -266,7 +252,7 @@ func (s PIP7Signer) Sender(tx *Transaction) (common.Address, error) {
 func (s PIP7Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	cid := chainId
 	if chainId == nil {
-		cid = s.chainId
+		cid = s.PIP7ChainId
 	}
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
@@ -279,26 +265,38 @@ func (s PIP7Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	})
 }
 
-func (s PIP7Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
-	txChainId := tx.ChainId()
-	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
-		return common.Address{}, []byte{}, ErrInvalidChainId
-	}
-	//ChainIdMul
-	V := new(big.Int).Sub(tx.data.V, txChainId.Mul(txChainId, big.NewInt(2)))
-	V.Sub(V, big8)
-
-	return recoverPubKeyAndSender(s.Hash(tx, txChainId), tx.data.R, tx.data.S, V, true)
-}
-
 // SignatureValues returns the raw R, S, V values corresponding to the
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
 	R, S, V = decodeSignature(sig)
 	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
-	V.Add(V, s.chainIdMul)
+	V.Add(V, s.PIP7ChainIdMul)
 	return R, S, V, nil
+}
+
+// Allow for unprotected (non EIP155 signed) transactions to be submitted and executed
+// effective in version 1.4.0
+type UnprotectedSigner struct {
+	PIP7Signer
+}
+
+func NewUnprotectedSigner(chainId *big.Int, pip7ChainId *big.Int) UnprotectedSigner {
+	return UnprotectedSigner{
+		NewPIP7Signer(chainId, pip7ChainId),
+	}
+}
+
+func (s UnprotectedSigner) Equal(s2 Signer) bool {
+	us, ok := s2.(UnprotectedSigner)
+	return ok && us.chainId.Cmp(s.chainId) == 0 && us.PIP7ChainId.Cmp(s.PIP7ChainId) == 0
+}
+
+func (s UnprotectedSigner) Sender(tx *Transaction) (common.Address, error) {
+	if !tx.Protected() {
+		return HomesteadSigner{}.Sender(tx)
+	}
+	return s.PIP7Signer.Sender(tx)
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
@@ -326,34 +324,6 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	var addr common.Address
 	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil
-}
-
-func recoverPubKeyAndSender(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, []byte, error) {
-	if Vb.BitLen() > 8 {
-		return common.Address{}, []byte{}, ErrInvalidSig
-	}
-	V := byte(Vb.Uint64() - 27)
-	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
-		return common.Address{}, []byte{}, ErrInvalidSig
-	}
-	// encode the snature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r):32], r)
-	copy(sig[64-len(s):64], s)
-	sig[64] = V
-	// recover the public key from the snature
-	pub, err := crypto.Ecrecover(sighash[:], sig)
-	if err != nil {
-		return common.Address{}, []byte{}, err
-	}
-	if len(pub) == 0 || pub[0] != 4 {
-		return common.Address{}, []byte{}, errors.New("invalid public key")
-	}
-	pubValid := crypto.Keccak256(pub[1:])
-	var addr common.Address
-	copy(addr[:], pubValid[12:])
-	return addr, pub[1:], nil
 }
 
 // deriveChainId derives the chain id from the given v parameter
