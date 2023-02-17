@@ -144,7 +144,8 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	}
 }
 
-// ChainId returns which chain id this transaction was signed for (if at all)
+// ChainId returns the EIP155 chain ID of the transaction. The return value will always be
+// non-nil. For transactions which are not replay-protected, the return value is zero.
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
