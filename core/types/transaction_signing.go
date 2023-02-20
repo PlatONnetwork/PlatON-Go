@@ -39,9 +39,11 @@ type sigCache struct {
 }
 
 // MakeSigner returns a Signer based on the given chain config and block number.
-func MakeSigner(config *params.ChainConfig, pip7 bool) Signer {
+func MakeSigner(config *params.ChainConfig, pip7 bool, gte140 bool) Signer {
 	var signer Signer
-	if pip7 {
+	if gte140 {
+		signer = NewUnprotectedSigner(config.ChainID, config.PIP7ChainID)
+	} else if pip7 {
 		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
 	} else {
 		signer = NewEIP155Signer(config.ChainID)
@@ -101,6 +103,52 @@ type Signer interface {
 	//	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
 }
 
+// HomesteadSigner implements Signer interface using the
+// homestead rules.
+type HomesteadSigner struct {
+}
+
+func (hs HomesteadSigner) Equal(s2 Signer) bool {
+	_, ok := s2.(HomesteadSigner)
+	return ok
+}
+
+// Hash returns the hash to be signed by the sender.
+// It does not uniquely identify the transaction.
+func (hs HomesteadSigner) Hash(tx *Transaction, chainId *big.Int) common.Hash {
+	return rlpHash([]interface{}{
+		tx.data.AccountNonce,
+		tx.data.Price,
+		tx.data.GasLimit,
+		tx.data.Recipient,
+		tx.data.Amount,
+		tx.data.Payload,
+		uint(0), uint(0),
+	})
+}
+
+// SignatureValues returns signature values. This signature
+// needs to be in the [R || S || V] format where V is 0 or 1.
+func (hs HomesteadSigner) SignatureValues(sig []byte) (r, s, v *big.Int, err error) {
+	r, s, v = decodeSignature(sig)
+	return r, s, v, nil
+}
+
+func (hs HomesteadSigner) Sender(tx *Transaction) (common.Address, error) {
+	v, r, s := tx.RawSignatureValues()
+	return recoverPlain(hs.Hash(tx, nil), r, s, v, true)
+}
+
+func decodeSignature(sig []byte) (r, s, v *big.Int) {
+	if len(sig) != crypto.SignatureLength {
+		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), crypto.SignatureLength))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v
+}
+
 // EIP155Transaction implements Signer using the EIP155 rules.
 type EIP155Signer struct {
 	chainId, chainIdMul *big.Int
@@ -137,14 +185,9 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s EIP155Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != crypto.SignatureLength {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
-	}
-	R = new(big.Int).SetBytes(sig[:32])
-	S = new(big.Int).SetBytes(sig[32:64])
+	R, S, V = decodeSignature(sig)
 	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
 	V.Add(V, s.chainIdMul)
-
 	return R, S, V, nil
 }
 
@@ -164,16 +207,6 @@ func (s EIP155Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 		tx.data.Payload,
 		cid, uint(0), uint(0),
 	})
-}
-
-func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
-
-	if tx.ChainId().Cmp(s.chainId) != 0 {
-		return common.Address{}, []byte{}, ErrInvalidChainId
-	}
-	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
-	V.Sub(V, big8)
-	return recoverPubKeyAndSender(s.Hash(tx, s.chainId), tx.data.R, tx.data.S, V, true)
 }
 
 type PIP7Signer struct {
@@ -219,7 +252,7 @@ func (s PIP7Signer) Sender(tx *Transaction) (common.Address, error) {
 func (s PIP7Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	cid := chainId
 	if chainId == nil {
-		cid = s.chainId
+		cid = s.PIP7ChainId
 	}
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
@@ -232,31 +265,38 @@ func (s PIP7Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	})
 }
 
-func (s PIP7Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
-	txChainId := tx.ChainId()
-	if txChainId.Cmp(s.chainId) != 0 && txChainId.Cmp(s.PIP7ChainId) != 0 {
-		return common.Address{}, []byte{}, ErrInvalidChainId
-	}
-	//ChainIdMul
-	V := new(big.Int).Sub(tx.data.V, txChainId.Mul(txChainId, big.NewInt(2)))
-	V.Sub(V, big8)
-
-	return recoverPubKeyAndSender(s.Hash(tx, txChainId), tx.data.R, tx.data.S, V, true)
-}
-
 // SignatureValues returns the raw R, S, V values corresponding to the
 // given signature.This signature
 // needs to be in the [R || S || V] format where V is 0 or 1.
 func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
-	if len(sig) != 65 {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want 65", len(sig)))
-	}
-	R = new(big.Int).SetBytes(sig[:32])
-	S = new(big.Int).SetBytes(sig[32:64])
+	R, S, V = decodeSignature(sig)
 	V = new(big.Int).SetBytes([]byte{sig[64] + 35})
-	V.Add(V, s.chainIdMul)
-
+	V.Add(V, s.PIP7ChainIdMul)
 	return R, S, V, nil
+}
+
+// Allow for unprotected (non EIP155 signed) transactions to be submitted and executed
+// effective in version 1.4.0
+type UnprotectedSigner struct {
+	PIP7Signer
+}
+
+func NewUnprotectedSigner(chainId *big.Int, pip7ChainId *big.Int) UnprotectedSigner {
+	return UnprotectedSigner{
+		NewPIP7Signer(chainId, pip7ChainId),
+	}
+}
+
+func (s UnprotectedSigner) Equal(s2 Signer) bool {
+	us, ok := s2.(UnprotectedSigner)
+	return ok && us.chainId.Cmp(s.chainId) == 0 && us.PIP7ChainId.Cmp(s.PIP7ChainId) == 0
+}
+
+func (s UnprotectedSigner) Sender(tx *Transaction) (common.Address, error) {
+	if !tx.Protected() {
+		return HomesteadSigner{}.Sender(tx)
+	}
+	return s.PIP7Signer.Sender(tx)
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
@@ -286,48 +326,15 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	return addr, nil
 }
 
-func recoverPubKeyAndSender(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, []byte, error) {
-	if Vb.BitLen() > 8 {
-		return common.Address{}, []byte{}, ErrInvalidSig
-	}
-	V := byte(Vb.Uint64() - 27)
-	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
-		return common.Address{}, []byte{}, ErrInvalidSig
-	}
-	// encode the snature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r):32], r)
-	copy(sig[64-len(s):64], s)
-	sig[64] = V
-	// recover the public key from the snature
-	pub, err := crypto.Ecrecover(sighash[:], sig)
-	if err != nil {
-		return common.Address{}, []byte{}, err
-	}
-	if len(pub) == 0 || pub[0] != 4 {
-		return common.Address{}, []byte{}, errors.New("invalid public key")
-	}
-	pubValid := crypto.Keccak256(pub[1:])
-	var addr common.Address
-	copy(addr[:], pubValid[12:])
-	return addr, pub[1:], nil
-}
-
 // deriveChainId derives the chain id from the given v parameter
 func deriveChainId(v *big.Int) *big.Int {
-	if v == nil {
-		return nil
-	}
 	if v.BitLen() <= 64 {
 		v := v.Uint64()
 		if v == 27 || v == 28 {
 			return new(big.Int)
 		}
+		return new(big.Int).SetUint64((v - 35) / 2)
 	}
-	if v.Cmp(big.NewInt(35)) >= 0 {
-		v = new(big.Int).Sub(v, big.NewInt(35))
-		return v.Div(v, big.NewInt(2))
-	}
-	return nil
+	v = new(big.Int).Sub(v, big.NewInt(35))
+	return v.Div(v, big.NewInt(2))
 }

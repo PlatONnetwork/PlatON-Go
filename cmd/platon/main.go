@@ -147,6 +147,7 @@ var (
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
 		utils.RPCGlobalTxFeeCapFlag,
+		utils.AllowUnprotectedTxs,
 	}
 
 	metricsFlags = []cli.Flag{

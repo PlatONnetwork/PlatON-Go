@@ -1547,11 +1547,15 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
 		return common.Hash{}, fmt.Errorf("tx fee (%.2f lat) exceeds the configured cap (%.2f lat)", feeFloat, b.RPCTxFeeCap())
 	}
+	if !b.UnprotectedAllowed() && !tx.Protected() {
+		// Ensure only eip155 signed transactions are submitted if EIP155Required is set.
+		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
+	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.MakeSigner(b.ChainConfig(), true)
+		signer := types.MakeSigner(b.ChainConfig(), true, true)
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err

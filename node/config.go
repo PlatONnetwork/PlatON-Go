@@ -126,6 +126,9 @@ type Config struct {
 	// Requests using ip address directly are not affected
 	HTTPVirtualHosts []string `toml:",omitempty"`
 
+	// AllowUnprotectedTxs allows non EIP-155 protected transactions to be send over RPC.
+	AllowUnprotectedTxs bool `toml:",omitempty"`
+
 	// HTTPModules is a list of API modules to expose via the HTTP RPC interface.
 	// If the module list is empty, all RPC API endpoints designated public will be
 	// exposed.

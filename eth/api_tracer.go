@@ -460,7 +460,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.eth.blockchain.Config(), false)
+		signer = types.MakeSigner(api.eth.blockchain.Config(), false, false)
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
@@ -556,7 +556,7 @@ func (api *PrivateDebugAPI) standardTraceBlockToFile(ctx context.Context, block 
 
 	// Execute transaction, either tracing all or just the requested one
 	var (
-		signer      = types.MakeSigner(api.eth.blockchain.Config(), false)
+		signer      = types.MakeSigner(api.eth.blockchain.Config(), false, false)
 		dumps       []string
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.eth.blockchain)
 		chainConfig = api.eth.blockchain.Config()
