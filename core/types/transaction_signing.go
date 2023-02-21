@@ -117,13 +117,6 @@ func (hs HomesteadSigner) Equal(s2 Signer) bool {
 // It does not uniquely identify the transaction.
 func (hs HomesteadSigner) Hash(tx *Transaction, chainId *big.Int) common.Hash {
 	return rlpHash([]interface{}{
-		//tx.data.AccountNonce,
-		//tx.data.Price,
-		//tx.data.GasLimit,
-		//tx.data.Recipient,
-		//tx.data.Amount,
-		//tx.data.Payload,
-		//uint(0), uint(0),
 		tx.Nonce(),
 		tx.GasPrice(),
 		tx.Gas(),
