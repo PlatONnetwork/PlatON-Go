@@ -42,7 +42,7 @@ type sigCache struct {
 func MakeSigner(config *params.ChainConfig, pip7 bool, gte140 bool) Signer {
 	var signer Signer
 	if gte140 {
-		signer = NewUnprotectedSigner(config.ChainID, config.PIP7ChainID)
+		signer = NewPIP11Signer(config.ChainID, config.PIP7ChainID)
 	} else if pip7 {
 		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
 	} else {
@@ -276,26 +276,35 @@ func (s PIP7Signer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
 
 // Allow for unprotected (non EIP155 signed) transactions to be submitted and executed
 // effective in version 1.4.0
-type UnprotectedSigner struct {
+type PIP11Signer struct {
 	PIP7Signer
 }
 
-func NewUnprotectedSigner(chainId *big.Int, pip7ChainId *big.Int) UnprotectedSigner {
-	return UnprotectedSigner{
+func NewPIP11Signer(chainId *big.Int, pip7ChainId *big.Int) PIP11Signer {
+	return PIP11Signer{
 		NewPIP7Signer(chainId, pip7ChainId),
 	}
 }
 
-func (s UnprotectedSigner) Equal(s2 Signer) bool {
-	us, ok := s2.(UnprotectedSigner)
+func (s PIP11Signer) Equal(s2 Signer) bool {
+	us, ok := s2.(PIP11Signer)
 	return ok && us.chainId.Cmp(s.chainId) == 0 && us.PIP7ChainId.Cmp(s.PIP7ChainId) == 0
 }
 
-func (s UnprotectedSigner) Sender(tx *Transaction) (common.Address, error) {
+func (s PIP11Signer) Sender(tx *Transaction) (common.Address, error) {
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}
 	return s.PIP7Signer.Sender(tx)
+}
+
+// Hash returns the hash to be signed by the sender.
+// It does not uniquely identify the transaction.
+func (s PIP11Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
+	if !tx.Protected() {
+		return HomesteadSigner{}.Hash(tx, chainId)
+	}
+	return s.PIP7Signer.Hash(tx, chainId)
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {

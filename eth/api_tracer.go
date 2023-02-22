@@ -204,7 +204,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.NewEIP155Signer(api.eth.blockchain.Config().ChainID)
+				signer := types.NewPIP11Signer(api.eth.blockchain.Config().ChainID, api.eth.blockchain.Config().PIP7ChainID)
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.eth.blockchain)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
@@ -853,7 +853,7 @@ func (api *PrivateDebugAPI) computeTxEnv(block *types.Block, txIndex int, reexec
 	}
 
 	// Recompute transactions up to the target index.
-	signer := types.NewEIP155Signer(api.eth.blockchain.Config().ChainID)
+	signer := types.NewPIP11Signer(api.eth.blockchain.Config().ChainID, api.eth.blockchain.Config().PIP7ChainID)
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer)
