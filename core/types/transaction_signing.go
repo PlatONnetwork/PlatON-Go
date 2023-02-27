@@ -298,15 +298,6 @@ func (s PIP11Signer) Sender(tx *Transaction) (common.Address, error) {
 	return s.PIP7Signer.Sender(tx)
 }
 
-// Hash returns the hash to be signed by the sender.
-// It does not uniquely identify the transaction.
-func (s PIP11Signer) Hash(tx *Transaction, chainId *big.Int) common.Hash {
-	if !tx.Protected() {
-		return HomesteadSigner{}.Hash(tx, chainId)
-	}
-	return s.PIP7Signer.Hash(tx, chainId)
-}
-
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
