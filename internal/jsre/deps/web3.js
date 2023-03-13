@@ -5598,6 +5598,12 @@ var inputAddressFormatter = function (address) {
         outputFormatter: formatters.outputBigNumberFormatter
       });
 
+      var getMultiBalance = new Method({
+        name: 'getMultiBalance',
+        call: 'platon_getMultiBalance',
+        params: 2
+      });
+
       var getStorageAt = new Method({
         name: 'getStorageAt',
         call: 'platon_getStorageAt',
@@ -5711,6 +5717,7 @@ var inputAddressFormatter = function (address) {
       return [
         getAddressHrp,
         getBalance,
+        getMultiBalance,
         getStorageAt,
         getCode,
         getBlock,

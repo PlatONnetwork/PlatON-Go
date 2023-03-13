@@ -544,6 +544,19 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
+func (s *PublicBlockChainAPI) GetMultiBalance(ctx context.Context, addresses []common.Address, blockNrOrHash rpc.BlockNumberOrHash) []*hexutil.Big {
+	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
+	if state == nil || err != nil {
+		return nil
+	}
+	state.ClearParentReference()
+	result := make([]*hexutil.Big, len(addresses))
+	for idx, address := range addresses {
+		result[idx] = (*hexutil.Big)(state.GetBalance(address))
+	}
+	return result
+}
+
 func (s *PublicBlockChainAPI) GetAddressHrp() string {
 	stored := rawdb.ReadCanonicalHash(s.b.ChainDb(), 0)
 	chainConfig := rawdb.ReadChainConfig(s.b.ChainDb(), stored)
