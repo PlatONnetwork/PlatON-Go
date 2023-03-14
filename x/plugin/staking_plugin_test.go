@@ -4119,7 +4119,6 @@ func TestStakingPlugin_RandSeedShuffle(t *testing.T) {
 }
 
 func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
-	log.Root().SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	state := mock.NewMockStateDB()
 	newPlugins()
 	build_gov_data(state)
