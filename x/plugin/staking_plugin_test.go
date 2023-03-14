@@ -25,7 +25,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	mrand "math/rand"
-	"os"
 	"testing"
 	"time"
 
