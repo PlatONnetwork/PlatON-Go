@@ -18,8 +18,8 @@ package plugin
 
 import (
 	"context"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 )
 
@@ -38,7 +38,11 @@ func (p *PublicPPOSAPI) GetWaitSlashingNodeList() string {
 	if nil != err || len(list) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%+v", list)
+	enVal, err := json.Marshal(list)
+	if err != nil {
+		return ""
+	}
+	return string(enVal)
 }
 
 func (p *PublicPPOSAPI) GetValidatorByBlockNumber(ctx context.Context, blockNumber uint64) string {
@@ -46,5 +50,6 @@ func (p *PublicPPOSAPI) GetValidatorByBlockNumber(ctx context.Context, blockNumb
 	if nil != err || len(list) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%+v", list)
+	enVal, err := json.Marshal(list)
+	return string(enVal)
 }
