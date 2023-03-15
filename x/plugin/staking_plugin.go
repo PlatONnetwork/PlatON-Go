@@ -24,8 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	math2 "math"
 	"math/big"
 	"math/rand"

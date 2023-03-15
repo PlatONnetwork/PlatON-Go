@@ -126,10 +126,10 @@ func (rc *RestrictingContract) getRestrictingBalance(accounts string) ([]byte, e
 	}
 
 	txHash := rc.Evm.StateDB.TxHash()
-	currNumber := rc.Evm.BlockNumber
+	currNumber := rc.Evm.Context.BlockNumber
 	state := rc.Evm.StateDB
-	blockNumber := rc.Evm.BlockNumber
-	blockHash := rc.Evm.BlockHash
+	blockNumber := rc.Evm.Context.BlockNumber
+	blockHash := rc.Evm.Context.BlockHash
 
 	log.Info("Call getRestrictingBalance of RestrictingContract", "txHash", txHash.Hex(), "blockNumber", currNumber.Uint64())
 

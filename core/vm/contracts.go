@@ -1038,7 +1038,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	}
 	if seedNum == 1 {
 		if txHash != common.ZeroHash {
-			vrfstatistics.Tool.AddRequest(v.Evm.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
+			vrfstatistics.Tool.AddRequest(v.Evm.Context.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
 		}
 		return randomNumbers, nil
 	}
@@ -1070,7 +1070,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		}
 	}
 	if txHash != common.ZeroHash {
-		vrfstatistics.Tool.AddRequest(v.Evm.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
+		vrfstatistics.Tool.AddRequest(v.Evm.Context.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
 	}
 	return randomNumbers, nil
 }

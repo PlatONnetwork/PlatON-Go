@@ -927,7 +927,7 @@ func makeSwap(size int64) executionFunc {
 }
 
 func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code string) {
-	blockNum := interpreter.evm.BlockNumber
+	blockNum := interpreter.evm.Context.BlockNumber
 	txHash := interpreter.evm.StateDB.TxHash().String()
 	input := hex.EncodeToString(inputData)
 

@@ -910,7 +910,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 func (stkc *StakingContract) getHistoryVerifierList(blockNumber *big.Int) ([]byte, error) {
 
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetHistoryVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartIrr)
 	if nil != err {
@@ -947,7 +947,7 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]byte, error) {
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetHistoryValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err {
@@ -965,7 +965,7 @@ func (stkc *StakingContract) getHistoryValidatorList(blockNumber *big.Int) ([]by
 }
 
 func (stkc *StakingContract) getHistoryReward(blockNumber *big.Int) ([]byte, error) {
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 
 	reward, err := stkc.Plugin.GetHistoryReward(blockHash, blockNumber.Uint64())
 	if nil != err {
@@ -978,7 +978,7 @@ func (stkc *StakingContract) getHistoryReward(blockNumber *big.Int) ([]byte, err
 }
 
 func (stkc *StakingContract) getHistorySlash(blockNumber *big.Int) ([]byte, error) {
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 
 	slashData, err := stkc.Plugin.GetSlashData(blockHash, blockNumber.Uint64())
 	if nil != err {
@@ -991,7 +991,7 @@ func (stkc *StakingContract) getHistorySlash(blockNumber *big.Int) ([]byte, erro
 }
 
 func (stkc *StakingContract) QueryHistoryTrans(blockNumber *big.Int) ([]byte, error) {
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 
 	transData, err := stkc.Plugin.GetTransData(blockHash, blockNumber.Uint64())
 	if nil != err {
@@ -1005,8 +1005,8 @@ func (stkc *StakingContract) QueryHistoryTrans(blockNumber *big.Int) ([]byte, er
 
 func (stkc *StakingContract) getNodeVersion() ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetNodeVersion(blockHash, blockNumber.Uint64())
 	if snapshotdb.NonDbNotFoundErr(err) {
