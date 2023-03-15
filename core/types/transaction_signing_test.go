@@ -80,7 +80,7 @@ func TestPIP7ChainId(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if tx.ChainId().Cmp(signer.chainId) != 0 {
+	if tx.ChainId().Cmp(signer.PIP7ChainId) != 0 {
 		t.Error("expected chainId to be", signer.chainId, "got", tx.ChainId())
 	}
 

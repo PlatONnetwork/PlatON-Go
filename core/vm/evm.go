@@ -63,6 +63,9 @@ type (
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
+		if gov.Gte140VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin
+		}
 
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
@@ -141,9 +144,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 	return nil, ErrNoCompatibleInterpreter
 }
 
-// Context provides the EVM with auxiliary information. Once provided
+// BlockContext provides the EVM with auxiliary information. Once provided
 // it shouldn't be modified.
-type Context struct {
+type BlockContext struct {
 	// CanTransfer returns whether the account contains
 	// sufficient ether to transfer the value
 	CanTransfer CanTransferFunc
@@ -153,10 +156,6 @@ type Context struct {
 	GetHash GetHashFunc
 
 	GetNonce GetNonceFunc
-
-	// Message information
-	Origin   common.Address // Provides information for ORIGIN
-	GasPrice *big.Int       // Provides information for GASPRICE
 
 	// Block information
 	Coinbase    common.Address // Provides information for COINBASE
@@ -172,6 +171,14 @@ type Context struct {
 	Ctx context.Context
 }
 
+// TxContext provides the EVM with information about a transaction.
+// All fields can change between transactions.
+type TxContext struct {
+	// Message information
+	Origin   common.Address // Provides information for ORIGIN
+	GasPrice *big.Int       // Provides information for GASPRICE
+}
+
 // EVM is the Ethereum Virtual Machine base object and provides
 // the necessary tools to run a contract on the given state with
 // the provided context. It should be noted that any error
@@ -183,7 +190,8 @@ type Context struct {
 // The EVM should never be reused and is not thread safe.
 type EVM struct {
 	// Context provides auxiliary blockchain related information
-	Context
+	Context BlockContext
+	TxContext
 	// StateDB gives access to the underlying state
 	StateDB StateDB
 
@@ -211,9 +219,10 @@ type EVM struct {
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
 // only ever be used *once*.
-func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
+func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig *params.ChainConfig, vmConfig Config) *EVM {
 	evm := &EVM{
-		Context:      ctx,
+		Context:      blockCtx,
+		TxContext:    txCtx,
 		SnapshotDB:   snapshotDB,
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
@@ -241,9 +250,16 @@ func NewEVM(ctx Context, snapshotDB snapshotdb.DB, statedb StateDB, chainConfig 
 	return evm
 }
 
+// Reset resets the EVM with a new transaction context.Reset
+// This is not threadsafe and should only be done very cautiously.
+func (evm *EVM) Reset(txCtx TxContext, statedb StateDB) {
+	evm.TxContext = txCtx
+	evm.StateDB = statedb
+}
+
 func (evm *EVM) RevertToDBSnapshot(snapshotDBID, stateDBID int) {
 	if evm.SnapshotDB != nil && evm.StateDB.TxHash() != common.ZeroHash {
-		evm.SnapshotDB.RevertToSnapshot(evm.BlockHash, snapshotDBID)
+		evm.SnapshotDB.RevertToSnapshot(evm.Context.BlockHash, snapshotDBID)
 	}
 	evm.StateDB.RevertToSnapshot(stateDBID)
 }
@@ -253,7 +269,7 @@ func (evm *EVM) DBSnapshot() (snapshotID int, StateDBID int) {
 		if evm.StateDB.TxHash() == common.ZeroHash {
 			return 0, evm.StateDB.Snapshot()
 		}
-		return evm.SnapshotDB.Snapshot(evm.BlockHash), evm.StateDB.Snapshot()
+		return evm.SnapshotDB.Snapshot(evm.Context.BlockHash), evm.StateDB.Snapshot()
 	}
 	return 0, evm.StateDB.Snapshot()
 }
@@ -298,6 +314,9 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
+		if gov.Gte140VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin
+		}
 
 		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
@@ -310,7 +329,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 		evm.StateDB.CreateAccount(addr)
 	}
 
-	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
+	evm.Context.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
@@ -524,7 +543,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, common.Address{}, gas, ErrDepth
 	}
-	if !evm.CanTransfer(evm.StateDB, caller.Address(), value) {
+	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, common.Address{}, gas, ErrInsufficientBalance
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
@@ -539,7 +558,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	snapshotForSnapshotDB, snapshotForStateDB := evm.DBSnapshot()
 	evm.StateDB.CreateAccount(address)
 	evm.StateDB.SetNonce(address, 1)
-	evm.Transfer(evm.StateDB, caller.Address(), address, value)
+	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
 
 	// initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context

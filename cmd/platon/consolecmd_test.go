@@ -63,6 +63,7 @@ at block: 0 ({{niltime}})
  datadir: {{.Datadir}}
  modules: {{apis}}
 
+To exit, press ctrl-d
 > {{.InputLine "exit"}}
 `)
 	platon.ExpectExit()
@@ -96,7 +97,7 @@ func TestHTTPAttachWelcome(t *testing.T) {
 	port := strconv.Itoa(trulyRandInt(1024, 65536)) // Yeah, sometimes this will fail, sorry :P
 	platon := runPlatON(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
-		"--rpc", "--rpcport", port)
+		"--http", "--http.port", port)
 
 	defer func() {
 		platon.Interrupt()
@@ -114,7 +115,7 @@ func TestWSAttachWelcome(t *testing.T) {
 
 	platon := runPlatON(t,
 		"--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none",
-		"--ws", "--wsport", port /*, "--testnet"*/)
+		"--ws", "--ws.port", port /*, "--testnet"*/)
 
 	defer func() {
 		platon.Interrupt()
@@ -155,6 +156,7 @@ at block: 0 ({{niltime}}){{if ipc}}
  datadir: {{datadir}}{{end}}
  modules: {{apis}}
 
+To exit, press ctrl-d
 > {{.InputLine "exit" }}
 `)
 	attach.ExpectExit()

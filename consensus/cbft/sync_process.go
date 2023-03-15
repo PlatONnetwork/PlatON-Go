@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -112,7 +111,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 					return
 				}
 				if err := cbft.OnInsertQCBlock([]*types.Block{block}, []*ctypes.QuorumCert{blockList.QC[i]}); err != nil {
-					cbft.log.Error("Insert block failed", "error", err)
+					cbft.log.Warn("Insert block failed", "error", err)
 					asyncCallErr = err
 				}
 				wg.Done()

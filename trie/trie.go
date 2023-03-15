@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -37,7 +38,7 @@ var (
 // LeafCallback is a callback type invoked when a trie operation reaches a leaf
 // node. It's used by state sync and commit to allow handling external references
 // between account and storage tries.
-type LeafCallback func(leaf []byte, parent common.Hash) error
+type LeafCallback func(path []byte, leaf []byte, parent common.Hash) error
 
 // Trie is a Merkle Patricia Trie.
 // The zero value is an empty trie with no database.
@@ -520,6 +521,11 @@ func (t *Trie) hashRoot() (node, node, error) {
 	h := newHasher()
 	defer returnHasherToPool(h)
 	return h.hash(t.root, true)
+}
+
+// Reset drops the referenced root node and cleans all internal state.
+func (t *Trie) Reset() {
+	t.root = nil
 }
 
 func (t *Trie) commitRoot(db *Database, onleaf LeafCallback) (node, node, error) {

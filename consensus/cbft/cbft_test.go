@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 
@@ -142,7 +143,7 @@ func TestPrepareBlockBls(t *testing.T) {
 		receipts = append(receipts, receipt)
 	}
 
-	block := types.NewBlock(header, txs, receipts)
+	block := types.NewBlock(header, txs, receipts, new(trie.Trie))
 	pb := &protocols.PrepareBlock{
 		Epoch:         100,
 		ViewNumber:    99,
