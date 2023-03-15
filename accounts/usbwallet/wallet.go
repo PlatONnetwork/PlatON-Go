@@ -20,6 +20,7 @@ package usbwallet
 import (
 	"context"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"io"
 	"math/big"
 	"sync"
@@ -566,6 +567,13 @@ func (w *wallet) SignTx(account accounts.Account, tx *types.Transaction, chainID
 	return signed, nil
 }
 
+// SignDataWithPassphrase implements accounts.Wallet, attempting to sign the given
+// data with the given account using passphrase as extra authentication.
+// Since USB wallets don't rely on passphrases, these are silently ignored.
+func (w *wallet) SignDataWithPassphrase(account accounts.Account, passphrase, mimeType string, data []byte) ([]byte, error) {
+	return w.SignData(account, mimeType, data)
+}
+
 // SignHashWithPassphrase implements accounts.Wallet, however signing arbitrary
 // data is not supported for Ledger wallets, so this method will always return
 // an error.
@@ -578,4 +586,15 @@ func (w *wallet) SignHashWithPassphrase(account accounts.Account, passphrase str
 // Since USB wallets don't rely on passphrases, these are silently ignored.
 func (w *wallet) SignTxWithPassphrase(account accounts.Account, passphrase string, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
 	return w.SignTx(account, tx, chainID)
+}
+
+// SignData signs keccak256(data). The mimetype parameter describes the type of data being signed
+func (w *wallet) SignData(account accounts.Account, mimeType string, data []byte) ([]byte, error) {
+	return w.signHash(account, crypto.Keccak256(data))
+}
+
+// signHash implements accounts.Wallet, however signing arbitrary data is not
+// supported for hardware wallets, so this method will always return an error.
+func (w *wallet) signHash(account accounts.Account, hash []byte) ([]byte, error) {
+	return nil, accounts.ErrNotSupported
 }

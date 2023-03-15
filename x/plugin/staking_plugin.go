@@ -24,10 +24,13 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	math2 "math"
 	"math/big"
 	"math/rand"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -61,8 +64,11 @@ type StakingDB struct {
 }
 
 type StakingPlugin struct {
-	db       *staking.StakingDB
-	eventMux *event.TypeMux
+	db                      *staking.StakingDB
+	eventMux                *event.TypeMux
+	chainReaderDB           ethdb.KeyValueReader
+	chainWriterDB           ethdb.KeyValueWriter
+	enableValidatorsHistory bool
 }
 
 var (
@@ -122,6 +128,15 @@ func (sk *StakingPlugin) SetEventMux(eventMux *event.TypeMux) {
 	sk.eventMux = eventMux
 }
 
+func (sk *StakingPlugin) SetChainDB(reader ethdb.KeyValueReader, writer ethdb.KeyValueWriter) {
+	sk.chainReaderDB = reader
+	sk.chainWriterDB = writer
+}
+
+func (sk *StakingPlugin) EnableValidatorsHistory() {
+	sk.enableValidatorsHistory = true
+}
+
 func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// adjust rewardPer and nextRewardPer
 	blockNumber := header.Number.Uint64()
@@ -162,7 +177,140 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 
 		}
 	}
+	if xutil.IsEndOfConsensus(blockNumber) {
+		if gov.Gte140VersionState(state) {
+			// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
+			// Used to record historical consensus round node information.
+			// 1. Simplify the consensus node information
+			// 2. Calculate the identification ID
+			// 3. Compute the hash of the simplified list of node information
+			// 4. Replace the value of header.extra[0:32] with the Hash value.
+			// 5. Form a list of identification IDs in the order of block generation and write them into the DB
+			next, err := sk.getNextValList(blockHash, blockNumber, QueryStartNotIrr)
+			if err != nil {
+				log.Error("Failed to Query Next validators on stakingPlugin Begin When end of consensus",
+					"blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return err
+			}
+			historyValidatorList := make(staking.HistoryValidatorList, len(next.Arr))
+			historyValidatorIDList := make(staking.HistoryValidatorIDList, len(next.Arr))
+			for i := 0; i < len(next.Arr); i++ {
+				hv := &staking.HistoryValidator{
+					NodeId:    next.Arr[i].NodeId,
+					BlsPubKey: next.Arr[i].BlsPubKey,
+				}
+				id := hv.ID()
+				historyValidatorList[i] = hv
+				historyValidatorIDList[i] = id
+				if err := sk.writeHistoryValidator(id, hv, blockHash, header, state); err != nil {
+					return err
+				}
+			}
+			if err := sk.writeHistoryValidatorIDList(historyValidatorIDList, next.Start, blockHash, header, state); err != nil {
+				return err
+			}
+			listHash, err := historyValidatorList.Hash()
+			if err != nil {
+				log.Error("Failed to calculate Hash for consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return err
+			}
+			// The outgoing block node writes to extra.
+			// Non-outgoing block nodes validate extra.
+			if xutil.IsWorker(header.Extra) {
+				// The hash value will be signed by the node.
+				// will also be counted in the block Hash.
+				copy(header.Extra[:32], listHash.Bytes())
+			} else {
+				if !bytes.Equal(header.Extra[:32], listHash.Bytes()) {
+					return errors.New("historical validator list Hash is not the same")
+				}
+			}
+			log.Debug("Historical consensus node information written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "listHash", listHash.Hex())
+		}
+	}
 	return nil
+}
+
+func (sk *StakingPlugin) writeHistoryValidator(id common.Hash, hv *staking.HistoryValidator, blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	if sk.enableValidatorsHistory {
+		blockNumber := header.Number.Uint64()
+		dbKey := staking.HistoryValidatorDBKey(id)
+		// Check that the simplified historical node information has been stored in the DB.
+		if v, err := sk.chainReaderDB.Get(dbKey); err != nil && !strings.Contains(err.Error(), "not found") {
+			log.Error("Failed to get history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		} else if len(v) == 0 {
+			if enVal, err := hv.Encode(); err != nil {
+				log.Error("rlp failed to encode historical node information", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+				return err
+			} else {
+				if err := sk.chainWriterDB.Put(dbKey, enVal); err != nil {
+					log.Error("Failed to write to history node object", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+					return err
+				}
+				log.Debug("History node object written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "dbKey", hex.EncodeToString(dbKey))
+			}
+		}
+	}
+	return nil
+}
+
+func (sk *StakingPlugin) writeHistoryValidatorIDList(idList staking.HistoryValidatorIDList, nextStart uint64, blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	if sk.enableValidatorsHistory {
+		blockNumber := header.Number.Uint64()
+		// rlp encoded and written to DB
+		hvIDListEnVal, err := idList.Encode()
+		if err != nil {
+			log.Error("rlp failed to encode ID list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		dbKey := staking.HistoryValidatorIDListKey(nextStart)
+		if err := sk.chainWriterDB.Put(dbKey, hvIDListEnVal); err != nil {
+			log.Error("Failed to write to historical consensus round node list", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
+			return err
+		}
+		log.Debug("History validator list ID written successfully", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
+			"dbKey", hex.EncodeToString(dbKey), "nextBlockNumber", nextStart, "nextRound", xutil.CalculateRound(nextStart))
+	}
+	return nil
+}
+
+// Get the list of consensus nodes for a given consensus round.
+func (sk *StakingPlugin) GetValidatorHistoryList(targetBlockNumber uint64) ([]*staking.HistoryValidatorEx, error) {
+	key := staking.HistoryValidatorIDListKey(targetBlockNumber)
+	valBytes, err := sk.chainReaderDB.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	if len(valBytes) == 0 {
+		return nil, nil
+	}
+	historyValidatorIDList := make(staking.HistoryValidatorIDList, 0)
+	if err := rlp.DecodeBytes(valBytes, &historyValidatorIDList); err != nil {
+		return nil, err
+	}
+	resultList := make([]*staking.HistoryValidatorEx, 0)
+	for _, v := range historyValidatorIDList {
+		hv := &staking.HistoryValidator{}
+		if enVal, err := sk.chainReaderDB.Get(staking.HistoryValidatorDBKey(v)); err != nil {
+			return nil, err
+		} else if err := hv.Decode(enVal); err != nil {
+			return nil, err
+		}
+		nodeAddr, err := xutil.NodeId2Addr(hv.NodeId)
+		if err != nil {
+			return nil, err
+		}
+		hve := &staking.HistoryValidatorEx{
+			Address:   nodeAddr,
+			NodeId:    hv.NodeId,
+			BlsPubKey: hv.BlsPubKey,
+		}
+		resultList = append(resultList, hve)
+	}
+	log.Debug("Query the list of nodes in a given consensus wheel", "targetBlockNumber", targetBlockNumber,
+		"targetRound", xutil.CalculateRound(targetBlockNumber), "listLength", len(resultList))
+	return resultList, nil
 }
 
 func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {

@@ -1070,12 +1070,12 @@ func TestSimulatedBackend_CallContractRevert(t *testing.T) {
 				t.Errorf("result from %v was not nil: %v", key, res)
 			}
 			if val != nil {
-				rerr, ok := err.(*revertError)
+				rErr, ok := err.(*revertError)
 				if !ok {
 					t.Errorf("expect revert error")
 				}
-				if rerr.Error() != "execution reverted: "+val.(string) {
-					t.Errorf("error was malformed: got %v want %v", rerr.Error(), val)
+				if rErr.Error() != "execution reverted: "+val.(string) {
+					t.Errorf("error was malformed: got %v want %v", rErr.Error(), val)
 				}
 			} else {
 				// revert(0x0,0x0)

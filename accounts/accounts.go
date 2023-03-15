@@ -36,6 +36,13 @@ type Account struct {
 	URL     URL            `json:"url"`     // Optional resource locator within a backend
 }
 
+const (
+	MimetypeDataWithValidator = "data/validator"
+	MimetypeTypedData         = "data/typed"
+	MimetypeClique            = "application/x-clique-header"
+	MimetypeTextPlain         = "text/plain"
+)
+
 // Wallet represents a software or hardware wallet that might contain one or more
 // accounts (derived from the same seed).
 type Wallet interface {
@@ -107,6 +114,12 @@ type Wallet interface {
 	// the account in a keystore).
 	SignHash(account Account, hash []byte) ([]byte, error)
 
+	// SignDataWithPassphrase is identical to SignData, but also takes a password
+	// NOTE: there's an chance that an erroneous call might mistake the two strings, and
+	// supply password in the mimetype field, or vice versa. Thus, an implementation
+	// should never echo the mimetype or return the mimetype in the error-response
+	SignDataWithPassphrase(account Account, passphrase, mimeType string, data []byte) ([]byte, error)
+
 	// SignTx requests the wallet to sign the given transaction.
 	//
 	// It looks up the account specified either solely via its address contained within,
@@ -159,7 +172,8 @@ type Backend interface {
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextHash(data []byte) []byte {
@@ -171,7 +185,8 @@ func TextHash(data []byte) []byte {
 // safely used to calculate a signature from.
 //
 // The hash is calulcated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextAndHash(data []byte) ([]byte, string) {

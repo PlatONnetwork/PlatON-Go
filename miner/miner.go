@@ -18,10 +18,10 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
-	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -52,24 +52,23 @@ type Config struct {
 type Miner struct {
 	mux    *event.TypeMux
 	worker *worker
-	eth    Backend
 	engine consensus.Engine
 	exitCh chan struct{}
 
-	canStart    int32 // can start indicates whether we can start the mining operation
-	shouldStart int32 // should start indicates whether we should start after sync
+	startCh chan struct{}
+	stopCh  chan struct{}
 }
 
 func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
 	engine consensus.Engine, isLocalBlock func(block *types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
 	miner := &Miner{
-		eth:      eth,
-		mux:      mux,
-		engine:   engine,
-		exitCh:   make(chan struct{}),
-		worker:   newWorker(config, chainConfig, miningConfig, engine, eth, mux, isLocalBlock, blockChainCache, vmTimeout),
-		canStart: 1,
+		mux:     mux,
+		engine:  engine,
+		exitCh:  make(chan struct{}),
+		startCh: make(chan struct{}),
+		stopCh:  make(chan struct{}),
+		worker:  newWorker(config, chainConfig, miningConfig, engine, eth, mux, isLocalBlock, blockChainCache, vmTimeout),
 	}
 	go miner.update()
 
@@ -82,65 +81,85 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningCon
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
 	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
-	defer events.Unsubscribe()
+	defer func() {
+		if !events.Closed() {
+			events.Unsubscribe()
+		}
+	}()
 
+	shouldStart := false
+	canStart := true
+	dlEventCh := events.Chan()
 	for {
 		select {
-		case ev := <-events.Chan():
+		case ev := <-dlEventCh:
 			if ev == nil {
-				return
+				// Unsubscription done, stop listening
+				dlEventCh = nil
+				continue
 			}
 			switch ev.Data.(type) {
 			case downloader.StartEvent:
-				atomic.StoreInt32(&miner.canStart, 0)
-				if miner.Mining() {
-					miner.Stop()
-					atomic.StoreInt32(&miner.shouldStart, 1)
+				wasMining := miner.Mining()
+				miner.worker.stop()
+				if bft, ok := miner.engine.(consensus.Bft); ok {
+					bft.Pause()
+				}
+				canStart = false
+				if wasMining {
+					// Resume mining after sync was finished
+					shouldStart = true
 					log.Info("Mining aborted due to sync")
 				}
-			case downloader.DoneEvent, downloader.FailedEvent:
-				shouldStart := atomic.LoadInt32(&miner.shouldStart) == 1
-
-				atomic.StoreInt32(&miner.canStart, 1)
-				atomic.StoreInt32(&miner.shouldStart, 0)
+			case downloader.FailedEvent:
+				canStart = true
 				if shouldStart {
-					miner.Start()
+					miner.worker.start()
+					if bft, ok := miner.engine.(consensus.Bft); ok {
+						bft.Resume()
+					}
 				}
-
-				// stop immediately and ignore all further pending events
-				return
+			case downloader.DoneEvent:
+				canStart = true
+				if shouldStart {
+					miner.worker.start()
+					if bft, ok := miner.engine.(consensus.Bft); ok {
+						bft.Resume()
+					}
+				}
+				// Stop reacting to downloader events
+				events.Unsubscribe()
+			}
+		case <-miner.startCh:
+			if canStart {
+				miner.worker.start()
+				if bft, ok := miner.engine.(consensus.Bft); ok {
+					bft.Resume()
+				}
+			}
+			shouldStart = true
+		case <-miner.stopCh:
+			shouldStart = false
+			miner.worker.stop()
+			if bft, ok := miner.engine.(consensus.Bft); ok {
+				bft.Pause()
 			}
 		case <-miner.exitCh:
+			miner.worker.close()
 			return
 		}
 	}
 }
 
 func (miner *Miner) Start() {
-	atomic.StoreInt32(&miner.shouldStart, 1)
-
-	if atomic.LoadInt32(&miner.canStart) == 0 {
-		log.Info("Network syncing, will start miner afterwards")
-		return
-	}
-
-	miner.worker.start()
-	if bft, ok := miner.engine.(consensus.Bft); ok {
-		bft.Resume()
-	}
+	miner.startCh <- struct{}{}
 }
 
 func (miner *Miner) Stop() {
-	miner.worker.stop()
-	if bft, ok := miner.engine.(consensus.Bft); ok {
-		bft.Pause()
-	}
-
-	atomic.StoreInt32(&miner.shouldStart, 0)
+	miner.stopCh <- struct{}{}
 }
 
 func (miner *Miner) Close() {
-	miner.worker.close()
 	close(miner.exitCh)
 }
 
@@ -177,6 +196,6 @@ func (miner *Miner) PendingBlock() *types.Block {
 
 // SubscribePendingLogs starts delivering logs from pending transactions
 // to the given channel.
-func (self *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
-	return self.worker.pendingLogsFeed.Subscribe(ch)
+func (miner *Miner) SubscribePendingLogs(ch chan<- []*types.Log) event.Subscription {
+	return miner.worker.pendingLogsFeed.Subscribe(ch)
 }

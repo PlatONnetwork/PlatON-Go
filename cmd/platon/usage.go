@@ -109,8 +109,11 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
+			utils.CacheTrieJournalFlag,
+			utils.CacheTrieRejournalFlag,
 			utils.CacheGCFlag,
 			utils.CacheTrieDBFlag,
+			utils.CachePreimagesFlag,
 		},
 	},
 	{
@@ -141,10 +144,12 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.GraphQLEnabledFlag,
 			utils.GraphQLCORSDomainFlag,
 			utils.GraphQLVirtualHostsFlag,
-			utils.RPCGlobalGasCap,
+			utils.RPCGlobalGasCapFlag,
+			utils.RPCGlobalTxFeeCapFlag,
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
+			utils.AllowUnprotectedTxs,
 		},
 	},
 	{
@@ -176,6 +181,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
+			utils.GpoMaxGasPriceFlag,
 		},
 	},
 	{
@@ -206,6 +212,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DBGCTimeoutFlag,
 			utils.DBGCMptFlag,
 			utils.DBGCBlockFlag,
+			utils.DBValidatorsHistoryFlag,
 			utils.DBNoCacheFlag,
 			utils.DBCacheEpochFlag,
 		},

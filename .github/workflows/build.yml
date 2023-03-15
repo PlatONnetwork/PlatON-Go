@@ -1,0 +1,41 @@
+name: build
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches: '**'
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
+        id: go
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: bash ./build/build_deps.sh
+
+      - name: make all
+        run: go mod tidy && make all
+
+      - name: Upload platon
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/bin/platon
+
+      - name: Upload platonkey
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/bin/platonkey
+
+      - name: Upload ctool
+        uses: actions/upload-artifact@v3
+        with:
+          path: build/bin/ctool

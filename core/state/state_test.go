@@ -51,7 +51,10 @@ func newStateTest() *stateTest {
 }
 
 func TestDump(t *testing.T) {
-	s := newStateTest()
+	db := rawdb.NewMemoryDatabase()
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil))
+	s := &stateTest{db: db, state: sdb}
+
 	// generate a few entries
 	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))
@@ -332,7 +335,11 @@ func TestEmptyByte(t *testing.T) {
 func TestForEachStorage(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "", "")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	if err != nil {
+		t.Fatalf("Failed to reopen persistent database: %v", err)
+	}
+	defer db.Close()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
@@ -363,7 +370,11 @@ func TestMigrateStorage(t *testing.T) {
 
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, _ := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "", "")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	if err != nil {
+		t.Fatalf("Failed to reopen persistent database: %v", err)
+	}
+	defer db.Close()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")

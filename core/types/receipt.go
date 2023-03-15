@@ -265,7 +265,7 @@ func (r Receipts) GetRlp(i int) []byte {
 // DeriveFields fills the receipts with their computed fields based on consensus
 // data and contextual infos like containing block and transactions.
 func (r Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, txs Transactions) error {
-	signer := NewPIP7Signer(config.ChainID, config.PIP7ChainID)
+	signer := NewPIP11Signer(config.ChainID, config.PIP7ChainID)
 
 	logIndex := uint(0)
 	if len(txs) != len(r) {

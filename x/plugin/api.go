@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
-	"fmt"
+	"context"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 )
 
@@ -38,5 +38,18 @@ func (p *PublicPPOSAPI) GetWaitSlashingNodeList() string {
 	if nil != err || len(list) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%+v", list)
+	enVal, err := json.Marshal(list)
+	if err != nil {
+		return ""
+	}
+	return string(enVal)
+}
+
+func (p *PublicPPOSAPI) GetValidatorByBlockNumber(ctx context.Context, blockNumber uint64) string {
+	list, err := stk.GetValidatorHistoryList(blockNumber)
+	if nil != err || len(list) == 0 {
+		return ""
+	}
+	enVal, err := json.Marshal(list)
+	return string(enVal)
 }

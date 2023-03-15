@@ -309,7 +309,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, chain *mock.Chain) *EVM
 		StateDB:     chain.StateDB,
 		chainConfig: &params.ChainConfig{},
 	}
-	context := Context{
+	context := BlockContext{
 		BlockNumber: blockNumber,
 		BlockHash:   blockHash,
 	}

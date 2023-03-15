@@ -43,7 +43,7 @@ var (
 var testCase = []*Case{
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{TxContext: TxContext{
 				GasPrice: big.NewInt(12)},
 			},
 		},
@@ -54,7 +54,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				BlockNumber: big.NewInt(99),
 				GetHash: func(u uint64) common.Hash {
 					return common.Hash{1, 2, 3}
@@ -69,25 +69,25 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				BlockNumber: big.NewInt(99),
 			}}},
 		funcName: "platon_block_number_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.BlockNumber.Uint64())
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.BlockNumber.Uint64())
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				GasLimit: 99,
 			}}},
 		funcName: "platon_gas_limit_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.GasLimit)
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.GasLimit)
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},
@@ -102,30 +102,30 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				Time: big.NewInt(93),
 			}}},
 		funcName: "platon_timestamp_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Time.Uint64())
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time.Uint64())
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				Coinbase: addr1,
 			}}},
 		funcName: "platon_coinbase_test",
 		check: func(self *Case, err error) bool {
-			return bytes.Equal(self.ctx.evm.Coinbase[:], self.ctx.Output)
+			return bytes.Equal(self.ctx.evm.Context.Coinbase[:], self.ctx.Output)
 		},
 	},
 	{
 		ctx: &VMContext{
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					Coinbase: addr1,
 				},
 				StateDB: &mock.MockStateDB{
@@ -142,7 +142,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					Coinbase: addr1,
 				},
 				StateDB: &mock.MockStateDB{
@@ -160,7 +160,7 @@ var testCase = []*Case{
 	},
 	{
 		ctx: &VMContext{
-			evm: &EVM{Context: Context{
+			evm: &EVM{TxContext: TxContext{
 				Origin: addr1,
 			}}},
 		funcName: "platon_origin_test",
@@ -172,7 +172,7 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			contract: &Contract{caller: &AccountRef{1, 2, 3}},
-			evm: &EVM{Context: Context{
+			evm: &EVM{Context: BlockContext{
 				BlockNumber: big.NewInt(99),
 				GetHash: func(u uint64) common.Hash {
 					return common.Hash{1, 2, 3}
@@ -301,7 +301,7 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			gasTable: params.GasTableConstantinople,
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -338,7 +338,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -380,7 +380,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -464,7 +464,7 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -509,7 +509,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -635,7 +635,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -754,7 +754,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -833,7 +833,7 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -903,7 +903,7 @@ var testCase = []*Case{
 		ctx: &VMContext{
 			config: Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -1133,7 +1133,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -1221,7 +1221,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -1302,7 +1302,7 @@ var testCase = []*Case{
 			gasTable: params.GasTableConstantinople,
 			config:   Config{WasmType: Wagon},
 			evm: &EVM{
-				Context: Context{
+				Context: BlockContext{
 					CanTransfer: func(db StateDB, addr common.Address, amount *big.Int) bool {
 						return db.GetBalance(addr).Cmp(amount) >= 0
 					},
@@ -1600,7 +1600,7 @@ func TestGetBlockHash(t *testing.T) {
 	testBlockHash := common.BytesToHash([]byte{1, 2, 3, 4})
 	newProc := func(blockNumber int64) *exec.Process {
 		return exec.NewProcess(newTestVM(&EVM{
-			Context: Context{
+			Context: BlockContext{
 				GetHash: func(u uint64) common.Hash {
 					return testBlockHash
 				},
