@@ -361,14 +361,14 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	log.Info("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
 		if value.Sign() > 0 {
-			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value, "&value", &value)
-			common.CollectEmbedTransferTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
+			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.Context.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value, "&value", &value)
+			common.CollectEmbedTransferTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
 			//codeAddr就是to.Address,参考to和setCodeAddress
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
-				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", contract.CodeAddr.Bech32())
-				common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.Context.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", contract.CodeAddr.Bech32())
+				common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 			}
 		}
 	}
@@ -422,8 +422,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	//CallCode的msg.sender，不会一直使用原始调用者的地址。CallCode修改的是调用者的storage修改的是调用者的storage。
 	if contract.CodeAddr != nil {
 		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
-			log.Info("collect embed PlantON precompiled contract tx in CallCode()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
-			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+			log.Info("collect embed PlantON precompiled contract tx in CallCode()", "blockNumber", evm.Context.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
+			common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 		}
 	}
 	return ret, contract.Gas, err
@@ -464,8 +464,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	//DelegateCall，肯定是合约内部调用的。DelegateCall的msg.sender，会一直使用原始调用者的地址。
 	if contract.CodeAddr != nil {
 		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
-			log.Info("collect embed PlantON precompiled contract tx in DelegateCall()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
-			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+			log.Info("collect embed PlantON precompiled contract tx in DelegateCall()", "blockNumber", evm.Context.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
+			common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 		}
 	}
 
@@ -516,8 +516,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	//StaticCall，肯定是合约内部调用的，因为目前Solidity中并没有一个low level API可以直接调用它，仅仅是计划将来在编译器层面把调用view和pure类型的函数编译成STATICCALL指
 	if contract.CodeAddr != nil {
 		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
-			log.Info("collect embed PlantON precompiled contract tx in StaticCall()", "blockNumber", evm.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
-			common.CollectEmbedContractTx(evm.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
+			log.Info("collect embed PlantON precompiled contract tx in StaticCall()", "blockNumber", evm.Context.BlockNumber.Uint64(), "from", caller.Address().Bech32(), "to", to.Address().Bech32())
+			common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
 		}
 	}
 

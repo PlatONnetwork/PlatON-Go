@@ -27,7 +27,6 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls v1.30.0
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
@@ -65,6 +64,6 @@ require (
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
 	gopkg.in/urfave/cli.v1 v1.20.0
 	gorm.io/driver/mysql v1.0.5
-    gorm.io/gorm v1.21.3
+	gorm.io/gorm v1.21.3
 	gotest.tools v2.2.0+incompatible
 )
