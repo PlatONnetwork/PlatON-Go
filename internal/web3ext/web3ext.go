@@ -448,6 +448,11 @@ web3._extend({
 			inputFormatter: [null, function (val) { return !!val; }]
 		}),
 		new web3._extend.Method({
+			name: 'getBlockQuorumCertByHash',
+			call: 'platon_getBlockQuorumCertByHash',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'getRawTransaction',
 			call: 'platon_getRawTransactionByHash',
 			params: 1
