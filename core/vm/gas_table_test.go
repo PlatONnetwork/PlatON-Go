@@ -90,12 +90,12 @@ func TestEIP2200(t *testing.T) {
 		statedb.SetState(address, common.Hash{}.Bytes(), common.BytesToHash([]byte{tt.original}).Bytes())
 		statedb.Finalise(true) // Push the state into the "original" slot
 
-		vmctx := Context{
+		vmctx := BlockContext{
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 			Ctx:         context.Background(),
 		}
-		vmenv := NewEVM(vmctx, nil, statedb, params.AllEthashProtocolChanges, Config{})
+		vmenv := NewEVM(vmctx, TxContext{}, nil, statedb, params.AllEthashProtocolChanges, Config{})
 
 		_, gas, err := vmenv.Call(false, AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {

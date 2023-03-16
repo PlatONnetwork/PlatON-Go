@@ -183,8 +183,8 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
 
 	if err := chain.AddBlockWithTxHashAndCommit(txhash, true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		contact.Evm.BlockHash = hash
-		contact.Evm.BlockNumber = chain.CurrentHeader().Number
+		contact.Evm.Context.BlockHash = hash
+		contact.Evm.Context.BlockNumber = chain.CurrentHeader().Number
 		if _, err := contact.withdrawDelegateReward(); err != nil {
 			t.Error(err)
 			return err
@@ -235,7 +235,7 @@ func newRewardContact(add common.Address, chain *mock.Chain, initGas uint64) *De
 	contact.Contract.CallerAddress = add
 	contact.Evm = &EVM{
 		StateDB: chain.StateDB,
-		Context: Context{
+		Context: BlockContext{
 			BlockNumber: chain.CurrentHeader().Number,
 			BlockHash:   chain.CurrentHeader().Hash(),
 		},
@@ -396,8 +396,8 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
 	if err := chain.AddBlockWithTxHashAndCommit(txhash, true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		contact.Evm.BlockHash = hash
-		contact.Evm.BlockNumber = chain.CurrentHeader().Number
+		contact.Evm.Context.BlockHash = hash
+		contact.Evm.Context.BlockNumber = chain.CurrentHeader().Number
 		if _, err := contact.withdrawDelegateReward(); err != nil {
 			t.Error(err)
 			return err

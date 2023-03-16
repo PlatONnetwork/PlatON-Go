@@ -67,6 +67,7 @@ type BlockCacheWriter interface {
 	Execute(block *types.Block, parent *types.Block) error
 	ClearCache(block *types.Block)
 	WriteBlock(block *types.Block) error
+	Stop()
 }
 
 // Engine is an algorithm agnostic consensus engine.
@@ -134,8 +135,11 @@ type Engine interface {
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 
+	Stop() error
+
 	// Pause consensus
 	Pause()
+
 	// Resume consensus
 	Resume()
 

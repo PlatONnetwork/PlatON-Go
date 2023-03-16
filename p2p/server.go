@@ -19,15 +19,15 @@ package p2p
 
 import (
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/rlpx"
 	"math/big"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
@@ -171,7 +171,7 @@ type Server struct {
 
 	// Hooks for testing. These are useful because we can inhibit
 	// the whole protocol stack.
-	newTransport func(net.Conn) transport
+	newTransport func(net.Conn, *ecdsa.PublicKey) transport
 	newPeerHook  func(*Peer)
 
 	lock    sync.Mutex // protects running
@@ -239,7 +239,7 @@ type conn struct {
 
 type transport interface {
 	// The two handshakes.
-	doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error)
+	doEncHandshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error)
 	doProtoHandshake(our *protoHandshake) (*protoHandshake, error)
 	// The MsgReadWriter can only be used after the encryption
 	// handshake has completed. The code uses conn.id to track this
@@ -1014,13 +1014,18 @@ func (srv *Server) listenLoop() {
 		<-slots
 
 		var (
-			fd  net.Conn
-			err error
+			fd      net.Conn
+			err     error
+			lastLog time.Time
 		)
 		for {
 			fd, err = srv.listener.Accept()
 			if tempErr, ok := err.(tempError); ok && tempErr.Temporary() {
-				srv.log.Debug("Temporary read error", "err", err)
+				if time.Since(lastLog) > 1*time.Second {
+					srv.log.Debug("Temporary read error", "err", err)
+					lastLog = time.Now()
+				}
+				time.Sleep(time.Millisecond * 200)
 				continue
 			} else if err != nil {
 				srv.log.Debug("Read error", "err", err)
@@ -1057,7 +1062,14 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 	if self == nil {
 		return errors.New("shutdown")
 	}
-	c := &conn{fd: fd, transport: srv.newTransport(fd), flags: flags, cont: make(chan error)}
+	c := &conn{fd: fd, flags: flags, cont: make(chan error)}
+	if dialDest == nil {
+		c.transport = srv.newTransport(fd, nil)
+	} else {
+		pk, _ := dialDest.ID.Pubkey()
+		c.transport = srv.newTransport(fd, pk)
+	}
+
 	err := srv.setupConn(c, flags, dialDest)
 	if err != nil {
 		c.close(err)
@@ -1076,10 +1088,13 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	}
 	// Run the encryption handshake.
 	var err error
-	if c.id, err = c.doEncHandshake(srv.PrivateKey, dialDest); err != nil {
+	if pk, err := c.doEncHandshake(srv.PrivateKey); err != nil {
 		srv.log.Trace("Failed RLPx handshake", "addr", c.fd.RemoteAddr(), "conn", c.flags, "err", err)
 		return err
+	} else {
+		c.id = discover.PubkeyID(pk)
 	}
+
 	clog := srv.log.New("id", c.id, "addr", c.fd.RemoteAddr(), "conn", c.flags)
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
@@ -1290,25 +1305,30 @@ func (srv *Server) watching() {
 }
 
 type mockTransport struct {
-	id discover.NodeID
-	*rlpx
+	id   discover.NodeID
+	rpub *ecdsa.PublicKey
+	*rlpxTransport
 
 	closeErr error
 }
 
 func newMockTransport(id discover.NodeID, fd net.Conn) transport {
-	wrapped := newRLPX(fd).(*rlpx)
-	wrapped.rw = newRLPXFrameRW(fd, secrets{
-		MAC:        zero16,
-		AES:        zero16,
-		IngressMAC: sha3.NewLegacyKeccak256(),
-		EgressMAC:  sha3.NewLegacyKeccak256(),
+	pk, err := id.Pubkey()
+	if err != nil {
+		panic(err)
+	}
+	wrapped := newRLPX(fd, pk).(*rlpxTransport)
+	wrapped.conn.InitWithSecrets(rlpx.Secrets{
+		AES:        make([]byte, 16),
+		MAC:        make([]byte, 16),
+		EgressMAC:  sha256.New(),
+		IngressMAC: sha256.New(),
 	})
-	return &mockTransport{id: id, rlpx: wrapped}
+	return &mockTransport{id: id, rpub: pk, rlpxTransport: wrapped}
 }
 
-func (c *mockTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error) {
-	return c.id, nil
+func (c *mockTransport) doEncHandshake(prv *ecdsa.PrivateKey) (*ecdsa.PublicKey, error) {
+	return c.rpub, nil
 }
 
 func (c *mockTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
@@ -1316,7 +1336,7 @@ func (c *mockTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, 
 }
 
 func (c *mockTransport) close(err error) {
-	c.rlpx.fd.Close()
+	c.conn.Close()
 	c.closeErr = err
 }
 

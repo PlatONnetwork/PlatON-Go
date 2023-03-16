@@ -51,8 +51,10 @@ type BlockChainCache struct {
 	stateDBMu     sync.RWMutex
 	receiptsMu    sync.RWMutex
 
-	executing sync.Mutex
-	executed  sync.Map
+	executed sync.Map
+
+	executeCh chan *executeTask
+	quit      chan struct{}
 }
 
 type stateDBCache struct {
@@ -63,6 +65,12 @@ type stateDBCache struct {
 type receiptsCache struct {
 	receipts []*types.Receipt
 	blockNum uint64
+}
+
+type executeTask struct {
+	parent *types.Block
+	block  *types.Block
+	result chan error
 }
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
@@ -110,6 +118,11 @@ func NewBlockChainCache(blockChain *BlockChain) *BlockChainCache {
 	pbc.BlockChain = blockChain
 	pbc.stateDBCache = make(map[common.Hash]*stateDBCache)
 	pbc.receiptsCache = make(map[common.Hash]*receiptsCache)
+	pbc.executeCh = make(chan *executeTask)
+	pbc.quit = make(chan struct{})
+
+	pbc.executeWG.Add(1)
+	go pbc.executeLoop()
 
 	return pbc
 }
@@ -233,6 +246,7 @@ func (bcc *BlockChainCache) MakeStateDBByHeader(header *types.Header) (*state.St
 		// Create a StateDB instance from the blockchain based on stateRoot
 		return state, nil
 	}
+	log.Error("Make stateDB err")
 	return nil, errMakeStateDB
 }
 
@@ -264,6 +278,32 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 }
 
 func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
+	result := make(chan error)
+
+	select {
+	case <-bcc.quit:
+		return fmt.Errorf("blockChainCache is stopped")
+	case bcc.executeCh <- &executeTask{parent: parent, block: block, result: result}:
+		return <-result
+	}
+}
+
+func (bcc *BlockChainCache) executeLoop() {
+	defer bcc.executeWG.Done()
+
+	for {
+		select {
+		case task := <-bcc.executeCh:
+			err := bcc.executeBlock(task.block, task.parent)
+			task.result <- err
+		case <-bcc.quit:
+			log.Info("Stop cbft blockChainCache")
+			return
+		}
+	}
+}
+
+func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block) error {
 	executed := func() bool {
 		if number, ok := bcc.executed.Load(block.Header().SealHash()); ok && number.(uint64) == block.Number().Uint64() {
 			log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
@@ -276,20 +316,13 @@ func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) err
 		return nil
 	}
 
-	bcc.executing.Lock()
-	defer bcc.executing.Unlock()
-	if executed() {
-		return nil
-	}
-
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
-
 	state, err := bcc.MakeStateDB(parent)
 	if err != nil {
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
-	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state)), block)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state)), block)
 	if err != nil {
 		return errors.New("execute block error")
 	}
@@ -368,6 +401,11 @@ func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 
 	log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
 	return nil
+}
+
+func (bcc *BlockChainCache) Stop() {
+	log.Info("Stopping blockChain cache")
+	close(bcc.quit)
 }
 
 type sealHashNumber struct {

@@ -29,6 +29,13 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 )
 
+// DefaultFullGPOConfig contains default gasprice oracle settings for full node.
+var DefaultFullGPOConfig = gasprice.Config{
+	Blocks:     20,
+	Percentile: 60,
+	MaxPrice:   gasprice.DefaultMaxPrice,
+}
+
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
@@ -42,19 +49,20 @@ var DefaultConfig = Config{
 		Period:            20000,
 		Amount:            10,
 	},
-	NetworkId:         1,
-	LightPeers:        100,
-	DatabaseCache:     768,
-	TrieCache:         32,
-	TrieTimeout:       60 * time.Minute,
-	TrieDBCache:       512,
-	DBDisabledGC:      false,
-	DBGCInterval:      86400,
-	DBGCTimeout:       time.Minute,
-	DBGCMpt:           true,
-	DBGCBlock:         10,
-	VMWasmType:        "wagon",
-	VmTimeoutDuration: 0, // default 0 ms for vm exec timeout
+	NetworkId:               1,
+	DatabaseCache:           768,
+	TrieCache:               32,
+	TrieTimeout:             60 * time.Minute,
+	TrieDBCache:             512,
+	DBDisabledGC:            false,
+	DBGCInterval:            86400,
+	DBGCTimeout:             time.Minute,
+	DBGCMpt:                 true,
+	DBGCBlock:               10,
+	VMWasmType:              "wagon",
+	VmTimeoutDuration:       0, // default 0 ms for vm exec timeout
+	TrieCleanCacheJournal:   "triecache",
+	TrieCleanCacheRejournal: 60 * time.Minute,
 	Miner: miner.Config{
 		GasFloor: params.GenesisGasLimit,
 		GasPrice: big.NewInt(params.GVon),
@@ -81,14 +89,10 @@ var DefaultConfig = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool: core.DefaultTxPoolConfig,
-	GPO: gasprice.Config{
-		Blocks:     20,
-		Percentile: 60,
-	},
-
-	//MPCPool: core.DefaultMPCPoolConfig,
-	//VCPool:  core.DefaultVCPoolConfig,
+	TxPool:      core.DefaultTxPoolConfig,
+	RPCGasCap:   25000000,
+	GPO:         DefaultFullGPOConfig,
+	RPCTxFeeCap: 1, // 1 lat
 }
 
 //go:generate gencodec -type Config -formats toml -out gen_config.go
@@ -105,26 +109,26 @@ type Config struct {
 	SyncMode  downloader.SyncMode
 	NoPruning bool
 
-	// Light client options
-	LightServ  int `toml:",omitempty"` // Maximum percentage of time allowed for serving LES requests
-	LightPeers int `toml:",omitempty"` // Maximum number of LES client peers
-
 	// Database options
-	SkipBcVersionCheck bool `toml:"-"`
-	DatabaseHandles    int  `toml:"-"`
-	DatabaseCache      int
-	DatabaseFreezer    string
+	SkipBcVersionCheck      bool `toml:"-"`
+	DatabaseHandles         int  `toml:"-"`
+	DatabaseCache           int
+	TrieCleanCacheJournal   string        `toml:",omitempty"` // Disk journal directory for trie cache to survive node restarts
+	TrieCleanCacheRejournal time.Duration `toml:",omitempty"` // Time interval to regenerate the journal for clean cache
+	DatabaseFreezer         string
 
 	TxLookupLimit uint64 `toml:",omitempty"` // The maximum number of blocks from head whose tx indices are reserved.
 
-	TrieCache    int
-	TrieTimeout  time.Duration
-	TrieDBCache  int
-	DBDisabledGC bool
-	DBGCInterval uint64
-	DBGCTimeout  time.Duration
-	DBGCMpt      bool
-	DBGCBlock    int
+	TrieCache           int
+	TrieTimeout         time.Duration
+	TrieDBCache         int
+	Preimages           bool
+	DBDisabledGC        bool
+	DBGCInterval        uint64
+	DBGCTimeout         time.Duration
+	DBGCMpt             bool
+	DBGCBlock           int
+	DBValidatorsHistory bool
 
 	// VM options
 	VMWasmType        string
@@ -171,5 +175,9 @@ type Config struct {
 	Debug bool
 
 	// RPCGasCap is the global gas cap for eth-call variants.
-	RPCGasCap *big.Int `toml:",omitempty"`
+	RPCGasCap uint64 `toml:",omitempty"`
+
+	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
+	// send-transction variants. The unit is ether.
+	RPCTxFeeCap float64 `toml:",omitempty"`
 }

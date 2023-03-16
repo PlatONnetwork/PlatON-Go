@@ -211,3 +211,8 @@ func IsElection(blockNumber uint64) bool {
 	mod := tmp % ConsensusSize()
 	return mod == 0
 }
+
+func IsEndOfConsensus(blockNumber uint64) bool {
+	mod := blockNumber % ConsensusSize()
+	return mod == 0
+}

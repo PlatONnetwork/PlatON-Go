@@ -134,8 +134,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -349,8 +349,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 	externalId, nodeName, website, details *string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 
 	log.Debug("Call editCandidate of stakingContract", "txHash", txHash.Hex(),
@@ -487,8 +487,8 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -564,8 +564,8 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -632,8 +632,8 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -763,8 +763,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -838,8 +838,8 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId d
 func (stkc *StakingContract) redeemDelegation() ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	from := stkc.Contract.CallerAddress
 	state := stkc.Evm.StateDB
 
@@ -887,8 +887,8 @@ func (stkc *StakingContract) calcRewardPerUseGas(delegateRewardPerList []*reward
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetVerifierList(blockHash, blockNumber.Uint64(), plugin.QueryStartNotIrr)
 
@@ -908,8 +908,8 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartNotIrr)
 	if snapshotdb.NonDbNotFoundErr(err) {
@@ -929,8 +929,8 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash, blockNumber.Uint64())
 	if snapshotdb.NonDbNotFoundErr(err) {
@@ -949,7 +949,7 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
-	blockHash := stkc.Evm.BlockHash
+	blockHash := stkc.Evm.Context.BlockHash
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getRelatedListByDelAddr, delAddr: %s", addr),
@@ -968,8 +968,8 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
 	nodeId discover.NodeID) ([]byte, error) {
 
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	del, err := stkc.Plugin.GetDelegateExCompactInfo(blockHash, blockNumber.Uint64(), delAddr, nodeId, stakingBlockNum)
 	if snapshotdb.NonDbNotFoundErr(err) {
@@ -995,8 +995,8 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 }
 
 func (stkc *StakingContract) getDelegateLock(delAddr common.Address) ([]byte, error) {
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 	locks, err := stkc.Plugin.GetGetDelegationLockCompactInfo(blockHash, blockNumber.Uint64(), delAddr)
 
 	if err != nil {
@@ -1010,8 +1010,8 @@ func (stkc *StakingContract) getDelegateLock(delAddr common.Address) ([]byte, er
 }
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	blockNumber := stkc.Evm.Context.BlockNumber
+	blockHash := stkc.Evm.Context.BlockHash
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {

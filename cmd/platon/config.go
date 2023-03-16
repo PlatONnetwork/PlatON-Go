@@ -129,6 +129,7 @@ func defaultNodeConfig() node.Config {
 	return cfg
 }
 
+// makeConfigNode loads platon configuration and creates a blank node instance.
 func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Load defaults.
@@ -136,8 +137,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 		Eth:  eth.DefaultConfig,
 		Node: defaultNodeConfig(),
 	}
-
-	//
 
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
@@ -192,6 +191,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	return stack, cfg
 }
 
+// makeFullNode loads platon configuration and creates the backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	stack, cfg := makeConfigNode(ctx)

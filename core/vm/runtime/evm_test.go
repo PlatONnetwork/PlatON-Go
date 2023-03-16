@@ -29,7 +29,7 @@ func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
 
 func NewEVMWithCtx(cfg *Config) *vm.EVM {
 	vmenv := NewEnv(cfg)
-	vmenv.Ctx = context.TODO()
+	vmenv.Context.Ctx = context.TODO()
 	return vmenv
 }
 

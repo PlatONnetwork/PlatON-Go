@@ -840,7 +840,7 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 
 	// Add get block height limit, same as evm opBlockhash
 	var upper, lower uint64
-	upper = ctx.evm.BlockNumber.Uint64()
+	upper = ctx.evm.Context.BlockNumber.Uint64()
 	if upper < 257 {
 		lower = 0
 	} else {
@@ -848,7 +848,7 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 	}
 	var blockHash common.Hash
 	if num >= lower && num < upper {
-		blockHash = ctx.evm.GetHash(num)
+		blockHash = ctx.evm.Context.GetHash(num)
 	}
 
 	_, err := proc.WriteAt(blockHash.Bytes(), int64(dst))
@@ -860,13 +860,13 @@ func BlockHash(proc *exec.Process, num uint64, dst uint32) {
 func BlockNumber(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	return ctx.evm.BlockNumber.Uint64()
+	return ctx.evm.Context.BlockNumber.Uint64()
 }
 
 func GasLimit(proc *exec.Process) uint64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	return ctx.evm.GasLimit
+	return ctx.evm.Context.GasLimit
 }
 
 func Gas(proc *exec.Process) uint64 {
@@ -878,13 +878,13 @@ func Gas(proc *exec.Process) uint64 {
 func Timestamp(proc *exec.Process) int64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	return ctx.evm.Time.Int64()
+	return ctx.evm.Context.Time.Int64()
 }
 
 func Coinbase(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	coinBase := ctx.evm.Coinbase
+	coinBase := ctx.evm.Context.Coinbase
 	_, err := proc.WriteAt(coinBase.Bytes(), int64(dst))
 	if nil != err {
 		panic(err)
@@ -1570,7 +1570,7 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	}
 
 	// check balance of sender
-	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bValue) {
+	if !ctx.evm.Context.CanTransfer(ctx.evm.StateDB, sender, bValue) {
 		return -1
 	}
 
@@ -1593,9 +1593,9 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	oldBalance := new(big.Int).Set(ctx.evm.StateDB.GetBalance(oldContract))
 
 	// migrate balance from old contract to new contract
-	ctx.evm.Transfer(ctx.evm.StateDB, oldContract, newContract, oldBalance)
+	ctx.evm.Context.Transfer(ctx.evm.StateDB, oldContract, newContract, oldBalance)
 	// transfer balance from sender to new contract
-	ctx.evm.Transfer(ctx.evm.StateDB, sender, newContract, bValue)
+	ctx.evm.Context.Transfer(ctx.evm.StateDB, sender, newContract, bValue)
 
 	// migrate stateObject storage from old contract to new contract
 	ctx.evm.StateDB.MigrateStorage(oldContract, newContract)
@@ -1765,7 +1765,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	}
 	checkGas(ctx, gas)
 
-	bn := ctx.evm.BlockNumber.Uint64()
+	bn := ctx.evm.Context.BlockNumber.Uint64()
 
 	addLog(ctx.evm.StateDB, ctx.contract.Address(), topics, input, bn)
 }
@@ -2186,7 +2186,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 
 	// check balance of sender
 	sender := ctx.contract.caller.Address()
-	if !ctx.evm.CanTransfer(ctx.evm.StateDB, sender, bigValue) {
+	if !ctx.evm.Context.CanTransfer(ctx.evm.StateDB, sender, bigValue) {
 		return -1
 	}
 
@@ -2231,7 +2231,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	ctx.evm.StateDB.SetNonce(newContract, 1)
 
 	// transfer value to new account
-	ctx.evm.Transfer(ctx.evm.StateDB, sender, newContract, bigValue)
+	ctx.evm.Context.Transfer(ctx.evm.StateDB, sender, newContract, bigValue)
 
 	// init new contract context
 	contract := NewContract(AccountRef(sender), AccountRef(newContract), ctx.evm.StateDB.GetBalance(sender), gas)

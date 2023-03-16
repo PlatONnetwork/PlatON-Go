@@ -22,13 +22,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io"
 	"math/big"
 	"os"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -182,7 +184,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// We have the genesis block in database(perhaps in ancient database)
 	// but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if _, err := state.New(header.Root, state.NewDatabaseWithCache(db, 0)); err != nil {
+	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil)); err != nil {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
 		}
@@ -515,7 +517,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
 
-	block := types.NewBlock(head, nil, nil)
+	block := types.NewBlock(head, nil, nil, new(trie.Trie))
 
 	if err := sdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
