@@ -315,7 +315,7 @@ func (s *PlatonStatsService) filterDistinctContract(blockNumber uint64, txs type
 	contractAddrMap := make(map[common.Address]interface{})
 	for _, tx := range txs {
 		if tx.To() != nil {
-			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats)) && !vm.IsPlatONPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats)) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
+			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats), gov.Gte140VersionState(stats)) && !vm.IsPlatONPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats)) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
 				contractAddrMap[*tx.To()] = nil
 			}
 		}
