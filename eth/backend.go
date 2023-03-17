@@ -325,7 +325,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb)
+			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -348,7 +348,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
 		return nil, err
 	}
-	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), eth, nil}
+	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
+	if eth.APIBackend.allowUnprotectedTxs {
+		log.Info("Unprotected transactions allowed")
+	}
 	gpoParams := config.GPO
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
@@ -608,7 +611,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Writer) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -620,6 +623,11 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Writer) {
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
+
+	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
+	if isValidatorsHistory {
+		xplugin.StakingInstance().EnableValidatorsHistory()
+	}
 
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})

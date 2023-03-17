@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -137,7 +136,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 		return err
 	}
 
-	cbft.state.AddPrepareVote(uint32(node.Index), msg)
+	cbft.state.AddPrepareVote(node.Index, msg)
 	cbft.log.Debug("Receive new prepareVote", "msgHash", msg.MsgHash(), "vote", msg.String(), "votes", cbft.state.PrepareVoteLenByIndex(msg.BlockIndex))
 
 	cbft.insertPrepareQC(msg.ParentQC)
@@ -362,9 +361,6 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
-	// todo sign vote
-	// parentQC added when sending
-	// Determine if the current consensus node is
 	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 	if err != nil {
 		return err
@@ -375,7 +371,7 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error
 		BlockHash:      hash,
 		BlockNumber:    number,
 		BlockIndex:     index,
-		ValidatorIndex: uint32(node.Index),
+		ValidatorIndex: node.Index,
 	}
 
 	if err := cbft.signMsgByBls(prepareVote); err != nil {
@@ -423,7 +419,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			//Determine if the current consensus node is
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
 			cbft.log.Info("Add local prepareVote", "vote", p.String())
-			cbft.state.AddPrepareVote(uint32(node.Index), p)
+			cbft.state.AddPrepareVote(node.Index, p)
 			pending.Pop()
 
 			// write sendPrepareVote info to wal

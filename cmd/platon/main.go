@@ -147,6 +147,7 @@ var (
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
 		utils.RPCGlobalTxFeeCapFlag,
+		utils.AllowUnprotectedTxs,
 	}
 
 	metricsFlags = []cli.Flag{
@@ -176,6 +177,7 @@ var (
 		utils.DBGCTimeoutFlag,
 		utils.DBGCMptFlag,
 		utils.DBGCBlockFlag,
+		utils.DBValidatorsHistoryFlag,
 	}
 
 	vmFlags = []cli.Flag{
