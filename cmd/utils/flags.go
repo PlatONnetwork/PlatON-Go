@@ -423,6 +423,10 @@ var (
 		Name:  "preload",
 		Usage: "Comma separated list of JavaScript files to preload into the console",
 	}
+	AllowUnprotectedTxs = &cli.BoolFlag{
+		Name:  "rpc.allow-unprotected-txs",
+		Usage: "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC",
+	}
 
 	// Network Settings
 	MaxPeersFlag = cli.IntFlag{
@@ -620,6 +624,10 @@ var (
 		Name:  "db.gc_block",
 		Usage: "Number of cache block states, default 10",
 		Value: eth.DefaultConfig.DBGCBlock,
+	}
+	DBValidatorsHistoryFlag = cli.BoolFlag{
+		Name:  "db.validators_history",
+		Usage: "Store the list of validators for each consensus round",
 	}
 
 	VMWasmType = cli.StringFlag{
@@ -825,6 +833,9 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.GlobalIsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.GlobalString(HTTPVirtualHostsFlag.Name))
+	}
+	if ctx.IsSet(AllowUnprotectedTxs.Name) {
+		cfg.AllowUnprotectedTxs = ctx.Bool(AllowUnprotectedTxs.Name)
 	}
 }
 
@@ -1184,6 +1195,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if b > 0 {
 			cfg.DBGCBlock = b
 		}
+	}
+	if ctx.GlobalIsSet(DBValidatorsHistoryFlag.Name) {
+		cfg.DBValidatorsHistory = ctx.GlobalBool(DBValidatorsHistoryFlag.Name)
 	}
 
 	// Read the value from the flag no matter if it's set or not.

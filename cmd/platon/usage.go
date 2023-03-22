@@ -149,6 +149,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.JSpathFlag,
 			utils.ExecFlag,
 			utils.PreloadJSFlag,
+			utils.AllowUnprotectedTxs,
 		},
 	},
 	{
@@ -211,6 +212,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DBGCTimeoutFlag,
 			utils.DBGCMptFlag,
 			utils.DBGCBlockFlag,
+			utils.DBValidatorsHistoryFlag,
 		},
 	},
 	{

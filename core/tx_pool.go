@@ -321,11 +321,12 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
-	pip7 := false
+	pip7, gte140 := false, false
 	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
 		stateDB, err := chain.GetState(currentBlock.Header())
 		if err == nil && stateDB != nil {
 			pip7 = gov.Gte120VersionState(stateDB)
+			gte140 = gov.Gte140VersionState(stateDB)
 		}
 	}
 
@@ -334,7 +335,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.MakeSigner(chainconfig, pip7),
+		signer:      types.MakeSigner(chainconfig, pip7, gte140),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -508,11 +509,7 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.currentMaxGas = newHeader.GasLimit
 
 	// reset signer
-	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig, true)
-		pool.locals.signer = pool.signer
-		pool.cacheAccountNeedPromoted.signer = pool.signer
-	}
+	pool.resetSigner(statedb)
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -1421,17 +1418,28 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
 	// reset signer
-	if gov.Gte120VersionState(statedb) {
-		pool.signer = types.MakeSigner(pool.chainconfig, true)
-		pool.locals.signer = pool.signer
-		pool.cacheAccountNeedPromoted.signer = pool.signer
-	}
+	pool.resetSigner(statedb)
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
+}
 
+func (pool *TxPool) resetSigner(statedb *state.StateDB) {
+	var signer types.Signer
+	gte140 := gov.Gte140VersionState(statedb)
+	if gte140 {
+		signer = types.MakeSigner(pool.chainconfig, true, true)
+	} else if gov.Gte120VersionState(statedb) {
+		signer = types.MakeSigner(pool.chainconfig, true, false)
+	} else {
+		signer = types.MakeSigner(pool.chainconfig, false, false)
+	}
+
+	pool.signer = signer
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 }
 
 // promoteExecutables moves transactions that have become processable from the

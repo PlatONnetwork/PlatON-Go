@@ -144,9 +144,24 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	}
 }
 
-// ChainId returns which chain id this transaction was signed for (if at all)
+// ChainId returns the EIP155 chain ID of the transaction. The return value will always be
+// non-nil. For transactions which are not replay-protected, the return value is zero.
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
+}
+
+func isProtectedV(V *big.Int) bool {
+	if V.BitLen() <= 8 {
+		v := V.Uint64()
+		return v != 27 && v != 28 && v != 1 && v != 0
+	}
+	// anything not 27 or 28 is considered protected
+	return true
+}
+
+// Protected says whether the transaction is replay-protected.
+func (tx *Transaction) Protected() bool {
+	return tx.data.V != nil && isProtectedV(tx.data.V)
 }
 
 // EncodeRLP implements rlp.Encoder

@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"math/big"
 	"time"
 
@@ -374,12 +375,7 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args *SendTxArg
 	}
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	return wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
+	return wallet.SignTxWithPassphrase(account, passwd, tx, s.b.ChainConfig().PIP7ChainID)
 }
 
 // SendTransaction will create a transaction from the given arguments and
@@ -682,6 +678,21 @@ func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, hash common.Ha
 		return s.rpcMarshalBlock(block, true, fullTx)
 	}
 	return nil, err
+}
+
+// GetBlockQuorumCertByHash returns the requested block QuorumCert.
+func (s *PublicBlockChainAPI) GetBlockQuorumCertByHash(ctx context.Context, hashes []common.Hash) ([]map[string]interface{}, error) {
+	m := make([]map[string]interface{}, 0, len(hashes))
+	for _, hash := range hashes {
+		block, err := s.b.BlockByHash(ctx, hash)
+		if block != nil && err == nil {
+			fields, err2 := s.rpcMarshalBlockQuorumCert(block)
+			if err2 == nil {
+				m = append(m, fields)
+			}
+		}
+	}
+	return m, nil
 }
 
 // GetCode returns the code stored at the given address in the state for the given block number.
@@ -1185,6 +1196,25 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullT
 	return fields, err
 }
 
+// rpcMarshalBlockQuorumCert uses the generalized output filler, then adds the QuorumCert field, which requires
+// a `PublicBlockchainAPI`.
+func (s *PublicBlockChainAPI) rpcMarshalBlockQuorumCert(b *types.Block) (map[string]interface{}, error) {
+	_, qc, err := ctypes.DecodeExtra(b.ExtraData())
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]interface{}{
+		"epoch":        qc.Epoch,
+		"viewNumber":   qc.ViewNumber,
+		"blockHash":    qc.BlockHash,
+		"blockNumber":  qc.BlockNumber,
+		"blockIndex":   qc.BlockIndex,
+		"signature":    qc.Signature,
+		"validatorSet": qc.ValidatorSet,
+	}
+	return fields, nil
+}
+
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
 	BlockHash        *common.Hash    `json:"blockHash"`
@@ -1206,7 +1236,7 @@ type RPCTransaction struct {
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
-	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
+	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 
@@ -1405,7 +1435,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	receipt := receipts[index]
 
-	var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
+	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1444,11 +1474,7 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 		return nil, err
 	}
 	// Request the wallet to sign the transaction
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	return wallet.SignTx(account, tx, chainID)
+	return wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
 }
 
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
@@ -1547,11 +1573,15 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if b.RPCTxFeeCap() != 0 && feeFloat > b.RPCTxFeeCap() {
 		return common.Hash{}, fmt.Errorf("tx fee (%.2f lat) exceeds the configured cap (%.2f lat)", feeFloat, b.RPCTxFeeCap())
 	}
+	if !b.UnprotectedAllowed() && !tx.Protected() {
+		// Ensure only eip155 signed transactions are submitted if EIP155Required is set.
+		return common.Hash{}, errors.New("only replay-protected (EIP-155) transactions allowed over RPC")
+	}
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
 	if tx.To() == nil {
-		signer := types.MakeSigner(b.ChainConfig(), true)
+		signer := types.MakeSigner(b.ChainConfig(), true, true)
 		from, err := types.Sender(signer, tx)
 		if err != nil {
 			return common.Hash{}, err
@@ -1589,16 +1619,7 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	// Assemble the transaction and sign with the wallet
 	tx := args.toTransaction()
 
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		if config.GenesisVersion < params.FORKVERSION_1_2_0 {
-			chainID = config.ChainID
-		} else {
-			chainID = config.PIP7ChainID
-		}
-	}
-	log.Info("Sign transaction with:", "ChainID", chainID.String())
-	signed, err := wallet.SignTx(account, tx, chainID)
+	signed, err := wallet.SignTx(account, tx, s.b.ChainConfig().PIP7ChainID)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -1704,7 +1725,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	}
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
-		var signer types.Signer = types.NewEIP155Signer(tx.ChainId())
+		var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
 		from, _ := types.Sender(signer, tx)
 		if _, exists := accounts[from]; exists {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
@@ -1737,7 +1758,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	}
 
 	for _, p := range pending {
-		var signer types.Signer = types.NewEIP155Signer(p.ChainId())
+		var signer types.Signer = types.NewPIP11Signer(p.ChainId(), p.ChainId())
 		wantSigHash := signer.Hash(matchTx, p.ChainId())
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p, p.ChainId()) == wantSigHash {

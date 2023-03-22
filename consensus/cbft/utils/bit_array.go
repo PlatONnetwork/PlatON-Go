@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package utils
 
 import (
@@ -318,7 +317,6 @@ func (bA *BitArray) stringIndented(indent string) string {
 
 // Bytes returns the byte representation of the bits within the bitarray.
 func (bA *BitArray) Bytes() []byte {
-
 	numBytes := (bA.Bits + 7) / 8
 	bytes := make([]byte, numBytes)
 	for i := 0; i < len(bA.Elems); i++ {

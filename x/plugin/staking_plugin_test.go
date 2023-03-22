@@ -17,10 +17,12 @@
 package plugin
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -4112,5 +4114,164 @@ func TestStakingPlugin_RandSeedShuffle(t *testing.T) {
 	})
 	for i := 0; i < len(dataList); i++ {
 		assert.True(t, dataList[i] == dataListCp3[i])
+	}
+}
+
+func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
+	state := mock.NewMockStateDB()
+	newPlugins()
+	build_gov_data(state)
+	diskDB := memorydb.New()
+	StakingInstance().SetChainDB(diskDB, diskDB)
+	StakingInstance().EnableValidatorsHistory()
+	// Set to the latest version.
+	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	if err := sndb.NewBlock(blockNumber, common.BytesToHash(crypto.Keccak256([]byte("genesis"))), blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+	queue := make(staking.ValidatorQueue, 0)
+	for i := 0; i < int(xcom.MaxValidators()); i++ {
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Fatalf("Failed to generate random NodeId private key: %v", err)
+		}
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeAddr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
+		var blsKey bls.SecretKey
+		blsKey.SetByCSPRNG()
+		var blsKeyHex bls.PublicKeyHex
+		b, _ := blsKey.GetPublicKey().MarshalText()
+		if err := blsKeyHex.UnmarshalText(b); nil != err {
+			log.Error("Failed to blsKeyHex.UnmarshalText", "err", err)
+			return
+		}
+		val := &staking.Validator{
+			NodeAddress:    nodeAddr,
+			NodeId:         nodeId,
+			BlsPubKey:      blsKeyHex,
+			ProgramVersion: xutil.CalcVersion(initProgramVersion),
+		}
+		queue = append(queue, val)
+	}
+
+	start := uint64(1)
+	end := xutil.EpochSize() * xutil.ConsensusSize()
+
+	newVerifierArr := &staking.ValidatorArray{
+		Start: start,
+		End:   end,
+	}
+	newVerifierArr.Arr = queue
+	err := setVerifierList(blockHash, newVerifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+	newValidatorArr := &staking.ValidatorArray{
+		Start: start,
+		End:   xutil.ConsensusSize(),
+	}
+	newValidatorArr.Arr = queue[:int(xcom.MaxConsensusVals())]
+	err = setRoundValList(blockHash, newValidatorArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+	newValidatorArr2 := &staking.ValidatorArray{
+		Start: newValidatorArr.End + 1,
+		End:   newValidatorArr.End + xutil.ConsensusSize(),
+	}
+	newValidatorArr2.Arr = queue[:int(xcom.MaxConsensusVals())]
+	err = setRoundValList(blockHash, newValidatorArr2)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+
+	// Write data to DB
+	header := &types.Header{
+		ParentHash: blockHash,
+		Number:     big.NewInt(int64(xutil.ConsensusSize())),
+		Nonce:      types.EncodeNonce(crypto.Keccak256([]byte(string("history")))),
+		Extra:      make([]byte, 97),
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+	if err := StakingInstance().BeginBlock(blockHash2, header, state); err != nil {
+		t.Fatal(err)
+	}
+	nilBytes := make([]byte, 32)
+	if bytes.Equal(header.Extra[:32], nilBytes) {
+		t.Fatal()
+	}
+	list, err := StakingInstance().GetValidatorHistoryList(newValidatorArr2.Start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < len(list); i++ {
+		if list[i].NodeId != newValidatorArr2.Arr[i].NodeId {
+			t.Fatal("Data mismatch")
+		}
+		if list[i].BlsPubKey != newValidatorArr2.Arr[i].BlsPubKey {
+			t.Fatal("Data mismatch")
+		}
+	}
+	// Second round of writing data.
+	newValidatorArr3 := &staking.ValidatorArray{
+		Start: newValidatorArr2.End + 1,
+		End:   newValidatorArr2.End + xutil.ConsensusSize(),
+	}
+	newValidatorArr3.Arr = queue[1:int(xcom.MaxConsensusVals()+1)]
+	err = setRoundValList(blockHash2, newValidatorArr3)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+	header = &types.Header{
+		ParentHash: blockHash2,
+		Number:     big.NewInt(int64(newValidatorArr2.End)),
+		Nonce:      types.EncodeNonce(crypto.Keccak256([]byte(string("history")))),
+		Extra:      make([]byte, 97),
+	}
+	if err := StakingInstance().BeginBlock(blockHash3, header, state); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(header.Extra[:32], nilBytes) {
+		t.Fatal()
+	}
+	list2, err := StakingInstance().GetValidatorHistoryList(newValidatorArr3.Start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < len(list2); i++ {
+		if list2[i].NodeId != newValidatorArr3.Arr[i].NodeId {
+			t.Fatal("Data mismatch")
+		}
+		if list2[i].BlsPubKey != newValidatorArr3.Arr[i].BlsPubKey {
+			t.Fatal("Data mismatch")
+		}
+	}
+	if list2[0].NodeId == list[0].NodeId {
+		t.Fatal("Data duplication")
+	}
+	if list2[0].BlsPubKey == list[0].BlsPubKey {
+		t.Fatal("Data duplication")
 	}
 }
