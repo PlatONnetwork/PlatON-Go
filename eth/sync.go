@@ -17,17 +17,18 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"math/big"
 	"math/rand"
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -67,7 +68,7 @@ func (pm *ProtocolManager) syncTransactions(p *peer) {
 func (pm *ProtocolManager) txsyncLoop() {
 	defer pm.wg.Done()
 	var (
-		pending = make(map[discover.NodeID]*txsync)
+		pending = make(map[enode.ID]*txsync)
 		sending = false               // whether a send is active
 		pack    = new(txsync)         // the pack that is being sent
 		done    = make(chan error, 1) // result of the send

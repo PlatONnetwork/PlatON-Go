@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package evidence
 
 import (
 	"errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -28,7 +29,6 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Proposed block carrier.
@@ -183,15 +183,15 @@ func (ev *EvidenceView) Verify() error {
 
 // EvidenceNode mainly used to save node BlsPubKey
 type EvidenceNode struct {
-	Index     uint32             `json:"index"`
-	NodeID    discover.NodeID    `json:"nodeId"`
-	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
+	Index     uint32         `json:"index"`
+	NodeID    enode.IDv0     `json:"nodeId"`
+	BlsPubKey *bls.PublicKey `json:"blsPubKey"`
 }
 
 func NewEvidenceNode(node *cbfttypes.ValidateNode) *EvidenceNode {
 	return &EvidenceNode{
 		Index:     node.Index,
-		NodeID:    node.NodeID,
+		NodeID:    enode.PublicKeyToIDv0(node.PubKey),
 		BlsPubKey: node.BlsPubKey,
 	}
 }

@@ -26,7 +26,6 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/herumi/bls v1.30.0
 	github.com/holiman/uint256 v1.1.1
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
@@ -34,8 +33,8 @@ require (
 	github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/karalabe/hid v0.0.0-20170821103837-f00545f9f374
-	github.com/mattn/go-colorable v0.0.8-0.20170210172801-5411d3eea597
-	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/mattn/go-colorable v0.1.8
+	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5

@@ -20,9 +20,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 	"sync"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
 )
 
 func TestTCPPipe(t *testing.T) {
@@ -40,6 +41,7 @@ func TestTCPPipe(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
 	for i := 0; i < msgs; i++ {
 		msg := make([]byte, size)
 		binary.PutUvarint(msg, uint64(i))
@@ -82,7 +84,6 @@ func TestTCPPipeBidirections(t *testing.T) {
 			if _, err := c2.Write(msg); err != nil {
 				t.Fatal(err)
 			}
-
 		}
 	}
 
@@ -122,6 +123,7 @@ func TestNetPipe(t *testing.T) {
 			}
 		}
 	}()
+
 	for i := 0; i < msgs; i++ {
 		msg := make([]byte, size)
 		binary.PutUvarint(msg, uint64(i))
@@ -152,6 +154,7 @@ func TestNetPipeBidirections(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
 		for i := 0; i < msgs; i++ {
 			msg := []byte(fmt.Sprintf(pingTemplate, i))
 			if _, err := c1.Write(msg); err != nil {
@@ -167,7 +170,6 @@ func TestNetPipeBidirections(t *testing.T) {
 
 		for i := 0; i < msgs; i++ {
 			expected := []byte(fmt.Sprintf(pongTemplate, i))
-
 			out := make([]byte, size)
 			if _, err := c1.Read(out); err != nil {
 				t.Error(err)

@@ -17,9 +17,10 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
@@ -53,6 +54,7 @@ var DefaultConfig = Config{
 	DatabaseCache:           768,
 	TrieCache:               32,
 	TrieTimeout:             60 * time.Minute,
+	SnapshotCache:           256,
 	TrieDBCache:             512,
 	DBDisabledGC:            false,
 	DBGCInterval:            86400,
@@ -121,6 +123,7 @@ type Config struct {
 
 	TrieCache           int
 	TrieTimeout         time.Duration
+	SnapshotCache       int
 	TrieDBCache         int
 	Preimages           bool
 	DBDisabledGC        bool

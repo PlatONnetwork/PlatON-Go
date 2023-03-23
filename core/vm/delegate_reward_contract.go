@@ -18,8 +18,10 @@ package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -32,8 +34,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -157,7 +157,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 	return txResultHandlerWithRes(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, "", TxWithdrawDelegateReward, int(common.NoErr.Code), []interface{}{reward}...), nil
 }
 
-func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []discover.NodeID) ([]byte, error) {
+func (rc *DelegateRewardContract) getDelegateReward(address common.Address, nodeIDs []enode.IDv0) ([]byte, error) {
 	state := rc.Evm.StateDB
 
 	blockNum := rc.Evm.Context.BlockNumber

@@ -2,13 +2,14 @@ package staking
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 func NewDelegation() *Delegation {
@@ -200,7 +201,7 @@ func (delHex *DelegationHex) String() string {
 
 type DelegationEx struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 	DelegationHex
 }
@@ -227,7 +228,7 @@ func (dex *DelegationEx) IsEmpty() bool {
 
 type DelegationExV1 struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 	DelegationHexV1
 }
@@ -250,7 +251,7 @@ func (dex *DelegationEx) V1() *DelegationExV1 {
 
 type DelegateRelated struct {
 	Addr            common.Address
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	StakingBlockNum uint64
 }
 
@@ -276,7 +277,7 @@ func (queue DelRelatedQueue) String() string {
 }
 
 type DelegationInfo struct {
-	NodeID           discover.NodeID
+	NodeID           enode.IDv0
 	StakeBlockNumber uint64
 	Delegation       *Delegation
 }

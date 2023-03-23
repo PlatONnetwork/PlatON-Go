@@ -21,6 +21,8 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -39,7 +41,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -128,7 +129,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 	return fnSigns
 }
 
-func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
+func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId enode.IDv0,
 	externalId, nodeName, website, details string, amount *big.Int, rewardPer uint16, programVersion uint32,
 	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex, blsProof bls.SchnorrProofHex) ([]byte, error) {
 
@@ -345,7 +346,7 @@ func verifyRewardPer(rewardPer uint16) bool {
 	return rewardPer <= 10000 //	1BP(BasePoint)=0.01%
 }
 
-func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId discover.NodeID, rewardPer *uint16,
+func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId enode.IDv0, rewardPer *uint16,
 	externalId, nodeName, website, details *string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
@@ -479,7 +480,7 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 		"", TxEditorCandidate, common.NoErr)
 }
 
-func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
+func (stkc *StakingContract) increaseStaking(nodeId enode.IDv0, typ uint16, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
@@ -556,7 +557,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		"", TxIncreaseStaking, common.NoErr)
 }
 
-func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, error) {
+func (stkc *StakingContract) withdrewStaking(nodeId enode.IDv0) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
@@ -624,7 +625,7 @@ func (stkc *StakingContract) withdrewStaking(nodeId discover.NodeID) ([]byte, er
 		"", TxWithdrewCandidate, common.NoErr)
 }
 
-func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
+func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
@@ -749,7 +750,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		"", TxDelegate, common.NoErr)
 }
 
-func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId discover.NodeID, amount *big.Int) ([]byte, error) {
+func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId enode.IDv0, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
@@ -955,7 +956,7 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 }
 
 func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
-	nodeId discover.NodeID) ([]byte, error) {
+	nodeId enode.IDv0) ([]byte, error) {
 
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -998,7 +999,7 @@ func (stkc *StakingContract) getDelegateLock(delAddr common.Address) ([]byte, er
 		locks, nil), nil
 }
 
-func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
+func (stkc *StakingContract) getCandidateInfo(nodeId enode.IDv0) ([]byte, error) {
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
 

@@ -307,7 +307,7 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			return false
 		}
 		hasExecuted := func() bool {
-			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.NodeID) {
+			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.Node.ID()) {
 				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
 			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
 				blockIndex, finish := cbft.state.Executing()
@@ -337,7 +337,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 				if cbft.executeFinishHook != nil {
 					cbft.executeFinishHook(index)
 				}
-				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 				if err != nil {
 					cbft.log.Debug("Current node is not validator,no need to sign block", "err", err, "hash", s.Hash, "number", s.Number)
 					return
@@ -361,7 +361,10 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
-	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	// todo sign vote
+	// parentQC added when sending
+	// Determine if the current consensus node is
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 	if err != nil {
 		return err
 	}
@@ -417,7 +420,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			//Determine if the current consensus node is
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 			cbft.log.Info("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(node.Index, p)
 			pending.Pop()

@@ -46,13 +46,13 @@ type stateTest struct {
 
 func newStateTest() *stateTest {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabase(db))
+	sdb, _ := New(common.Hash{}, NewDatabase(db), nil)
 	return &stateTest{db: db, state: sdb}
 }
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil))
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil), nil)
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
@@ -164,7 +164,7 @@ func TestSnapshotEmpty(t *testing.T) {
 }
 
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
@@ -276,7 +276,7 @@ func TestEmptyByte(t *testing.T) {
 	}
 	defer os.Remove(frdir)
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
@@ -340,7 +340,7 @@ func TestForEachStorage(t *testing.T) {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
 	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
@@ -375,7 +375,7 @@ func TestMigrateStorage(t *testing.T) {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
 	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(from)

@@ -56,7 +56,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -241,6 +240,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			WasmType:      vm.Str2WasmType(config.VMWasmType),
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
+			SnapshotLimit:  config.SnapshotCache,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
 			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
 			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache, Preimages: config.Preimages,
@@ -341,10 +341,12 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
 		}
+	} else {
+		log.Crit("engin not good")
 	}
 
 	// Permit the downloader to use the trie cache allowance during fast sync
-	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
+	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
 	if eth.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
 		return nil, err
 	}
@@ -578,7 +580,7 @@ func (s *Ethereum) Start() error {
 			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
 				// todo: Mock point.
 				if !node.FakeNetEnable {
-					s.p2pServer.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+					s.p2pServer.AddConsensusPeer(n.Node)
 				}
 			}
 		}

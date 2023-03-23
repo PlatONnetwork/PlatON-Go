@@ -20,7 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -31,6 +30,9 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/graphql"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
@@ -62,7 +64,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -282,10 +283,19 @@ var (
 		Usage: "Time interval to regenerate the trie cache journal",
 		Value: eth.DefaultConfig.TrieCleanCacheRejournal,
 	}
+	SnapshotFlag = cli.BoolFlag{
+		Name:  "snapshot",
+		Usage: `Enables snapshot-database mode -- experimental work in progress feature`,
+	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
 		Usage: "Percentage of cache memory allowance to use for trie pruning (default = 25% full mode, 0% archive mode)",
 		Value: 25,
+	}
+	CacheSnapshotFlag = cli.IntFlag{
+		Name:  "cache.snapshot",
+		Usage: "Percentage of cache memory allowance to use for snapshot caching (default = 10% full mode, 20% archive mode)",
+		Value: 10,
 	}
 	CacheTrieDBFlag = cli.IntFlag{
 		Name:  "cache.triedb",
@@ -711,10 +721,10 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		return // already set, don't apply defaults.
 	}
 
-	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
+	cfg.BootstrapNodes = make([]*enode.Node, 0, len(urls))
 	for _, url := range urls {
 		if url != "" {
-			node, err := discover.ParseNode(url)
+			node, err := enode.Parse(enode.ValidSchemes, url)
 			if err != nil {
 				log.Crit("Bootstrap URL invalid", "enode", url, "err", err)
 			}
@@ -1148,6 +1158,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
 	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
+		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
+	}
+	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+		cfg.SnapshotCache = 0 // Disabled
+	}
 	if ctx.GlobalIsSet(CacheTrieDBFlag.Name) {
 		cfg.TrieDBCache = ctx.GlobalInt(CacheTrieDBFlag.Name)
 	}
@@ -1220,7 +1236,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if nodeCfg.P2P.PrivateKey != nil {
 		cfg.NodePriKey = nodeCfg.P2P.PrivateKey
-		cfg.NodeID = discover.PubkeyID(&cfg.NodePriKey.PublicKey)
+		cfg.Node = enode.NewV4(&cfg.NodePriKey.PublicKey, nil, 0, 0)
+		cfg.NodeID = cfg.Node.IDv0()
 	}
 
 	if ctx.GlobalIsSet(CbftBlsPriKeyFileFlag.Name) {
@@ -1388,6 +1405,10 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
+		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
+	}
+	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+		cache.SnapshotLimit = 0 // Disabled
 	}
 	if eth.DefaultConfig.DBDisabledGC && !cache.Preimages {
 		cache.Preimages = true

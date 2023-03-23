@@ -75,7 +75,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 
 		base := &staking.CandidateBase{
-			NodeId:          node.Node.ID,
+			NodeId:          node.Node.IDv0(),
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,

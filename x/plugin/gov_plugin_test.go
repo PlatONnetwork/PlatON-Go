@@ -31,7 +31,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -376,7 +376,7 @@ func TestGovPlugin_SubmitText_Proposer_empty(t *testing.T) {
 		ProposalType: gov.Text,
 		PIPID:        "textPIPID",
 		SubmitBlock:  1,
-		Proposer:     discover.ZeroNodeID,
+		Proposer:     enode.ZeroIDv0,
 	}
 
 	state := stateDB.(*mock.MockStateDB)
@@ -1228,10 +1228,10 @@ func TestGovPlugin_printVersion(t *testing.T) {
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
-	var nodeID discover.NodeID
+	var nodeID enode.IDv0
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
-	t.Logf("nodeID is empty, %t", nodeID == discover.ZeroNodeID)
+	t.Logf("nodeID is empty, %t", nodeID == enode.ZeroIDv0)
 
 }
 
@@ -1306,7 +1306,7 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 var (
 	chandler *node.CryptoHandler
 	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
-	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+	nodeID   = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
 
 func initChandlerHandler() {

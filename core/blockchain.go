@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"io"
 	mrand "math/rand"
 	"sort"
@@ -61,6 +62,10 @@ var (
 	storageUpdateTimer = metrics.NewRegisteredTimer("chain/storage/updates", nil)
 	storageCommitTimer = metrics.NewRegisteredTimer("chain/storage/commits", nil)
 
+	snapshotAccountReadTimer = metrics.NewRegisteredTimer("chain/snapshot/account/reads", nil)
+	snapshotStorageReadTimer = metrics.NewRegisteredTimer("chain/snapshot/storage/reads", nil)
+	snapshotCommitTimer      = metrics.NewRegisteredTimer("chain/snapshot/commits", nil)
+
 	blockInsertTimer     = metrics.NewRegisteredTimer("chain/inserts", nil)
 	blockValidationTimer = metrics.NewRegisteredTimer("chain/validation", nil)
 	//blockExecutionTimer  = metrics.NewRegisteredTimer("chain/execution", nil)
@@ -87,7 +92,11 @@ type CacheConfig struct {
 	TrieCleanRejournal time.Duration // Time interval to dump clean cache to disk periodically
 	TrieDirtyLimit     int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit      time.Duration // Time limit after which to flush the current in-memory trie to disk
-	Preimages          bool          // Whether to store preimage of trie key to the disk
+	SnapshotLimit      int           // Memory allowance (MB) to use for caching snapshot entries in memory
+
+	SnapshotWait bool // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
+
+	Preimages bool // Whether to store preimage of trie key to the disk
 
 	BodyCacheLimit  int
 	BlockCacheLimit int
@@ -167,6 +176,7 @@ type BlockChain struct {
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
 	db     ethdb.Database // Low level persistent database to store final content in
+	snaps  *snapshot.Tree // Snapshot tree for fast trie leaf access
 	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
 	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
 
@@ -231,6 +241,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			TrieCleanLimit:  512,
 			TrieDirtyLimit:  256 * 1024 * 1024,
 			TrieTimeLimit:   5 * time.Minute,
+			SnapshotLimit:   256,
+			SnapshotWait:    true,
 			BodyCacheLimit:  256,
 			BlockCacheLimit: 256,
 			MaxFutureBlocks: 256,
@@ -238,6 +250,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			TriesInMemory:   128,
 			DBGCInterval:    86400,
 			DBGCTimeout:     time.Minute,
+			Preimages:       true,
 		}
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)
@@ -364,6 +377,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	log.Debug("DB config", "DBDisabledGC", bc.cacheConfig.DBDisabledGC, "DBGCInterval", bc.cacheConfig.DBGCInterval, "DBGCTimeout", bc.cacheConfig.DBGCTimeout, "DBGCMpt", bc.cacheConfig.DBGCMpt)
 	bc.cleaner = NewCleaner(bc, bc.cacheConfig.DBGCInterval, bc.cacheConfig.DBGCTimeout, bc.cacheConfig.DBGCMpt)
 
+	// Load any existing snapshot, regenerating it if loading failed
+	if bc.cacheConfig.SnapshotLimit > 0 {
+		bc.snaps = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, bc.CurrentBlock().Root(), !bc.cacheConfig.SnapshotWait)
+	}
 	// Take ownership of this particular state
 	go bc.update()
 	if txLookupLimit != nil {
@@ -439,7 +456,7 @@ func (bc *BlockChain) loadLastState() error {
 		//return bc.Reset()
 	}
 	// Make sure the state associated with the block is available
-	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
+	if _, err := state.New(currentBlock.Root(), bc.stateCache, bc.snaps); err != nil {
 		// Dangling block without a state associated, init from scratch
 		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "err", err)
 		if err := bc.repair(&currentBlock); err != nil {
@@ -553,6 +570,10 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	headBlockGauge.Update(int64(block.NumberU64()))
 	bc.chainmu.Unlock()
 
+	// Destroy any existing state snapshot and regenerate it in the background
+	if bc.snaps != nil {
+		bc.snaps.Rebuild(block.Root())
+	}
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
 	bc.engine.Pause()
 	defer bc.engine.Resume()
@@ -611,7 +632,7 @@ func (bc *BlockChain) State() (*state.StateDB, error) {
 
 // StateAt returns a new mutable state based on a particular point in time.
 func (bc *BlockChain) StateAt(root common.Hash) (*state.StateDB, error) {
-	return state.New(root, bc.stateCache)
+	return state.New(root, bc.stateCache, bc.snaps)
 }
 
 // StateCache returns the caching database underpinning the blockchain instance.
@@ -657,7 +678,7 @@ func (bc *BlockChain) StateCache() state.Database {
 func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
-		if _, err := state.New((*head).Root(), bc.stateCache); err == nil {
+		if _, err := state.New((*head).Root(), bc.stateCache, bc.snaps); err == nil {
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
@@ -921,6 +942,14 @@ func (bc *BlockChain) Stop() {
 
 	bc.wg.Wait()
 
+	// Ensure that the entirety of the state snapshot is journalled to disk.
+	var snapBase common.Hash
+	if bc.snaps != nil {
+		var err error
+		if snapBase, err = bc.snaps.Journal(bc.CurrentBlock().Root()); err != nil {
+			log.Error("Failed to journal state snapshot", "err", err)
+		}
+	}
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	// We're writing three different states to catch different restart scenarios:
 	//  - HEAD:     So we don't need to reprocess any blocks in the general case
@@ -940,6 +969,12 @@ func (bc *BlockChain) Stop() {
 				if err := triedb.Commit(recent.Root(), true, true); err != nil {
 					log.Error("Failed to commit recent state trie", "err", err)
 				}
+			}
+		}
+		if snapBase != (common.Hash{}) {
+			log.Info("Writing snapshot state to disk", "root", snapBase)
+			if err := triedb.Commit(snapBase, true, true); err != nil {
+				log.Error("Failed to commit recent state trie", "err", err)
 			}
 		}
 		for !bc.triegc.Empty() {
@@ -1598,15 +1633,17 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.BlockFeed.Send(block)
 
 	// Update the metrics touched during block processing
-	accountReadTimer.Update(state.AccountReads)     // Account reads are complete, we can mark them
-	storageReadTimer.Update(state.StorageReads)     // Storage reads are complete, we can mark them
-	accountUpdateTimer.Update(state.AccountUpdates) // Account updates are complete, we can mark them
-	storageUpdateTimer.Update(state.StorageUpdates) // Storage updates are complete, we can mark them
-	accountHashTimer.Update(state.AccountHashes)    // Account hashes are complete, we can mark them
-	storageHashTimer.Update(state.StorageHashes)    // Storage hashes are complete, we can mark them
-	accountCommitTimer.Update(state.AccountCommits) // Account commits are complete, we can mark them
-	storageCommitTimer.Update(state.StorageCommits) // Storage commits are complete, we can mark them
-
+	accountReadTimer.Update(state.AccountReads)                 // Account reads are complete, we can mark them
+	storageReadTimer.Update(state.StorageReads)                 // Storage reads are complete, we can mark them
+	accountUpdateTimer.Update(state.AccountUpdates)             // Account updates are complete, we can mark them
+	storageUpdateTimer.Update(state.StorageUpdates)             // Storage updates are complete, we can mark them
+	snapshotAccountReadTimer.Update(state.SnapshotAccountReads) // Account reads are complete, we can mark them
+	snapshotStorageReadTimer.Update(state.SnapshotStorageReads) // Storage reads are complete, we can mark them
+	accountHashTimer.Update(state.AccountHashes)                // Account hashes are complete, we can mark them
+	storageHashTimer.Update(state.StorageHashes)                // Storage hashes are complete, we can mark them
+	accountCommitTimer.Update(state.AccountCommits)             // Account commits are complete, we can mark them
+	storageCommitTimer.Update(state.StorageCommits)             // Storage commits are complete, we can mark them
+	snapshotCommitTimer.Update(state.SnapshotCommits)           // Snapshot commits are complete, we can mark them
 	return status, nil
 }
 

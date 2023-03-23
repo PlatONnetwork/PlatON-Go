@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -23,9 +22,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
@@ -34,7 +35,6 @@ import (
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -625,7 +625,7 @@ func TestCbft_MissingViewChangeNodes(t *testing.T) {
 	assert.Nil(t, message)
 }
 
-func buildSingleCbft() (*Cbft, []discover.NodeID) {
+func buildSingleCbft() (*Cbft, []enode.ID) {
 	// Init mock node.
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
@@ -633,7 +633,7 @@ func buildSingleCbft() (*Cbft, []discover.NodeID) {
 	//node.engine.network.Close()
 	// Add a node to the Handler.
 	cNodes := network.RandomID()
-	node.engine.consensusNodesMock = func() ([]discover.NodeID, error) {
+	node.engine.consensusNodesMock = func() ([]enode.ID, error) {
 		return cNodes, nil
 	}
 	network.FillEngineManager(cNodes, node.engine.network)
