@@ -19,10 +19,12 @@ package staking
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"strings"
+
+	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -1037,7 +1039,7 @@ func (queue SlashQueue) String() string {
 // For historical node records.
 // Store historical node information and participate in hash calculation.
 type HistoryValidator struct {
-	NodeId    discover.NodeID
+	NodeId    enode.ID
 	BlsPubKey bls.PublicKeyHex
 }
 
