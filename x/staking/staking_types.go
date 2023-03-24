@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -1039,7 +1038,7 @@ func (queue SlashQueue) String() string {
 // For historical node records.
 // Store historical node information and participate in hash calculation.
 type HistoryValidator struct {
-	NodeId    enode.ID
+	NodeId    enode.IDv0
 	BlsPubKey bls.PublicKeyHex
 }
 
@@ -1101,7 +1100,7 @@ func (hvl HistoryValidatorList) Hash() (common.Hash, error) {
 // Structure returned to the external caller.
 type HistoryValidatorEx struct {
 	Address   common.NodeAddress
-	NodeId    discover.NodeID
+	NodeId    enode.IDv0
 	BlsPubKey bls.PublicKeyHex
 }
 
