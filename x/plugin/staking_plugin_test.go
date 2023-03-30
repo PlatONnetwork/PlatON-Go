@@ -53,7 +53,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -4142,7 +4141,9 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		if nil != err {
 			t.Fatalf("Failed to generate random NodeId private key: %v", err)
 		}
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		pnode := enode.NewV4(&privateKey.PublicKey, nil, 0, 0)
+		nodeId := pnode.IDv0()
 		nodeAddr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
