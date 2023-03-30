@@ -109,6 +109,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CacheFlag,
 			utils.CacheDatabaseFlag,
+			utils.CacheTrieFlag,
 			utils.CacheTrieJournalFlag,
 			utils.CacheTrieRejournalFlag,
 			utils.CacheGCFlag,
@@ -159,6 +160,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
 			//	utils.BootnodesV5Flag,
+			utils.DNSDiscoveryFlag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
 			utils.MaxConsensusPeersFlag,

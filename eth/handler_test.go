@@ -45,7 +45,7 @@ func TestProtocolCompatibility(t *testing.T) {
 		compatible bool
 	}{
 		{61, downloader.FullSync, true}, {62, downloader.FullSync, true}, {63, downloader.FullSync, true},
-		{61, downloader.FastSync, false}, {62, downloader.FastSync, false}, {63, downloader.FastSync, true},
+		{61, downloader.SnapSync, false}, {62, downloader.SnapSync, false}, {63, downloader.SnapSync, true},
 	}
 	// Make sure anything we screw up is restored
 	backup := ProtocolVersions
@@ -318,7 +318,7 @@ func newSnapshotdb() (snapshotdb.DB, error) {
 
 func TestGetOriginAndPivotMsg(t *testing.T) {
 
-	pm, _ := newTestProtocolManagerMust(t, downloader.FastSync, downloader.MaxBlockFetch+15, nil, nil)
+	pm, _ := newTestProtocolManagerMust(t, downloader.SnapSync, downloader.MaxBlockFetch+15, nil, nil)
 	peer, _ := newTestPeer("peer", 63, pm, true)
 	db, err := newSnapshotdb()
 	if err != nil {

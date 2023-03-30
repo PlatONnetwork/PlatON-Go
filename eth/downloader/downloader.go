@@ -28,6 +28,7 @@ import (
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -48,7 +49,6 @@ const (
 )
 
 var (
-	MaxHashFetch    = 512 // Amount of hashes to be fetched per retrieval request
 	MaxBlockFetch   = 128 // Amount of blocks to be fetched per retrieval request
 	MaxHeaderFetch  = 192 // Amount of block headers to be fetched per retrieval request
 	MaxSkeletonSize = 128 // Number of header fetches to need for a skeleton assembly
@@ -95,7 +95,7 @@ var (
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
-	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 63)")
+	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 64)")
 )
 
 type Downloader struct {
@@ -136,21 +136,25 @@ type Downloader struct {
 	ancientLimit    uint64 // The maximum block number which can be regarded as ancient data.
 
 	// Channels
-	headerCh          chan dataPack        // [eth/62] Channel receiving inbound block headers
-	bodyCh            chan dataPack        // [eth/62] Channel receiving inbound block bodies
-	receiptCh         chan dataPack        // [eth/63] Channel receiving inbound receipts
-	bodyWakeCh        chan bool            // [eth/62] Channel to signal the block body fetcher of new tasks
-	receiptWakeCh     chan bool            // [eth/63] Channel to signal the receipt fetcher of new tasks
-	headerProcCh      chan []*types.Header // [eth/62] Channel to feed the header processor new tasks
-	pposInfoCh        chan dataPack        // [eth/63] Channel receiving inbound ppos storage
-	pposStorageCh     chan dataPack        // [eth/63] Channel receiving inbound ppos storage
+	headerCh          chan dataPack        // Channel receiving inbound block headers
+	bodyCh            chan dataPack        // Channel receiving inbound block bodies
+	receiptCh         chan dataPack        // Channel receiving inbound receipts
+	bodyWakeCh        chan bool            // Channel to signal the block body fetcher of new tasks
+	receiptWakeCh     chan bool            // Channel to signal the receipt fetcher of new tasks
+	headerProcCh      chan []*types.Header // Channel to feed the header processor new tasks
+	pposInfoCh        chan dataPack        // Channel receiving inbound ppos storage
+	pposStorageCh     chan dataPack        // Channel receiving inbound ppos storage
 	pposStorageDoneCh chan struct{}        // Channel to signal termination completion
-	originAndPivotCh  chan dataPack        // [eth/63] Channel receiving origin and pivot block
+	originAndPivotCh  chan dataPack        // Channel receiving origin and pivot block
+
+	// State sync
+	pivotHeader *types.Header // Pivot block header to dynamically push the syncing state root
+	pivotLock   sync.RWMutex  // Lock protecting pivot header reads from updates
 
 	// for stateFetcher
 	stateSyncStart chan *stateSync
 	trackStateReq  chan *stateReq
-	stateCh        chan dataPack // [eth/63] Channel receiving inbound node state data
+	stateCh        chan dataPack // Channel receiving inbound node state data
 
 	// Cancellation and termination
 	cancelPeer string         // Identifier of the peer currently being used as the master (cancel on drop)
@@ -239,6 +243,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, stateBloom *trie.Sync
 		originAndPivotCh: make(chan dataPack, 1),
 		quitCh:           make(chan struct{}),
 		stateCh:          make(chan dataPack),
+		SnapSyncer:       snap.NewSyncer(stateDb, stateBloom),
 		stateSyncStart:   make(chan *stateSync),
 		syncStatsState: stateSyncStats{
 			processed: rawdb.ReadFastTrieProgress(stateDb),
@@ -268,7 +273,7 @@ func (d *Downloader) Progress() ethereum.SyncProgress {
 	switch {
 	case d.blockchain != nil && mode == FullSync:
 		current = d.blockchain.CurrentBlock().NumberU64()
-	case d.blockchain != nil && mode == FastSync:
+	case d.blockchain != nil && mode == SnapSync:
 		current = d.blockchain.CurrentFastBlock().NumberU64()
 	case d.lightchain != nil:
 		current = d.lightchain.CurrentHeader().Number.Uint64()
@@ -289,19 +294,16 @@ func (d *Downloader) Synchronising() bool {
 	return atomic.LoadInt32(&d.synchronising) > 0
 }
 
-// SyncBloomContains tests if the syncbloom filter contains the given hash:
-//   - false: the bloom definitely does not contain hash
-//   - true:  the bloom maybe contains hash
-//
-// While the bloom is being initialized (or is closed), all queries will return true.
-func (d *Downloader) SyncBloomContains(hash []byte) bool {
-	return d.stateBloom == nil || d.stateBloom.Contains(hash)
-}
-
 // RegisterPeer injects a new download peer into the set of block source to be
 // used for fetching hashes and blocks from.
-func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
-	logger := log.New("peer", id)
+func (d *Downloader) RegisterPeer(id string, version uint, peer Peer) error {
+	var logger log.Logger
+	if len(id) < 16 {
+		// Tests use short IDs, don't choke on them
+		logger = log.New("peer", id)
+	} else {
+		logger = log.New("peer", id[:16])
+	}
 	logger.Trace("Registering sync peer")
 	if err := d.peers.Register(newPeerConnection(id, version, peer, logger)); err != nil {
 		logger.Error("Failed to register sync peer", "err", err)
@@ -313,7 +315,7 @@ func (d *Downloader) RegisterPeer(id string, version int, peer Peer) error {
 }
 
 // RegisterLightPeer injects a light client peer, wrapping it so it appears as a regular peer.
-func (d *Downloader) RegisterLightPeer(id string, version int, peer LightPeer) error {
+func (d *Downloader) RegisterLightPeer(id string, version uint, peer LightPeer) error {
 	return d.RegisterPeer(id, version, &lightPeerWrapper{peer})
 }
 
@@ -322,7 +324,13 @@ func (d *Downloader) RegisterLightPeer(id string, version int, peer LightPeer) e
 // the queue.
 func (d *Downloader) UnregisterPeer(id string) error {
 	// Unregister the peer from the active peer set and revoke any fetch tasks
-	logger := log.New("peer", id)
+	var logger log.Logger
+	if len(id) < 16 {
+		// Tests use short IDs, don't choke on them
+		logger = log.New("peer", id)
+	} else {
+		logger = log.New("peer", id[:16])
+	}
 	logger.Trace("Unregistering sync peer")
 	if err := d.peers.Unregister(id); err != nil {
 		logger.Error("Failed to unregister sync peer", "err", err)
@@ -383,6 +391,16 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 	// when the user attempts to fast sync a new empty network.
 	if mode == FullSync && d.stateBloom != nil {
 		d.stateBloom.Close()
+	}
+	// If snap sync was requested, create the snap scheduler and switch to fast
+	// sync mode. Long term we could drop fast sync or merge the two together,
+	// but until snap becomes prevalent, we should support both. TODO(karalabe).
+	if mode == SnapSync {
+		if !d.snapSync {
+			log.Warn("Enabling snapshot sync prototype")
+			d.snapSync = true
+		}
+		mode = FastSync
 	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
 	d.queue.Reset(blockCacheMaxItems, blockCacheInitialItems)
@@ -445,8 +463,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 			d.mux.Post(DoneEvent{})
 		}
 	}()
-	if p.version < 63 {
-		return errTooOld
+	if p.version < 64 {
+		return fmt.Errorf("%w, peer version: %d", errTooOld, p.version)
 	}
 	mode := d.getMode()
 
@@ -471,7 +489,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
-	if mode == FastSync {
+	if mode == SnapSync {
 		if pivoth.Number.Uint64() > origin {
 			// fetch latest ppos storage cache from remote peer
 			latest, pivoth, err = d.fetchPPOSInfo(p)
@@ -506,7 +524,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	d.syncStatsChainHeight = height
 	d.syncStatsLock.Unlock()
 
-	if mode == FastSync {
+	if mode == SnapSync {
 		// Set the ancient data limitation.
 		// If we are running fast sync, all block data older than ancientLimit will be
 		// written to the ancient store. More recent data will be written to the active
@@ -558,7 +576,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		func() error { return d.fetchReceipts(origin + 1) },                         // Receipts are retrieved during fast sync
 		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
 	}
-	if mode == FastSync {
+	if mode == SnapSync {
 		if err := d.snapshotDB.SetEmpty(); err != nil {
 			p.log.Error("set  snapshotDB empty fail")
 			return errors.New("set  snapshotDB empty fail:" + err.Error())
@@ -585,7 +603,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 	mode := d.getMode()
 	if mode == FullSync {
 		current = d.blockchain.CurrentBlock().Header()
-	} else if mode == FastSync {
+	} else if mode == SnapSync {
 		current = d.blockchain.CurrentFastBlock().Header()
 	} else {
 		current = d.lightchain.CurrentHeader()
@@ -810,7 +828,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 	}
 	mode := d.getMode()
-	if mode == FastSync {
+	if mode == SnapSync {
 		if failed {
 			if err := d.setFastSyncStatus(FastSyncFail); err != nil {
 				return err
@@ -1418,7 +1436,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 				// This check cannot be executed "as is" for full imports, since blocks may still be
 				// queued for processing when the header download completes. However, as long as the
 				// peer gave us something useful, we're already happy/progressed (above check).
-				if mode == FastSync || mode == LightSync {
+				if mode == SnapSync || mode == LightSync {
 					head := d.lightchain.CurrentHeader()
 					if bn.Cmp(head.Number) > 0 {
 						return errStallingPeer
@@ -1445,7 +1463,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 				}
 				chunk := headers[:limit]
 				// In case of header only syncing, validate the chunk immediately
-				if mode == FastSync || mode == LightSync {
+				if mode == SnapSync || mode == LightSync {
 					// Collect the yet unknown headers to mark them as uncertain
 					unknown := make([]*types.Header, 0, len(chunk))
 					for _, header := range chunk {
@@ -1474,7 +1492,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 					}
 				}
 				// Unless we're doing light chains, schedule the headers for associated content retrieval
-				if mode == FullSync || mode == FastSync {
+				if mode == FullSync || mode == SnapSync {
 					// If we've reached the allowed number of pending headers, stall a bit
 					for d.queue.PendingBlocks() >= maxQueuedHeaders || d.queue.PendingReceipts() >= maxQueuedHeaders {
 						select {
@@ -1752,27 +1770,53 @@ func (d *Downloader) DeliverOriginAndPivot(id string, headers []*types.Header) (
 
 // DeliverHeaders injects a new batch of block headers received from a remote
 // node into the download schedule.
-func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) (err error) {
-	return d.deliver(id, d.headerCh, &headerPack{id, headers}, headerInMeter, headerDropMeter)
+func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) error {
+	return d.deliver(d.headerCh, &headerPack{id, headers}, headerInMeter, headerDropMeter)
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Transaction, extraData [][]byte) (err error) {
-	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, extraData}, bodyInMeter, bodyDropMeter)
+func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Transaction, extraData [][]byte) error {
+	return d.deliver(d.bodyCh, &bodyPack{id, transactions, extraData}, bodyInMeter, bodyDropMeter)
 }
 
 // DeliverReceipts injects a new batch of receipts received from a remote node.
-func (d *Downloader) DeliverReceipts(id string, receipts [][]*types.Receipt) (err error) {
-	return d.deliver(id, d.receiptCh, &receiptPack{id, receipts}, receiptInMeter, receiptDropMeter)
+func (d *Downloader) DeliverReceipts(id string, receipts [][]*types.Receipt) error {
+	return d.deliver(d.receiptCh, &receiptPack{id, receipts}, receiptInMeter, receiptDropMeter)
 }
 
 // DeliverNodeData injects a new batch of node state data received from a remote node.
-func (d *Downloader) DeliverNodeData(id string, data [][]byte) (err error) {
-	return d.deliver(id, d.stateCh, &statePack{id, data}, stateInMeter, stateDropMeter)
+func (d *Downloader) DeliverNodeData(id string, data [][]byte) error {
+	return d.deliver(d.stateCh, &statePack{id, data}, stateInMeter, stateDropMeter)
+}
+
+// DeliverSnapPacket is invoked from a peer's message handler when it transmits a
+// data packet for the local node to consume.
+func (d *Downloader) DeliverSnapPacket(peer *snap.Peer, packet snap.Packet) error {
+	switch packet := packet.(type) {
+	case *snap.AccountRangePacket:
+		hashes, accounts, err := packet.Unpack()
+		if err != nil {
+			return err
+		}
+		return d.SnapSyncer.OnAccounts(peer, packet.ID, hashes, accounts, packet.Proof)
+
+	case *snap.StorageRangesPacket:
+		hashset, slotset := packet.Unpack()
+		return d.SnapSyncer.OnStorage(peer, packet.ID, hashset, slotset, packet.Proof)
+
+	case *snap.ByteCodesPacket:
+		return d.SnapSyncer.OnByteCodes(peer, packet.ID, packet.Codes)
+
+	case *snap.TrieNodesPacket:
+		return d.SnapSyncer.OnTrieNodes(peer, packet.ID, packet.Nodes)
+
+	default:
+		return fmt.Errorf("unexpected snap packet type: %T", packet)
+	}
 }
 
 // deliver injects a new batch of data received from a remote node.
-func (d *Downloader) deliver(id string, destCh chan dataPack, packet dataPack, inMeter, dropMeter metrics.Meter) (err error) {
+func (d *Downloader) deliver(destCh chan dataPack, packet dataPack, inMeter, dropMeter metrics.Meter) (err error) {
 	// Update the delivery metrics for both good and failed deliveries
 	inMeter.Mark(int64(packet.Items()))
 	defer func() {

@@ -28,6 +28,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/AlayaNetwork/Alaya-Go/eth"
+	"github.com/ethereum/go-ethereum/eth/protocols/snap"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -49,11 +52,6 @@ import (
 )
 
 const (
-	// softResponseLimit is the target maximum size of replies to data retrievals.
-	softResponseLimit = 2 * 1024 * 1024
-
-	estHeaderRlpSize = 500 // Approximate size of an RLP encoded block header
-
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
@@ -70,24 +68,58 @@ const (
 // not compatible (low protocol version restrictions and high requirements).
 var errIncompatibleConfig = errors.New("incompatible configuration")
 
-func errResp(code errCode, format string, v ...interface{}) error {
-	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
+// txPool defines the methods needed from a transaction pool implementation to
+// support all the operations needed by the Ethereum chain protocols.
+type txPool interface {
+	// Has returns an indicator whether txpool has a transaction
+	// cached with the given hash.
+	Has(hash common.Hash) bool
+
+	// Get retrieves the transaction from local txpool with given
+	// tx hash.
+	Get(hash common.Hash) *types.Transaction
+
+	// AddRemotes should add the given transactions to the pool.
+	AddRemotes([]*types.Transaction) []error
+
+	// Pending should return pending transactions.
+	// The slice should be modifiable by the caller.
+	Pending() (map[common.Address]types.Transactions, error)
+
+	// SubscribeNewTxsEvent should return an event subscription of
+	// NewTxsEvent and send events to the given channel.
+	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 }
 
-type ProtocolManager struct {
+// handlerConfig is the collection of initialization parameters to create a full
+// node network handler.
+type handlerConfig struct {
+	Database   ethdb.Database            // Database for direct sync insertions
+	Chain      *core.BlockChain          // Blockchain to serve data from
+	TxPool     txPool                    // Transaction pool to propagate from
+	Network    uint64                    // Network identifier to adfvertise
+	Sync       downloader.SyncMode       // Whether to fast or full sync
+	BloomCache uint64                    // Megabytes to alloc for fast sync bloom
+	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
+	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
+	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
+}
+
+type handler struct {
 	networkID uint64
 
 	fastSync        uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
 	acceptTxs       uint32 // Flag whether we're considered synchronised (enables transaction processing)
 	acceptRemoteTxs uint32 // Flag whether we're accept remote txs
 
-	txpool      txPool
-	blockchain  *core.BlockChain
 	chainconfig *params.ChainConfig
-	chaindb     ethdb.Database
+	database    ethdb.Database
+	txpool      txPool
+	chain       *core.BlockChain
 	maxPeers    int
 
 	downloader   *downloader.Downloader
+	stateBloom   *trie.SyncBloom
 	blockFetcher *fetcher.BlockFetcher
 	txFetcher    *fetcher.TxFetcher
 	peers        *peerSet
@@ -114,232 +146,153 @@ type ProtocolManager struct {
 	engine consensus.Engine
 }
 
-// NewProtocolManager returns a new PlatON sub protocol manager. The PlatON sub protocol manages peers capable
-// with the PlatON network.
-func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, networkID uint64, mux *event.TypeMux, txpool txPool, engine consensus.Engine, blockchain *core.BlockChain, chaindb ethdb.Database, cacheLimit int) (*ProtocolManager, error) {
+// newHandler returns a handler for all Ethereum chain management protocol.
+func newHandler(config *handlerConfig) (*handler, error) {
 	// Create the protocol manager with the base fields
-	manager := &ProtocolManager{
-		networkID:   networkID,
-		eventMux:    mux,
-		txpool:      txpool,
-		blockchain:  blockchain,
-		chaindb:     chaindb,
-		chainconfig: config,
-		peers:       newPeerSet(),
-		txsyncCh:    make(chan *txsync),
-		quitSync:    make(chan struct{}),
-		engine:      engine,
+	if config.EventMux == nil {
+		config.EventMux = new(event.TypeMux) // Nicety initialization for tests
+	}
+	h := &handler{
+		networkID: config.Network,
+		eventMux:  config.EventMux,
+		database:  config.Database,
+		txpool:    config.TxPool,
+		chain:     config.Chain,
+		peers:     newPeerSet(),
+		txsyncCh:  make(chan *txsync),
+		quitSync:  make(chan struct{}),
+		engine:    config.Chain.Engine(),
 	}
 	// If fast sync was requested and our database is empty, grant it
-	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() == 0 {
-		manager.fastSync = uint32(1)
+	if config.Sync == downloader.SnapSync && config.Chain.CurrentBlock().NumberU64() == 0 {
+		h.fastSync = uint32(1)
 	}
 	// Initiate a sub-protocol for every implemented version we can handle
-	manager.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
+	h.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		// Skip protocol version if incompatible with the mode of operation
-		if atomic.LoadUint32(&manager.fastSync) == 1 && version < eth63 {
+		if atomic.LoadUint32(&h.fastSync) == 1 && version < eth63 {
 			continue
 		}
 		// Compatible; initialise the sub-protocol
 		version := version // Closure for the run
-		manager.SubProtocols = append(manager.SubProtocols, p2p.Protocol{
+		h.SubProtocols = append(h.SubProtocols, p2p.Protocol{
 			Name:    protocolName,
 			Version: version,
 			Length:  protocolLengths[i],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				return manager.runPeer(manager.newPeer(int(version), p, rw, manager.txpool.Get))
+				return h.runPeer(h.newPeer(int(version), p, rw, h.txpool.Get))
 			},
 			NodeInfo: func() interface{} {
-				return manager.NodeInfo()
+				return h.NodeInfo()
 			},
 			PeerInfo: func(id enode.ID) interface{} {
-				if p := manager.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+				if p := h.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
 					return p.Info()
 				}
 				return nil
 			},
 		})
 	}
-	if len(manager.SubProtocols) == 0 {
+	if len(h.SubProtocols) == 0 {
 		return nil, errIncompatibleConfig
 	}
 
 	decodeExtra := func(extra []byte) (common.Hash, uint64, error) {
-		return manager.engine.DecodeExtra(extra)
+		return h.engine.DecodeExtra(extra)
 	}
 
 	// Construct the downloader (long sync) and its backing state bloom if fast
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
-	var stateBloom *trie.SyncBloom
-	if atomic.LoadUint32(&manager.fastSync) == 1 {
-		stateBloom = trie.NewSyncBloom(uint64(cacheLimit), chaindb)
+	if atomic.LoadUint32(&h.fastSync) == 1 {
+		h.stateBloom = trie.NewSyncBloom(config.BloomCache, config.Database)
 	}
-	manager.downloader = downloader.New(chaindb, snapshotdb.Instance(), stateBloom, manager.eventMux, blockchain, nil, manager.removePeer, decodeExtra)
+	h.downloader = downloader.New(h.checkpointNumber, config.Database, h.stateBloom, h.eventMux, h.chain, nil, h.removePeer)
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
-		return engine.VerifyHeader(blockchain, header, true)
+		return h.engine.VerifyHeader(h.chain, header, true)
 	}
 	heighter := func() uint64 {
-		return manager.blockchain.Engine().CurrentBlock().NumberU64() + 1
+		return h.chain.Engine().CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
-		if atomic.LoadUint32(&manager.fastSync) == 1 {
+		if atomic.LoadUint32(&h.fastSync) == 1 {
 			log.Warn("Discarded bad propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())
 			return 0, nil
 		}
-		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
-		return manager.blockchain.InsertChain(blocks)
+		atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done on any fetcher import
+		return h.chain.InsertChain(blocks)
 	}
 	getBlockByHash := func(hash common.Hash) *types.Block {
-		return manager.blockchain.GetBlockByHash(hash)
+		return h.chain.GetBlockByHash(hash)
 	}
-	manager.blockFetcher = fetcher.NewBlockFetcher(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer, decodeExtra)
+	h.blockFetcher = fetcher.NewBlockFetcher(false, nil, h.chain.GetBlockByHash, validator, h.BroadcastBlock, heighter, nil, inserter, h.removePeer)
 
 	fetchTx := func(peer string, hashes []common.Hash) error {
-		p := manager.peers.Peer(peer)
+		p := h.peers.ethPeer(peer)
 		if p == nil {
 			return errors.New("unknown peer")
 		}
 		return p.RequestTxs(hashes)
 	}
-	manager.txFetcher = fetcher.NewTxFetcher(manager.txpool.Has, manager.txpool.AddRemotes, fetchTx)
-
-	manager.chainSync = newChainSyncer(manager)
-
-	return manager, nil
+	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, h.txpool.AddRemotes, fetchTx)
+	h.chainSync = newChainSyncer(h)
+	return h, nil
 }
 
-func (pm *ProtocolManager) removePeer(id string) {
-	// Short circuit if the peer was already removed
-	peer := pm.peers.Peer(id)
-	if peer == nil {
-		return
-	}
-	log.Debug("Removing PlatON peer", "peer", id)
-
-	// Unregister the peer from the downloader and PlatON peer set
-	pm.downloader.UnregisterPeer(id)
-	pm.txFetcher.Drop(id)
-
-	if err := pm.peers.Unregister(id); err != nil {
-		log.Error("Peer removal failed", "peer", id, "err", err)
-	}
-	// Hard disconnect at the networking layer
-	if peer != nil {
-		peer.Peer.Disconnect(p2p.DiscUselessPeer)
-	}
-}
-
-func (pm *ProtocolManager) Start(maxPeers int) {
-	pm.maxPeers = maxPeers
-
-	// broadcast transactions
-	pm.txsCh = make(chan core.NewTxsEvent, txChanSize)
-	pm.txsSub = pm.txpool.SubscribeNewTxsEvent(pm.txsCh)
-	pm.wg.Add(1)
-	go pm.txBroadcastLoop()
-
-	// broadcast mined blocks
-	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
-	pm.wg.Add(1)
-	go pm.minedBroadcastLoop()
-
-	// start sync handlers
-	pm.wg.Add(2)
-	go pm.chainSync.loop()
-	go pm.txsyncLoop()
-}
-
-func (pm *ProtocolManager) Stop() {
-	log.Info("Stopping PlatON protocol")
-
-	pm.txsSub.Unsubscribe()        // quits txBroadcastLoop
-	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
-
-	// Quit chainSync and txsync.
-	// After this send has completed, no new peers will be accepted.
-	close(pm.quitSync)
-	pm.wg.Wait()
-
-	// Disconnect existing sessions.
-	// This also closes the gate for any new registrations on the peer set.
-	// sessions which are already established but not added to pm.peers yet
-	// will exit when they try to register.
-	pm.peers.Close()
-	pm.peerWG.Wait()
-
-	log.Info("PlatON protocol stopped")
-}
-
-func (pm *ProtocolManager) runPeer(p *peer) error {
-	if !pm.chainSync.handlePeerEvent(p) {
+func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
+	if !h.chainSync.handlePeerEvent(peer) {
 		return p2p.DiscQuitting
 	}
-	pm.peerWG.Add(1)
-	defer pm.peerWG.Done()
-	return pm.handle(p)
-}
-
-func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter, getPooledTx func(hash common.Hash) *types.Transaction) *peer {
-	return newPeer(pv, p, rw, getPooledTx)
-}
-
-// handle is the callback invoked to manage the life cycle of an eth peer. When
-// this function terminates, the peer is disconnected.
-func (pm *ProtocolManager) handle(p *peer) error {
-	// Ignore maxPeers if this is a trusted peer
-	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted && !p.Peer.Info().Network.Static {
-		return p2p.DiscTooManyPeers
-	}
-	p.Log().Debug("PlatON peer connected", "name", p.Name())
+	h.peerWG.Add(1)
+	defer h.peerWG.Done()
 
 	// Execute the PlatON handshake
 	var (
-		genesis = pm.blockchain.Genesis()
-		head    = pm.blockchain.CurrentHeader()
+		genesis = h.chain.Genesis()
+		head    = h.chain.CurrentHeader()
 		hash    = head.CacheHash()
 	)
-	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash(), pm); err != nil {
-		p.Log().Debug("PlatON handshake failed", "err", err)
+	if err := peer.Handshake(h.networkID, head.Number, hash, genesis.Hash(), h); err != nil {
+		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
 	// Register the peer locally
-	if err := pm.peers.Register(p); err != nil {
-		p.Log().Error("PlatON peer registration failed", "err", err)
+	if err := h.peers.registerEthPeer(peer); err != nil {
+		peer.Log().Error("PlatON peer registration failed", "err", err)
 		return err
 	}
-	defer pm.removePeer(p.id)
+	defer h.removePeer(peer.ID())
+
+	p := h.peers.ethPeer(peer.ID())
+	if p == nil {
+		return errors.New("peer dropped during handling")
+	}
 
 	// Register the peer in the downloader. If the downloader considers it banned, we disconnect
-	if err := pm.downloader.RegisterPeer(p.id, p.version, p); err != nil {
+	if err := h.downloader.RegisterPeer(peer.ID(), peer.Version(), peer); err != nil {
 		return err
 	}
-	pm.chainSync.handlePeerEvent(p)
+	h.chainSync.handlePeerEvent(peer)
 
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
-	pm.syncTransactions(p)
+	h.syncTransactions(peer)
 
 	// main loop. handle incoming messages.
-	for {
-		if err := pm.handleMsg(p); err != nil {
-			p.Log().Error("PlatON message handling failed", "err", err)
-			return err
-		}
-	}
+	return handler(peer)
 }
 
-// handleMsg is invoked whenever an inbound message is received from a remote
-// peer. The remote connection is torn down upon returning any error.
-func (pm *ProtocolManager) handleMsg(p *peer) error {
-	// Read the next message from the remote peer, and ensure it's fully consumed
-	msg, err := p.rw.ReadMsg()
-	if err != nil {
-		p.Log().Error("read peer message error", "err", err)
+func (h *handler) runSnapPeer(peer *snap.Peer, handler snap.Handler) error {
+	h.peerWG.Add(1)
+	defer h.peerWG.Done()
+
+	// Register the peer locally
+	if err := h.peers.registerSnapPeer(peer); err != nil {
+		peer.Log().Error("Snapshot peer registration failed", "err", err)
 		return err
 	}
 	if msg.Size > protocolMaxMsgSize {
