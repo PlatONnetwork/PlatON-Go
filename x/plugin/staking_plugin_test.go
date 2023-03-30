@@ -4141,7 +4141,9 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		if nil != err {
 			t.Fatalf("Failed to generate random NodeId private key: %v", err)
 		}
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		pnode := enode.NewV4(&privateKey.PublicKey, nil, 0, 0)
+		nodeId := pnode.IDv0()
 		nodeAddr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
