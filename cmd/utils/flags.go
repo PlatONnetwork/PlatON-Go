@@ -720,9 +720,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	switch {
 	case ctx.GlobalIsSet(BootnodesFlag.Name) || ctx.GlobalIsSet(BootnodesV4Flag.Name):
 		if ctx.GlobalIsSet(BootnodesV4Flag.Name) {
-			urls = splitAndTrim(ctx.GlobalString(BootnodesV4Flag.Name))
+			urls = SplitAndTrim(ctx.GlobalString(BootnodesV4Flag.Name))
 		} else {
-			urls = splitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
+			urls = SplitAndTrim(ctx.GlobalString(BootnodesFlag.Name))
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes

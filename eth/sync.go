@@ -17,7 +17,6 @@
 package eth
 
 import (
-	"math/big"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -41,32 +41,45 @@ const (
 )
 
 type txsync struct {
-	p   *peer
+	p   *eth.Peer
 	txs []*types.Transaction
 }
 
 // syncTransactions starts sending all currently pending transactions to the given peer.
-func (pm *ProtocolManager) syncTransactions(p *peer) {
+func (h *handler) syncTransactions(p *eth.Peer) {
 	var txs types.Transactions
-	pending, _ := pm.txpool.Pending()
+	pending, _ := h.txpool.Pending()
 	for _, batch := range pending {
 		txs = append(txs, batch...)
 	}
 	if len(txs) == 0 {
 		return
 	}
+	// The eth/65 protocol introduces proper transaction announcements, so instead
+	// of dripping transactions across multiple peers, just send the entire list as
+	// an announcement and let the remote side decide what they need (likely nothing).
+	if p.Version() >= eth.ETH65 {
+		hashes := make([]common.Hash, len(txs))
+		for i, tx := range txs {
+			hashes[i] = tx.Hash()
+		}
+		p.AsyncSendPooledTransactionHashes(hashes)
+		return
+	}
+
 	select {
-	case pm.txsyncCh <- &txsync{p: p, txs: txs}:
-	case <-pm.quitSync:
+	case h.txsyncCh <- &txsync{p: p, txs: txs}:
+	case <-h.quitSync:
 	}
 }
 
-// txsyncLoop takes care of the initial transaction sync for each new
+// txsyncLoop64 takes care of the initial transaction sync for each new
 // connection. When a new peer appears, we relay all currently pending
 // transactions. In order to minimise egress bandwidth usage, we send
 // the transactions in small packs to one peer at a time.
-func (pm *ProtocolManager) txsyncLoop() {
-	defer pm.wg.Done()
+func (h *handler) txsyncLoop64() {
+	defer h.wg.Done()
+
 	var (
 		pending = make(map[enode.ID]*txsync)
 		sending = false               // whether a send is active
@@ -76,6 +89,9 @@ func (pm *ProtocolManager) txsyncLoop() {
 
 	// send starts a sending a pack of transactions from the sync.
 	send := func(s *txsync) {
+		if s.p.Version() >= eth.ETH65 {
+			panic("initial transaction syncer running on eth/65+")
+		}
 		// Fill pack with transactions up to the target size.
 		size := common.StorageSize(0)
 		pack.p = s.p
@@ -87,14 +103,13 @@ func (pm *ProtocolManager) txsyncLoop() {
 		// Remove the transactions that will be sent.
 		s.txs = s.txs[:copy(s.txs, s.txs[len(pack.txs):])]
 		if len(s.txs) == 0 {
-			delete(pending, s.p.ID())
+			delete(pending, s.p.Peer.ID())
 		}
 		// Send the pack in the background.
 		s.p.Log().Trace("Sending batch of transactions", "count", len(pack.txs), "bytes", size)
 		sending = true
 		go func() { done <- pack.p.SendTransactions(pack.txs) }()
 	}
-
 	// pick chooses the next pending sync.
 	pick := func() *txsync {
 		if len(pending) == 0 {
@@ -111,8 +126,8 @@ func (pm *ProtocolManager) txsyncLoop() {
 
 	for {
 		select {
-		case s := <-pm.txsyncCh:
-			pending[s.p.ID()] = s
+		case s := <-h.txsyncCh:
+			pending[s.p.Peer.ID()] = s
 			if !sending {
 				send(s)
 			}
@@ -121,13 +136,13 @@ func (pm *ProtocolManager) txsyncLoop() {
 			// Stop tracking peers that cause send failures.
 			if err != nil {
 				pack.p.Log().Debug("Transaction send failed", "err", err)
-				delete(pending, pack.p.ID())
+				delete(pending, pack.p.Peer.ID())
 			}
 			// Schedule the next send.
 			if s := pick(); s != nil {
 				send(s)
 			}
-		case <-pm.quitSync:
+		case <-h.quitSync:
 			return
 		}
 	}
@@ -135,7 +150,7 @@ func (pm *ProtocolManager) txsyncLoop() {
 
 // chainSyncer coordinates blockchain sync components.
 type chainSyncer struct {
-	pm          *ProtocolManager
+	handler     *handler
 	force       *time.Timer
 	forced      bool // true when force timer fired
 	peerEventCh chan struct{}
@@ -145,16 +160,14 @@ type chainSyncer struct {
 // chainSyncOp is a scheduled sync operation.
 type chainSyncOp struct {
 	mode downloader.SyncMode
-	peer *peer
-	bn   *big.Int
+	peer *eth.Peer
 	head common.Hash
-	diff *big.Int
 }
 
 // newChainSyncer creates a chainSyncer.
-func newChainSyncer(pm *ProtocolManager) *chainSyncer {
+func newChainSyncer(handler *handler) *chainSyncer {
 	return &chainSyncer{
-		pm:          pm,
+		handler:     handler,
 		peerEventCh: make(chan struct{}),
 	}
 }
@@ -162,24 +175,24 @@ func newChainSyncer(pm *ProtocolManager) *chainSyncer {
 // handlePeerEvent notifies the syncer about a change in the peer set.
 // This is called for new peers and every time a peer announces a new
 // chain head.
-func (cs *chainSyncer) handlePeerEvent(p *peer) bool {
+func (cs *chainSyncer) handlePeerEvent(peer *eth.Peer) bool {
 	select {
 	case cs.peerEventCh <- struct{}{}:
 		return true
-	case <-cs.pm.quitSync:
+	case <-cs.handler.quitSync:
 		return false
 	}
 }
 
 // loop runs in its own goroutine and launches the sync when necessary.
 func (cs *chainSyncer) loop() {
-	defer cs.pm.wg.Done()
+	defer cs.handler.wg.Done()
 
-	cs.pm.blockFetcher.Start()
-	cs.pm.txFetcher.Start()
-	defer cs.pm.blockFetcher.Stop()
-	defer cs.pm.txFetcher.Stop()
-	defer cs.pm.downloader.Terminate()
+	cs.handler.blockFetcher.Start()
+	cs.handler.txFetcher.Start()
+	defer cs.handler.blockFetcher.Stop()
+	defer cs.handler.txFetcher.Stop()
+	defer cs.handler.downloader.Terminate()
 
 	// The force timer lowers the peer count threshold down to one when it fires.
 	// This ensures we'll always start sync even if there aren't enough peers.
@@ -200,12 +213,12 @@ func (cs *chainSyncer) loop() {
 		case <-cs.force.C:
 			cs.forced = true
 
-		case <-cs.pm.quitSync:
+		case <-cs.handler.quitSync:
 			// Disable all insertion on the blockchain. This needs to happen before
 			// terminating the downloader because the downloader waits for blockchain
 			// inserts, and these can take a long time to finish.
-			cs.pm.blockchain.StopInsert()
-			cs.pm.downloader.Terminate()
+			cs.handler.chain.StopInsert()
+			cs.handler.downloader.Terminate()
 			if cs.doneCh != nil {
 				<-cs.doneCh
 			}
@@ -220,71 +233,60 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 		return nil // Sync already running.
 	}
 
-	// Ensure we're at mininum peer count.
+	// Ensure we're at minimum peer count.
 	minPeers := defaultMinSyncPeers
 	if cs.forced {
 		minPeers = 1
-	} else if minPeers > cs.pm.maxPeers {
-		minPeers = cs.pm.maxPeers
+	} else if minPeers > cs.handler.maxPeers {
+		minPeers = cs.handler.maxPeers
 	}
-	if cs.pm.peers.Len() < minPeers {
+	if cs.handler.peers.len() < minPeers {
 		return nil
 	}
-
-	// We have enough peers, check TD.
-	peer := cs.pm.peers.BestPeer()
+	// We have enough peers, check TD
+	peer := cs.handler.peers.peerWithHighestTD()
 	if peer == nil {
 		return nil
 	}
-
-	currentBlock := cs.pm.engine.CurrentBlock()
-
-	peerHead, pBn := peer.Head()
-
-	diff := new(big.Int).Sub(pBn, currentBlock.Number())
-	if diff.Cmp(big.NewInt(2)) < 0 {
-		return nil
-	}
-
-	mode := downloader.FullSync
-	if currentBlock.NumberU64() > 0 {
-		log.Info("Blockchain not empty, auto disabling fast sync")
-		atomic.StoreUint32(&cs.pm.fastSync, 0)
-	}
-
-	if atomic.LoadUint32(&cs.pm.fastSync) == 1 {
-		// Fast sync was explicitly requested, and explicitly granted
-		mode = downloader.SnapSync
-	} else if currentBlock.NumberU64() == 0 && cs.pm.blockchain.CurrentFastBlock().NumberU64() > 0 {
-		// The database seems empty as the current block is the genesis. Yet the fast
-		// block is ahead, so fast sync was enabled for this node at a certain point.
-		// The only scenario where this can happen is if the user manually (or via a
-		// bad block) rolled back a fast sync node below the sync point. In this case
-		// however it's safe to reenable fast sync.
-		atomic.StoreUint32(&cs.pm.fastSync, 1)
+	mode := cs.modeAndLocalHead()
+	if mode == downloader.FastSync && atomic.LoadUint32(&cs.handler.snapSync) == 1 {
+		// Fast sync via the snap protocol
 		mode = downloader.SnapSync
 	}
+	op := peerToSyncOp(mode, peer)
+	return op
+}
 
-	if mode == downloader.SnapSync && cs.pm.blockchain.CurrentFastBlock().Number().Cmp(pBn) >= 0 {
-		return nil
+func peerToSyncOp(mode downloader.SyncMode, p *eth.Peer) *chainSyncOp {
+	peerHead, _ := p.Head()
+	return &chainSyncOp{mode: mode, peer: p, head: peerHead}
+}
+
+func (cs *chainSyncer) modeAndLocalHead() downloader.SyncMode {
+	// If we're in fast sync mode, return that directly
+	if atomic.LoadUint32(&cs.handler.fastSync) == 1 {
+		return downloader.FastSync
 	}
-
-	return &chainSyncOp{mode: mode, peer: peer, bn: pBn, head: peerHead, diff: new(big.Int).Sub(pBn, currentBlock.Number())}
+	// We are probably in full sync, but we might have rewound to before the
+	// fast sync pivot, check if we should reenable
+	if pivot := rawdb.ReadLastPivotNumber(cs.handler.database); pivot != nil {
+		if head := cs.handler.chain.CurrentBlock(); head.NumberU64() < *pivot {
+			return downloader.FastSync
+		}
+	}
+	// Nope, we're really full syncing
+	return downloader.FullSync
 }
 
 // startSync launches doSync in a new goroutine.
 func (cs *chainSyncer) startSync(op *chainSyncOp) {
 	cs.doneCh = make(chan error, 1)
-	go func() { cs.doneCh <- cs.pm.doSync(op) }()
+	go func() { cs.doneCh <- cs.handler.doSync(op) }()
 }
 
 // doSync synchronizes the local blockchain with a remote peer.
-func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
-	//wn chain is syncing,keep the chain not receive txs
-	if op.diff.Cmp(big.NewInt(5)) > 0 {
-		atomic.StoreUint32(&pm.acceptTxs, 0)
-	}
-	if op.mode == downloader.SnapSync {
+func (h *handler) doSync(op *chainSyncOp) error {
+	if op.mode == downloader.FastSync || op.mode == downloader.SnapSync {
 		// Before launch the fast sync, we have to ensure user uses the same
 		// txlookup limit.
 		// The main concern here is: during the fast sync Geth won't index the
@@ -294,29 +296,30 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 		// has been indexed. So here for the user-experience wise, it's non-optimal
 		// that user can't change limit during the fast sync. If changed, Geth
 		// will just blindly use the original one.
-		limit := pm.blockchain.TxLookupLimit()
-		if stored := rawdb.ReadFastTxLookupLimit(pm.chaindb); stored == nil {
-			rawdb.WriteFastTxLookupLimit(pm.chaindb, limit)
+		limit := h.chain.TxLookupLimit()
+		if stored := rawdb.ReadFastTxLookupLimit(h.database); stored == nil {
+			rawdb.WriteFastTxLookupLimit(h.database, limit)
 		} else if *stored != limit {
-			pm.blockchain.SetTxLookupLimit(*stored)
+			h.chain.SetTxLookupLimit(*stored)
 			log.Warn("Update txLookup limit", "provided", limit, "updated", *stored)
 		}
 	}
+	head := h.chain.CurrentBlock()
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
-	err := pm.downloader.Synchronise(op.peer.id, op.head, op.bn, op.mode)
+	err := h.downloader.Synchronise(op.peer.ID(), op.head, head.Number(), op.mode)
 	if err != nil {
-		atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 		return err
 	}
-	if atomic.LoadUint32(&pm.fastSync) == 1 {
+	if atomic.LoadUint32(&h.fastSync) == 1 {
 		log.Info("Fast sync complete, auto disabling")
-		atomic.StoreUint32(&pm.fastSync, 0)
+		atomic.StoreUint32(&h.fastSync, 0)
 	}
-
+	if atomic.LoadUint32(&h.snapSync) == 1 {
+		log.Info("Snap sync complete, auto disabling")
+		atomic.StoreUint32(&h.snapSync, 0)
+	}
 	// If we've successfully finished a sync cycle and passed any required checkpoint,
 	// enable accepting transactions from the network.
-	head := pm.blockchain.CurrentBlock()
-	atomic.StoreUint32(&pm.acceptTxs, 1) // Mark initial sync done
 	if head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify
@@ -324,8 +327,7 @@ func (pm *ProtocolManager) doSync(op *chainSyncOp) error {
 		// scenario will most often crop up in private and hackathon networks with
 		// degenerate connectivity, but it should be healthy for the mainnet too to
 		// more reliably update peers or the local TD state.
-		pm.BroadcastBlock(head, false)
+		h.BroadcastBlock(head, false)
 	}
-
 	return nil
 }

@@ -112,6 +112,16 @@ type CacheConfig struct {
 	DBGCBlock    int
 }
 
+// defaultCacheConfig are the default caching values if none are specified by the
+// user (also used during testing).
+var defaultCacheConfig = &CacheConfig{
+	TrieCleanLimit: 256,
+	TrieDirtyLimit: 256,
+	TrieTimeLimit:  5 * time.Minute,
+	SnapshotLimit:  256,
+	SnapshotWait:   true,
+}
+
 // mining related configuration
 type MiningConfig struct {
 	MiningLogAtDepth       uint
@@ -1854,7 +1864,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	return it.index, err
 }
 
-//joey.lyu
+// joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
 	// Process block using the parent state as reference point.
 	start := time.Now()

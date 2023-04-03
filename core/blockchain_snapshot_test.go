@@ -615,7 +615,7 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 		startPoint = point
 
 		if tt.commitBlock > 0 && tt.commitBlock == point {
-			chain.stateCache.TrieDB().Commit(blocks[point-1].Root(), true, nil)
+			chain.stateCache.TrieDB().Commit(blocks[point-1].Root(), true, false)
 		}
 		if tt.snapshotBlock > 0 && tt.snapshotBlock == point {
 			if tt.legacy {
