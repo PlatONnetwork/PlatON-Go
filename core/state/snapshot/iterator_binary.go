@@ -168,7 +168,7 @@ func (it *binaryIterator) Account() []byte {
 		return nil
 	}
 	// The topmost iterator must be `diffAccountIterator`
-	blob, err := it.a.layer.AccountRLP(it.k)
+	blob, err := it.a.(*diffAccountIterator).layer.AccountRLP(it.k)
 	if err != nil {
 		it.fail = err
 		return nil
