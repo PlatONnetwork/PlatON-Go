@@ -20,11 +20,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/AlayaNetwork/Alaya-Go/light"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"

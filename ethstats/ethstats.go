@@ -31,8 +31,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AlayaNetwork/Alaya-Go/les"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -450,11 +448,12 @@ func (s *Service) login(conn *connWrapper) error {
 	for _, proto := range s.server.Protocols {
 		protocols = append(protocols, fmt.Sprintf("%s/%d", proto.Name, proto.Version))
 	}
+
 	var network string
 	if info := infos.Protocols["eth"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
+		network = "0"
 	}
 	auth := &authMsg{
 		ID: s.node,
