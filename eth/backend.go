@@ -25,15 +25,15 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -71,10 +71,10 @@ type Ethereum struct {
 	config *Config
 
 	// Handlers
-	txPool     *core.TxPool
-	blockchain *core.BlockChain
-	handler    *handler
-	//ethDialCandidates  enode.Iterator
+	txPool             *core.TxPool
+	blockchain         *core.BlockChain
+	handler            *handler
+	ethDialCandidates  enode.Iterator
 	snapDialCandidates enode.Iterator
 
 	// DB interfaces
@@ -337,7 +337,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
-			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetVRFhandler(vrfhandler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
 			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
@@ -362,6 +362,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	// Permit the downloader to use the trie cache allowance during fast sync
 	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
+	checkpoint := config.Checkpoint
+	if checkpoint == nil {
+		checkpoint = params.TrustedCheckpoints[params.MainnetGenesisHash]
+	}
 	if eth.handler, err = newHandler(&handlerConfig{
 		Database:   chainDb,
 		Chain:      eth.blockchain,
@@ -383,14 +387,16 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
 	}
-	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
-	/*
-		eth.snapDialCandidates, err = setupDiscovery(eth.config.SnapDiscoveryURLs)
-		if err != nil {
-			return nil, err
-		}
-	*/
+	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+	eth.ethDialCandidates, err = setupDiscovery(eth.config.EthDiscoveryURLs)
+	if err != nil {
+		return nil, err
+	}
+	eth.snapDialCandidates, err = setupDiscovery(eth.config.SnapDiscoveryURLs)
+	if err != nil {
+		return nil, err
+	}
 	// Start the RPC service
 	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer)
 
@@ -597,6 +603,8 @@ func (s *Ethereum) Protocols() []p2p.Protocol {
 // Start implements node.Lifecycle, starting all internal goroutines needed by the
 // Ethereum protocol implementation.
 func (s *Ethereum) Start() error {
+	eth.StartENRUpdater(s.blockchain, s.p2pServer.LocalNode())
+
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 

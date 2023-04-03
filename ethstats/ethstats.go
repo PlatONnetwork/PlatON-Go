@@ -65,7 +65,6 @@ type backend interface {
 	SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.Subscription
 	CurrentHeader() *types.Header
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
-	GetTd(ctx context.Context, hash common.Hash) *big.Int
 	Stats() (pending int, queued int)
 	Downloader() *downloader.Downloader
 }
@@ -598,7 +597,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 	// Gather the block infos from the local blockchain
 	var (
 		header *types.Header
-		td     *big.Int
 		txs    []txStats
 		uncles []*types.Header
 	)
@@ -610,7 +608,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 			block = fullBackend.CurrentBlock()
 		}
 		header = block.Header()
-		td = fullBackend.GetTd(context.Background(), header.Hash())
 
 		txs = make([]txStats, len(block.Transactions()))
 		for i, tx := range block.Transactions() {
@@ -623,7 +620,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		} else {
 			header = s.backend.CurrentHeader()
 		}
-		td = s.backend.GetTd(context.Background(), header.Hash())
 		txs = []txStats{}
 	}
 
@@ -639,7 +635,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		GasUsed:    header.GasUsed,
 		GasLimit:   header.GasLimit,
 		Diff:       "0",
-		TotalDiff:  td.String(),
+		TotalDiff:  "0",
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,

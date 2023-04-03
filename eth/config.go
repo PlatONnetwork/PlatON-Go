@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -110,7 +111,7 @@ type Config struct {
 
 	// This can be set to list of enrtree:// URLs which will be queried for
 	// for nodes to connect to.
-	// EthDiscoveryURLs  []string
+	EthDiscoveryURLs  []string
 	SnapDiscoveryURLs []string
 
 	// Protocol options
@@ -192,4 +193,10 @@ type Config struct {
 	// RPCTxFeeCap is the global transaction fee(price * gaslimit) cap for
 	// send-transction variants. The unit is ether.
 	RPCTxFeeCap float64 `toml:",omitempty"`
+
+	// Whitelist of required block number -> hash values to accept
+	Whitelist map[uint64]common.Hash `toml:"-"`
+
+	// Checkpoint is a hardcoded checkpoint which can be nil.
+	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
 }

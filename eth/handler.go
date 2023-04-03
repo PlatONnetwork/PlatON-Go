@@ -76,14 +76,15 @@ type txPool interface {
 // handlerConfig is the collection of initialization parameters to create a full
 // node network handler.
 type handlerConfig struct {
-	Database   ethdb.Database         // Database for direct sync insertions
-	Chain      *core.BlockChain       // Blockchain to serve data from
-	TxPool     txPool                 // Transaction pool to propagate from
-	Network    uint64                 // Network identifier to adfvertise
-	Sync       downloader.SyncMode    // Whether to fast or full sync
-	BloomCache uint64                 // Megabytes to alloc for fast sync bloom
-	EventMux   *event.TypeMux         // Legacy event mux, deprecate for `feed`
-	Whitelist  map[uint64]common.Hash // Hard coded whitelist for sync challenged
+	Database   ethdb.Database            // Database for direct sync insertions
+	Chain      *core.BlockChain          // Blockchain to serve data from
+	TxPool     txPool                    // Transaction pool to propagate from
+	Network    uint64                    // Network identifier to adfvertise
+	Sync       downloader.SyncMode       // Whether to fast or full sync
+	BloomCache uint64                    // Megabytes to alloc for fast sync bloom
+	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
+	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
+	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
 }
 
 type handler struct {
