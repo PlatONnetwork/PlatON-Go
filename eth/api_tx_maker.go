@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"hash/fnv"
 	"math/big"
 	"math/rand"
@@ -13,6 +12,8 @@ import (
 	"runtime"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 
@@ -97,7 +98,7 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 
 	//make sure when the txGen is start ,the node will not receive txs from other node,
 	//so this node can keep in sync with other nodes
-	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 1)
+	atomic.StoreUint32(&txg.eth.handler.acceptRemoteTxs, 1)
 
 	blockExecutech := make(chan *types.Block, 200)
 	txg.blockExecuteFeed = txg.eth.blockchain.SubscribeExecuteBlocksEvent(blockExecutech)
@@ -165,7 +166,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case txs := <-txsCh:
 				//txg.eth.txPool.AddRemotes(txs)
 				ev.Txs = txs
-				txg.eth.protocolManager.txsCh <- ev
+				txg.eth.handler.txsCh <- ev
 			case <-txg.txGenExitCh:
 				log.Debug("MakeTransaction send tx exit")
 				return
@@ -436,7 +437,7 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 		txg.start = false
 		txg.blockExecuteFeed.Unsubscribe()
 		txg.blockfeed.Unsubscribe()
-		atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
+		atomic.StoreUint32(&txg.eth.handler.acceptRemoteTxs, 0)
 		return nil
 	}
 	file, err := os.Create(resPath)
@@ -471,7 +472,7 @@ func (txg *TxGenAPI) Stop(resPath string) error {
 	txg.blockExecuteFeed.Unsubscribe()
 	txg.blockfeed.Unsubscribe()
 
-	atomic.StoreUint32(&txg.eth.protocolManager.acceptRemoteTxs, 0)
+	atomic.StoreUint32(&txg.eth.handler.acceptRemoteTxs, 0)
 
 	return nil
 }

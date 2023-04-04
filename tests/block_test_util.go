@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -138,6 +140,12 @@ func (t *BlockTest) Run(snapshotter bool) error {
 	}
 	if err = t.validatePostState(newDB); err != nil {
 		return fmt.Errorf("post state validation failed: %v", err)
+	}
+	// Cross-check the snapshot-to-hash against the trie hash
+	if snapshotter {
+		if err := snapshot.VerifyState(chain.Snapshots(), chain.CurrentBlock().Root()); err != nil {
+			return err
+		}
 	}
 	return t.validateImportedHeaders(chain, validBlocks)
 }

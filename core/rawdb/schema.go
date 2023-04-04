@@ -42,6 +42,9 @@ var (
 	// headFastBlockKey tracks the latest known incomplete block's hash during fast sync.
 	headFastBlockKey = []byte("LastFast")
 
+	// lastPivotKey tracks the last pivot block used by fast sync (to reenable on sethead).
+	lastPivotKey = []byte("LastPivot")
+
 	// fastTrieProgressKey tracks the number of trie entries imported during fast sync.
 	fastTrieProgressKey = []byte("TrieSync")
 
@@ -50,6 +53,15 @@ var (
 
 	// snapshotJournalKey tracks the in-memory diff layers across restarts.
 	snapshotJournalKey = []byte("SnapshotJournal")
+
+	// snapshotGeneratorKey tracks the snapshot generation marker across restarts.
+	snapshotGeneratorKey = []byte("SnapshotGenerator")
+
+	// snapshotRecoveryKey tracks the snapshot recovery marker across restarts.
+	snapshotRecoveryKey = []byte("SnapshotRecovery")
+
+	// snapshotSyncStatusKey tracks the snapshot sync status across restarts.
+	snapshotSyncStatusKey = []byte("SnapshotSyncStatus")
 
 	// txIndexTailKey tracks the oldest block whose transactions have been indexed.
 	txIndexTailKey = []byte("TransactionIndexTail")

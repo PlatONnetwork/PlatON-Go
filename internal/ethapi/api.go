@@ -21,9 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"math/big"
 	"time"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -69,11 +70,6 @@ func NewPublicEthereumAPI(b Backend) *PublicEthereumAPI {
 func (s *PublicEthereumAPI) GasPrice(ctx context.Context) (*hexutil.Big, error) {
 	price, err := s.b.SuggestPrice(ctx)
 	return (*hexutil.Big)(price), err
-}
-
-// ProtocolVersion returns the current Ethereum protocol version this node supports
-func (s *PublicEthereumAPI) ProtocolVersion() hexutil.Uint {
-	return hexutil.Uint(s.b.ProtocolVersion())
 }
 
 // Syncing returns false in case the node is currently not syncing with the network. It can be up to date or has not
@@ -1866,13 +1862,12 @@ func (api *PrivateDebugAPI) ChaindbCompact() error {
 
 // PublicNetAPI offers network related RPC methods
 type PublicNetAPI struct {
-	net            *p2p.Server
-	networkVersion uint64
+	net *p2p.Server
 }
 
 // NewPublicNetAPI creates a new net API instance.
-func NewPublicNetAPI(net *p2p.Server, networkVersion uint64) *PublicNetAPI {
-	return &PublicNetAPI{net, networkVersion}
+func NewPublicNetAPI(net *p2p.Server) *PublicNetAPI {
+	return &PublicNetAPI{net}
 }
 
 // Listening returns an indication if the node is listening for network connections.
@@ -1883,9 +1878,4 @@ func (s *PublicNetAPI) Listening() bool {
 // PeerCount returns the number of connected peers
 func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 	return hexutil.Uint(s.net.PeerCount())
-}
-
-// Version returns the current ethereum protocol version.
-func (s *PublicNetAPI) Version() string {
-	return fmt.Sprintf("%d", s.networkVersion)
 }

@@ -42,7 +42,7 @@ var (
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator
-// for  logging purposes.
+// for logging purposes.
 type generatorStats struct {
 	wiping   chan struct{}      // Notification channel if wiping is in progress
 	origin   uint64             // Origin prefix where generation started
@@ -54,8 +54,11 @@ type generatorStats struct {
 
 // Log creates an contextual log with the given message and the context pulled
 // from the internally maintained statistics.
-func (gs *generatorStats) Log(msg string, marker []byte) {
+func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 	var ctx []interface{}
+	if root != (common.Hash{}) {
+		ctx = append(ctx, []interface{}{"root", root}...)
+	}
 
 	// Figure out whether we're after or within an account
 	switch len(marker) {
@@ -110,6 +113,7 @@ func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache i
 		genAbort:   make(chan chan *generatorStats),
 	}
 	go base.generate(&generatorStats{wiping: wiper, start: time.Now()})
+	log.Debug("Start snapshot generation", "root", root)
 	return base
 }
 
@@ -120,7 +124,7 @@ func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache i
 func (dl *diskLayer) generate(stats *generatorStats) {
 	// If a database wipe is in operation, wait until it's done
 	if stats.wiping != nil {
-		stats.Log("Wiper running, state snapshotting paused", dl.genMarker)
+		stats.Log("Wiper running, state snapshotting paused", dl.root, dl.genMarker)
 		select {
 		// If wiper is done, resume normal mode of operation
 		case <-stats.wiping:
@@ -137,13 +141,13 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 	accTrie, err := trie.NewSecure(dl.root, dl.triedb)
 	if err != nil {
 		// The account trie is missing (GC), surf the chain until one becomes available
-		stats.Log("Trie missing, state snapshotting paused", dl.genMarker)
+		stats.Log("Trie missing, state snapshotting paused", dl.root, dl.genMarker)
 
 		abort := <-dl.genAbort
 		abort <- stats
 		return
 	}
-	stats.Log("Resuming state snapshot generation", dl.genMarker)
+	stats.Log("Resuming state snapshot generation", dl.root, dl.genMarker)
 
 	var accMarker []byte
 	if len(dl.genMarker) > 0 { // []byte{} is the start, use nil for that
@@ -168,7 +172,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		if err := rlp.DecodeBytes(accIt.Value, &acc); err != nil {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err)
 		}
-		data := AccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash, acc.StorageKeyPrefix)
+		data := SlimAccountRLP(acc.Nonce, acc.Balance, acc.Root, acc.CodeHash, acc.StorageKeyPrefix)
 
 		// If the account is not yet in-progress, write it out
 		if accMarker == nil || !bytes.Equal(accountHash[:], accMarker) {
@@ -193,7 +197,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 				dl.lock.Unlock()
 			}
 			if abort != nil {
-				stats.Log("Aborting state snapshot generation", accountHash[:])
+				stats.Log("Aborting state snapshot generation", dl.root, accountHash[:])
 				abort <- stats
 				return
 			}
@@ -202,7 +206,10 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		if acc.Root != emptyRoot {
 			storeTrie, err := trie.NewSecure(acc.Root, dl.triedb)
 			if err != nil {
-				log.Crit("Storage trie inaccessible for snapshot generation", "err", err)
+				log.Error("Generator failed to access storage trie", "root", dl.root, "account", accountHash, "stroot", acc.Root, "err", err)
+				abort := <-dl.genAbort
+				abort <- stats
+				return
 			}
 			var storeMarker []byte
 			if accMarker != nil && bytes.Equal(accountHash[:], accMarker) && len(dl.genMarker) > common.HashLength {
@@ -231,7 +238,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 						dl.lock.Unlock()
 					}
 					if abort != nil {
-						stats.Log("Aborting state snapshot generation", append(accountHash[:], storeIt.Key...))
+						stats.Log("Aborting state snapshot generation", dl.root, append(accountHash[:], storeIt.Key...))
 						abort <- stats
 						return
 					}
@@ -239,7 +246,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 			}
 		}
 		if time.Since(logged) > 8*time.Second {
-			stats.Log("Generating state snapshot", accIt.Key)
+			stats.Log("Generating state snapshot", dl.root, accIt.Key)
 			logged = time.Now()
 		}
 		// Some account processed, unmark the marker
