@@ -19,9 +19,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"io"
 	"path/filepath"
+
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 
@@ -298,7 +299,7 @@ func copyDb(ctx *cli.Context) error {
 	defer stack.Close()
 
 	chain, chainDb := utils.MakeChain(ctx, stack, false)
-	syncmode := downloader.FastSync
+	syncmode := downloader.SnapSync
 	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
 	localSnapshotDB := snapshotdb.Instance()
 

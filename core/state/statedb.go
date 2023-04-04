@@ -21,11 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"math/big"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -374,14 +375,19 @@ func (n *proofList) Delete(key []byte) error {
 	panic("not supported")
 }
 
-// GetProof returns the MerkleProof for a given Account
-func (s *StateDB) GetProof(a common.Address) ([][]byte, error) {
+// GetProof returns the Merkle proof for a given account.
+func (s *StateDB) GetProof(addr common.Address) ([][]byte, error) {
+	return s.GetProofByHash(crypto.Keccak256Hash(addr.Bytes()))
+}
+
+// GetProofByHash returns the Merkle proof for a given account.
+func (s *StateDB) GetProofByHash(addrHash common.Hash) ([][]byte, error) {
 	var proof proofList
-	err := s.trie.Prove(crypto.Keccak256(a.Bytes()), 0, &proof)
+	err := s.trie.Prove(addrHash[:], 0, &proof)
 	return [][]byte(proof), err
 }
 
-// GetStorageProof returns the StorageProof for given key
+// GetStorageProof returns the Merkle proof for given storage slot.
 func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
 	var proof proofList
 	trie := s.StorageTrie(a)
@@ -390,6 +396,17 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 	}
 	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
 	return [][]byte(proof), err
+}
+
+// GetStorageProofByHash returns the Merkle proof for given storage slot.
+func (s *StateDB) GetStorageProofByHash(a common.Address, key common.Hash) ([][]byte, error) {
+	var proof proofList
+	trie := s.StorageTrie(a)
+	if trie == nil {
+		return proof, errors.New("storage trie for requested address does not exist")
+	}
+	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	return proof, err
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
@@ -547,7 +564,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 	// enough to track account updates at commit time, deletions need tracking
 	// at transaction boundary level to ensure we capture state clearing.
 	if s.snap != nil {
-		s.snapAccounts[obj.addrHash] = snapshot.AccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.StorageKeyPrefix)
+		s.snapAccounts[obj.addrHash] = snapshot.SlimAccountRLP(obj.data.Nonce, obj.data.Balance, obj.data.Root, obj.data.CodeHash, obj.data.StorageKeyPrefix)
 	}
 }
 

@@ -71,7 +71,7 @@ type peerConnection struct {
 
 	peer Peer
 
-	version int        // Eth protocol version number to switch strategies
+	version uint       // Eth protocol version number to switch strategies
 	log     log.Logger // Contextual logger to add extra infos to peer logs
 	lock    sync.RWMutex
 }
@@ -124,7 +124,7 @@ func (w *lightPeerWrapper) RequestOriginAndPivotByCurrent(uint64) error {
 }
 
 // newPeerConnection creates a new downloader peer.
-func newPeerConnection(id string, version int, peer Peer, logger log.Logger) *peerConnection {
+func newPeerConnection(id string, version uint, peer Peer, logger log.Logger) *peerConnection {
 	return &peerConnection{
 		id:      id,
 		lacking: make(map[common.Hash]time.Time),
@@ -505,7 +505,7 @@ func (ps *peerSet) ReceiptIdlePeers() ([]*peerConnection, int) {
 		defer p.lock.RUnlock()
 		return p.receiptThroughput
 	}
-	return ps.idlePeers(63, 65, idle, throughput)
+	return ps.idlePeers(64, 65, idle, throughput)
 }
 
 // NodeDataIdlePeers retrieves a flat list of all the currently node-data-idle
@@ -519,13 +519,13 @@ func (ps *peerSet) NodeDataIdlePeers() ([]*peerConnection, int) {
 		defer p.lock.RUnlock()
 		return p.stateThroughput
 	}
-	return ps.idlePeers(63, 65, idle, throughput)
+	return ps.idlePeers(64, 65, idle, throughput)
 }
 
 // idlePeers retrieves a flat list of all currently idle peers satisfying the
 // protocol version constraints, using the provided function to check idleness.
 // The resulting set of peers are sorted by their measure throughput.
-func (ps *peerSet) idlePeers(minProtocol, maxProtocol int, idleCheck func(*peerConnection) bool, throughput func(*peerConnection) float64) ([]*peerConnection, int) {
+func (ps *peerSet) idlePeers(minProtocol, maxProtocol uint, idleCheck func(*peerConnection) bool, throughput func(*peerConnection) float64) ([]*peerConnection, int) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
