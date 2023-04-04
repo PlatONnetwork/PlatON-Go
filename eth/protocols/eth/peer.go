@@ -132,7 +132,7 @@ func (p *Peer) Version() uint {
 }
 
 // Head retrieves the current head hash of the peer.
-func (p *Peer) Head() (hash common.Hash, td *big.Int) {
+func (p *Peer) Head() (hash common.Hash, bn *big.Int) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -141,11 +141,12 @@ func (p *Peer) Head() (hash common.Hash, td *big.Int) {
 }
 
 // SetHead updates the head hash and total difficulty of the peer.
-func (p *Peer) SetHead(hash common.Hash) {
+func (p *Peer) SetHead(hash common.Hash, bn *big.Int) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	copy(p.head[:], hash[:])
+	p.bn.Set(bn)
 }
 
 // KnownBlock returns whether peer is known to already have a block.

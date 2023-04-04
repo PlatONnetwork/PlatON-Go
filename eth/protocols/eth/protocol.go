@@ -65,10 +65,7 @@ const (
 	GetReceiptsMsg       = 0x0f
 	ReceiptsMsg          = 0x10
 	GetPPOSStorageMsg    = 0x11
-	PPOSStorageMsg       = 0x12
 	GetOriginAndPivotMsg = 0x13
-	OriginAndPivotMsg    = 0x14
-	PPOSInfoMsg          = 0x15
 
 	// Protocol messages overloaded in eth/65
 	NewPooledTransactionHashesMsg = 0x08
@@ -235,14 +232,15 @@ type BlockBody struct {
 
 // Unpack retrieves the transactions and uncles from the range packet and returns
 // them in a split flat format that's more consistent with the internal data structures.
-func (p *BlockBodiesPacket) Unpack() [][]*types.Transaction {
+func (p *BlockBodiesPacket) Unpack() ([][]*types.Transaction, [][]byte) {
 	var (
-		txset = make([][]*types.Transaction, len(*p))
+		txset     = make([][]*types.Transaction, len(*p))
+		extraData = make([][]byte, len(*p))
 	)
 	for i, body := range *p {
-		txset[i] = body.Transactions
+		txset[i], extraData[i] = body.Transactions, body.ExtraData
 	}
-	return txset
+	return txset, extraData
 }
 
 // GetNodeDataPacket represents a trie node data query.

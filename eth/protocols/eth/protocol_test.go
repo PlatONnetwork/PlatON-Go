@@ -17,167 +17,14 @@
 package eth
 
 import (
-	"fmt"
+	"bytes"
 	"math/big"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
-
-func init() {
-}
-
-var testAccount, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-
-// Tests that handshake failures are detected and reported correctly.
-func TestStatusMsgErrors62(t *testing.T) { testStatusMsgErrors(t, 62) }
-func TestStatusMsgErrors63(t *testing.T) { testStatusMsgErrors(t, 63) }
-
-func testStatusMsgErrors(t *testing.T, protocol int) {
-	//db := ethdb.NewMemDatabase()
-	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, 0, nil, nil)
-	var (
-		genesis = pm.blockchain.Genesis()
-		head    = pm.blockchain.CurrentHeader()
-		td      = new(big.Int).SetUint64(99999999999999)
-	)
-	defer pm.Stop()
-
-	tests := []struct {
-		code      uint64
-		data      interface{}
-		wantError error
-	}{
-		{
-			code: TransactionMsg, data: []interface{}{},
-			wantError: errResp(ErrNoStatusMsg, "first msg has code 2 (!= 0)"),
-		},
-		{
-			code: StatusMsg, data: statusData{10, DefaultConfig.NetworkId, td, head.Hash(), genesis.Hash()},
-			wantError: errResp(ErrProtocolVersionMismatch, "10 (!= %d)", protocol),
-		},
-		{
-			code: StatusMsg, data: statusData{uint32(protocol), 999, td, head.Hash(), genesis.Hash()},
-			wantError: errResp(ErrNetworkIdMismatch, "999 (!= 1)"),
-		},
-		{
-			code: StatusMsg, data: statusData{uint32(protocol), DefaultConfig.NetworkId, td, head.Hash(), common.Hash{3}},
-			wantError: errResp(ErrGenesisBlockMismatch, "0300000000000000 (!= %x)", genesis.Hash().Bytes()[:8]),
-		},
-	}
-
-	for i, test := range tests {
-		p, errc := newTestPeer("peer", protocol, pm, false)
-		// The send call might hang until reset because
-		// the protocol might not read the payload.
-		go p2p.Send(p.app, test.code, test.data)
-
-		select {
-		case err := <-errc:
-			if err == nil {
-				t.Errorf("test %d: protocol returned nil error, want %q", i, test.wantError)
-			} else if err.Error() != test.wantError.Error() {
-				t.Errorf("test %d: wrong error: got %q, want %q", i, err, test.wantError)
-			}
-		case <-time.After(2 * time.Second):
-			t.Errorf("protocol did not shut down within 2 seconds")
-		}
-		p.close()
-	}
-}
-
-// This test checks that received transactions are added to the local pool.
-func TestRecvTransactions62(t *testing.T) { testRecvTransactions(t, 62) }
-func TestRecvTransactions63(t *testing.T) { testRecvTransactions(t, 63) }
-
-func testRecvTransactions(t *testing.T, protocol int) {
-	txAdded := make(chan []*types.Transaction)
-	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, 0, nil, txAdded)
-	pm.acceptTxs = 1 // mark synced to accept transactions
-	p, _ := newTestPeer("peer", protocol, pm, true)
-	defer pm.Stop()
-	defer p.close()
-
-	tx := newTestTransaction(testAccount, 0, 0)
-	if err := p2p.Send(p.app, TransactionMsg, []interface{}{tx}); err != nil {
-		t.Fatalf("send error: %v", err)
-	}
-	select {
-	case added := <-txAdded:
-		if len(added) != 1 {
-			t.Errorf("wrong number of added transactions: got %d, want 1", len(added))
-		} else if added[0].Hash() != tx.Hash() {
-			t.Errorf("added wrong tx hash: got %v, want %v", added[0].Hash(), tx.Hash())
-		}
-	case <-time.After(2 * time.Second):
-		t.Errorf("no NewTxsEvent received within 2 seconds")
-	}
-}
-
-// This test checks that pending transactions are sent.
-func TestSendTransactions62(t *testing.T) { testSendTransactions(t, 62) }
-func TestSendTransactions63(t *testing.T) { testSendTransactions(t, 63) }
-
-func testSendTransactions(t *testing.T, protocol int) {
-	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, 0, nil, nil)
-	defer pm.Stop()
-
-	// Fill the pool with big transactions.
-	const txsize = txsyncPackSize / 10
-	alltxs := make([]*types.Transaction, 100)
-	for nonce := range alltxs {
-		alltxs[nonce] = newTestTransaction(testAccount, uint64(nonce), txsize)
-	}
-	pm.txpool.AddRemotes(alltxs)
-
-	// Connect several peers. They should all receive the pending transactions.
-	var wg sync.WaitGroup
-	checktxs := func(p *testPeer) {
-		defer wg.Done()
-		defer p.close()
-		seen := make(map[common.Hash]bool)
-		for _, tx := range alltxs {
-			seen[tx.Hash()] = false
-		}
-		for n := 0; n < len(alltxs) && !t.Failed(); {
-			var txs []*types.Transaction
-			msg, err := p.app.ReadMsg()
-			if err != nil {
-				t.Errorf("%v: read error: %v", p.Peer, err)
-			} else if msg.Code != TransactionMsg {
-				t.Errorf("%v: got code %d, want TxMsg", p.Peer, msg.Code)
-			}
-			if err := msg.Decode(&txs); err != nil {
-				t.Errorf("%v: %v", p.Peer, err)
-			}
-			for _, tx := range txs {
-				hash := tx.Hash()
-				seentx, want := seen[hash]
-				if seentx {
-					t.Errorf("%v: got tx more than once: %x", p.Peer, hash)
-				}
-				if !want {
-					t.Errorf("%v: got unexpected tx: %x", p.Peer, hash)
-				}
-				seen[hash] = true
-				n++
-			}
-		}
-	}
-	for i := 0; i < 3; i++ {
-		p, _ := newTestPeer(fmt.Sprintf("peer #%d", i), protocol, pm, true)
-		wg.Add(1)
-		go checktxs(p)
-	}
-	wg.Wait()
-}
 
 // Tests that the custom union field encoder and decoder works correctly.
 func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
@@ -188,19 +35,19 @@ func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
 	}
 	// Assemble some table driven tests
 	tests := []struct {
-		packet *getBlockHeadersData
+		packet *GetBlockHeadersPacket
 		fail   bool
 	}{
 		// Providing the origin as either a hash or a number should both work
-		{fail: false, packet: &getBlockHeadersData{Origin: hashOrNumber{Number: 314}}},
-		{fail: false, packet: &getBlockHeadersData{Origin: hashOrNumber{Hash: hash}}},
+		{fail: false, packet: &GetBlockHeadersPacket{Origin: HashOrNumber{Number: 314}}},
+		{fail: false, packet: &GetBlockHeadersPacket{Origin: HashOrNumber{Hash: hash}}},
 
 		// Providing arbitrary query field should also work
-		{fail: false, packet: &getBlockHeadersData{Origin: hashOrNumber{Number: 314}, Amount: 314, Skip: 1, Reverse: true}},
-		{fail: false, packet: &getBlockHeadersData{Origin: hashOrNumber{Hash: hash}, Amount: 314, Skip: 1, Reverse: true}},
+		{fail: false, packet: &GetBlockHeadersPacket{Origin: HashOrNumber{Number: 314}, Amount: 314, Skip: 1, Reverse: true}},
+		{fail: false, packet: &GetBlockHeadersPacket{Origin: HashOrNumber{Hash: hash}, Amount: 314, Skip: 1, Reverse: true}},
 
 		// Providing both the origin hash and origin number must fail
-		{fail: true, packet: &getBlockHeadersData{Origin: hashOrNumber{Hash: hash, Number: 314}}},
+		{fail: true, packet: &GetBlockHeadersPacket{Origin: HashOrNumber{Hash: hash, Number: 314}}},
 	}
 	// Iterate over each of the tests and try to encode and then decode
 	for i, tt := range tests {
@@ -211,7 +58,7 @@ func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
 			t.Fatalf("test %d: encode should have failed", i)
 		}
 		if !tt.fail {
-			packet := new(getBlockHeadersData)
+			packet := new(GetBlockHeadersPacket)
 			if err := rlp.DecodeBytes(bytes, packet); err != nil {
 				t.Fatalf("test %d: failed to decode packet: %v", i, err)
 			}
@@ -219,6 +66,201 @@ func TestGetBlockHeadersDataEncodeDecode(t *testing.T) {
 				packet.Skip != tt.packet.Skip || packet.Reverse != tt.packet.Reverse {
 				t.Fatalf("test %d: encode decode mismatch: have %+v, want %+v", i, packet, tt.packet)
 			}
+		}
+	}
+}
+
+// TestEth66EmptyMessages tests encoding of empty eth66 messages
+func TestEth66EmptyMessages(t *testing.T) {
+	// All empty messages encodes to the same format
+	want := common.FromHex("c4820457c0")
+
+	for i, msg := range []interface{}{
+		// Headers
+		GetBlockHeadersPacket66{1111, nil},
+		BlockHeadersPacket66{1111, nil},
+		// Bodies
+		GetBlockBodiesPacket66{1111, nil},
+		BlockBodiesPacket66{1111, nil},
+		BlockBodiesRLPPacket66{1111, nil},
+		// Node data
+		GetNodeDataPacket66{1111, nil},
+		NodeDataPacket66{1111, nil},
+		// Receipts
+		GetReceiptsPacket66{1111, nil},
+		ReceiptsPacket66{1111, nil},
+		// Transactions
+		GetPooledTransactionsPacket66{1111, nil},
+		PooledTransactionsPacket66{1111, nil},
+		PooledTransactionsRLPPacket66{1111, nil},
+
+		// Headers
+		BlockHeadersPacket66{1111, BlockHeadersPacket([]*types.Header{})},
+		// Bodies
+		GetBlockBodiesPacket66{1111, GetBlockBodiesPacket([]common.Hash{})},
+		BlockBodiesPacket66{1111, BlockBodiesPacket([]*BlockBody{})},
+		BlockBodiesRLPPacket66{1111, BlockBodiesRLPPacket([]rlp.RawValue{})},
+		// Node data
+		GetNodeDataPacket66{1111, GetNodeDataPacket([]common.Hash{})},
+		NodeDataPacket66{1111, NodeDataPacket([][]byte{})},
+		// Receipts
+		GetReceiptsPacket66{1111, GetReceiptsPacket([]common.Hash{})},
+		ReceiptsPacket66{1111, ReceiptsPacket([][]*types.Receipt{})},
+		// Transactions
+		GetPooledTransactionsPacket66{1111, GetPooledTransactionsPacket([]common.Hash{})},
+		PooledTransactionsPacket66{1111, PooledTransactionsPacket([]*types.Transaction{})},
+		PooledTransactionsRLPPacket66{1111, PooledTransactionsRLPPacket([]rlp.RawValue{})},
+	} {
+		if have, _ := rlp.EncodeToBytes(msg); !bytes.Equal(have, want) {
+			t.Errorf("test %d, type %T, have\n\t%x\nwant\n\t%x", i, msg, have, want)
+		}
+	}
+
+}
+
+// TestEth66Messages tests the encoding of all redefined eth66 messages
+func TestEth66Messages(t *testing.T) {
+
+	// Some basic structs used during testing
+	var (
+		header       *types.Header
+		blockBody    *BlockBody
+		blockBodyRlp rlp.RawValue
+		txs          []*types.Transaction
+		txRlps       []rlp.RawValue
+		hashes       []common.Hash
+		receipts     []*types.Receipt
+		receiptsRlp  rlp.RawValue
+
+		err error
+	)
+	header = &types.Header{
+		Number:   big.NewInt(3333),
+		GasLimit: 4444,
+		GasUsed:  5555,
+		Time:     6666,
+		Extra:    []byte{0x77, 0x88},
+	}
+	// Init the transactions, taken from a different test
+	{
+		for _, hexrlp := range []string{
+			"f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10",
+			"f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afb",
+		} {
+			var tx *types.Transaction
+			rlpdata := common.FromHex(hexrlp)
+			if err := rlp.DecodeBytes(rlpdata, &tx); err != nil {
+				t.Fatal(err)
+			}
+			txs = append(txs, tx)
+			txRlps = append(txRlps, rlpdata)
+		}
+	}
+	// init the block body data, both object and rlp form
+	blockBody = &BlockBody{
+		Transactions: txs,
+	}
+	blockBodyRlp, err = rlp.EncodeToBytes(blockBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hashes = []common.Hash{
+		common.HexToHash("deadc0de"),
+		common.HexToHash("feedbeef"),
+	}
+	byteSlices := [][]byte{
+		common.FromHex("deadc0de"),
+		common.FromHex("feedbeef"),
+	}
+	// init the receipts
+	{
+		receipts = []*types.Receipt{
+			&types.Receipt{
+				Status:            types.ReceiptStatusFailed,
+				CumulativeGasUsed: 1,
+				Logs: []*types.Log{
+					{
+						Address: common.BytesToAddress([]byte{0x11}),
+						Topics:  []common.Hash{common.HexToHash("dead"), common.HexToHash("beef")},
+						Data:    []byte{0x01, 0x00, 0xff},
+					},
+				},
+				TxHash:          hashes[0],
+				ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
+				GasUsed:         111111,
+			},
+		}
+		rlpData, err := rlp.EncodeToBytes(receipts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		receiptsRlp = rlpData
+	}
+
+	for i, tc := range []struct {
+		message interface{}
+		want    []byte
+	}{
+		{
+			GetBlockHeadersPacket66{1111, &GetBlockHeadersPacket{HashOrNumber{hashes[0], 0}, 5, 5, false}},
+			common.FromHex("e8820457e4a000000000000000000000000000000000000000000000000000000000deadc0de050580"),
+		},
+		{
+			GetBlockHeadersPacket66{1111, &GetBlockHeadersPacket{HashOrNumber{common.Hash{}, 9999}, 5, 5, false}},
+			common.FromHex("ca820457c682270f050580"),
+		},
+		{
+			BlockHeadersPacket66{1111, BlockHeadersPacket{header}},
+			common.FromHex("f90202820457f901fcf901f9a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000940000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008208ae820d0582115c8215b3821a0a827788a00000000000000000000000000000000000000000000000000000000000000000880000000000000000"),
+		},
+		{
+			GetBlockBodiesPacket66{1111, GetBlockBodiesPacket(hashes)},
+			common.FromHex("f847820457f842a000000000000000000000000000000000000000000000000000000000deadc0dea000000000000000000000000000000000000000000000000000000000feedbeef"),
+		},
+		{
+			BlockBodiesPacket66{1111, BlockBodiesPacket([]*BlockBody{blockBody})},
+			common.FromHex("f902dc820457f902d6f902d3f8d2f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afbf901fcf901f9a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000940000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008208ae820d0582115c8215b3821a0a827788a00000000000000000000000000000000000000000000000000000000000000000880000000000000000"),
+		},
+		{ // Identical to non-rlp-shortcut version
+			BlockBodiesRLPPacket66{1111, BlockBodiesRLPPacket([]rlp.RawValue{blockBodyRlp})},
+			common.FromHex("f902dc820457f902d6f902d3f8d2f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afbf901fcf901f9a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000940000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000000b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008208ae820d0582115c8215b3821a0a827788a00000000000000000000000000000000000000000000000000000000000000000880000000000000000"),
+		},
+		{
+			GetNodeDataPacket66{1111, GetNodeDataPacket(hashes)},
+			common.FromHex("f847820457f842a000000000000000000000000000000000000000000000000000000000deadc0dea000000000000000000000000000000000000000000000000000000000feedbeef"),
+		},
+		{
+			NodeDataPacket66{1111, NodeDataPacket(byteSlices)},
+			common.FromHex("ce820457ca84deadc0de84feedbeef"),
+		},
+		{
+			GetReceiptsPacket66{1111, GetReceiptsPacket(hashes)},
+			common.FromHex("f847820457f842a000000000000000000000000000000000000000000000000000000000deadc0dea000000000000000000000000000000000000000000000000000000000feedbeef"),
+		},
+		{
+			ReceiptsPacket66{1111, ReceiptsPacket([][]*types.Receipt{receipts})},
+			common.FromHex("f90172820457f9016cf90169f901668001b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f85ff85d940000000000000000000000000000000000000011f842a0000000000000000000000000000000000000000000000000000000000000deada0000000000000000000000000000000000000000000000000000000000000beef830100ff"),
+		},
+		{
+			ReceiptsRLPPacket66{1111, ReceiptsRLPPacket([]rlp.RawValue{receiptsRlp})},
+			common.FromHex("f90172820457f9016cf90169f901668001b9010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f85ff85d940000000000000000000000000000000000000011f842a0000000000000000000000000000000000000000000000000000000000000deada0000000000000000000000000000000000000000000000000000000000000beef830100ff"),
+		},
+		{
+			GetPooledTransactionsPacket66{1111, GetPooledTransactionsPacket(hashes)},
+			common.FromHex("f847820457f842a000000000000000000000000000000000000000000000000000000000deadc0dea000000000000000000000000000000000000000000000000000000000feedbeef"),
+		},
+		{
+			PooledTransactionsPacket66{1111, PooledTransactionsPacket(txs)},
+			common.FromHex("f8d7820457f8d2f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afb"),
+		},
+		{
+			PooledTransactionsRLPPacket66{1111, PooledTransactionsRLPPacket(txRlps)},
+			common.FromHex("f8d7820457f8d2f867088504a817c8088302e2489435353535353535353535353535353535353535358202008025a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c12a064b1702d9298fee62dfeccc57d322a463ad55ca201256d01f62b45b2e1c21c10f867098504a817c809830334509435353535353535353535353535353535353535358202d98025a052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afba052f8f61201b2b11a78d6e866abc9c3db2ae8631fa656bfe5cb53668255367afb"),
+		},
+	} {
+		if have, _ := rlp.EncodeToBytes(tc.message); !bytes.Equal(have, tc.want) {
+			t.Errorf("test %d, type %T, have\n\t%x\nwant\n\t%x", i, tc.message, have, tc.want)
 		}
 	}
 }
