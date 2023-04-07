@@ -367,7 +367,7 @@ func (*GetPooledTransactionsPacket) Kind() byte   { return GetPooledTransactions
 func (*PooledTransactionsPacket) Name() string { return "PooledTransactions" }
 func (*PooledTransactionsPacket) Kind() byte   { return PooledTransactionsMsg }
 
-type PPOSStorage struct {
+type PposStoragePack struct {
 	KVs   [][2][]byte
 	KVNum uint64
 	Last  bool
@@ -378,31 +378,19 @@ type PPOSInfo struct {
 	Pivot  *types.Header
 }
 
-// PposStoragePack is a batch of ppos storage returned by a peer.
 type PposInfoPack struct {
 	PeerID   string
 	PposInfo PPOSInfo
 }
 
-// PposStoragePack is a batch of ppos storage returned by a peer.
-type PposStoragePack struct {
-	PeerID  string
-	Storage PPOSStorage
-}
-
 func (*PposInfoPack) Name() string { return "PposInfo" }
 func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
 
-func (*PposStoragePack) Name() string { return "PposStorage" }
-func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
+func (*PposStoragePack) Name() string    { return "PposStorage" }
+func (*PposStoragePack) Kind() byte      { return PPOSStorageMsg }
+func (p *PposStoragePack) Stats() string { return fmt.Sprintf("%d", len(p.KVs)) }
 
-func (p *PposStoragePack) Stats() string { return fmt.Sprintf("%d", len(p.Storage.KVs)) }
-func (p *PposStoragePack) KVNum() uint64 { return uint64(len(p.Storage.KVs)) }
-
-type OriginAndPivotPack struct {
-	PeerID         string
-	OriginAndPivot []*types.Header
-}
+type OriginAndPivotPack []*types.Header
 
 func (*OriginAndPivotPack) Name() string { return "OriginAndPivot" }
 func (*OriginAndPivotPack) Kind() byte   { return OriginAndPivotMsg }
