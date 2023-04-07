@@ -347,7 +347,7 @@ func (db *DB) expireNodes() {
 				youngestPong = time
 			}
 			if time < threshold {
-				// last pong from this IP older than threshold, remove fields belonging to it.
+				// Last pong from this IP older than threshold, remove fields belonging to it.
 				deleteRange(db.lvl, nodeItemKey(id, ip, ""))
 			}
 		}

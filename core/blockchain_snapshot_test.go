@@ -216,7 +216,7 @@ func TestNoCommitCrashWithNewSnapshot(t *testing.T) {
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
 		expHeadBlock:       0,
-		expSnapshotBottom:  4, // last committed disk layer, wait recovery
+		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
 
@@ -255,7 +255,7 @@ func TestLowCommitCrashWithNewSnapshot(t *testing.T) {
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
 		expHeadBlock:       2,
-		expSnapshotBottom:  4, // last committed disk layer, wait recovery
+		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
 
@@ -294,7 +294,7 @@ func TestHighCommitCrashWithNewSnapshot(t *testing.T) {
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
 		expHeadBlock:       0,
-		expSnapshotBottom:  4, // last committed disk layer, wait recovery
+		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
 

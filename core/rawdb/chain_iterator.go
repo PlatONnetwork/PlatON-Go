@@ -131,7 +131,7 @@ func iterateTransactions(db ethdb.Database, from uint64, to uint64, reverse bool
 	nThreadsAlive := int32(threads)
 	process := func() {
 		defer func() {
-			// last processor closes the result channel
+			// Last processor closes the result channel
 			if atomic.AddInt32(&nThreadsAlive, -1) == 0 {
 				close(hashesCh)
 			}

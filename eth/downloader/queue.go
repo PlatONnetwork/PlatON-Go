@@ -719,7 +719,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 			logger.Trace("First header broke chain ordering", "number", headers[0].Number, "hash", headers[0].Hash(), "expected", request.From)
 			accepted = false
 		} else if headers[len(headers)-1].Hash() != target {
-			logger.Trace("last header broke skeleton structure ", "number", headers[len(headers)-1].Number, "hash", headers[len(headers)-1].Hash(), "expected", target)
+			logger.Trace("Last header broke skeleton structure ", "number", headers[len(headers)-1].Number, "hash", headers[len(headers)-1].Hash(), "expected", target)
 			accepted = false
 		}
 	}
