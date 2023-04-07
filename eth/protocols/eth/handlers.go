@@ -537,7 +537,7 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 		}
 		var (
 			byteSize int
-			ps       PPOSStorage
+			ps       PposStoragePack
 			count    int
 		)
 		ps.KVs = make([][2][]byte, 0)

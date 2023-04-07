@@ -538,7 +538,7 @@ func (p *Peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	return nil
 }
 
-func (p *Peer) SendPPOSStorage(data PPOSStorage) error {
+func (p *Peer) SendPPOSStorage(data PposStoragePack) error {
 	return p2p.Send(p.rw, PPOSStorageMsg, data)
 }
 
