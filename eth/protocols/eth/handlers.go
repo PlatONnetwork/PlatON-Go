@@ -525,7 +525,7 @@ func handleGetPPOSStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 	f := func(num *big.Int, iter iterator.Iterator) error {
-		var psInfo PPOSInfo
+		var psInfo PposInfoPack
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
