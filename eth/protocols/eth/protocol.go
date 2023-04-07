@@ -373,14 +373,9 @@ type PposStoragePack struct {
 	Last  bool
 }
 
-type PPOSInfo struct {
+type PposInfoPack struct {
 	Latest *types.Header
 	Pivot  *types.Header
-}
-
-type PposInfoPack struct {
-	PeerID   string
-	PposInfo PPOSInfo
 }
 
 func (*PposInfoPack) Name() string { return "PposInfo" }
