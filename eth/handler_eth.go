@@ -105,7 +105,7 @@ func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 		return h.downloader.DeliverOriginAndPivot(peer.ID(), *packet)
 
 	case *eth.PposInfoPack:
-		return h.downloader.DeliverPposInfo(peer.ID(), packet.PposInfo.Latest, packet.PposInfo.Pivot)
+		return h.downloader.DeliverPposInfo(peer.ID(), packet.Latest, packet.Pivot)
 
 	default:
 		return fmt.Errorf("unexpected eth packet type: %T", packet)
