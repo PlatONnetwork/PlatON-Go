@@ -538,7 +538,7 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		return err
 	}
 	var count int
-	ps := make([]PPOSStorageKV, 0)
+	ps := make([][2][]byte, 0)
 	var KVNum uint64
 	for _, value := range dlp.chain.pposData {
 		kv := [2][]byte{
@@ -554,7 +554,7 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 				return err
 			}
 			count = 0
-			ps = make([]PPOSStorageKV, 0)
+			ps = make([][2][]byte, 0)
 		}
 		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum); err != nil {
 			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)

@@ -98,6 +98,15 @@ func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 	case *eth.PooledTransactionsPacket:
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
+	case *eth.PposStoragePack:
+		return h.downloader.DeliverPposStorage(packet.PeerID, packet.Storage.KVs, packet.Storage.Last, packet.KVNum())
+
+	case *eth.OriginAndPivotPack:
+		return h.downloader.DeliverOriginAndPivot(packet.PeerID, packet.OriginAndPivot)
+
+	case *eth.PposInfoPack:
+		return h.downloader.DeliverPposInfo(packet.PeerID, packet.PposInfo.Latest, packet.PposInfo.Pivot)
+
 	default:
 		return fmt.Errorf("unexpected eth packet type: %T", packet)
 	}

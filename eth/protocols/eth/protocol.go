@@ -60,12 +60,16 @@ const (
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
 
-	GetNodeDataMsg       = 0x0d
-	NodeDataMsg          = 0x0e
-	GetReceiptsMsg       = 0x0f
-	ReceiptsMsg          = 0x10
+	GetNodeDataMsg = 0x0d
+	NodeDataMsg    = 0x0e
+	GetReceiptsMsg = 0x0f
+	ReceiptsMsg    = 0x10
+
 	GetPPOSStorageMsg    = 0x11
+	PPOSStorageMsg       = 0x12
 	GetOriginAndPivotMsg = 0x13
+	OriginAndPivotMsg    = 0x14
+	PPOSInfoMsg          = 0x15
 
 	// Protocol messages overloaded in eth/65
 	NewPooledTransactionHashesMsg = 0x08
@@ -362,3 +366,43 @@ func (*GetPooledTransactionsPacket) Kind() byte   { return GetPooledTransactions
 
 func (*PooledTransactionsPacket) Name() string { return "PooledTransactions" }
 func (*PooledTransactionsPacket) Kind() byte   { return PooledTransactionsMsg }
+
+type PPOSStorage struct {
+	KVs   [][2][]byte
+	KVNum uint64
+	Last  bool
+}
+
+type PPOSInfo struct {
+	Latest *types.Header
+	Pivot  *types.Header
+}
+
+// PposStoragePack is a batch of ppos storage returned by a peer.
+type PposInfoPack struct {
+	PeerID   string
+	PposInfo PPOSInfo
+}
+
+// PposStoragePack is a batch of ppos storage returned by a peer.
+type PposStoragePack struct {
+	PeerID  string
+	Storage PPOSStorage
+}
+
+func (*PposInfoPack) Name() string { return "PposInfo" }
+func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
+
+func (*PposStoragePack) Name() string { return "PposStorage" }
+func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
+
+func (p *PposStoragePack) Stats() string { return fmt.Sprintf("%d", len(p.Storage.KVs)) }
+func (p *PposStoragePack) KVNum() uint64 { return uint64(len(p.Storage.KVs)) }
+
+type OriginAndPivotPack struct {
+	PeerID         string
+	OriginAndPivot []*types.Header
+}
+
+func (*OriginAndPivotPack) Name() string { return "OriginAndPivot" }
+func (*OriginAndPivotPack) Kind() byte   { return OriginAndPivotMsg }

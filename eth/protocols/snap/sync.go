@@ -111,7 +111,7 @@ type accountRequest struct {
 	stale   chan struct{} // Channel to signal the request was dropped
 
 	origin common.Hash // First account requested to allow continuation checks
-	limit  common.Hash // Last account requested to allow non-overlapping chunking
+	limit  common.Hash // last account requested to allow non-overlapping chunking
 
 	task *accountTask // Task which this request is filling (only access fields through the runloop!!)
 }
@@ -184,7 +184,7 @@ type storageRequest struct {
 	roots    []common.Hash // Storage roots to validate responses
 
 	origin common.Hash // First storage slot requested to allow continuation checks
-	limit  common.Hash // Last storage slot requested to allow non-overlapping chunking
+	limit  common.Hash // last storage slot requested to allow non-overlapping chunking
 
 	mainTask *accountTask // Task which this response belongs to (only access fields through the runloop!!)
 	subTask  *storageTask // Task which this response is filling (only access fields through the runloop!!)

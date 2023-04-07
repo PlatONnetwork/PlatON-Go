@@ -17,11 +17,18 @@
 package eth
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math/big"
+
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -503,4 +510,132 @@ func handlePooledTransactions66(backend Backend, msg Decoder, peer *Peer) error 
 		peer.markTransaction(tx.Hash())
 	}
 	return backend.Handle(peer, &txs.PooledTransactionsPacket)
+}
+
+// handleGetPPOSStorageMsg handles PPOS Storage query, collect the requested Storage and reply
+func handleGetPPOSStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
+	var query []interface{}
+	if err := msg.Decode(&query); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+
+	_ = answerGetPPOSStorageMsgQuery(backend, peer)
+	return nil
+}
+
+func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
+	f := func(num *big.Int, iter iterator.Iterator) error {
+		var psInfo PPOSInfo
+		if num == nil {
+			return errors.New("num should not be nil")
+		}
+		psInfo.Pivot = backend.Chain().GetHeaderByNumber(num.Uint64())
+		psInfo.Latest = backend.Chain().CurrentHeader()
+		if err := peer.SendPPOSInfo(psInfo); err != nil {
+			peer.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+			return err
+		}
+		var (
+			byteSize int
+			ps       PPOSStorage
+			count    int
+		)
+		ps.KVs = make([][2][]byte, 0)
+		for iter.Next() {
+			if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) || bytes.HasPrefix(iter.Key(), []byte(snapshotdb.WalKeyPrefix)) {
+				continue
+			}
+			byteSize = byteSize + len(iter.Key()) + len(iter.Value())
+			if count >= downloader.PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
+				if err := peer.SendPPOSStorage(ps); err != nil {
+					peer.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
+					return err
+				}
+				count = 0
+				ps.KVs = make([][2][]byte, 0)
+				byteSize = 0
+			}
+			k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+			copy(k, iter.Key())
+			copy(v, iter.Value())
+			ps.KVs = append(ps.KVs, [2][]byte{
+				k, v,
+			})
+			ps.KVNum++
+			count++
+		}
+		ps.Last = true
+		if err := peer.SendPPOSStorage(ps); err != nil {
+			peer.Log().Error("[GetPPOSStorageMsg]send last ppos message fail", "error", err)
+			return err
+		}
+		return nil
+	}
+	var err error
+	go func() {
+		if err = snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
+			peer.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		}
+	}()
+	return nil
+}
+
+// handlePPosStorageMsg handles PPOS msg, collect the requested info and reply
+func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
+
+	peer.Log().Debug("Received a broadcast message[PposStorageMsg]")
+	var data PposStoragePack
+	if err := msg.Decode(&data); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+	// Deliver all to the downloader
+	return backend.Handle(peer, &data)
+}
+
+func handleGetOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
+
+	peer.Log().Info("[GetOriginAndPivotMsg]Received a broadcast message")
+	var query uint64
+	if err := msg.Decode(&query); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+	oHead := backend.Chain().GetHeaderByNumber(query)
+	pivot, err := snapshotdb.Instance().BaseNum()
+	if err != nil {
+		peer.Log().Error("GetOriginAndPivot get snapshotdb baseNum fail", "err", err)
+		return errors.New("GetOriginAndPivot get snapshotdb baseNum fail")
+	}
+	if pivot == nil {
+		peer.Log().Error("[GetOriginAndPivot] pivot should not be nil")
+		return errors.New("[GetOriginAndPivot] pivot should not be nil")
+	}
+	pHead := backend.Chain().GetHeaderByNumber(pivot.Uint64())
+
+	data := make([]*types.Header, 0)
+	data = append(data, oHead, pHead)
+	if err := peer.SendOriginAndPivot(data); err != nil {
+		peer.Log().Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
+		return err
+	}
+	return nil
+}
+
+func handleOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
+	peer.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
+	var data OriginAndPivotPack
+	if err := msg.Decode(&data); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+	// Deliver all to the downloader
+	return backend.Handle(peer, &data)
+}
+
+func handlePPOSInfoMsg(backend Backend, msg Decoder, peer *Peer) error {
+	peer.Log().Debug("Received a broadcast message[PPOSInfoMsg]")
+	var data PposInfoPack
+	if err := msg.Decode(&data); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+	// Deliver all to the downloader
+	return backend.Handle(peer, &data)
 }

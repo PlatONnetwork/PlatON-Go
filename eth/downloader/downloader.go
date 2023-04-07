@@ -1758,7 +1758,7 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, kvs []PPOSStorageKV, last bool, kvNum uint64) (err error) {
+func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64) (err error) {
 	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum}, pposStorageInMeter, pposStorageDropMeter)
 }
 
