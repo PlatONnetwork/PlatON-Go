@@ -542,7 +542,7 @@ func (p *Peer) SendPPOSStorage(data PposStoragePack) error {
 	return p2p.Send(p.rw, PPOSStorageMsg, data)
 }
 
-func (p *Peer) SendPPOSInfo(data PPOSInfo) error {
+func (p *Peer) SendPPOSInfo(data PposInfoPack) error {
 	return p2p.Send(p.rw, PPOSInfoMsg, data)
 }
 
