@@ -381,9 +381,8 @@ type PposInfoPack struct {
 func (*PposInfoPack) Name() string { return "PposInfo" }
 func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
 
-func (*PposStoragePack) Name() string    { return "PposStorage" }
-func (*PposStoragePack) Kind() byte      { return PPOSStorageMsg }
-func (p *PposStoragePack) Stats() string { return fmt.Sprintf("%d", len(p.KVs)) }
+func (*PposStoragePack) Name() string { return "PposStorage" }
+func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
 
 type OriginAndPivotPack []*types.Header
 

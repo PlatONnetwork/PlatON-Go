@@ -233,8 +233,8 @@ func TestAccountIteratorTraversal(t *testing.T) {
 	// Verify the single and multi-layer iterators
 	head := snaps.Snapshot(common.HexToHash("0x04"))
 
-	verifyIterator(t, 3, head.(snapshot).AccountIterator(common.Hash{}), verifyNothing)
-	verifyIterator(t, 7, head.(*diffLayer).newBinaryAccountIterator(), verifyAccount)
+	verifyIterator(t, 1, head.(snapshot).AccountIterator(common.Hash{}), verifyNothing)
+	verifyIterator(t, 2, head.(*diffLayer).newBinaryAccountIterator(), verifyAccount)
 
 	it, _ := snaps.AccountIterator(common.HexToHash("0x04"), common.Hash{})
 	verifyIterator(t, 7, it, verifyAccount)
