@@ -181,6 +181,12 @@ var eth64 = map[uint64]msgHandler{
 	NewBlockHashesMsg:  handleNewBlockhashes,
 	NewBlockMsg:        handleNewBlock,
 	TransactionsMsg:    handleTransactions,
+
+	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
+	PPOSStorageMsg:       handlePPosStorageMsg,
+	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
+	OriginAndPivotMsg:    handleOriginAndPivotMsg,
+	PPOSInfoMsg:          handlePPOSInfoMsg,
 }
 var eth65 = map[uint64]msgHandler{
 	// old 64 messages
@@ -195,6 +201,13 @@ var eth65 = map[uint64]msgHandler{
 	NewBlockHashesMsg:  handleNewBlockhashes,
 	NewBlockMsg:        handleNewBlock,
 	TransactionsMsg:    handleTransactions,
+
+	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
+	PPOSStorageMsg:       handlePPosStorageMsg,
+	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
+	OriginAndPivotMsg:    handleOriginAndPivotMsg,
+	PPOSInfoMsg:          handlePPOSInfoMsg,
+
 	// New eth65 messages
 	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
 	GetPooledTransactionsMsg:      handleGetPooledTransactions,
@@ -206,6 +219,13 @@ var eth66 = map[uint64]msgHandler{
 	NewBlockHashesMsg: handleNewBlockhashes,
 	NewBlockMsg:       handleNewBlock,
 	TransactionsMsg:   handleTransactions,
+
+	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
+	PPOSStorageMsg:       handlePPosStorageMsg,
+	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
+	OriginAndPivotMsg:    handleOriginAndPivotMsg,
+	PPOSInfoMsg:          handlePPOSInfoMsg,
+
 	// eth65 announcement messages (no id)
 	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
 	// eth66 messages with request-id
