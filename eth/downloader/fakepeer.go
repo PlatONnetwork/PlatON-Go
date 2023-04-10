@@ -188,7 +188,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 			count int
 			KVNum uint64
 		)
-		KVs := make([]PPOSStorageKV, 0)
+		KVs := make([][2][]byte, 0)
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
@@ -215,7 +215,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 					return err
 				}
 				count = 0
-				KVs = make([]PPOSStorageKV, 0)
+				KVs = make([][2][]byte, 0)
 			}
 		}
 		if err := p.dl.DeliverPposStorage(p.id, KVs, true, KVNum); err != nil {
