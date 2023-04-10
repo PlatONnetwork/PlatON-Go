@@ -335,7 +335,7 @@ func InspectDatabase(db ethdb.Database) error {
 			bloomTrieNodes.Add(size)
 		default:
 			var accounted bool
-			for _, meta := range [][]byte{databaseVerisionKey, headHeaderKey, headBlockKey, headFastBlockKey, fastTrieProgressKey} {
+			for _, meta := range [][]byte{databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, fastTrieProgressKey} {
 				if bytes.Equal(key, meta) {
 					metadata.Add(size)
 					accounted = true
