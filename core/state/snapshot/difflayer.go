@@ -29,7 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
-	"github.com/steakknife/bloomfilter"
+	bloomfilter "github.com/holiman/bloomfilter/v2"
 )
 
 var (
