@@ -477,7 +477,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false, 5*time.Minute),
 			Public:    true,
 		}, {
 			Namespace: "admin",
