@@ -69,6 +69,12 @@ var (
 	// fastTxLookupLimitKey tracks the transaction lookup limit during fast sync.
 	fastTxLookupLimitKey = []byte("FastTransactionLookupLimit")
 
+	// badBlockKey tracks the list of bad blocks seen by local
+	badBlockKey = []byte("InvalidBlock")
+
+	// uncleanShutdownKey tracks the list of local crashes
+	uncleanShutdownKey = []byte("unclean-shutdown") // config prefix for the db
+
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	headerPrefix       = []byte("h") // headerPrefix + num (uint64 big endian) + hash -> header
 	headerHashSuffix   = []byte("n") // headerPrefix + num (uint64 big endian) + headerHashSuffix -> hash
@@ -81,14 +87,13 @@ var (
 	bloomBitsPrefix       = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
 	SnapshotAccountPrefix = []byte("a") // SnapshotAccountPrefix + account hash -> account trie value
 	SnapshotStoragePrefix = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
+	codePrefix            = []byte("c") // codePrefix + code hash -> account code
 
-	codePrefix                = []byte("c")                        // codePrefix + code hash -> account code
-	preimagePrefix            = []byte("secure-key-")              // preimagePrefix + hash -> preimage
-	configPrefix              = []byte("ethereum-config-")         // config prefix for the db
+	preimagePrefix = []byte("secure-key-")      // preimagePrefix + hash -> preimage
+	configPrefix   = []byte("ethereum-config-") // config prefix for the db
+
 	economicModelPrefix       = []byte("economicModel-key-")       // economicModel prefix for the db
 	economicModelExtendPrefix = []byte("economicModelExtend-key-") // economicModelExtend prefix for the db
-
-	uncleanShutdownKey = []byte("unclean-shutdown") // config prefix for the db
 
 	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress

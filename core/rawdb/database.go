@@ -271,6 +271,8 @@ func InspectDatabase(db ethdb.Database) error {
 		tries           stat
 		codes           stat
 		txLookups       stat
+		accountSnaps    stat
+		storageSnaps    stat
 		preimages       stat
 		bloomBits       stat
 		cliqueSnaps     stat
@@ -280,9 +282,6 @@ func InspectDatabase(db ethdb.Database) error {
 		ancientBodiesSize   common.StorageSize
 		ancientReceiptsSize common.StorageSize
 		ancientHashesSize   common.StorageSize
-
-		accountSnapSize common.StorageSize
-		storageSnapSize common.StorageSize
 
 		// Les statistic
 		chtTrieNodes   stat
@@ -320,9 +319,9 @@ func InspectDatabase(db ethdb.Database) error {
 		case bytes.HasPrefix(key, txLookupPrefix) && len(key) == (len(txLookupPrefix)+common.HashLength):
 			txLookups.Add(size)
 		case bytes.HasPrefix(key, SnapshotAccountPrefix) && len(key) == (len(SnapshotAccountPrefix)+common.HashLength):
-			accountSnapSize += size
+			accountSnaps.Add(size)
 		case bytes.HasPrefix(key, SnapshotStoragePrefix) && len(key) == (len(SnapshotStoragePrefix)+2*common.HashLength):
-			storageSnapSize += size
+			storageSnaps.Add(size)
 		case bytes.HasPrefix(key, preimagePrefix) && len(key) == (len(preimagePrefix)+common.HashLength):
 			preimages.Add(size)
 		case bytes.HasPrefix(key, bloomBitsPrefix) && len(key) == (len(bloomBitsPrefix)+10+common.HashLength):
@@ -335,7 +334,7 @@ func InspectDatabase(db ethdb.Database) error {
 			bloomTrieNodes.Add(size)
 		default:
 			var accounted bool
-			for _, meta := range [][]byte{databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, fastTrieProgressKey} {
+			for _, meta := range [][]byte{databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, fastTrieProgressKey, uncleanShutdownKey, badBlockKey} {
 				if bytes.Equal(key, meta) {
 					metadata.Add(size)
 					accounted = true
@@ -377,8 +376,8 @@ func InspectDatabase(db ethdb.Database) error {
 		{"Key-Value store", "Contract codes", codes.Size(), codes.Count()},
 		{"Key-Value store", "Trie nodes", tries.Size(), tries.Count()},
 		{"Key-Value store", "Trie preimages", preimages.Size(), preimages.Count()},
-		{"Key-Value store", "Account snapshot", accountSnapSize.String()},
-		{"Key-Value store", "Storage snapshot", storageSnapSize.String()},
+		{"Key-Value store", "Account snapshot", accountSnaps.Size(), accountSnaps.Count()},
+		{"Key-Value store", "Storage snapshot", storageSnaps.Size(), storageSnaps.Count()},
 		{"Key-Value store", "Clique snapshots", cliqueSnaps.Size(), cliqueSnaps.Count()},
 		{"Key-Value store", "Singleton metadata", metadata.Size(), metadata.Count()},
 		{"Ancient store", "Headers", ancientHeadersSize.String(), ancients.String()},
@@ -397,5 +396,6 @@ func InspectDatabase(db ethdb.Database) error {
 	if unaccounted.size > 0 {
 		log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	}
+
 	return nil
 }

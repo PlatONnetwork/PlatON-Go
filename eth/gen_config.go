@@ -5,11 +5,13 @@ package eth
 import (
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // MarshalTOML marshals as TOML.
@@ -17,18 +19,23 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	type Config struct {
 		Genesis                  *core.Genesis       `toml:",omitempty"`
 		CbftConfig               types.OptionsConfig `toml:",omitempty"`
+		EthDiscoveryURLs         []string
+		SnapDiscoveryURLs        []string
 		NetworkId                uint64
 		SyncMode                 downloader.SyncMode
 		NoPruning                bool
 		SkipBcVersionCheck       bool `toml:"-"`
 		DatabaseHandles          int  `toml:"-"`
 		DatabaseCache            int
+		TrieCleanCache           int
 		TrieCleanCacheJournal    string        `toml:",omitempty"`
 		TrieCleanCacheRejournal  time.Duration `toml:",omitempty"`
+		TrieDirtyCache           int
 		DatabaseFreezer          string
 		TxLookupLimit            uint64 `toml:",omitempty"`
 		TrieCache                int
 		TrieTimeout              time.Duration
+		SnapshotCache            int
 		TrieDBCache              int
 		Preimages                bool
 		DBDisabledGC             bool
@@ -36,6 +43,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DBGCTimeout              time.Duration
 		DBGCMpt                  bool
 		DBGCBlock                int
+		DBValidatorsHistory      bool
 		VMWasmType               string
 		VmTimeoutDuration        uint64
 		Miner                    miner.Config
@@ -54,7 +62,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		BodyCacheLimit           int
 		BlockCacheLimit          int
 		MaxFutureBlocks          int
-		BadBlockLimit            int
 		TriesInMemory            int
 		BlockChainVersion        int
 		DefaultTxsCacheSize      int
@@ -63,24 +70,31 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
-		RPCGasCap                uint64  `toml:",omitempty"`
-		RPCTxFeeCap              float64 `toml:",omitempty"`
+		RPCGasCap                uint64                    `toml:",omitempty"`
+		RPCTxFeeCap              float64                   `toml:",omitempty"`
+		Whitelist                map[uint64]common.Hash    `toml:"-"`
+		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
 	enc.CbftConfig = c.CbftConfig
+	enc.EthDiscoveryURLs = c.EthDiscoveryURLs
+	enc.SnapDiscoveryURLs = c.SnapDiscoveryURLs
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
+	enc.TrieCleanCache = c.TrieCleanCache
 	enc.TrieCleanCacheJournal = c.TrieCleanCacheJournal
 	enc.TrieCleanCacheRejournal = c.TrieCleanCacheRejournal
+	enc.TrieDirtyCache = c.TrieDirtyCache
 	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TxLookupLimit = c.TxLookupLimit
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
+	enc.SnapshotCache = c.SnapshotCache
 	enc.TrieDBCache = c.TrieDBCache
 	enc.Preimages = c.Preimages
 	enc.DBDisabledGC = c.DBDisabledGC
@@ -88,6 +102,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DBGCTimeout = c.DBGCTimeout
 	enc.DBGCMpt = c.DBGCMpt
 	enc.DBGCBlock = c.DBGCBlock
+	enc.DBValidatorsHistory = c.DBValidatorsHistory
 	enc.VMWasmType = c.VMWasmType
 	enc.VmTimeoutDuration = c.VmTimeoutDuration
 	enc.Miner = c.Miner
@@ -106,7 +121,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.BodyCacheLimit = c.BodyCacheLimit
 	enc.BlockCacheLimit = c.BlockCacheLimit
 	enc.MaxFutureBlocks = c.MaxFutureBlocks
-	enc.BadBlockLimit = c.BadBlockLimit
 	enc.TriesInMemory = c.TriesInMemory
 	enc.BlockChainVersion = c.BlockChainVersion
 	enc.DefaultTxsCacheSize = c.DefaultTxsCacheSize
@@ -117,6 +131,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.Debug = c.Debug
 	enc.RPCGasCap = c.RPCGasCap
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
+	enc.Whitelist = c.Whitelist
+	enc.Checkpoint = c.Checkpoint
 	return &enc, nil
 }
 
@@ -125,18 +141,23 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Config struct {
 		Genesis                  *core.Genesis        `toml:",omitempty"`
 		CbftConfig               *types.OptionsConfig `toml:",omitempty"`
+		EthDiscoveryURLs         []string
+		SnapDiscoveryURLs        []string
 		NetworkId                *uint64
 		SyncMode                 *downloader.SyncMode
 		NoPruning                *bool
 		SkipBcVersionCheck       *bool `toml:"-"`
 		DatabaseHandles          *int  `toml:"-"`
 		DatabaseCache            *int
+		TrieCleanCache           *int
 		TrieCleanCacheJournal    *string        `toml:",omitempty"`
 		TrieCleanCacheRejournal  *time.Duration `toml:",omitempty"`
+		TrieDirtyCache           *int
 		DatabaseFreezer          *string
 		TxLookupLimit            *uint64 `toml:",omitempty"`
 		TrieCache                *int
 		TrieTimeout              *time.Duration
+		SnapshotCache            *int
 		TrieDBCache              *int
 		Preimages                *bool
 		DBDisabledGC             *bool
@@ -144,6 +165,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DBGCTimeout              *time.Duration
 		DBGCMpt                  *bool
 		DBGCBlock                *int
+		DBValidatorsHistory      *bool
 		VMWasmType               *string
 		VmTimeoutDuration        *uint64
 		Miner                    *miner.Config
@@ -162,7 +184,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		BodyCacheLimit           *int
 		BlockCacheLimit          *int
 		MaxFutureBlocks          *int
-		BadBlockLimit            *int
 		TriesInMemory            *int
 		BlockChainVersion        *int
 		DefaultTxsCacheSize      *int
@@ -171,8 +192,10 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
-		RPCGasCap                *uint64  `toml:",omitempty"`
-		RPCTxFeeCap              *float64 `toml:",omitempty"`
+		RPCGasCap                *uint64                   `toml:",omitempty"`
+		RPCTxFeeCap              *float64                  `toml:",omitempty"`
+		Whitelist                map[uint64]common.Hash    `toml:"-"`
+		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -183,6 +206,12 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.CbftConfig != nil {
 		c.CbftConfig = *dec.CbftConfig
+	}
+	if dec.EthDiscoveryURLs != nil {
+		c.EthDiscoveryURLs = dec.EthDiscoveryURLs
+	}
+	if dec.SnapDiscoveryURLs != nil {
+		c.SnapDiscoveryURLs = dec.SnapDiscoveryURLs
 	}
 	if dec.NetworkId != nil {
 		c.NetworkId = *dec.NetworkId
@@ -202,11 +231,17 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
 	}
+	if dec.TrieCleanCache != nil {
+		c.TrieCleanCache = *dec.TrieCleanCache
+	}
 	if dec.TrieCleanCacheJournal != nil {
 		c.TrieCleanCacheJournal = *dec.TrieCleanCacheJournal
 	}
 	if dec.TrieCleanCacheRejournal != nil {
 		c.TrieCleanCacheRejournal = *dec.TrieCleanCacheRejournal
+	}
+	if dec.TrieDirtyCache != nil {
+		c.TrieDirtyCache = *dec.TrieDirtyCache
 	}
 	if dec.DatabaseFreezer != nil {
 		c.DatabaseFreezer = *dec.DatabaseFreezer
@@ -219,6 +254,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
+	}
+	if dec.SnapshotCache != nil {
+		c.SnapshotCache = *dec.SnapshotCache
 	}
 	if dec.TrieDBCache != nil {
 		c.TrieDBCache = *dec.TrieDBCache
@@ -240,6 +278,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DBGCBlock != nil {
 		c.DBGCBlock = *dec.DBGCBlock
+	}
+	if dec.DBValidatorsHistory != nil {
+		c.DBValidatorsHistory = *dec.DBValidatorsHistory
 	}
 	if dec.VMWasmType != nil {
 		c.VMWasmType = *dec.VMWasmType
@@ -295,9 +336,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.MaxFutureBlocks != nil {
 		c.MaxFutureBlocks = *dec.MaxFutureBlocks
 	}
-	if dec.BadBlockLimit != nil {
-		c.BadBlockLimit = *dec.BadBlockLimit
-	}
 	if dec.TriesInMemory != nil {
 		c.TriesInMemory = *dec.TriesInMemory
 	}
@@ -327,6 +365,12 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.RPCTxFeeCap != nil {
 		c.RPCTxFeeCap = *dec.RPCTxFeeCap
+	}
+	if dec.Whitelist != nil {
+		c.Whitelist = dec.Whitelist
+	}
+	if dec.Checkpoint != nil {
+		c.Checkpoint = dec.Checkpoint
 	}
 	return nil
 }

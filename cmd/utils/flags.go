@@ -1422,7 +1422,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
 		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
 		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
 		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
