@@ -300,21 +300,21 @@ func (t *Transaction) Status(ctx context.Context) (*hexutil.Uint64, error) {
 	return &ret, nil
 }
 
-func (t *Transaction) GasUsed(ctx context.Context) (*hexutil.Uint64, error) {
+func (t *Transaction) GasUsed(ctx context.Context) (*Long, error) {
 	receipt, err := t.getReceipt(ctx)
 	if err != nil || receipt == nil {
 		return nil, err
 	}
-	ret := hexutil.Uint64(receipt.GasUsed)
+	ret := Long(receipt.GasUsed)
 	return &ret, nil
 }
 
-func (t *Transaction) CumulativeGasUsed(ctx context.Context) (*hexutil.Uint64, error) {
+func (t *Transaction) CumulativeGasUsed(ctx context.Context) (*Long, error) {
 	receipt, err := t.getReceipt(ctx)
 	if err != nil || receipt == nil {
 		return nil, err
 	}
-	ret := hexutil.Uint64(receipt.CumulativeGasUsed)
+	ret := Long(receipt.CumulativeGasUsed)
 	return &ret, nil
 }
 
@@ -503,11 +503,6 @@ func (b *Block) Parent(ctx context.Context) (*Block, error) {
 
 func (b *Block) Difficulty(ctx context.Context) (hexutil.Big, error) {
 	return hexutil.Big{}, nil
-	/*header, err := b.resolveHeader(ctx)
-	if err != nil {
-		return hexutil.Big{}, err
-	}
-	return hexutil.Big(*header.Difficulty), nil*/
 }
 
 func (b *Block) Timestamp(ctx context.Context) (hexutil.Uint64, error) {
@@ -528,11 +523,6 @@ func (b *Block) Nonce(ctx context.Context) (hexutil.Bytes, error) {
 
 func (b *Block) MixHash(ctx context.Context) (common.Hash, error) {
 	return common.Hash{}, nil
-	/*header, err := b.resolveHeader(ctx)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return header.MixDigest, nil*/
 }
 
 func (b *Block) TransactionsRoot(ctx context.Context) (common.Hash, error) {
@@ -561,41 +551,14 @@ func (b *Block) ReceiptsRoot(ctx context.Context) (common.Hash, error) {
 
 func (b *Block) OmmerHash(ctx context.Context) (common.Hash, error) {
 	return common.Hash{}, nil
-	/*header, err := b.resolveHeader(ctx)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return header.UncleHash, nil*/
 }
 
 func (b *Block) OmmerCount(ctx context.Context) (*int32, error) {
 	return nil, nil
-	/*block, err := b.resolve(ctx)
-	if err != nil || block == nil {
-		return nil, err
-	}
-	count := int32(len(block.Uncles()))
-	return &count, err*/
 }
 
 func (b *Block) Ommers(ctx context.Context) (*[]*Block, error) {
 	return nil, nil
-	/*block, err := b.resolve(ctx)
-	if err != nil || block == nil {
-		return nil, err
-	}
-	ret := make([]*Block, 0, len(block.Uncles()))
-	for _, uncle := range block.Uncles() {
-		blockNumber := rpc.BlockNumber(uncle.Number.Uint64())
-		ret = append(ret, &Block{
-			backend:   b.backend,
-			num:       &blockNumber,
-			hash:      uncle.Hash(),
-			header:    uncle,
-			canonical: notCanonical,
-		})
-	}
-	return &ret, nil*/
 }
 
 func (b *Block) ExtraData(ctx context.Context) (hexutil.Bytes, error) {
@@ -616,15 +579,6 @@ func (b *Block) LogsBloom(ctx context.Context) (hexutil.Bytes, error) {
 
 func (b *Block) TotalDifficulty(ctx context.Context) (hexutil.Big, error) {
 	return hexutil.Big{}, nil
-	/*h := b.hash
-	if h == (common.Hash{}) {
-		header, err := b.resolveHeader(ctx)
-		if err != nil {
-			return hexutil.Big{}, err
-		}
-		h = header.Hash()
-	}
-	return hexutil.Big(*b.backend.GetTd(h)), nil*/
 }
 
 // BlockNumberArgs encapsulates arguments to accessors that specify a block number.
@@ -711,23 +665,6 @@ func (b *Block) TransactionAt(ctx context.Context, args struct{ Index int32 }) (
 
 func (b *Block) OmmerAt(ctx context.Context, args struct{ Index int32 }) (*Block, error) {
 	return nil, nil
-	/*block, err := b.resolve(ctx)
-	if err != nil || block == nil {
-		return nil, err
-	}
-	uncles := block.Uncles()
-	if args.Index < 0 || int(args.Index) >= len(uncles) {
-		return nil, nil
-	}
-	uncle := uncles[args.Index]
-	blockNumber := rpc.BlockNumber(uncle.Number.Uint64())
-	return &Block{
-		backend:   b.backend,
-		num:       &blockNumber,
-		hash:      uncle.Hash(),
-		header:    uncle,
-		canonical: notCanonical,
-	}, nil*/
 }
 
 // BlockFilterCriteria encapsulates criteria passed to a `logs` accessor inside
@@ -821,7 +758,7 @@ type CallData struct {
 // CallResult encapsulates the result of an invocation of the `call` accessor.
 type CallResult struct {
 	data    hexutil.Bytes  // The return data from the call
-	gasUsed hexutil.Uint64 // The amount of gas used
+	gasUsed Long           // The amount of gas used
 	status  hexutil.Uint64 // The return status of the call - 0 for failure or 1 for success.
 }
 
@@ -829,7 +766,7 @@ func (c *CallResult) Data() hexutil.Bytes {
 	return c.data
 }
 
-func (c *CallResult) GasUsed() hexutil.Uint64 {
+func (c *CallResult) GasUsed() Long {
 	return c.gasUsed
 }
 
@@ -857,22 +794,22 @@ func (b *Block) Call(ctx context.Context, args struct {
 
 	return &CallResult{
 		data:    result.ReturnData,
-		gasUsed: hexutil.Uint64(result.UsedGas),
+		gasUsed: Long(result.UsedGas),
 		status:  status,
 	}, nil
 }
 
 func (b *Block) EstimateGas(ctx context.Context, args struct {
 	Data ethapi.CallArgs
-}) (hexutil.Uint64, error) {
+}) (Long, error) {
 	if b.numberOrHash == nil {
 		_, err := b.resolveHeader(ctx)
 		if err != nil {
-			return hexutil.Uint64(0), err
+			return 0, err
 		}
 	}
 	gas, err := ethapi.DoEstimateGas(ctx, b.backend, args.Data, *b.numberOrHash, b.backend.RPCGasCap())
-	return gas, err
+	return Long(gas), err
 }
 
 type Pending struct {
@@ -927,16 +864,17 @@ func (p *Pending) Call(ctx context.Context, args struct {
 
 	return &CallResult{
 		data:    result.ReturnData,
-		gasUsed: hexutil.Uint64(result.UsedGas),
+		gasUsed: Long(result.UsedGas),
 		status:  status,
 	}, nil
 }
 
 func (p *Pending) EstimateGas(ctx context.Context, args struct {
 	Data ethapi.CallArgs
-}) (hexutil.Uint64, error) {
+}) (Long, error) {
 	pendingBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	return ethapi.DoEstimateGas(ctx, p.backend, args.Data, pendingBlockNr, p.backend.RPCGasCap())
+	gas, err := ethapi.DoEstimateGas(ctx, p.backend, args.Data, pendingBlockNr, p.backend.RPCGasCap())
+	return Long(gas), err
 }
 
 // Resolver is the top-level object in the GraphQL hierarchy.
