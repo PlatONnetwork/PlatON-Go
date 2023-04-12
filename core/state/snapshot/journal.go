@@ -292,25 +292,10 @@ func (dl *diskLayer) Journal(buffer *bytes.Buffer) (common.Hash, error) {
 	if dl.stale {
 		return common.Hash{}, ErrSnapshotStale
 	}
-	// Write out the generator marker. Note it's a standalone disk layer generator
-	// which is not mixed with journal. It's ok if the generator is persisted while
-	// journal is not.
-	entry := journalGenerator{
-		Done:   dl.genMarker == nil,
-		Marker: dl.genMarker,
-	}
-	if stats != nil {
-		entry.Wiping = (stats.wiping != nil)
-		entry.Accounts = stats.accounts
-		entry.Slots = stats.slots
-		entry.Storage = uint64(stats.storage)
-	}
-	blob, err := rlp.EncodeToBytes(entry)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	log.Debug("Journalled disk layer", "root", dl.root, "complete", dl.genMarker == nil)
-	rawdb.WriteSnapshotGenerator(dl.diskdb, blob)
+	// Ensure the generator stats is written even if none was ran this cycle
+	journalProgress(dl.diskdb, dl.genMarker, stats)
+
+	log.Debug("Journalled disk layer", "root", dl.root)
 	return dl.root, nil
 }
 

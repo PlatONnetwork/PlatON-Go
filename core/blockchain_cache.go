@@ -336,6 +336,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
 		bcc.WriteStateDB(sealHash, state, block.NumberU64())
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
+		state.UpdateSnaps()
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
