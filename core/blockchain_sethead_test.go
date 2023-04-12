@@ -1972,10 +1972,19 @@ func testSetHead(t *testing.T, tt *rewindTest, snapshots bool) {
 		genesis = new(Genesis).MustCommit(db)
 		engine  = consensus.NewFaker()
 		config  = &CacheConfig{
-			TrieCleanLimit: 256,
-			TrieDirtyLimit: 256,
-			TrieTimeLimit:  5 * time.Minute,
-			SnapshotLimit:  0, // Disable snapshot
+			TrieCleanLimit:  256,
+			TrieDirtyLimit:  256,
+			TrieTimeLimit:   5 * time.Minute,
+			SnapshotLimit:   0, // Disable snapshot
+			SnapshotWait:    true,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:   10,
+			TriesInMemory:   128,
+			DBGCInterval:    86400,
+			DBGCTimeout:     time.Minute,
+			Preimages:       true,
 		}
 	)
 	if snapshots {

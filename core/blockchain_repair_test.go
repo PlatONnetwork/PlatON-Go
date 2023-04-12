@@ -1772,10 +1772,19 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 		genesis = new(Genesis).MustCommit(db)
 		engine  = consensus.NewFaker()
 		config  = &CacheConfig{
-			TrieCleanLimit: 256,
-			TrieDirtyLimit: 256,
-			TrieTimeLimit:  5 * time.Minute,
-			SnapshotLimit:  0, // Disable snapshot by default
+			TrieCleanLimit:  256,
+			TrieDirtyLimit:  256,
+			TrieTimeLimit:   5 * time.Minute,
+			SnapshotLimit:   0, // Disable snapshot by default
+			SnapshotWait:    true,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:   10,
+			TriesInMemory:   128,
+			DBGCInterval:    86400,
+			DBGCTimeout:     time.Minute,
+			Preimages:       true,
 		}
 	)
 	if snapshots {
@@ -1789,14 +1798,14 @@ func testRepair(t *testing.T, tt *rewindTest, snapshots bool) {
 	// If sidechain blocks are needed, make a light chain and import it
 	var sideblocks types.Blocks
 	if tt.sidechainBlocks > 0 {
-		sideblocks, _ = GenerateChain(params.TestChainConfig, genesis, engine, rawdb.NewMemoryDatabase(), tt.sidechainBlocks, func(i int, b *BlockGen) {
+		sideblocks, _ = GenerateChain(params.TestChainConfig, genesis, engine, db, tt.sidechainBlocks, func(i int, b *BlockGen) {
 			b.SetCoinbase(common.Address{0x01})
 		})
 		if _, err := chain.InsertChain(sideblocks); err != nil {
 			t.Fatalf("Failed to import side chain: %v", err)
 		}
 	}
-	canonblocks, _ := GenerateChain(params.TestChainConfig, genesis, engine, rawdb.NewMemoryDatabase(), tt.canonicalBlocks, func(i int, b *BlockGen) {
+	canonblocks, _ := GenerateChain(params.TestChainConfig, genesis, engine, db, tt.canonicalBlocks, func(i int, b *BlockGen) {
 		b.SetCoinbase(common.Address{0x02})
 	})
 	if _, err := chain.InsertChain(canonblocks[:tt.commitBlock]); err != nil {
