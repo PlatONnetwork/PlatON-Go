@@ -115,11 +115,19 @@ type CacheConfig struct {
 // defaultCacheConfig are the default caching values if none are specified by the
 // user (also used during testing).
 var defaultCacheConfig = &CacheConfig{
-	TrieCleanLimit: 256,
-	TrieDirtyLimit: 256,
-	TrieTimeLimit:  5 * time.Minute,
-	SnapshotLimit:  256,
-	SnapshotWait:   true,
+	TrieCleanLimit:  512,
+	TrieDirtyLimit:  256 * 1024 * 1024,
+	TrieTimeLimit:   5 * time.Minute,
+	SnapshotLimit:   256,
+	SnapshotWait:    true,
+	BodyCacheLimit:  256,
+	BlockCacheLimit: 256,
+	MaxFutureBlocks: 256,
+	BadBlockLimit:   10,
+	TriesInMemory:   128,
+	DBGCInterval:    86400,
+	DBGCTimeout:     time.Minute,
+	Preimages:       true,
 }
 
 // mining related configuration
@@ -248,21 +256,7 @@ type BlockChain struct {
 // Processor.
 func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *params.ChainConfig, engine consensus.Engine, vmConfig vm.Config, shouldPreserve func(block *types.Block) bool, txLookupLimit *uint64) (*BlockChain, error) {
 	if cacheConfig == nil {
-		cacheConfig = &CacheConfig{
-			TrieCleanLimit:  512,
-			TrieDirtyLimit:  256 * 1024 * 1024,
-			TrieTimeLimit:   5 * time.Minute,
-			SnapshotLimit:   256,
-			SnapshotWait:    true,
-			BodyCacheLimit:  256,
-			BlockCacheLimit: 256,
-			MaxFutureBlocks: 256,
-			BadBlockLimit:   10,
-			TriesInMemory:   128,
-			DBGCInterval:    86400,
-			DBGCTimeout:     time.Minute,
-			Preimages:       true,
-		}
+		cacheConfig = defaultCacheConfig
 	}
 	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)
 	bodyRLPCache, _ := lru.New(cacheConfig.BodyCacheLimit)
@@ -337,7 +331,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		// blockchain repair. If the head full block is even lower than the ancient
 		// chain, truncate the ancient store.
 		fullBlock := bc.CurrentBlock()
-		if fullBlock != nil && fullBlock != bc.genesisBlock && fullBlock.NumberU64() < frozen-1 {
+		if fullBlock != nil && fullBlock.Hash() != bc.genesisBlock.Hash() && fullBlock.NumberU64() < frozen-1 {
 			needRewind = true
 			low = fullBlock.NumberU64()
 		}

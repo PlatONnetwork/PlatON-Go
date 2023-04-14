@@ -672,10 +672,19 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 
 		// Insert a few more blocks without enabling snapshot
 		var cacheConfig = &CacheConfig{
-			TrieCleanLimit: 256,
-			TrieDirtyLimit: 256,
-			TrieTimeLimit:  5 * time.Minute,
-			SnapshotLimit:  0,
+			TrieCleanLimit:  256,
+			TrieDirtyLimit:  256,
+			TrieTimeLimit:   5 * time.Minute,
+			SnapshotLimit:   0,
+			SnapshotWait:    true,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:   10,
+			TriesInMemory:   128,
+			DBGCInterval:    86400,
+			DBGCTimeout:     time.Minute,
+			Preimages:       true,
 		}
 		chain, err = NewBlockChain(db, cacheConfig, params.AllEthashProtocolChanges, engine, vm.Config{}, nil, nil)
 		if err != nil {
