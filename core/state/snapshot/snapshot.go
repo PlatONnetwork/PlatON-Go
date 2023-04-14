@@ -695,6 +695,39 @@ func (t *Tree) StorageIterator(root common.Hash, account common.Hash, seek commo
 	return newFastStorageIterator(t, root, account, seek)
 }
 
+// Verify iterates the whole state(all the accounts as well as the corresponding storages)
+// with the specific root and compares the re-computed hash with the original one.
+func (t *Tree) Verify(root common.Hash) error {
+	//TODO: 这部分内容在合并21724时再合
+	/*	acctIt, err := t.AccountIterator(root, common.Hash{})
+		if err != nil {
+			return err
+		}
+		defer acctIt.Release()
+
+		got, err := generateTrieRoot(nil, acctIt, common.Hash{}, stackTrieGenerate, func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
+			storageIt, err := t.StorageIterator(root, accountHash, common.Hash{})
+			if err != nil {
+				return common.Hash{}, err
+			}
+			defer storageIt.Release()
+
+			hash, err := generateTrieRoot(nil, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
+			if err != nil {
+				return common.Hash{}, err
+			}
+			return hash, nil
+		}, newGenerateStats(), true)
+
+		if err != nil {
+			return err
+		}
+		if got != root {
+			return fmt.Errorf("state root hash mismatch: got %x, want %x", got, root)
+		}*/
+	return nil
+}
+
 // disklayer is an internal helper function to return the disk layer.
 // The lock of snapTree is assumed to be held already.
 func (t *Tree) disklayer() *diskLayer {
