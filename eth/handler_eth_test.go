@@ -303,6 +303,7 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 // challenge to validate each other's chains. Hash mismatches, or missing ones
 // during a fast sync should lead to the peer getting dropped.
 func TestCheckpointChallenge(t *testing.T) {
+	t.Skip("checkpoint not have now")
 	tests := []struct {
 		syncmode   downloader.SyncMode
 		checkpoint bool

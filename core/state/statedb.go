@@ -164,6 +164,7 @@ func (s *StateDB) NewStateDB() *StateDB {
 	stateDB := &StateDB{
 		db:                  s.db,
 		trie:                s.db.NewTrie(s.trie),
+		snaps:               s.snaps,
 		stateObjects:        make(map[common.Address]*stateObject),
 		stateObjectsPending: make(map[common.Address]struct{}),
 		stateObjectsDirty:   make(map[common.Address]struct{}),
@@ -179,9 +180,13 @@ func (s *StateDB) NewStateDB() *StateDB {
 	index := s.AddReferenceFunc(stateDB.clearParentRef)
 	stateDB.referenceFuncIndex = index
 
-	//if stateDB.parent != nil {
-	//	stateDB.parent.DumpStorage(false)
-	//}
+	if stateDB.snaps != nil {
+		if stateDB.snap = stateDB.snaps.Snapshot(s.Root()); stateDB.snap != nil {
+			stateDB.snapDestructs = make(map[common.Hash]struct{})
+			stateDB.snapAccounts = make(map[common.Hash][]byte)
+			stateDB.snapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		}
+	}
 	return stateDB
 }
 
@@ -935,7 +940,7 @@ func (s *StateDB) Copy() *StateDB {
 		// nil
 		if object, exist := s.stateObjects[addr]; exist {
 			// Even though the original object is dirty, we are not copying the journal,
-			// so we need to make sure that anyside effect the journal would have caused
+			// so we need to make sure that any side-effect the journal would have caused
 			// during a commit (or similar op) is already applied to the copy.
 			state.stateObjects[addr] = object.deepCopy(state)
 
@@ -943,9 +948,10 @@ func (s *StateDB) Copy() *StateDB {
 			state.stateObjectsPending[addr] = struct{}{} // Mark the copy pending to force external (account) commits
 		}
 	}
-	// Above, we don't copy the actual journal. This means that if the copy is copied, the
-	// loop above will be a no-op, since the copy's journal is empty.
-	// Thus, here we iterate over stateObjects, to enable copies of copies
+	// Above, we don't copy the actual journal. This means that if the copy
+	// is copied, the loop above will be a no-op, since the copy's journal
+	// is empty. Thus, here we iterate over stateObjects, to enable copies
+	// of copies.
 	for addr := range s.stateObjectsPending {
 		if _, exist := state.stateObjects[addr]; !exist {
 			state.stateObjects[addr] = s.stateObjects[addr].deepCopy(state)
@@ -989,6 +995,33 @@ func (s *StateDB) Copy() *StateDB {
 	}
 	state.parentCommitted = s.parentCommitted
 	s.refLock.Unlock()
+
+	if s.snaps != nil {
+		// In order for the miner to be able to use and make additions
+		// to the snapshot tree, we need to copy that aswell.
+		// Otherwise, any block mined by ourselves will cause gaps in the tree,
+		// and force the miner to operate trie-backed only
+		state.snaps = s.snaps
+		state.snap = s.snap
+
+		// deep copy needed
+		state.snapDestructs = make(map[common.Hash]struct{})
+		for k, v := range s.snapDestructs {
+			state.snapDestructs[k] = v
+		}
+		state.snapAccounts = make(map[common.Hash][]byte)
+		for k, v := range s.snapAccounts {
+			state.snapAccounts[k] = v
+		}
+		state.snapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		for k, v := range s.snapStorage {
+			temp := make(map[common.Hash][]byte)
+			for kk, vv := range v {
+				temp[kk] = vv
+			}
+			state.snapStorage[k] = temp
+		}
+	}
 
 	return state
 }
@@ -1154,6 +1187,31 @@ func (s *StateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addre
 	return s.accessList.Contains(addr, slot)
 }
 
+// Since the execution and submission of the block are parallel
+// the snapshot needs to be updated before the state is committed.
+func (s *StateDB) UpdateSnaps() error {
+	// If snapshotting is enabled, update the snapshot tree with this new version
+	if s.snap != nil {
+		s.lock.Lock()
+		defer s.lock.Unlock()
+
+		// Finalize any pending changes and merge everything into the tries
+		root := s.IntermediateRoot(true)
+
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
+		}
+		// Only update if there's a state transition
+		if parent := s.snap.Root(); parent != root {
+			if err := s.snaps.Update(root, parent, s.snapDestructs, s.snapAccounts, s.snapStorage); err != nil {
+				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
+			}
+		}
+		s.snapDestructs, s.snapAccounts, s.snapStorage = nil, nil, nil
+	}
+	return nil
+}
+
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	s.lock.Lock()
@@ -1212,16 +1270,13 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		if metrics.EnabledExpensive {
 			defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
 		}
-		// Only update if there's a state transition (skip empty Clique blocks)
+		// Only update if there's a state transition
 		if parent := s.snap.Root(); parent != root {
-			if err := s.snaps.Update(root, parent, s.snapDestructs, s.snapAccounts, s.snapStorage); err != nil {
-				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
-			}
 			if err := s.snaps.Cap(root, 127); err != nil { // Persistent layer is 128th, the last available trie
 				log.Warn("Failed to cap snapshot tree", "root", root, "layers", 127, "err", err)
 			}
 		}
-		s.snap, s.snapDestructs, s.snapAccounts, s.snapStorage = nil, nil, nil, nil
+		s.snap = nil
 	}
 	return root, err
 }
