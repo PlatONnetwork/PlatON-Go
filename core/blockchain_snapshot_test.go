@@ -26,7 +26,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -216,7 +215,7 @@ func TestNoCommitCrashWithNewSnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       0,
+		expHeadBlock:       8,
 		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
@@ -255,7 +254,7 @@ func TestLowCommitCrashWithNewSnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       2,
+		expHeadBlock:       8,
 		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
@@ -294,7 +293,7 @@ func TestHighCommitCrashWithNewSnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       0,
+		expHeadBlock:       8,
 		expSnapshotBottom:  4, // Last committed disk layer, wait recovery
 	})
 }
@@ -332,7 +331,7 @@ func TestNoCommitCrashWithLegacySnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       0,
+		expHeadBlock:       8,
 		expSnapshotBottom:  0, // Rebuilt snapshot from the latest HEAD(genesis)
 	})
 }
@@ -370,7 +369,7 @@ func TestLowCommitCrashWithLegacySnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       2,
+		expHeadBlock:       8,
 		expSnapshotBottom:  2, // Rebuilt snapshot from the latest HEAD
 	})
 }
@@ -413,7 +412,7 @@ func TestHighCommitCrashWithLegacySnapshot(t *testing.T) {
 		expCanonicalBlocks: 8,
 		expHeadHeader:      8,
 		expHeadFastBlock:   8,
-		expHeadBlock:       0,
+		expHeadBlock:       8,
 		expSnapshotBottom:  0, // Rebuilt snapshot from the latest HEAD(genesis)
 	})
 }
@@ -527,7 +526,7 @@ func TestRecoverSnapshotFromCrashWithLegacyDiffJournal(t *testing.T) {
 		expCanonicalBlocks: 10,
 		expHeadHeader:      10,
 		expHeadFastBlock:   10,
-		expHeadBlock:       8,  // The persisted state in the first running
+		expHeadBlock:       10, // The persisted state in the first running
 		expSnapshotBottom:  10, // The persisted disk layer in the second running
 	})
 }
@@ -639,12 +638,7 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 		gappedBlocks, _ := GenerateChain(params.TestChainConfig, blocks[len(blocks)-1], engine, gendb, tt.gapped, func(i int, b *BlockGen) {})
 
 		// Insert a few more blocks without enabling snapshot
-		var cacheConfig = &CacheConfig{
-			TrieCleanLimit: 256,
-			TrieDirtyLimit: 256,
-			TrieTimeLimit:  5 * time.Minute,
-			SnapshotLimit:  0,
-		}
+		var cacheConfig = defaultCacheConfig
 		chain, err = NewBlockChain(db, cacheConfig, params.AllEthashProtocolChanges, engine, vm.Config{}, nil, nil)
 		if err != nil {
 			t.Fatalf("Failed to recreate chain: %v", err)
@@ -692,8 +686,6 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 		}
 		defer chain.Stop()
 	} else {
-		currnetNum := chain.CurrentBlock().Number().Uint64()
-		t.Log("currnetNum", "number", currnetNum)
 		chain.Stop()
 		// Restart the chain normally
 		chain, err = NewBlockChain(db, nil, params.AllEthashProtocolChanges, engine, vm.Config{}, nil, nil)
