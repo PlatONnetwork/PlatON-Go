@@ -444,7 +444,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 
 			cbft.state.HadSendPrepareVote().Push(m.Vote)
 			node, _ := cbft.validatorPool.GetValidatorByNodeID(m.Vote.Epoch, cbft.config.Option.NodeID)
-			cbft.state.AddPrepareVote(uint32(node.Index), m.Vote)
+			cbft.state.AddPrepareVote(node.Index, m.Vote)
 		}
 	}
 	return nil

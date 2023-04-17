@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"math/big"
 	"time"
 
@@ -692,6 +693,21 @@ func (s *PublicBlockChainAPI) GetBlockByHash(ctx context.Context, hash common.Ha
 	return nil, err
 }
 
+// GetBlockQuorumCertByHash returns the requested block QuorumCert.
+func (s *PublicBlockChainAPI) GetBlockQuorumCertByHash(ctx context.Context, hashes []common.Hash) ([]map[string]interface{}, error) {
+	m := make([]map[string]interface{}, 0, len(hashes))
+	for _, hash := range hashes {
+		block, err := s.b.BlockByHash(ctx, hash)
+		if block != nil && err == nil {
+			fields, err2 := s.rpcMarshalBlockQuorumCert(block)
+			if err2 == nil {
+				m = append(m, fields)
+			}
+		}
+	}
+	return m, nil
+}
+
 // GetCode returns the code stored at the given address in the state for the given block number.
 func (s *PublicBlockChainAPI) GetCode(ctx context.Context, address common.Address, blockNrOrHash rpc.BlockNumberOrHash) (hexutil.Bytes, error) {
 	state, _, err := s.b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
@@ -1191,6 +1207,25 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullT
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
 	}
 	return fields, err
+}
+
+// rpcMarshalBlockQuorumCert uses the generalized output filler, then adds the QuorumCert field, which requires
+// a `PublicBlockchainAPI`.
+func (s *PublicBlockChainAPI) rpcMarshalBlockQuorumCert(b *types.Block) (map[string]interface{}, error) {
+	_, qc, err := ctypes.DecodeExtra(b.ExtraData())
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]interface{}{
+		"epoch":        qc.Epoch,
+		"viewNumber":   qc.ViewNumber,
+		"blockHash":    qc.BlockHash,
+		"blockNumber":  qc.BlockNumber,
+		"blockIndex":   qc.BlockIndex,
+		"signature":    qc.Signature,
+		"validatorSet": qc.ValidatorSet,
+	}
+	return fields, nil
 }
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
