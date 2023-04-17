@@ -17,6 +17,7 @@
 package tracers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -82,7 +83,9 @@ func runTrace(tracer *Tracer, vmctx *vmContext) (json.RawMessage, error) {
 func TestTracer(t *testing.T) {
 	execTracer := func(code string) []byte {
 		t.Helper()
-		ctx := &vmContext{blockCtx: vm.BlockContext{BlockNumber: big.NewInt(1)}, txCtx: vm.TxContext{GasPrice: big.NewInt(100000)}}
+		blockContext, Cancel := context.WithCancel(context.Background())
+		defer Cancel()
+		ctx := &vmContext{blockCtx: vm.BlockContext{BlockNumber: big.NewInt(1), Ctx: blockContext}, txCtx: vm.TxContext{GasPrice: big.NewInt(100000)}}
 		tracer, err := New(code, ctx.txCtx)
 		if err != nil {
 			t.Fatal(err)
