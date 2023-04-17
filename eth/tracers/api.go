@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -71,7 +72,6 @@ type Backend interface {
 	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64) (*state.StateDB, func(), error)
 	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, func(), error)
 	StatesInRange(ctx context.Context, fromBlock *types.Block, toBlock *types.Block, reexec uint64) ([]*state.StateDB, func(), error)
-	BadBlocks() []*types.Block
 }
 
 // API is the collection of tracing APIs exposed over the private debugging endpoint.
@@ -414,8 +414,7 @@ func (api *API) TraceBlockFromFile(ctx context.Context, file string, config *Tra
 // EVM against a block pulled from the pool of bad ones and returns them as a JSON
 // object.
 func (api *API) TraceBadBlock(ctx context.Context, hash common.Hash, config *TraceConfig) ([]*txTraceResult, error) {
-	blocks := api.backend.BadBlocks()
-	for _, block := range blocks {
+	for _, block := range rawdb.ReadAllBadBlocks(api.backend.ChainDb()) {
 		if block.Hash() == hash {
 			return api.traceBlock(ctx, block, config)
 		}
@@ -438,8 +437,7 @@ func (api *API) StandardTraceBlockToFile(ctx context.Context, hash common.Hash, 
 // execution of EVM against a block pulled from the pool of bad ones to the
 // local file system and returns a list of files to the caller.
 func (api *API) StandardTraceBadBlockToFile(ctx context.Context, hash common.Hash, config *StdTraceConfig) ([]string, error) {
-	blocks := api.backend.BadBlocks()
-	for _, block := range blocks {
+	for _, block := range rawdb.ReadAllBadBlocks(api.backend.ChainDb()) {
 		if block.Hash() == hash {
 			return api.standardTraceBlockToFile(ctx, block, config)
 		}
@@ -734,7 +732,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, vmctx vm.Bloc
 			}
 		}
 		// Constuct the JavaScript tracer to execute with
-		if tracer, err = New(*config.Tracer); err != nil {
+		if tracer, err = New(*config.Tracer, txContext); err != nil {
 			return nil, err
 		}
 		// Handle timeouts and RPC cancellations

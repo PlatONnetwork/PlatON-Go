@@ -17,6 +17,21 @@
 package tracers
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/tests"
+	"io/ioutil"
+	"math/big"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -105,11 +120,92 @@ type callTracerTest struct {
 	Result  *callTrace    `json:"result"`
 }
 
+func TestPrestateTracerCreate2(t *testing.T) {
+	unsignedTx := types.NewTransaction(1, common.HexToAddress("0x00000000000000000000000000000000deadbeef"),
+		new(big.Int), 5000000, big.NewInt(1), []byte{})
+
+	privateKeyECDSA, err := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	signer := types.NewEIP155Signer(big.NewInt(1))
+	tx, err := types.SignTx(unsignedTx, signer, privateKeyECDSA)
+	if err != nil {
+		t.Fatalf("err %v", err)
+	}
+	/**
+		This comes from one of the test-vectors on the Skinny Create2 - EIP
+
+	    address 0x00000000000000000000000000000000deadbeef
+	    salt 0x00000000000000000000000000000000000000000000000000000000cafebabe
+	    init_code 0xdeadbeef
+	    gas (assuming no mem expansion): 32006
+	    result: 0x60f3f640a8508fC6a86d45DF051962668E1e8AC7
+	*/
+	origin, _ := signer.Sender(tx)
+	txContext := vm.TxContext{
+		Origin:   origin,
+		GasPrice: big.NewInt(1),
+	}
+	context := vm.BlockContext{
+		CanTransfer: core.CanTransfer,
+		Transfer:    core.Transfer,
+		Coinbase:    common.Address{},
+		BlockNumber: new(big.Int).SetUint64(8000000),
+		Time:        new(big.Int).SetUint64(5),
+		Difficulty:  big.NewInt(0x30000),
+		GasLimit:    uint64(6000000),
+	}
+	alloc := core.GenesisAlloc{}
+
+	// The code pushes 'deadbeef' into memory, then the other params, and calls CREATE2, then returns
+	// the address
+	alloc[common.HexToAddress("0x00000000000000000000000000000000deadbeef")] = core.GenesisAccount{
+		Nonce:   1,
+		Code:    hexutil.MustDecode("0x63deadbeef60005263cafebabe6004601c6000F560005260206000F3"),
+		Balance: big.NewInt(1),
+	}
+	alloc[origin] = core.GenesisAccount{
+		Nonce:   1,
+		Code:    []byte{},
+		Balance: big.NewInt(500000000000000),
+	}
+	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc, false)
+
+	// Create the tracer, the EVM environment and run it
+	tracer, err := New("prestateTracer", txContext)
+	if err != nil {
+		t.Fatalf("failed to create call tracer: %v", err)
+	}
+	evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
+
+	msg, err := tx.AsMessage(signer)
+	if err != nil {
+		t.Fatalf("failed to prepare transaction for tracing: %v", err)
+	}
+	st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
+	if _, err = st.TransitionDb(); err != nil {
+		t.Fatalf("failed to execute transaction: %v", err)
+	}
+	// Retrieve the trace result and compare against the etalon
+	res, err := tracer.GetResult()
+	if err != nil {
+		t.Fatalf("failed to retrieve trace result: %v", err)
+	}
+	ret := make(map[string]interface{})
+	if err := json.Unmarshal(res, &ret); err != nil {
+		t.Fatalf("failed to unmarshal trace result: %v", err)
+	}
+	if _, has := ret["0x60f3f640a8508fc6a86d45df051962668e1e8ac7"]; !has {
+		t.Fatalf("Expected 0x60f3f640a8508fc6a86d45df051962668e1e8ac7 in result")
+	}
+}
+
 // Iterates over all the input-output datasets in the tracer test harness and
 // runs the JavaScript tracers against them.
 func TestCallTracer(t *testing.T) {
-	// TODO test
-	/*files, err := ioutil.ReadDir("testdata")
+	t.Skip("the vm we change,so call tracer may different,we should test")
+	files, err := ioutil.ReadDir("testdata")
 	if err != nil {
 		t.Fatalf("failed to retrieve tracer test suite: %v", err)
 	}
@@ -135,35 +231,36 @@ func TestCallTracer(t *testing.T) {
 			if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 				t.Fatalf("failed to parse testcase input: %v", err)
 			}
-			signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)))
+			signer := types.MakeSigner(test.Genesis.Config, false, true)
 			origin, _ := signer.Sender(tx)
-
-			context := vm.Context{
+			txContext := vm.TxContext{
+				Origin:   origin,
+				GasPrice: tx.GasPrice(),
+			}
+			context := vm.BlockContext{
 				CanTransfer: core.CanTransfer,
 				Transfer:    core.Transfer,
-				Origin:      origin,
 				Coinbase:    test.Context.Miner,
 				BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
 				Time:        new(big.Int).SetUint64(uint64(test.Context.Time)),
 				Difficulty:  (*big.Int)(test.Context.Difficulty),
 				GasLimit:    uint64(test.Context.GasLimit),
-				GasPrice:    tx.GasPrice(),
 			}
-			statedb := tests.MakePreState(ethdb.NewMemDatabase(), test.Genesis.Alloc)
+			_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 
 			// Create the tracer, the EVM environment and run it
-			tracer, err := New("callTracer")
+			tracer, err := New("callTracer", txContext)
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 
 			msg, err := tx.AsMessage(signer)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
 			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-			if _, _, _, err = st.TransitionDb(); err != nil {
+			if _, err = st.TransitionDb(); err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}
 			// Retrieve the trace result and compare against the etalon
@@ -175,9 +272,32 @@ func TestCallTracer(t *testing.T) {
 			if err := json.Unmarshal(res, ret); err != nil {
 				t.Fatalf("failed to unmarshal trace result: %v", err)
 			}
-			if !reflect.DeepEqual(ret, test.Result) {
-				t.Fatalf("trace mismatch: have %+v, want %+v", ret, test.Result)
+
+			if !jsonEqual(ret, test.Result) {
+				// uncomment this for easier debugging
+				//have, _ := json.MarshalIndent(ret, "", " ")
+				//want, _ := json.MarshalIndent(test.Result, "", " ")
+				//t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", string(have), string(want))
+				t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", ret, test.Result)
 			}
 		})
-	}*/
+	}
+}
+
+// jsonEqual is similar to reflect.DeepEqual, but does a 'bounce' via json prior to
+// comparison
+func jsonEqual(x, y interface{}) bool {
+	xTrace := new(callTrace)
+	yTrace := new(callTrace)
+	if xj, err := json.Marshal(x); err == nil {
+		json.Unmarshal(xj, xTrace)
+	} else {
+		return false
+	}
+	if yj, err := json.Marshal(y); err == nil {
+		json.Unmarshal(yj, yTrace)
+	} else {
+		return false
+	}
+	return reflect.DeepEqual(xTrace, yTrace)
 }

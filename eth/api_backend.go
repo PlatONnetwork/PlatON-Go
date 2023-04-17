@@ -346,7 +346,3 @@ func (b *EthAPIBackend) StatesInRange(ctx context.Context, fromBlock *types.Bloc
 func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, func(), error) {
 	return b.eth.stateAtTransaction(block, txIndex, reexec)
 }
-
-func (b *EthAPIBackend) BadBlocks() []*types.Block {
-	return b.eth.blockchain.BadBlocks()
-}
