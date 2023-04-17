@@ -55,6 +55,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
+// 特殊节点在采集数据过程中，需要临时存储的数据，都存入此db。其实可以移动到一个专门的路径和文件中，参考中心化节点的做法。
 var STAKING_DB *StakingDB
 
 type StakingDB struct {
@@ -99,6 +100,7 @@ const (
 	TransBlockName      = "TransBlock"
 	TransHashName       = "TransHash"
 	InnerContractCreate = "ContractCreate"
+	ContractSuicided    = "ContractSuicided"
 )
 
 // Instance a global StakingPlugin

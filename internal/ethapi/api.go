@@ -1579,6 +1579,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			fields["contractAddress"] = receipt.ContractAddress
 		}
 
+		//把opCreate/opCreate2操作码创建的合约地址从STAKING_DB里拿出来，并和receipt.ContractAddress合并后放入fields["contractCreated"]
 		transKey := plugin.InnerContractCreate + value.Hash().String()
 		data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
 		var contractCreateList []*types.ContractCreated
@@ -1601,9 +1602,28 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			fields["contractCreated"] = contractCreateListTemp
 		} else {
 			if nil == contractCreateList {
-				fields["contractCreated"] = [][]*types.ContractCreated{}
+				fields["contractCreated"] = [][]*types.ContractCreated{} //是不是应该是：[]*types.ContractCreated{}
 			} else {
 				fields["contractCreated"] = contractCreateList
+			}
+		}
+
+		//把opSuicide操作码销毁的合约地址从STAKING_DB里拿出来，并放入fields["contractSuicided"]
+		contractSuicidedDbKey := plugin.ContractSuicided + value.Hash().String()
+		data, err = plugin.STAKING_DB.HistoryDB.Get([]byte(contractSuicidedDbKey))
+		if nil != err {
+			log.Debug("failed to find contractSuicided", "err", err)
+		} else {
+			var contractSuicidedList []*types.ContractSuicided
+			err = rlp.DecodeBytes(data, &contractSuicidedList)
+			if nil != err {
+				log.Error("failed to rlp decode contractSuicided", "err", err)
+			} else {
+				if nil == contractSuicidedList {
+					fields["contractSuicided"] = [][]*types.ContractSuicided{} //是不是应该是：[]*types.ContractSuicided{}
+				} else {
+					fields["contractSuicided"] = contractSuicidedList
+				}
 			}
 		}
 

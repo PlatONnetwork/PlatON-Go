@@ -839,6 +839,10 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	balance := interpreter.evm.StateDB.GetBalance(callContext.contract.Address())
 	interpreter.evm.StateDB.AddBalance(common.Address(beneficiary.Bytes20()), balance)
 	interpreter.evm.StateDB.Suicide(callContext.contract.Address())
+
+	//把销毁的合约记录下来
+	saveContractSuicided(interpreter, callContext.contract.Address())
+
 	return nil, nil
 }
 
@@ -1040,4 +1044,33 @@ func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr comm
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
 	log.Debug("saveContractCreate success")
+}
+
+func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
+	txHash := interpreter.evm.StateDB.TxHash().String()
+
+	transKey := plugin.ContractSuicided + txHash
+	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+	if nil != err {
+		log.Error("failed to find ContractSuicided", "err", err)
+		return
+	}
+	var contractSuicidedList []*types.ContractSuicided
+	err = rlp.DecodeBytes(data, &contractSuicidedList)
+	if nil != err {
+		log.Error("failed to rlp decode ContractSuicided", "err", err)
+		return
+	}
+	contractSuicided := new(types.ContractSuicided)
+	contractSuicided.Address = addr
+	contractSuicidedList = append(contractSuicidedList, contractSuicided)
+
+	transHashByte, err := rlp.EncodeToBytes(contractSuicidedList)
+	if nil != err {
+		log.Error("failed to encode ContractSuicided", "err", err)
+		return
+	}
+
+	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
+	log.Debug("save ContractSuicided success")
 }
