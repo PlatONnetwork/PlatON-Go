@@ -90,7 +90,6 @@ var DefaultConfig = Config{
 	BodyCacheLimit:    256,
 	BlockCacheLimit:   256,
 	MaxFutureBlocks:   256,
-	BadBlockLimit:     10,
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
@@ -167,7 +166,6 @@ type Config struct {
 	BodyCacheLimit           int
 	BlockCacheLimit          int
 	MaxFutureBlocks          int
-	BadBlockLimit            int
 	TriesInMemory            int
 	BlockChainVersion        int // BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	DefaultTxsCacheSize      int

@@ -95,7 +95,7 @@ var (
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
-	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 64)")
+	errTooOld                  = errors.New("peer's protocol version too old")
 )
 
 type Downloader struct {
@@ -305,7 +305,7 @@ func (d *Downloader) RegisterPeer(id string, version uint, peer Peer) error {
 		// Tests use short IDs, don't choke on them
 		logger = log.New("peer", id)
 	} else {
-		logger = log.New("peer", id[:16])
+		logger = log.New("peer", id[:8])
 	}
 	logger.Trace("Registering sync peer")
 	if err := d.peers.Register(newPeerConnection(id, version, peer, logger)); err != nil {
@@ -332,7 +332,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 		// Tests use short IDs, don't choke on them
 		logger = log.New("peer", id)
 	} else {
-		logger = log.New("peer", id[:16])
+		logger = log.New("peer", id[:8])
 	}
 	logger.Trace("Unregistering sync peer")
 	if err := d.peers.Unregister(id); err != nil {
@@ -467,7 +467,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		}
 	}()
 	if p.version < 64 {
-		return fmt.Errorf("%w, peer version: %d", errTooOld, p.version)
+		return fmt.Errorf("%w: advertized %d < required %d", errTooOld, p.version, 64)
 	}
 	mode := d.getMode()
 

@@ -50,9 +50,10 @@ var (
 // purpose is to allow testing the request/reply workflows and wire serialization
 // in the `eth` protocol without actually doing any data processing.
 type testBackend struct {
-	db     ethdb.Database
-	chain  *core.BlockChain
-	txpool *core.TxPool
+	db         ethdb.Database
+	chain      *core.BlockChain
+	chainCache *core.BlockChainCache
+	txpool     *core.TxPool
 }
 
 // newTestBackend creates an empty chain and wraps it into a mock backend.
@@ -80,15 +81,17 @@ func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)
 	txconfig.Journal = "" // Don't litter the disk with test journals
 
 	return &testBackend{
-		db:     db,
-		chain:  chain,
-		txpool: core.NewTxPool(txconfig, params.TestChainConfig, cache),
+		db:         db,
+		chain:      chain,
+		chainCache: cache,
+		txpool:     core.NewTxPool(txconfig, params.TestChainConfig, cache),
 	}
 }
 
 // close tears down the transaction pool and chain behind the mock backend.
 func (b *testBackend) close() {
 	b.txpool.Stop()
+	b.chainCache.Stop()
 	b.chain.Stop()
 }
 
@@ -364,7 +367,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.HomesteadSigner{}
+	signer := types.NewPIP7Signer(new(big.Int).SetUint64(1), new(big.Int).SetUint64(1))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -463,7 +466,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.HomesteadSigner{}
+	signer := types.NewPIP7Signer(new(big.Int).SetUint64(1), new(big.Int).SetUint64(1))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
