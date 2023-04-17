@@ -337,11 +337,11 @@ func (h *handler) removePeer(id string) {
 	// Abort if the peer does not exist
 	peer := h.peers.peer(id)
 	if peer == nil {
-		logger.Error("Ethereum peer removal failed", "err", errPeerNotRegistered)
+		logger.Error("PlatON peer removal failed", "err", errPeerNotRegistered)
 		return
 	}
 	// Remove the `eth` peer if it exists
-	logger.Debug("Removing Ethereum peer", "snap", peer.snapExt != nil)
+	logger.Debug("Removing PlatON peer", "snap", peer.snapExt != nil)
 
 	// Remove the `snap` extension if it exists
 	if peer.snapExt != nil {
@@ -351,7 +351,7 @@ func (h *handler) removePeer(id string) {
 	h.txFetcher.Drop(id)
 
 	if err := h.peers.unregisterPeer(id); err != nil {
-		logger.Error("Ethereum peer removal failed", "err", err)
+		logger.Error("PlatON peer removal failed", "err", err)
 	}
 	// Hard disconnect at the networking layer
 	peer.Peer.Disconnect(p2p.DiscUselessPeer)

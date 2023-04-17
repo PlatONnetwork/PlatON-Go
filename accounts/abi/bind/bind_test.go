@@ -556,6 +556,45 @@ var bindTests = []struct {
 		nil,
 		nil,
 	},
+	{
+		`NonExistentStruct`,
+		`
+			contract NonExistentStruct {
+				function Struct() public view returns(uint256 a, uint256 b) {
+					return (10, 10);
+				}
+			}
+		`,
+		[]string{`6080604052348015600f57600080fd5b5060888061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063d5f6622514602d575b600080fd5b6033604c565b6040805192835260208301919091528051918290030190f35b600a809156fea264697066735822beefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeefbeef64736f6c6343decafe0033`},
+		[]string{`[{"inputs":[],"name":"Struct","outputs":[{"internalType":"uint256","name":"a","type":"uint256"},{"internalType":"uint256","name":"b","type":"uint256"}],"stateMutability":"pure","type":"function"}]`},
+		`
+			"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
+			"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind/backends"
+			"github.com/PlatONnetwork/PlatON-Go/common"
+			"github.com/PlatONnetwork/PlatON-Go/core"
+		`,
+		`
+			// Create a simulator and wrap a non-deployed contract
+
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{}, uint64(10000000000))
+			defer sim.Close()
+
+			nonexistent, err := NewNonExistentStruct(common.Address{}, sim)
+			if err != nil {
+				t.Fatalf("Failed to access non-existent contract: %v", err)
+			}
+			// Ensure that contract calls fail with the appropriate error
+			if res, err := nonexistent.Struct(nil); err == nil {
+				t.Fatalf("Call succeeded on non-existent contract: %v", res)
+			} else if (err != bind.ErrNoCode) {
+				t.Fatalf("Error mismatch: have %v, want %v", err, bind.ErrNoCode)
+			}
+		`,
+		nil,
+		nil,
+		nil,
+		nil,
+	},
 	// Tests that gas estimation works for contracts with weird gas mechanics too.
 	{
 		`FunkyGasPattern`,
@@ -1588,11 +1627,7 @@ var bindTests = []struct {
 		contract NewFallbacks {
 			event Fallback(bytes data);
 			fallback() external {
-				bytes memory data;
-				assembly {
-					calldatacopy(data, 0, calldatasize())
-				}
-				emit Fallback(data);
+				emit Fallback(msg.data);
 			}
 	
 			event Received(address addr, uint value);
@@ -1601,7 +1636,7 @@ var bindTests = []struct {
 			}
 		}
 	   `,
-		[]string{"60806040523480156100115760006000fd5b50610017565b61016e806100266000396000f3fe60806040526004361061000d575b36610081575b7f88a5966d370b9919b20f3e2c13ff65706f196a4e32cc2c12bf57088f885258743334604051808373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a15b005b34801561008e5760006000fd5b505b606036600082377f9043988963722edecc2099c75b0af0ff76af14ffca42ed6bce059a20a2a9f986816040518080602001828103825283818151815260200191508051906020019080838360005b838110156100fa5780820151818401525b6020810190506100de565b50505050905090810190601f1680156101275780820380516001836020036101000a031916815260200191505b509250505060405180910390a1505b00fea26469706673582212205643ca37f40c2b352dc541f42e9e6720de065de756324b7fcc9fb1d67eda4a7d64736f6c63430006040033"},
+		[]string{"6080604052348015600f57600080fd5b506101078061001f6000396000f3fe608060405236605f577f88a5966d370b9919b20f3e2c13ff65706f196a4e32cc2c12bf57088f885258743334604051808373ffffffffffffffffffffffffffffffffffffffff1681526020018281526020019250505060405180910390a1005b348015606a57600080fd5b507f9043988963722edecc2099c75b0af0ff76af14ffca42ed6bce059a20a2a9f98660003660405180806020018281038252848482818152602001925080828437600081840152601f19601f820116905080830192505050935050505060405180910390a100fea26469706673582212201f994dcfbc53bf610b19176f9a361eafa77b447fd9c796fa2c615dfd0aaf3b8b64736f6c634300060c0033"},
 		[]string{`[{"anonymous":false,"inputs":[{"indexed":false,"internalType":"bytes","name":"data","type":"bytes"}],"name":"Fallback","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"addr","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Received","type":"event"},{"stateMutability":"nonpayable","type":"fallback"},{"stateMutability":"payable","type":"receive"}]`},
 		`
 			"bytes"
@@ -1649,6 +1684,7 @@ var bindTests = []struct {
 			}
 	
 			// Test fallback function
+			gotEvent = false
 			opts.Value = nil
 			calldata := []byte{0x01, 0x02, 0x03}
 			c.Fallback(opts, calldata)

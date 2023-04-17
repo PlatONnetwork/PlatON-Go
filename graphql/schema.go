@@ -300,7 +300,7 @@ const schema string = `
         block(number: Long, hash: Bytes32): Block
         # Blocks returns all the blocks between two numbers, inclusive. If
         # to is not supplied, it defaults to the most recent known block.
-        blocks(from: Long!, to: Long): [Block!]!
+        blocks(from: Long, to: Long): [Block!]!
         # Pending returns the current pending state.
         pending: Pending!
         # Transaction returns a transaction specified by its hash.
@@ -312,7 +312,7 @@ const schema string = `
         gasPrice: BigInt!
         # Syncing returns information on the current synchronisation state.
         syncing: SyncState
-    	# ChainID returns the current chain ID for transaction replay protection.
+        # ChainID returns the current chain ID for transaction replay protection.
         chainID: BigInt!
     }
 

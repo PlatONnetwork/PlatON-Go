@@ -150,6 +150,10 @@ var (
 		Name:  "datadir.ancient",
 		Usage: "Data directory for ancient chain segments (default = inside chaindata)",
 	}
+	MinFreeDiskSpaceFlag = DirectoryFlag{
+		Name:  "datadir.minfreedisk",
+		Usage: "Minimum free disk space in MB, once reached triggers auto shut down (default = --cache.gc converted to MB, 0 = disabled)",
+	}
 	KeyStoreDirFlag = DirectoryFlag{
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
@@ -552,12 +556,12 @@ var (
 	MetricsHTTPFlag = cli.StringFlag{
 		Name:  "metrics.addr",
 		Usage: "Enable stand-alone metrics HTTP server listening interface",
-		Value: "127.0.0.1",
+		Value: metrics.DefaultConfig.HTTP,
 	}
 	MetricsPortFlag = cli.IntFlag{
 		Name:  "metrics.port",
 		Usage: "Metrics HTTP server listening port",
-		Value: 6060,
+		Value: metrics.DefaultConfig.Port,
 	}
 	MetricsEnableInfluxDBFlag = cli.BoolFlag{
 		Name:  "metrics.influxdb",
@@ -566,22 +570,22 @@ var (
 	MetricsInfluxDBEndpointFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.endpoint",
 		Usage: "InfluxDB API endpoint to report metrics to",
-		Value: "http://localhost:8086",
+		Value: metrics.DefaultConfig.InfluxDBEndpoint,
 	}
 	MetricsInfluxDBDatabaseFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.database",
 		Usage: "InfluxDB database name to push reported metrics to",
-		Value: "platon",
+		Value: metrics.DefaultConfig.InfluxDBDatabase,
 	}
 	MetricsInfluxDBUsernameFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.username",
 		Usage: "Username to authorize access to the database",
-		Value: "test",
+		Value: metrics.DefaultConfig.InfluxDBUsername,
 	}
 	MetricsInfluxDBPasswordFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.password",
 		Usage: "Password to authorize access to the database",
-		Value: "test",
+		Value: metrics.DefaultConfig.InfluxDBPassword,
 	}
 	// Tags are part of every measurement sent to InfluxDB. Queries on tags are faster in InfluxDB.
 	// For example `host` tag could be used so that we can group all nodes and average a measurement
@@ -590,7 +594,7 @@ var (
 	MetricsInfluxDBTagsFlag = cli.StringFlag{
 		Name:  "metrics.influxdb.tags",
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
-		Value: "host=localhost",
+		Value: metrics.DefaultConfig.InfluxDBTags,
 	}
 
 	CbftPeerMsgQueueSize = cli.Uint64Flag{
@@ -1178,7 +1182,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		// If snap-sync is requested, this flag is also required
 		if cfg.SyncMode == downloader.SnapSync {
 			log.Info("Snap sync requested, enabling --snapshot")
-			ctx.Set(SnapshotFlag.Name, "true")
 		} else {
 			cfg.TrieCleanCache += cfg.SnapshotCache
 			cfg.SnapshotCache = 0 // Disabled
@@ -1423,7 +1426,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
 		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
 		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit:   eth.DefaultConfig.BadBlockLimit,
 		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
 		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
@@ -1465,9 +1467,8 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 	// Otherwise resolve absolute paths and return them
 	preloads := []string{}
 
-	assets := ctx.GlobalString(JSpathFlag.Name)
 	for _, file := range strings.Split(ctx.GlobalString(PreloadJSFlag.Name), ",") {
-		preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
+		preloads = append(preloads, strings.TrimSpace(file))
 	}
 	return preloads
 }
