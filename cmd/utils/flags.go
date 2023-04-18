@@ -313,9 +313,9 @@ var (
 		Usage: "Megabytes of memory allocated to triedb internal caching",
 		Value: ethconfig.Defaults.TrieDBCache,
 	}
-	CachePreimagesFlag = cli.BoolTFlag{
+	CachePreimagesFlag = cli.BoolFlag{
 		Name:  "cache.preimages",
-		Usage: "Enable recording the SHA3/keccak preimages of trie keys (default: true)",
+		Usage: "Enable recording the SHA3/keccak preimages of trie keys",
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
