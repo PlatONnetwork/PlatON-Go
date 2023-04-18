@@ -18,9 +18,13 @@ package graphql
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -185,12 +189,12 @@ func createNode(t *testing.T, gqlEnabled bool) *node.Node {
 }
 
 func createGQLService(t *testing.T, stack *node.Node, endpoint string) {
-	t.Skip("can't create fake chain now")
 	// create backend
 	ethConf := &ethconfig.Config{
 		Genesis: &core.Genesis{
-			Config:   params.TestChainConfig,
-			GasLimit: 11500000,
+			Config:        params.TestChainConfig,
+			GasLimit:      11500000,
+			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 		},
 		NetworkId:               1337,
 		TrieCleanCache:          5,
@@ -202,17 +206,21 @@ func createGQLService(t *testing.T, stack *node.Node, endpoint string) {
 		BlockCacheLimit:         256,
 		MaxFutureBlocks:         256,
 	}
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 1)
 	ethBackend, err := eth.New(stack, ethConf)
 	if err != nil {
 		t.Fatalf("could not create eth backend: %v", err)
 	}
 	// Create some blocks and import them
-	chain, _ := core.GenerateChain(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
+	/*chain, _ := core.GenerateChain(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
 		consensus.NewFaker(), ethBackend.ChainDb(), 10, func(i int, gen *core.BlockGen) {})
 	_, err = ethBackend.BlockChain().InsertChain(chain)
 	if err != nil {
 		t.Fatalf("could not create import blocks: %v", err)
-	}
+	}*/
+
+	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
+		consensus.NewFakerWithDataBase(ethBackend.ChainDb()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
 	// create gql service
 	err = New(stack, ethBackend.APIBackend, []string{}, []string{})
 	if err != nil {

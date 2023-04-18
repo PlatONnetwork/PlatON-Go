@@ -55,35 +55,33 @@ type testBackend struct {
 }
 
 func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
+	var gendb = rawdb.NewMemoryDatabase()
 	backend := &testBackend{
 		chainConfig: params.TestChainConfig,
-		engine:      consensus.NewFaker(),
-		chaindb:     rawdb.NewMemoryDatabase(),
+		engine:      consensus.NewFakerWithDataBase(gendb),
+		chaindb:     gendb,
 	}
 	// Generate blocks for testing
 	gspec.Config = backend.chainConfig
-	var (
-		gendb   = rawdb.NewMemoryDatabase()
-		genesis = gspec.MustCommit(gendb)
-	)
-	blocks, _ := core.GenerateChain(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
+	var genesis = gspec.MustCommit(gendb)
+	//blocks, _ := core.GenerateChain(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
 
 	// Import the canonical chain
-	gspec.MustCommit(backend.chaindb)
+	//gspec.MustCommit(backend.chaindb)
 	//cacheConfig := &core.CacheConfig{
 	//	TrieCleanLimit: 256,
 	//	TrieDirtyLimit: 256,
 	//	TrieTimeLimit:  5 * time.Minute,
 	//	SnapshotLimit:  0,
 	//}
-	chain, err := core.NewBlockChain(backend.chaindb, nil, backend.chainConfig, backend.engine, vm.Config{}, nil, nil)
+	/*chain, err := core.NewBlockChain(backend.chaindb, nil, backend.chainConfig, backend.engine, vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
-	}
-	backend.chain = chain
+	}*/
+	backend.chain = core.GenerateBlockChain2(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
 	return backend
 }
 
