@@ -1629,7 +1629,6 @@ func (ftp *floodingTestPeer) RequestHeadersByNumber(from uint64, count, skip int
 }
 
 func testDeliverHeadersHang(t *testing.T, protocol int, mode SyncMode) {
-	t.Parallel()
 
 	testCases := []struct {
 		protocol int

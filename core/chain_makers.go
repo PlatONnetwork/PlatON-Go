@@ -268,6 +268,48 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 	return blockchain
 }
 
+func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) *BlockChain {
+	if config == nil {
+		config = params.TestChainConfig
+	}
+	chainreader := &fakeChainReader{config: config}
+	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
+		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
+
+		// Execute any user modifications to the block
+		if gen != nil {
+			gen(i, b)
+		}
+		if b.engine != nil {
+			// Finalize and seal the block
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+
+			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			if err != nil {
+				panic(err)
+			}
+			return block, b.receipts
+		}
+		return nil, nil
+	}
+	for i := 0; i < n; i++ {
+		statedb, err := chain.StateAt(parent.Root())
+		if err != nil {
+			panic(err)
+		}
+		block, receipt := genblock(i, parent, statedb)
+		errCh := make(chan error, 1)
+		errCh <- engine.InsertChain(block)
+		<-errCh
+		blocks[i] = block
+		receipts[i] = receipt
+		parent = block
+	}
+	return chain
+}
+
 func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
 	if config == nil {
 		config = params.TestChainConfig
