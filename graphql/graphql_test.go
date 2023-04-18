@@ -19,6 +19,7 @@ package graphql
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"net/http"
@@ -186,7 +187,7 @@ func createNode(t *testing.T, gqlEnabled bool) *node.Node {
 func createGQLService(t *testing.T, stack *node.Node, endpoint string) {
 	t.Skip("can't create fake chain now")
 	// create backend
-	ethConf := &eth.Config{
+	ethConf := &ethconfig.Config{
 		Genesis: &core.Genesis{
 			Config:   params.TestChainConfig,
 			GasLimit: 11500000,

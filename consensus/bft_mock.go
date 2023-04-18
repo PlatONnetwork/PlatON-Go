@@ -98,6 +98,9 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	bm.Base = block
 	if bm.database != nil {
 		rawdb.WriteBlock(bm.database, block)
+		rawdb.WriteHeadBlockHash(bm.database, block.Hash())
+		rawdb.WriteCanonicalHash(bm.database, block.Hash(), block.NumberU64())
+		rawdb.WriteHeadHeaderHash(bm.database, block.Hash())
 	}
 	return nil
 }
