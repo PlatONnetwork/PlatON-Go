@@ -318,30 +318,56 @@ func accountRange(st state.Trie, start *common.Hash, maxResults int) (AccountRan
 // AccountRangeMaxResults is the maximum number of results to be returned per call
 const AccountRangeMaxResults = 256
 
-// AccountRange enumerates all accounts in the latest state
-func (api *PrivateDebugAPI) AccountRange(ctx context.Context, start *common.Hash, maxResults int) (AccountRangeResult, error) {
-	var statedb *state.StateDB
+// AccountRange enumerates all accounts in the given block and start point in paging request
+func (api *PrivateDebugAPI) AccountRange(blockNrOrHash rpc.BlockNumberOrHash, start hexutil.Bytes, maxResults int, nocode, nostorage, incompletes bool) (state.IteratorDump, error) {
+	var stateDb *state.StateDB
 	var err error
-	block := api.eth.blockchain.CurrentBlock()
 
-	if len(block.Transactions()) == 0 {
-		statedb, err = api.computeStateDB(block, defaultTraceReexec)
+	if number, ok := blockNrOrHash.Number(); ok {
+		if number == rpc.PendingBlockNumber {
+			// If we're dumping the pending state, we need to request
+			// both the pending block as well as the pending state from
+			// the miner and operate on those
+			_, stateDb = api.eth.miner.Pending()
+		} else {
+			var block *types.Block
+			if number == rpc.LatestBlockNumber {
+				block = api.eth.blockchain.CurrentBlock()
+			} else {
+				block = api.eth.blockchain.GetBlockByNumber(uint64(number))
+			}
+			if block == nil {
+				return state.IteratorDump{}, fmt.Errorf("block #%d not found", number)
+			}
+			stateDb, err = api.eth.BlockChain().StateAt(block.Root())
+			if err != nil {
+				return state.IteratorDump{}, err
+			}
+		}
+	} else if hash, ok := blockNrOrHash.Hash(); ok {
+		block := api.eth.blockchain.GetBlockByHash(hash)
+		if block == nil {
+			return state.IteratorDump{}, fmt.Errorf("block %s not found", hash.Hex())
+		}
+		stateDb, err = api.eth.BlockChain().StateAt(block.Root())
 		if err != nil {
-			return AccountRangeResult{}, err
+			return state.IteratorDump{}, err
 		}
 	} else {
-		_, _, statedb, err = api.computeTxEnv(block, len(block.Transactions())-1, 0)
-		if err != nil {
-			return AccountRangeResult{}, err
-		}
+		return state.IteratorDump{}, errors.New("either block number or block hash must be specified")
 	}
 
-	trie, err := statedb.Database().OpenTrie(block.Header().Root)
-	if err != nil {
-		return AccountRangeResult{}, err
+	opts := &state.DumpConfig{
+		SkipCode:          nocode,
+		SkipStorage:       nostorage,
+		OnlyWithAddresses: !incompletes,
+		Start:             start,
+		Max:               uint64(maxResults),
 	}
-
-	return accountRange(trie, start, maxResults)
+	if maxResults > AccountRangeMaxResults || maxResults <= 0 {
+		opts.Max = AccountRangeMaxResults
+	}
+	return stateDb.IteratorDump(opts), nil
 }
 
 // StorageRangeResult is the result of a debug_storageRangeAt API call.
@@ -364,10 +390,11 @@ func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common
 	if block == nil {
 		return StorageRangeResult{}, fmt.Errorf("block %#x not found", blockHash)
 	}
-	_, _, statedb, err := api.computeTxEnv(block, txIndex, 0)
+	_, _, statedb, release, err := api.eth.stateAtTransaction(block, txIndex, 0)
 	if err != nil {
 		return StorageRangeResult{}, err
 	}
+	defer release()
 	st := statedb.StorageTrie(contractAddress)
 	if st == nil {
 		return StorageRangeResult{}, fmt.Errorf("account %x doesn't exist", contractAddress)

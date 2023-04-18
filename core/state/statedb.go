@@ -185,6 +185,8 @@ func (s *StateDB) NewStateDB() *StateDB {
 			stateDB.snapDestructs = make(map[common.Hash]struct{})
 			stateDB.snapAccounts = make(map[common.Hash][]byte)
 			stateDB.snapStorage = make(map[common.Hash]map[common.Hash][]byte)
+		} else {
+			log.Error("Failed to find snapshot of parentRoot", "parentRoot", s.Root())
 		}
 	}
 	return stateDB

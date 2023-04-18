@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"io"
 	"os"
@@ -34,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/naoina/toml"
@@ -80,7 +80,7 @@ type ethstatsConfig struct {
 }
 
 type platonConfig struct {
-	Eth      eth.Config
+	Eth      ethconfig.Config
 	Node     node.Config
 	Ethstats ethstatsConfig
 	Metrics  metrics.Config
@@ -130,7 +130,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Load defaults.
 	cfg := platonConfig{
-		Eth:     eth.DefaultConfig,
+		Eth:     ethconfig.Defaults,
 		Node:    defaultNodeConfig(),
 		Metrics: metrics.DefaultConfig,
 	}

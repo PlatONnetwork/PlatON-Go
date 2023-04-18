@@ -20,6 +20,8 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -165,7 +167,7 @@ var (
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Explicitly set network id (integer)",
-		Value: eth.DefaultConfig.NetworkId,
+		Value: ethconfig.Defaults.NetworkId,
 	}
 	MainFlag = cli.BoolFlag{
 		Name:  "main",
@@ -192,7 +194,7 @@ var (
 		Usage: "Document Root for HTTPClient file scheme",
 		Value: DirectoryString(HomeDir()),
 	}
-	defaultSyncMode = eth.DefaultConfig.SyncMode
+	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", "snap" or "light")`,
@@ -229,42 +231,42 @@ var (
 	TxPoolPriceBumpFlag = cli.Uint64Flag{
 		Name:  "txpool.pricebump",
 		Usage: "Price bump percentage to replace an already existing transaction",
-		Value: eth.DefaultConfig.TxPool.PriceBump,
+		Value: ethconfig.Defaults.TxPool.PriceBump,
 	}
 	TxPoolAccountSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.accountslots",
 		Usage: "Minimum number of executable transaction slots guaranteed per account",
-		Value: eth.DefaultConfig.TxPool.AccountSlots,
+		Value: ethconfig.Defaults.TxPool.AccountSlots,
 	}
 	TxPoolGlobalSlotsFlag = cli.Uint64Flag{
 		Name:  "txpool.globalslots",
 		Usage: "Maximum number of executable transaction slots for all accounts",
-		Value: eth.DefaultConfig.TxPool.GlobalSlots,
+		Value: ethconfig.Defaults.TxPool.GlobalSlots,
 	}
 	TxPoolAccountQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.accountqueue",
 		Usage: "Maximum number of non-executable transaction slots permitted per account",
-		Value: eth.DefaultConfig.TxPool.AccountQueue,
+		Value: ethconfig.Defaults.TxPool.AccountQueue,
 	}
 	TxPoolGlobalQueueFlag = cli.Uint64Flag{
 		Name:  "txpool.globalqueue",
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
-		Value: eth.DefaultConfig.TxPool.GlobalQueue,
+		Value: ethconfig.Defaults.TxPool.GlobalQueue,
 	}
 	TxPoolGlobalTxCountFlag = cli.Uint64Flag{
 		Name:  "txpool.globaltxcount",
 		Usage: "Maximum number of transactions for package",
-		Value: eth.DefaultConfig.TxPool.GlobalTxCount,
+		Value: ethconfig.Defaults.TxPool.GlobalTxCount,
 	}
 	TxPoolLifetimeFlag = cli.DurationFlag{
 		Name:  "txpool.lifetime",
 		Usage: "Maximum amount of time non-executable transaction are queued",
-		Value: eth.DefaultConfig.TxPool.Lifetime,
+		Value: ethconfig.Defaults.TxPool.Lifetime,
 	}
 	TxPoolCacheSizeFlag = cli.Uint64Flag{
 		Name:  "txpool.cacheSize",
 		Usage: "After receiving the specified number of transactions from the remote, move the transactions in the queen to pending",
-		Value: eth.DefaultConfig.TxPool.TxCacheSize,
+		Value: ethconfig.Defaults.TxPool.TxCacheSize,
 	}
 	// Performance tuning settings
 	CacheFlag = cli.IntFlag{
@@ -285,12 +287,12 @@ var (
 	CacheTrieJournalFlag = cli.StringFlag{
 		Name:  "cache.trie.journal",
 		Usage: "Disk journal directory for trie cache to survive node restarts",
-		Value: eth.DefaultConfig.TrieCleanCacheJournal,
+		Value: ethconfig.Defaults.TrieCleanCacheJournal,
 	}
 	CacheTrieRejournalFlag = cli.DurationFlag{
 		Name:  "cache.trie.rejournal",
 		Usage: "Time interval to regenerate the trie cache journal",
-		Value: eth.DefaultConfig.TrieCleanCacheRejournal,
+		Value: ethconfig.Defaults.TrieCleanCacheRejournal,
 	}
 	SnapshotFlag = cli.BoolFlag{
 		Name:  "snapshot",
@@ -309,7 +311,7 @@ var (
 	CacheTrieDBFlag = cli.IntFlag{
 		Name:  "cache.triedb",
 		Usage: "Megabytes of memory allocated to triedb internal caching",
-		Value: eth.DefaultConfig.TrieDBCache,
+		Value: ethconfig.Defaults.TrieDBCache,
 	}
 	CachePreimagesFlag = cli.BoolTFlag{
 		Name:  "cache.preimages",
@@ -318,7 +320,7 @@ var (
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
 		Usage: "Minimum gas price for mining a transaction",
-		Value: eth.DefaultConfig.Miner.GasPrice,
+		Value: ethconfig.Defaults.Miner.GasPrice,
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -338,12 +340,12 @@ var (
 	RPCGlobalGasCapFlag = cli.Uint64Flag{
 		Name:  "rpc.gascap",
 		Usage: "Sets a cap on gas that can be used in platon_call/estimateGas (0=infinite)",
-		Value: eth.DefaultConfig.RPCGasCap,
+		Value: ethconfig.Defaults.RPCGasCap,
 	}
 	RPCGlobalTxFeeCapFlag = cli.Float64Flag{
 		Name:  "rpc.txfeecap",
 		Usage: "Sets a cap on transaction fee (in ether) that can be sent via the RPC APIs (0 = no cap)",
-		Value: eth.DefaultConfig.RPCTxFeeCap,
+		Value: ethconfig.Defaults.RPCTxFeeCap,
 	}
 	// Logging and debug settings
 	EthStatsURLFlag = cli.StringFlag{
@@ -526,17 +528,17 @@ var (
 	GpoBlocksFlag = cli.IntFlag{
 		Name:  "gpo.blocks",
 		Usage: "Number of recent blocks to check for gas prices",
-		Value: eth.DefaultConfig.GPO.Blocks,
+		Value: ethconfig.Defaults.GPO.Blocks,
 	}
 	GpoPercentileFlag = cli.IntFlag{
 		Name:  "gpo.percentile",
 		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
-		Value: eth.DefaultConfig.GPO.Percentile,
+		Value: ethconfig.Defaults.GPO.Percentile,
 	}
 	GpoMaxGasPriceFlag = cli.Int64Flag{
 		Name:  "gpo.maxprice",
 		Usage: "Maximum gas price will be recommended by gpo",
-		Value: eth.DefaultConfig.GPO.MaxPrice.Int64(),
+		Value: ethconfig.Defaults.GPO.MaxPrice.Int64(),
 	}
 
 	// Metrics flags
@@ -632,12 +634,12 @@ var (
 	DBGCIntervalFlag = cli.Uint64Flag{
 		Name:  "db.gc_interval",
 		Usage: "Block interval for garbage collection",
-		Value: eth.DefaultConfig.DBGCInterval,
+		Value: ethconfig.Defaults.DBGCInterval,
 	}
 	DBGCTimeoutFlag = cli.DurationFlag{
 		Name:  "db.gc_timeout",
 		Usage: "Maximum time for database garbage collection",
-		Value: eth.DefaultConfig.DBGCTimeout,
+		Value: ethconfig.Defaults.DBGCTimeout,
 	}
 	DBGCMptFlag = cli.BoolFlag{
 		Name:  "db.gc_mpt",
@@ -646,7 +648,7 @@ var (
 	DBGCBlockFlag = cli.IntFlag{
 		Name:  "db.gc_block",
 		Usage: "Number of cache block states, default 10",
-		Value: eth.DefaultConfig.DBGCBlock,
+		Value: ethconfig.Defaults.DBGCBlock,
 	}
 	DBValidatorsHistoryFlag = cli.BoolFlag{
 		Name:  "db.validators_history",
@@ -657,14 +659,14 @@ var (
 		Name:   "vm.wasm_type",
 		Usage:  "The actual implementation type of the wasm instance",
 		EnvVar: "",
-		Value:  eth.DefaultConfig.VMWasmType,
+		Value:  ethconfig.Defaults.VMWasmType,
 	}
 
 	VmTimeoutDuration = cli.Uint64Flag{
 		Name:   "vm.timeout_duration",
 		Usage:  "The VM execution timeout duration (uint: ms)",
 		EnvVar: "",
-		Value:  eth.DefaultConfig.VmTimeoutDuration,
+		Value:  ethconfig.Defaults.VmTimeoutDuration,
 	}
 )
 
@@ -1132,7 +1134,7 @@ func setMiner(ctx *cli.Context, cfg *miner.Config) {
 }
 
 // SetEthConfig applies eth-related command line flags to the config.
-func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
+func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
 	CheckExclusive(ctx, TestnetFlag)
 
@@ -1292,7 +1294,7 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) ethapi.Backend {
 	if cfg.SyncMode == downloader.LightSync {
 		Fatalf("Failed to register the Platon service: not les")
 		return nil
@@ -1301,6 +1303,7 @@ func RegisterEthService(stack *node.Node, cfg *eth.Config) ethapi.Backend {
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}
+		stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 		return backend.APIBackend
 	}
 }
@@ -1420,15 +1423,15 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 
 	cache := &core.CacheConfig{
 		Disabled:        true,
-		TrieCleanLimit:  eth.DefaultConfig.TrieCleanCache,
-		TrieDirtyLimit:  eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:   eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit:  eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit: eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks: eth.DefaultConfig.MaxFutureBlocks,
-		TriesInMemory:   eth.DefaultConfig.TriesInMemory,
+		TrieCleanLimit:  ethconfig.Defaults.TrieCleanCache,
+		TrieDirtyLimit:  ethconfig.Defaults.TrieCache,
+		TrieTimeLimit:   ethconfig.Defaults.TrieTimeout,
+		BodyCacheLimit:  ethconfig.Defaults.BodyCacheLimit,
+		BlockCacheLimit: ethconfig.Defaults.BlockCacheLimit,
+		MaxFutureBlocks: ethconfig.Defaults.MaxFutureBlocks,
+		TriesInMemory:   ethconfig.Defaults.TriesInMemory,
 		Preimages:       ctx.GlobalBool(CachePreimagesFlag.Name),
-		SnapshotLimit:   eth.DefaultConfig.SnapshotCache,
+		SnapshotLimit:   ethconfig.Defaults.SnapshotCache,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
@@ -1436,7 +1439,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
 		cache.SnapshotLimit = 0 // Disabled
 	}
-	if eth.DefaultConfig.DBDisabledGC && !cache.Preimages {
+	if ethconfig.Defaults.DBDisabledGC && !cache.Preimages {
 		cache.Preimages = true
 		log.Info("Enabling recording of key preimages since archive mode is used")
 	}
