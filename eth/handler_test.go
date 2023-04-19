@@ -164,6 +164,42 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 	}
 }
 
+// newTestHandler2 creates a new handler for testing purposes with no blocks.
+func newTestHandler2() *testHandler {
+	return newTestHandlerWithBlocks2(0)
+}
+
+// newTestHandlerWithBlocks2 creates a new handler for testing purposes, with a
+// given number of initial blocks.
+func newTestHandlerWithBlocks2(blocks int) *testHandler {
+	// Create a database pre-initialize with a genesis block
+	db := rawdb.NewMemoryDatabase()
+	genesis := &(core.Genesis{
+		Config: params.TestChainConfig,
+		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
+	})
+	parent := genesis.MustCommit(db)
+	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, consensus.NewFakerWithDataBase(db), db, blocks, nil)
+	txpool := newTestTxPool()
+
+	handler, _ := newHandler(&handlerConfig{
+		Database:   db,
+		Chain:      chain,
+		TxPool:     txpool,
+		Network:    1,
+		Sync:       downloader.FastSync,
+		BloomCache: 1,
+	})
+	handler.Start(1000)
+
+	return &testHandler{
+		db:      db,
+		chain:   chain,
+		txpool:  txpool,
+		handler: handler,
+	}
+}
+
 // close tears down the handler and all its internal constructs.
 func (b *testHandler) close() {
 	b.handler.Stop()

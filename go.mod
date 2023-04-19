@@ -3,6 +3,7 @@ module github.com/PlatONnetwork/PlatON-Go
 go 1.16
 
 require (
+	github.com/AlayaNetwork/Alaya-Go v0.16.2
 	github.com/AlayaNetwork/graphql-go v1.2.1-0.20211227063951-8d66eefcb4e3
 	github.com/PlatONnetwork/wagon v0.6.1-0.20201026015350-67507c2a7b96
 	github.com/VictoriaMetrics/fastcache v1.5.7
