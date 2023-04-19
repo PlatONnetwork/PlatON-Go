@@ -229,19 +229,18 @@ func (ps *peerSet) snapLen() int {
 	return ps.snapPeers
 }
 
-// peerWithHighestTD retrieves the known peer with the currently highest total
-// difficulty.
-func (ps *peerSet) peerWithHighestTD() *eth.Peer {
+// peerWithHighestBlock retrieves the known peer with the currently highest blockNumber
+func (ps *peerSet) peerWithHighestBlock() *eth.Peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	var (
 		bestPeer *eth.Peer
-		bestTd   *big.Int
+		bestBn   *big.Int
 	)
 	for _, p := range ps.peers {
-		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
-			bestPeer, bestTd = p.Peer, td
+		if _, bn := p.Head(); bestPeer == nil || bn.Cmp(bestBn) > 0 {
+			bestPeer, bestBn = p.Peer, bn
 		}
 	}
 	return bestPeer
