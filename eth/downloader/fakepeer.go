@@ -18,6 +18,7 @@ package downloader
 
 import (
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
@@ -209,7 +210,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 			KVs = append(KVs, kv)
 			KVNum++
 			count++
-			if count >= PPOSStorageKVSizeFetch {
+			if count >= eth.PPOSStorageKVSizeFetch {
 				if err := p.dl.DeliverPposStorage(p.id, KVs, false, KVNum); err != nil {
 					log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 					return err

@@ -28,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -546,7 +545,7 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 				continue
 			}
 			byteSize = byteSize + len(iter.Key()) + len(iter.Value())
-			if count >= downloader.PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
+			if count >= PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
 				if err := peer.SendPPOSStorage(ps); err != nil {
 					peer.Log().Error("[GetPPOSStorageMsg]send ppos message fail", "error", err, "kvnum", ps.KVNum)
 					return err

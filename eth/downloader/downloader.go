@@ -41,11 +41,10 @@ import (
 )
 
 const (
-	PPOSStorageKVSizeFetch = 100 // the kv size send to peer
-	KeyFastSyncStatus      = "FastSyncStatus"
-	FastSyncBegin          = 0
-	FastSyncFail           = 1
-	FastSyncDel            = 2
+	KeyFastSyncStatus = "FastSyncStatus"
+	FastSyncBegin     = 0
+	FastSyncFail      = 1
+	FastSyncDel       = 2
 )
 
 var (

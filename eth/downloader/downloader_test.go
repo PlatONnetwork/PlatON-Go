@@ -19,6 +19,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 	"math/rand"
 	"os"
@@ -574,7 +575,7 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		ps = append(ps, kv)
 		KVNum++
 		count++
-		if count >= PPOSStorageKVSizeFetch {
+		if count >= eth.PPOSStorageKVSizeFetch {
 			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum); err != nil {
 				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 				return err
