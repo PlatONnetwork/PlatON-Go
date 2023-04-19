@@ -20,6 +20,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"math/big"
 	"os"
 	"sync"
@@ -43,8 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
@@ -69,7 +68,7 @@ import (
 
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
-	config *Config
+	config *ethconfig.Config
 
 	// Handlers
 	txPool             *core.TxPool
@@ -103,7 +102,7 @@ type Ethereum struct {
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
-func New(stack *node.Node, config *Config) (*Ethereum, error) {
+func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
@@ -112,8 +111,8 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
 	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
-		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
-		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
+		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", ethconfig.Defaults.Miner.GasPrice)
+		config.Miner.GasPrice = new(big.Int).Set(ethconfig.Defaults.Miner.GasPrice)
 	}
 	if config.NoPruning && config.TrieDirtyCache > 0 {
 		if config.SnapshotCache > 0 {
@@ -224,12 +223,12 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
+		engine:            ethconfig.CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
-		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
 	}
 
@@ -441,17 +440,6 @@ func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 		}
 	}
 	return nil
-}
-
-// CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
-	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
-	// If proof-of-authority is requested, set it up
-	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
-	if engine == nil {
-		panic("create consensus engine fail")
-	}
-	return engine
 }
 
 // APIs return the collection of RPC services the ethereum package offers.

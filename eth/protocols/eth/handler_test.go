@@ -29,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -66,17 +65,21 @@ func newTestBackend(blocks int) *testBackend {
 func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)) *testBackend {
 	// Create a database pre-initialize with a genesis block
 	db := rawdb.NewMemoryDatabase()
-	(&core.Genesis{
+	genesis := (&core.Genesis{
 		Config: params.TestChainConfig,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	}).MustCommit(db)
 
-	chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFaker(), vm.Config{}, nil, nil)
-	cache := core.NewBlockChainCache(chain)
-	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFaker(), db, blocks, generator)
+	//chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFakerWithDataBase(db), vm.Config{}, nil, nil)
+	/*cache := core.NewBlockChainCache(chain)
+	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFakerWithDataBase(db), db, blocks, generator)
 	if _, err := chain.InsertChain(bs); err != nil {
 		panic(err)
-	}
+	}*/
+
+	chain := core.GenerateBlockChain2(params.TestChainConfig, genesis, consensus.NewFakerWithDataBase(db), db, blocks, generator)
+	cache := core.NewBlockChainCache(chain)
+
 	txconfig := core.DefaultTxPoolConfig
 	txconfig.Journal = "" // Don't litter the disk with test journals
 

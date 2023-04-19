@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package eth
+package ethconfig
 
 import (
 	"math/big"
@@ -25,21 +25,27 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 )
 
-// DefaultFullGPOConfig contains default gasprice oracle settings for full node.
-var DefaultFullGPOConfig = gasprice.Config{
+// FullNodeGPO contains default gasprice oracle settings for full node.
+var FullNodeGPO = gasprice.Config{
 	Blocks:     20,
 	Percentile: 60,
 	MaxPrice:   gasprice.DefaultMaxPrice,
 }
 
-// DefaultConfig contains default settings for use on the Ethereum main net.
-var DefaultConfig = Config{
+// Defaults contains default settings for use on the Ethereum main net.
+var Defaults = Config{
 	SyncMode: downloader.FullSync,
 	CbftConfig: types.OptionsConfig{
 		WalMode:           true,
@@ -95,7 +101,7 @@ var DefaultConfig = Config{
 
 	TxPool:      core.DefaultTxPoolConfig,
 	RPCGasCap:   25000000,
-	GPO:         DefaultFullGPOConfig,
+	GPO:         FullNodeGPO,
 	RPCTxFeeCap: 1, // 1 lat
 }
 
@@ -197,4 +203,15 @@ type Config struct {
 
 	// Checkpoint is a hardcoded checkpoint which can be nil.
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
+}
+
+// CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
+func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
+	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
+	// If proof-of-authority is requested, set it up
+	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
+	if engine == nil {
+		panic("create consensus engine fail")
+	}
+	return engine
 }
