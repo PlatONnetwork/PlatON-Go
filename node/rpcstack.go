@@ -141,9 +141,11 @@ func (h *httpServer) start() error {
 	h.listener = listener
 	go h.server.Serve(listener)
 
-	// if server is websocket only, return after logging
-	if h.wsAllowed() && !h.rpcAllowed() {
+	if h.wsAllowed() {
 		h.log.Info("WebSocket enabled", "url", fmt.Sprintf("ws://%v", listener.Addr()))
+	}
+	// if server is websocket only, return after logging
+	if !h.rpcAllowed() {
 		return nil
 	}
 	// Log http endpoint.

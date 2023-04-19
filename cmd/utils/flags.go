@@ -294,9 +294,9 @@ var (
 		Usage: "Time interval to regenerate the trie cache journal",
 		Value: ethconfig.Defaults.TrieCleanCacheRejournal,
 	}
-	SnapshotFlag = cli.BoolFlag{
+	SnapshotFlag = cli.BoolTFlag{
 		Name:  "snapshot",
-		Usage: `Enables snapshot-database mode -- experimental work in progress feature`,
+		Usage: `Enables snapshot-database mode (default = enable)`,
 	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
@@ -313,9 +313,9 @@ var (
 		Usage: "Megabytes of memory allocated to triedb internal caching",
 		Value: ethconfig.Defaults.TrieDBCache,
 	}
-	CachePreimagesFlag = cli.BoolTFlag{
+	CachePreimagesFlag = cli.BoolFlag{
 		Name:  "cache.preimages",
-		Usage: "Enable recording the SHA3/keccak preimages of trie keys (default: true)",
+		Usage: "Enable recording the SHA3/keccak preimages of trie keys",
 	}
 	MinerGasPriceFlag = BigFlag{
 		Name:  "miner.gasprice",
@@ -1180,7 +1180,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheSnapshotFlag.Name) {
 		cfg.SnapshotCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheSnapshotFlag.Name) / 100
 	}
-	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+	if !ctx.GlobalBool(SnapshotFlag.Name) {
 		// If snap-sync is requested, this flag is also required
 		if cfg.SyncMode == downloader.SnapSync {
 			log.Info("Snap sync requested, enabling --snapshot")
@@ -1436,7 +1436,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readOnly bool) (chain *core.B
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheTrieFlag.Name) {
 		cache.TrieCleanLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheTrieFlag.Name) / 100
 	}
-	if !ctx.GlobalIsSet(SnapshotFlag.Name) {
+	if !ctx.GlobalBool(SnapshotFlag.Name) {
 		cache.SnapshotLimit = 0 // Disabled
 	}
 	if ethconfig.Defaults.DBDisabledGC && !cache.Preimages {

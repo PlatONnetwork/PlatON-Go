@@ -353,7 +353,6 @@ func (d *Downloader) Synchronise(id string, head common.Hash, bn *big.Int, mode 
 	case nil, errBusy, errCanceled:
 		return err
 	}
-
 	if errors.Is(err, errInvalidChain) || errors.Is(err, errBadPeer) || errors.Is(err, errTimeout) ||
 		errors.Is(err, errStallingPeer) || errors.Is(err, errEmptyHeaderSet) || errors.Is(err, errPeersUnavailable) ||
 		errors.Is(err, errTooOld) || errors.Is(err, errInvalidAncestor) {
@@ -1599,7 +1598,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 	}()
 
 	closeOnErr := func(s *stateSync) {
-		if err := s.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled {
+		if err := s.Wait(); err != nil && err != errCancelStateFetch && err != errCanceled && err != snap.ErrCancelled {
 			d.queue.Close() // wake up Results
 		}
 	}

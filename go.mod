@@ -25,6 +25,7 @@ require (
 	github.com/golang/snappy v0.0.4
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0
+	github.com/google/uuid v1.1.5
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
@@ -38,14 +39,13 @@ require (
 	github.com/karalabe/hid v0.0.0-20170821103837-f00545f9f374
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13
-	github.com/mattn/go-isatty v0.0.18 // indirect
+	github.com/mattn/go-isatty v0.0.18
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mroth/weightedrand v0.3.0
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/panjf2000/ants/v2 v2.4.1
-	github.com/pborman/uuid v0.0.0-20170112150404-1b00554d8222
 	github.com/peterh/liner v1.0.1-0.20180619022028-8c1271fcf47f
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.10.0
