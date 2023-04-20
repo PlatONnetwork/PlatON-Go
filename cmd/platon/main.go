@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"math"
 	"os"
 	"runtime"
@@ -57,7 +58,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -137,6 +138,7 @@ var (
 		utils.GraphQLCORSDomainFlag,
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
+		utils.HTTPPathPrefixFlag,
 		utils.HTTPEnabledEthCompatibleFlag,
 		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
@@ -147,6 +149,7 @@ var (
 		utils.WSApiFlag,
 		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
+		utils.WSPathPrefixFlag,
 		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
@@ -204,11 +207,9 @@ func init() {
 		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
-		copydbCommand,
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
@@ -219,6 +220,8 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		// see dbcmd.go
+		dbCommand,
 		// See cmd/utils/flags_legacy.go
 		utils.ShowDeprecated,
 	}
