@@ -115,7 +115,6 @@ var (
 
 	// Packages to be cross-compiled by the xgo command
 	allCrossCompiledArchiveFiles = append(allToolsArchiveFiles)
-
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
 	// Note: wily is unsupported because it was officially deprecated on Launchpad.
@@ -125,11 +124,12 @@ var (
 	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
 	// Note: disco is unsupported because it was officially deprecated on Launchpad.
 	debDistroGoBoots = map[string]string{
-		"trusty": "golang-1.11",
-		"xenial": "golang-go",
-		"bionic": "golang-go",
-		"disco":  "golang-go",
-		"focal":  "golang-go",
+		"trusty":  "golang-1.11",
+		"xenial":  "golang-go",
+		"bionic":  "golang-go",
+		"focal":   "golang-go",
+		"groovy":  "golang-go",
+		"hirsute": "golang-go",
 	}
 
 	debGoBootPaths = map[string]string{
