@@ -628,14 +628,20 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.TxIndex)
 }
 
+func (s *MockStateDB) PrepareAccessList(common.Address, *common.Address, []common.Address, types.AccessList) {
+}
+
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {
 	return s.accessList.ContainsAddress(addr)
 }
+
 func (s *MockStateDB) AddSlotToAccessList(common.Address, common.Hash) {
 }
+
 func (s *MockStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return s.accessList.Contains(addr, slot)
 }
+
 func (s *MockStateDB) AddAddressToAccessList(common.Address) {
 }
 
