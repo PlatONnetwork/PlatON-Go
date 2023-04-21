@@ -491,7 +491,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	// Ensure our origin point is below any fast sync pivot point
 	if mode == FastSync {
 		pivotNumber := pivoth.Number.Uint64()
-		if pivotNumber <= origin {
+		if pivotNumber > 0 && pivotNumber <= origin {
 			origin = pivotNumber - 1
 		}
 		// Write out the pivot into the database so a rollback beyond it will

@@ -37,14 +37,14 @@ func testFastSyncDisabling(t *testing.T, protocol uint) {
 	t.Parallel()
 
 	// Create an empty handler and ensure it's in fast sync mode
-	empty := newTestHandler()
+	empty := newTestHandler2()
 	if atomic.LoadUint32(&empty.handler.fastSync) == 0 {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
 	defer empty.close()
 
 	// Create a full handler and ensure fast sync ends up disabled
-	full := newTestHandlerWithBlocks(1024)
+	full := newTestHandlerWithBlocks2(1024)
 	if atomic.LoadUint32(&full.handler.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled on non-empty blockchain")
 	}
@@ -70,7 +70,7 @@ func testFastSyncDisabling(t *testing.T, protocol uint) {
 	time.Sleep(250 * time.Millisecond)
 
 	// Check that fast sync was disabled
-	op := peerToSyncOp(downloader.FastSync, empty.handler.peers.peerWithHighestTD())
+	op := peerToSyncOp(downloader.FastSync, empty.handler.peers.peerWithHighestBlock())
 	if err := empty.handler.doSync(op); err != nil {
 		t.Fatal("sync failed:", err)
 	}

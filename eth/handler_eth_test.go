@@ -477,7 +477,7 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 	}
 	// Initiate a block propagation across the peers
 	time.Sleep(100 * time.Millisecond)
-	source.handler.BroadcastBlock(source.chain.CurrentBlock(), true)
+	source.handler.BroadcastBlock(source.chain.GetBlockByNumber(uint64(1)), true)
 
 	// Iterate through all the sinks and ensure the correct number got the block
 	done := make(chan struct{}, peers)
