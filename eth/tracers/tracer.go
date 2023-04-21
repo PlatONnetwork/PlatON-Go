@@ -542,7 +542,7 @@ func (jst *Tracer) CaptureStart(env *vm.EVM, from common.Address, to common.Addr
 	jst.ctx["block"] = env.Context.BlockNumber.Uint64()
 	jst.dbWrapper.db = env.StateDB
 	// Compute intrinsic gas
-	intrinsicGas, err := core.IntrinsicGas(input, jst.ctx["type"] == "CREATE")
+	intrinsicGas, err := core.IntrinsicGas(input, nil, jst.ctx["type"] == "CREATE")
 	if err != nil {
 		return
 	}
