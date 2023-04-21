@@ -108,6 +108,14 @@ func Gte140Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_4_0
 }
 
+func Gte150VersionState(state xcom.StateDB) bool {
+	return Gte150Version(GetCurrentActiveVersion(state))
+}
+
+func Gte150Version(version uint32) bool {
+	return version >= params.FORKVERSION_1_5_0
+}
+
 func WriteEcHash130(state xcom.StateDB) error {
 	if data, err := xcom.EcParams130(); nil != err {
 		return err
