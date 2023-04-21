@@ -41,11 +41,10 @@ import (
 )
 
 const (
-	PPOSStorageKVSizeFetch = 100 // the kv size send to peer
-	KeyFastSyncStatus      = "FastSyncStatus"
-	FastSyncBegin          = 0
-	FastSyncFail           = 1
-	FastSyncDel            = 2
+	KeyFastSyncStatus = "FastSyncStatus"
+	FastSyncBegin     = 0
+	FastSyncFail      = 1
+	FastSyncDel       = 2
 )
 
 var (
@@ -1238,7 +1237,7 @@ func (d *Downloader) fetchParts(deliveryCh chan dataPack, deliver func(dataPack)
 				case err == nil:
 					peer.log.Trace("Delivered new batch of data", "type", kind, "count", packet.Stats())
 				default:
-					peer.log.Trace("Failed to deliver retrieved data", "type", kind, "err", err)
+					peer.log.Debug("Failed to deliver retrieved data", "type", kind, "err", err)
 				}
 			}
 			// Blocks assembled, try to update the progress

@@ -57,6 +57,8 @@ const (
 	// containing 200+ transactions nowadays, the practical limit will always
 	// be softResponseLimit.
 	maxReceiptsServe = 1024
+
+	PPOSStorageKVSizeFetch = 100 // the kv size send to peer
 )
 
 // Handler is a callback to invoke from an outside runner after the boilerplate

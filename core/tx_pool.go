@@ -278,6 +278,8 @@ type TxPool struct {
 	signer types.Signer
 	mu     sync.RWMutex
 
+	eip2718 bool // Fork indicator whether we are using EIP-2718 type transactions.
+
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
 	currentMaxGas uint64         // Current gas limit for transaction caps
@@ -319,12 +321,12 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
-	pip7, gte140 := false, false
+	pip7, gte140, gte150 := true, false, false
 	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
 		stateDB, err := chain.GetState(currentBlock.Header())
 		if err == nil && stateDB != nil {
-			pip7 = gov.Gte120VersionState(stateDB)
 			gte140 = gov.Gte140VersionState(stateDB)
+			gte150 = gov.Gte150VersionState(stateDB)
 		}
 	}
 
@@ -333,7 +335,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.MakeSigner(chainconfig, pip7, gte140),
+		signer:      types.MakeSigner(chainconfig, pip7, gte140, gte150),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -350,6 +352,9 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		reorgShutdownCh: make(chan struct{}),
 	}
 
+	if gte150 {
+		pool.eip2718 = true
+	}
 	pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 
 	pool.locals = newAccountSet(pool.signer)
@@ -689,6 +694,10 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+	// Accept only legacy transactions until EIP-2718/2930 activates.
+	if !pool.eip2718 && tx.Type() != types.LegacyTxType {
+		return ErrTxTypeNotSupported
+	}
 	// Reject transactions over defined size to prevent DOS attacks
 	if uint64(tx.Size()) > txMaxSize {
 		return ErrOversizedData
@@ -702,7 +711,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentMaxGas < tx.Gas() {
 		return ErrGasLimit
 	}
-	// Make sure the transaction is signed properly
+	// Make sure the transaction is signed properly.
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
@@ -720,7 +729,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.currentState)
 	if err != nil {
 		return err
 	}
@@ -1432,12 +1441,16 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 func (pool *TxPool) resetSigner(statedb *state.StateDB) {
 	var signer types.Signer
 	gte140 := gov.Gte140VersionState(statedb)
-	if gte140 {
-		signer = types.MakeSigner(pool.chainconfig, true, true)
+	gte150 := gov.Gte150VersionState(statedb)
+	if gte150 {
+		signer = types.MakeSigner(pool.chainconfig, true, true, true)
+		pool.eip2718 = true
+	} else if gte140 {
+		signer = types.MakeSigner(pool.chainconfig, true, true, false)
 	} else if gov.Gte120VersionState(statedb) {
-		signer = types.MakeSigner(pool.chainconfig, true, false)
+		signer = types.MakeSigner(pool.chainconfig, true, false, false)
 	} else {
-		signer = types.MakeSigner(pool.chainconfig, false, false)
+		signer = types.MakeSigner(pool.chainconfig, false, false, false)
 	}
 
 	pool.signer = signer

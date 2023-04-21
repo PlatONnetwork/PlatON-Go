@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math"
 	"math/big"
 	"time"
@@ -44,10 +45,8 @@ The state transitioning model does all the necessary work to work out a valid ne
 3) Create a new state object if the recipient is \0*32
 4) Value transfer
 == If contract creation ==
-
-	4a) Attempt to run transaction data
-	4b) If valid, use result as code for the new state object
-
+  4a) Attempt to run transaction data
+  4b) If valid, use result as code for the new state object
 == end ==
 5) Run Script section
 6) Derive new state root
@@ -67,7 +66,6 @@ type StateTransition struct {
 // Message represents a message sent to a contract.
 type Message interface {
 	From() common.Address
-	//FromFrontier() (common.Address, error)
 	To() *common.Address
 
 	GasPrice() *big.Int
@@ -77,6 +75,7 @@ type Message interface {
 	Nonce() uint64
 	CheckNonce() bool
 	Data() []byte
+	AccessList() types.AccessList
 }
 
 // ExecutionResult includes all output after executing given evm
@@ -115,17 +114,17 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, state vm.StateDB) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if contractCreation {
+	if isContractCreation {
 		gas = params.TxGasContractCreation
 	} else {
 		gas = params.TxGas
 	}
 
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) {
+	if isContractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
 		zeroGas = params.TxDataZeroWasmDeployGas
 	} else {
@@ -153,6 +152,10 @@ func IntrinsicGas(data []byte, contractCreation bool) (uint64, error) {
 			return 0, vm.ErrOutOfGas
 		}
 		gas += z * zeroGas
+	}
+	if accessList != nil {
+		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
+		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
 	}
 	return gas, nil
 }
@@ -237,7 +240,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, st.state)
 	if err != nil {
 		return nil, err
 	}
