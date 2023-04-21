@@ -181,7 +181,8 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject, toStateObject *state.ParallelStateObject, txGasUsed uint64, minerEarnings *big.Int) {
 	tx := ctx.GetTx(idx)
 	var root []byte
-	receipt := types.NewReceipt(root, false, txGasUsed)
+	receipt := &types.Receipt{Type: tx.Type(), PostState: root, CumulativeGasUsed: txGasUsed}
+	receipt.Status = types.ReceiptStatusSuccessful
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = txGasUsed
 	// Set the receipt logs and create a bloom for filtering

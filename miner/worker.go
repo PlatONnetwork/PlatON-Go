@@ -761,7 +761,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state)),
+		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state), gov.Gte150VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,
@@ -907,6 +907,11 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 		case errors.Is(err, vm.ErrWASMUndefinedPanic):
 			log.Warn("Skipping account with wasm vm exec undefined err", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
+			txs.Pop()
+
+		case errors.Is(err, core.ErrTxTypeNotSupported):
+			// Pop the unsupported transaction without shifting in the next from the account
+			log.Trace("Skipping unsupported transaction type", "sender", from, "type", tx.Type())
 			txs.Pop()
 
 		default:

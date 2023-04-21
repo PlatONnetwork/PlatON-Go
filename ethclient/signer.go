@@ -51,13 +51,18 @@ func (s *senderFromServer) Sender(tx *types.Transaction) (common.Address, error)
 	return s.addr, nil
 }
 
-func (s *senderFromServer) Hash(tx *types.Transaction, chainId *big.Int) common.Hash {
-	panic("can't sign with senderFromServer")
+func (s *senderFromServer) SignatureAndSender(tx *types.Transaction) (common.Address, []byte, error) {
+	panic("can't SignatureAndSender with senderFromServer")
 }
-func (s *senderFromServer) SignatureValues(sig []byte) (R, S, V *big.Int, err error) {
+
+func (s *senderFromServer) ChainID() *big.Int {
 	panic("can't sign with senderFromServer")
 }
 
-func (s *senderFromServer) SignatureAndSender(tx *types.Transaction) (common.Address, []byte, error) {
-	panic("can't SignatureAndSender with senderFromServer")
+func (s *senderFromServer) Hash(tx *types.Transaction, chainId *big.Int) common.Hash {
+	panic("can't sign with senderFromServer")
+}
+
+func (s *senderFromServer) SignatureValues(tx *types.Transaction, sig []byte) (R, S, V *big.Int, err error) {
+	panic("can't sign with senderFromServer")
 }

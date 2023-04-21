@@ -318,7 +318,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
-	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state)), block)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state), gov.Gte150VersionState(state)), block)
 	if err != nil {
 		return errors.New("execute block error")
 	}

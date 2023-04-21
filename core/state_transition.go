@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math"
 	"math/big"
 	"time"
@@ -65,7 +66,6 @@ type StateTransition struct {
 // Message represents a message sent to a contract.
 type Message interface {
 	From() common.Address
-	//FromFrontier() (common.Address, error)
 	To() *common.Address
 
 	GasPrice() *big.Int
@@ -75,6 +75,7 @@ type Message interface {
 	Nonce() uint64
 	CheckNonce() bool
 	Data() []byte
+	AccessList() types.AccessList
 }
 
 // ExecutionResult includes all output after executing given evm
@@ -113,17 +114,17 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, state vm.StateDB) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
-	if contractCreation {
+	if isContractCreation {
 		gas = params.TxGasContractCreation
 	} else {
 		gas = params.TxGas
 	}
 
 	var noZeroGas, zeroGas uint64
-	if contractCreation && vm.CanUseWASMInterp(data) {
+	if isContractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
 		zeroGas = params.TxDataZeroWasmDeployGas
 	} else {
@@ -151,6 +152,10 @@ func IntrinsicGas(data []byte, contractCreation bool, state vm.StateDB) (uint64,
 			return 0, vm.ErrOutOfGas
 		}
 		gas += z * zeroGas
+	}
+	if accessList != nil {
+		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
+		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
 	}
 	return gas, nil
 }
@@ -235,7 +240,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, st.state)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, st.state)
 	if err != nil {
 		return nil, err
 	}
