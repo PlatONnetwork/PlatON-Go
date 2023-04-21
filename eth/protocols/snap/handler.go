@@ -19,6 +19,8 @@ package snap
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -128,6 +130,14 @@ func handleMessage(backend Backend, peer *Peer) error {
 	}
 	defer msg.Discard()
 
+	// Track the emount of time it takes to serve the request and run the handler
+	if metrics.Enabled {
+		h := fmt.Sprintf("%s/%s/%d/%#02x", p2p.HandleHistName, ProtocolName, peer.Version(), msg.Code)
+		defer func(start time.Time) {
+			sampler := func() metrics.Sample { return metrics.NewExpDecaySample(1028, 0.015) }
+			metrics.GetOrRegisterHistogramLazy(h, nil, sampler).Update(time.Since(start).Microseconds())
+		}(time.Now())
+	}
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == GetAccountRangeMsg:
