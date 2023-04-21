@@ -812,6 +812,8 @@ func (s *Syncer) assignAccountTasks(cancel chan struct{}) {
 		if idle == "" {
 			return
 		}
+		peer := s.peers[idle]
+
 		// Matched a pending task to an idle peer, allocate a unique request id
 		var reqid uint64
 		for {
@@ -835,14 +837,14 @@ func (s *Syncer) assignAccountTasks(cancel chan struct{}) {
 			task:   task,
 		}
 		req.timeout = time.AfterFunc(requestTimeout, func() {
-			log.Debug("Account range request timed out")
+			peer.Log().Debug("Account range request timed out", "reqid", reqid)
 			s.scheduleRevertAccountRequest(req)
 		})
 		s.accountReqs[reqid] = req
 		delete(s.accountIdlers, idle)
 
 		s.pend.Add(1)
-		go func(peer SyncPeer, root common.Hash) {
+		go func(root common.Hash) {
 			defer s.pend.Done()
 
 			// Attempt to send the remote request and revert if it fails
@@ -850,7 +852,7 @@ func (s *Syncer) assignAccountTasks(cancel chan struct{}) {
 				peer.Log().Debug("Failed to request account range", "err", err)
 				s.scheduleRevertAccountRequest(req)
 			}
-		}(s.peers[idle], s.root) // We're in the lock, peers[id] surely exists
+		}(s.root)
 
 		// Inject the request into the task to block further assignments
 		task.req = req
@@ -892,6 +894,8 @@ func (s *Syncer) assignBytecodeTasks(cancel chan struct{}) {
 		if idle == "" {
 			return
 		}
+		peer := s.peers[idle]
+
 		// Matched a pending task to an idle peer, allocate a unique request id
 		var reqid uint64
 		for {
@@ -922,14 +926,14 @@ func (s *Syncer) assignBytecodeTasks(cancel chan struct{}) {
 			task:   task,
 		}
 		req.timeout = time.AfterFunc(requestTimeout, func() {
-			log.Debug("Bytecode request timed out")
+			peer.Log().Debug("Bytecode request timed out", "reqid", reqid)
 			s.scheduleRevertBytecodeRequest(req)
 		})
 		s.bytecodeReqs[reqid] = req
 		delete(s.bytecodeIdlers, idle)
 
 		s.pend.Add(1)
-		go func(peer SyncPeer) {
+		go func() {
 			defer s.pend.Done()
 
 			// Attempt to send the remote request and revert if it fails
@@ -937,7 +941,7 @@ func (s *Syncer) assignBytecodeTasks(cancel chan struct{}) {
 				log.Debug("Failed to request bytecodes", "err", err)
 				s.scheduleRevertBytecodeRequest(req)
 			}
-		}(s.peers[idle]) // We're in the lock, peers[id] surely exists
+		}()
 	}
 }
 
@@ -977,6 +981,8 @@ func (s *Syncer) assignStorageTasks(cancel chan struct{}) {
 		if idle == "" {
 			return
 		}
+		peer := s.peers[idle]
+
 		// Matched a pending task to an idle peer, allocate a unique request id
 		var reqid uint64
 		for {
@@ -1046,14 +1052,14 @@ func (s *Syncer) assignStorageTasks(cancel chan struct{}) {
 			req.limit = subtask.Last
 		}
 		req.timeout = time.AfterFunc(requestTimeout, func() {
-			log.Debug("Storage request timed out")
+			peer.Log().Debug("Storage request timed out", "reqid", reqid)
 			s.scheduleRevertStorageRequest(req)
 		})
 		s.storageReqs[reqid] = req
 		delete(s.storageIdlers, idle)
 
 		s.pend.Add(1)
-		go func(peer SyncPeer, root common.Hash) {
+		go func(root common.Hash) {
 			defer s.pend.Done()
 
 			// Attempt to send the remote request and revert if it fails
@@ -1065,7 +1071,7 @@ func (s *Syncer) assignStorageTasks(cancel chan struct{}) {
 				log.Debug("Failed to request storage", "err", err)
 				s.scheduleRevertStorageRequest(req)
 			}
-		}(s.peers[idle], s.root) // We're in the lock, peers[id] surely exists
+		}(s.root)
 
 		// Inject the request into the subtask to block further assignments
 		if subtask != nil {
@@ -1122,6 +1128,8 @@ func (s *Syncer) assignTrienodeHealTasks(cancel chan struct{}) {
 		if idle == "" {
 			return
 		}
+		peer := s.peers[idle]
+
 		// Matched a pending task to an idle peer, allocate a unique request id
 		var reqid uint64
 		for {
@@ -1161,14 +1169,14 @@ func (s *Syncer) assignTrienodeHealTasks(cancel chan struct{}) {
 			task:   s.healer,
 		}
 		req.timeout = time.AfterFunc(requestTimeout, func() {
-			log.Debug("Trienode heal request timed out")
+			peer.Log().Debug("Trienode heal request timed out", "reqid", reqid)
 			s.scheduleRevertTrienodeHealRequest(req)
 		})
 		s.trienodeHealReqs[reqid] = req
 		delete(s.trienodeHealIdlers, idle)
 
 		s.pend.Add(1)
-		go func(peer SyncPeer, root common.Hash) {
+		go func(root common.Hash) {
 			defer s.pend.Done()
 
 			// Attempt to send the remote request and revert if it fails
@@ -1176,7 +1184,7 @@ func (s *Syncer) assignTrienodeHealTasks(cancel chan struct{}) {
 				log.Debug("Failed to request trienode healers", "err", err)
 				s.scheduleRevertTrienodeHealRequest(req)
 			}
-		}(s.peers[idle], s.root) // We're in the lock, peers[id] surely exists
+		}(s.root)
 	}
 }
 
@@ -1228,6 +1236,8 @@ func (s *Syncer) assignBytecodeHealTasks(cancel chan struct{}) {
 		if idle == "" {
 			return
 		}
+		peer := s.peers[idle]
+
 		// Matched a pending task to an idle peer, allocate a unique request id
 		var reqid uint64
 		for {
@@ -1259,14 +1269,14 @@ func (s *Syncer) assignBytecodeHealTasks(cancel chan struct{}) {
 			task:   s.healer,
 		}
 		req.timeout = time.AfterFunc(requestTimeout, func() {
-			log.Debug("Bytecode heal request timed out")
+			peer.Log().Debug("Bytecode heal request timed out", "reqid", reqid)
 			s.scheduleRevertBytecodeHealRequest(req)
 		})
 		s.bytecodeHealReqs[reqid] = req
 		delete(s.bytecodeHealIdlers, idle)
 
 		s.pend.Add(1)
-		go func(peer SyncPeer) {
+		go func() {
 			defer s.pend.Done()
 
 			// Attempt to send the remote request and revert if it fails
@@ -1274,7 +1284,7 @@ func (s *Syncer) assignBytecodeHealTasks(cancel chan struct{}) {
 				log.Debug("Failed to request bytecode healers", "err", err)
 				s.scheduleRevertBytecodeHealRequest(req)
 			}
-		}(s.peers[idle]) // We're in the lock, peers[id] surely exists
+		}()
 	}
 }
 
