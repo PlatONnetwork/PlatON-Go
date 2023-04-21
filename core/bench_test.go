@@ -85,7 +85,7 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		toaddr := common.Address{}
 		data := make([]byte, nbytes)
-		gas, _ := IntrinsicGas(data, false, mock.NewMockStateDB())
+		gas, _ := IntrinsicGas(data, nil, false, mock.NewMockStateDB())
 		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), toaddr, big.NewInt(1), gas, nil, data), types.NewEIP155Signer(new(big.Int)), benchRootKey)
 		gen.AddTx(tx)
 	}

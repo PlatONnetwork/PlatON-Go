@@ -29,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
 	"math/big"
 	"os"
@@ -570,11 +569,11 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args SendTxArgs, meth
 		return nil, err
 	}
 
-	rlpdata, err := rlp.EncodeToBytes(signedTx)
+	data, err := signedTx.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
-	response := ethapi.SignTransactionResult{Raw: rlpdata, Tx: signedTx}
+	response := ethapi.SignTransactionResult{Raw: data, Tx: signedTx}
 
 	// Finally, send the signed tx to the UI
 	api.UI.OnApprovedTx(response)

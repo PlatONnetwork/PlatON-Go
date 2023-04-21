@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -264,7 +265,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.MakeSigner(api.backend.ChainConfig(), true, true)
+				signer := types.NewEIP2930Signer(api.backend.ChainConfig().PIP7ChainID)
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(ctx))
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
@@ -468,7 +469,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.backend.ChainConfig(), false, false)
+		signer = types.MakeSigner(api.backend.ChainConfig(), false, false, false)
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
@@ -566,7 +567,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	// Execute transaction, either tracing all or just the requested one
 	var (
 		dumps       []string
-		signer      = types.MakeSigner(api.backend.ChainConfig(), false, false)
+		signer      = types.MakeSigner(api.backend.ChainConfig(), gov.Gte120VersionState(statedb), gov.Gte140VersionState(statedb), gov.Gte150VersionState(statedb))
 		chainConfig = api.backend.ChainConfig()
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 		canon       = true
@@ -749,14 +750,15 @@ func (api *API) traceTx(ctx context.Context, message core.Message, vmctx vm.Bloc
 	default:
 		tracer = vm.NewStructLogger(config.LogConfig)
 	}
+
 	// Run the transaction with tracing enabled.
 	vmenv := vm.NewEVM(vmctx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer})
-
 	result, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()))
 	if err != nil {
 		return nil, fmt.Errorf("tracing failed: %v", err)
 	}
-	// Depending on the tracer type, format and return the output
+
+	// Depending on the tracer type, format and return the output.
 	switch tracer := tracer.(type) {
 	case *vm.StructLogger:
 		// If the result contains a revert reason, return it.
