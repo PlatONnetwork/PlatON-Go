@@ -34,6 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -54,11 +55,22 @@ type (
 	GetNonceFunc func(uint64) []byte
 )
 
+// ActivePrecompiles returns the addresses of the precompiles enabled with the current
+// configuration
+func (evm *EVM) ActivePrecompiles(state xcom.StateDB) []common.Address {
+	if gov.Gte150VersionState(state) {
+		return PrecompiledAddressesBerlin2
+	}
+	return PrecompiledAddressesBerlin
+}
+
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
+		if gov.Gte150VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin2
+		} else if gov.Gte140VersionState(evm.StateDB) {
 			precompiles = PrecompiledContractsBerlin
 		}
 
@@ -309,7 +321,9 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
+		if gov.Gte150VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin2
+		} else if gov.Gte140VersionState(evm.StateDB) {
 			precompiles = PrecompiledContractsBerlin
 		}
 
@@ -496,7 +510,11 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
-
+	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
+	// the access-list change should not be rolled back
+	if gov.Gte150VersionState(evm.StateDB) {
+		evm.StateDB.AddAddressToAccessList(address)
+	}
 	// Ensure there's no existing contract already at the designated address
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
