@@ -457,15 +457,15 @@ func hasRightElement(node node, key []byte) bool {
 // Expect the normal case, this function can also be used to verify the following
 // range proofs:
 //
-//   - All elements proof. In this case the proof can be nil, but the range should
-//     be all the leaves in the trie.
+// - All elements proof. In this case the proof can be nil, but the range should
+//   be all the leaves in the trie.
 //
-//   - One element proof. In this case no matter the edge proof is a non-existent
-//     proof or not, we can always verify the correctness of the proof.
+// - One element proof. In this case no matter the edge proof is a non-existent
+//   proof or not, we can always verify the correctness of the proof.
 //
-//   - Zero element proof. In this case a single non-existent proof is enough to prove.
-//     Besides, if there are still some other leaves available on the right side, then
-//     an error will be returned.
+// - Zero element proof. In this case a single non-existent proof is enough to prove.
+//   Besides, if there are still some other leaves available on the right side, then
+//   an error will be returned.
 //
 // Except returning the error to indicate the proof is valid or not, the function will
 // also return a flag to indicate whether there exists more accounts/slots in the trie.
