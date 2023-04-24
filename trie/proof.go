@@ -240,7 +240,7 @@ findFork:
 	for {
 		switch rn := (n).(type) {
 		case *shortNode:
-			rn.flags = nodeFlag{dirty: &True}
+			rn.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 
 			// If either the key of left proof or right proof doesn't match with
 			// shortnode, stop here and the forkpoint is the shortnode.
@@ -260,7 +260,7 @@ findFork:
 			parent = n
 			n, pos = rn.Val, pos+len(rn.Key)
 		case *fullNode:
-			rn.flags = nodeFlag{dirty: &True}
+			rn.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 
 			// If either the node pointed by left proof or right proof is nil,
 			// stop here and the forkpoint is the fullnode.
@@ -356,12 +356,12 @@ func unset(parent node, child node, key []byte, pos int, removeLeft bool) error 
 			for i := 0; i < int(key[pos]); i++ {
 				cld.Children[i] = nil
 			}
-			cld.flags = nodeFlag{dirty: &True}
+			cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		} else {
 			for i := key[pos] + 1; i < 16; i++ {
 				cld.Children[i] = nil
 			}
-			cld.flags = nodeFlag{dirty: &True}
+			cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		}
 		return unset(cld, cld.Children[key[pos]], key, pos+1, removeLeft)
 	case *shortNode:
@@ -399,7 +399,7 @@ func unset(parent node, child node, key []byte, pos int, removeLeft bool) error 
 			fn.Children[key[pos-1]] = nil
 			return nil
 		}
-		cld.flags = nodeFlag{dirty: &True}
+		cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		return unset(cld, cld.Val, key, pos+len(cld.Key), removeLeft)
 	case nil:
 		// If the node is nil, then it's a child of the fork point

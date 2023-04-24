@@ -19,7 +19,6 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 	"math/rand"
 	"os"
@@ -28,6 +27,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -655,7 +656,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 // In this test common ancestor lookup should be short circuited and not require
 // binary searching.
 func TestCanonicalSynchronisation64Full(t *testing.T) { testCanonicalSynchronisation(t, 64, FullSync) }
-func TestCanonicalSynchronisation64Fast(t *testing.T) { testCanonicalSynchronisation(t, 64, SnapSync) }
+func TestCanonicalSynchronisation64Fast(t *testing.T) { testCanonicalSynchronisation(t, 64, FastSync) }
 
 func TestCanonicalSynchronisation64Light(t *testing.T) {
 	testCanonicalSynchronisation(t, 64, LightSync)
@@ -680,7 +681,7 @@ func testCanonicalSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
 // Tests that if a large batch of blocks are being downloaded, it is throttled
 // until the cached blocks are retrieved.
 func TestThrottling64Full(t *testing.T) { testThrottling(t, 64, FullSync) }
-func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, SnapSync) }
+func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
 
 func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 	t.Parallel()
@@ -928,7 +929,7 @@ func testCancel(t *testing.T, protocol uint, mode SyncMode) {
 }
 
 // Tests that synchronisation from multiple peers works as intended (multi thread sanity test).
-func TestMultiSynchronisation63Fast(t *testing.T) { testMultiSynchronisation(t, 63, SnapSync) }
+func TestMultiSynchronisation63Fast(t *testing.T) { testMultiSynchronisation(t, 63, FastSync) }
 func TestMultiSynchronisation64Full(t *testing.T) { testMultiSynchronisation(t, 64, FullSync) }
 func TestMultiSynchronisation64Fast(t *testing.T) { testMultiSynchronisation(t, 64, SnapSync) }
 

@@ -34,21 +34,20 @@ import (
 //
 // The entry points for incoming messages are:
 //
-//    h.handleMsg(message)
-//    h.handleBatch(message)
+//	h.handleMsg(message)
+//	h.handleBatch(message)
 //
 // Outgoing calls use the requestOp struct. Register the request before sending it
 // on the connection:
 //
-//    op := &requestOp{ids: ...}
-//    h.addRequestOp(op)
+//	op := &requestOp{ids: ...}
+//	h.addRequestOp(op)
 //
 // Now send the request, then wait for the reply to be delivered through handleMsg:
 //
-//    if err := op.wait(...); err != nil {
-//        h.removeRequestOp(op) // timeout, etc.
-//    }
-//
+//	if err := op.wait(...); err != nil {
+//	    h.removeRequestOp(op) // timeout, etc.
+//	}
 type handler struct {
 	reg            *serviceRegistry
 	unsubscribeCb  *callback
@@ -189,7 +188,7 @@ func (h *handler) cancelAllRequests(err error, inflightReq *requestOp) {
 	}
 	for id, sub := range h.clientSubs {
 		delete(h.clientSubs, id)
-		sub.quitWithError(false, err)
+		sub.close(err)
 	}
 }
 
@@ -281,7 +280,7 @@ func (h *handler) handleResponse(msg *jsonrpcMessage) {
 		return
 	}
 	if op.err = json.Unmarshal(msg.Result, &op.sub.subid); op.err == nil {
-		go op.sub.start()
+		go op.sub.run()
 		h.clientSubs[op.sub.subid] = op.sub
 	}
 }

@@ -480,10 +480,9 @@ func (q *queue) ReserveReceipts(p *peerConnection, count int) (*fetchRequest, bo
 // to access the queue, so they already need a lock anyway.
 //
 // Returns:
-//
-//	item     - the fetchRequest
-//	progress - whether any progress was made
-//	throttle - if the caller should throttle for a while
+//   item     - the fetchRequest
+//   progress - whether any progress was made
+//   throttle - if the caller should throttle for a while
 func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common.Hash]*types.Header, taskQueue *prque.Prque,
 	pendPool map[string]*fetchRequest, kind uint) (*fetchRequest, bool, bool) {
 	// Short circuit if the pool has been depleted, or if the peer's already
@@ -701,7 +700,6 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 	} else {
 		logger = log.New("peer", id[:16])
 	}
-
 	// Short circuit if the data was never requested
 	request := q.headerPendPool[id]
 	if request == nil {
@@ -724,6 +722,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 		}
 	}
 	if accepted {
+		parentHash := headers[0].Hash()
 		for i, header := range headers[1:] {
 			hash := header.Hash()
 			if want := request.From + 1 + uint64(i); header.Number.Uint64() != want {
@@ -731,11 +730,13 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 				accepted = false
 				break
 			}
-			if headers[i].Hash() != header.ParentHash {
+			if parentHash != header.ParentHash {
 				logger.Warn("Header broke chain ancestry", "number", header.Number, "hash", hash)
 				accepted = false
 				break
 			}
+			// Set-up parent hash for next round
+			parentHash = hash
 		}
 	}
 	// If the batch of headers wasn't accepted, mark as unavailable
@@ -901,6 +902,7 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header,
 	if failure == nil {
 		return accepted, nil
 	}
+	// If none of the data was good, it's a stale delivery
 	if accepted > 0 {
 		return accepted, fmt.Errorf("partial failure: %v", failure)
 	}
