@@ -133,7 +133,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false, nil)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue

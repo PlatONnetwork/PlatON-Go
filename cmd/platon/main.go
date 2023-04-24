@@ -19,12 +19,10 @@ package main
 
 import (
 	"fmt"
-	"math"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 	"runtime"
-	godebug "runtime/debug"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -44,8 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-
-	gopsutil "github.com/shirou/gopsutil/mem"
 )
 
 const (
@@ -57,7 +53,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -137,6 +133,7 @@ var (
 		utils.GraphQLCORSDomainFlag,
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
+		utils.HTTPPathPrefixFlag,
 		utils.HTTPEnabledEthCompatibleFlag,
 		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
@@ -147,6 +144,7 @@ var (
 		utils.WSApiFlag,
 		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
+		utils.WSPathPrefixFlag,
 		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
@@ -204,11 +202,9 @@ func init() {
 		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
-		copydbCommand,
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
@@ -219,6 +215,8 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		// see dbcmd.go
+		dbCommand,
 		// See cmd/utils/flags_legacy.go
 		utils.ShowDeprecated,
 	}
@@ -252,27 +250,6 @@ func init() {
 		if err := debug.SetupWasmLog(ctx); err != nil {
 			return err
 		}
-
-		// Cap the cache allowance and tune the garbage collector
-		mem, err := gopsutil.VirtualMemory()
-		if err == nil {
-			if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
-				log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
-				mem.Total = 2 * 1024 * 1024 * 1024
-			}
-			allowance := int(mem.Total / 1024 / 1024 / 3)
-			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
-			}
-		}
-
-		// Ensure Go's GC ignores the database cache for trigger percentage
-		cache := ctx.GlobalInt(utils.CacheFlag.Name)
-		gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
-
-		log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
-		godebug.SetGCPercent(int(gogc))
 
 		// Start metrics export if enabled
 		utils.SetupMetrics(ctx)

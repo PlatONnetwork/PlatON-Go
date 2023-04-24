@@ -543,7 +543,7 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 	}
 	os.RemoveAll(datadir)
 
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(datadir, 0, 0, datadir, "")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(datadir, 0, 0, datadir, "", false)
 	if err != nil {
 		t.Fatalf("Failed to create persistent database: %v", err)
 	}
@@ -610,7 +610,7 @@ func testSnapshot(t *testing.T, tt *snapshotTest) {
 		db.Close()
 
 		// Start a new blockchain back up and see where the repair leads us
-		db, err = rawdb.NewLevelDBDatabaseWithFreezer(datadir, 0, 0, datadir, "")
+		db, err = rawdb.NewLevelDBDatabaseWithFreezer(datadir, 0, 0, datadir, "", false)
 		if err != nil {
 			t.Fatalf("Failed to reopen persistent database: %v", err)
 		}
