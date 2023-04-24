@@ -240,7 +240,7 @@ findFork:
 	for {
 		switch rn := (n).(type) {
 		case *shortNode:
-			rn.flags = nodeFlag{dirty: &True}
+			rn.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 
 			// If either the key of left proof or right proof doesn't match with
 			// shortnode, stop here and the forkpoint is the shortnode.
@@ -260,7 +260,7 @@ findFork:
 			parent = n
 			n, pos = rn.Val, pos+len(rn.Key)
 		case *fullNode:
-			rn.flags = nodeFlag{dirty: &True}
+			rn.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 
 			// If either the node pointed by left proof or right proof is nil,
 			// stop here and the forkpoint is the fullnode.
@@ -356,12 +356,12 @@ func unset(parent node, child node, key []byte, pos int, removeLeft bool) error 
 			for i := 0; i < int(key[pos]); i++ {
 				cld.Children[i] = nil
 			}
-			cld.flags = nodeFlag{dirty: &True}
+			cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		} else {
 			for i := key[pos] + 1; i < 16; i++ {
 				cld.Children[i] = nil
 			}
-			cld.flags = nodeFlag{dirty: &True}
+			cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		}
 		return unset(cld, cld.Children[key[pos]], key, pos+1, removeLeft)
 	case *shortNode:
@@ -399,7 +399,7 @@ func unset(parent node, child node, key []byte, pos int, removeLeft bool) error 
 			fn.Children[key[pos-1]] = nil
 			return nil
 		}
-		cld.flags = nodeFlag{dirty: &True}
+		cld.flags = nodeFlag{dirty: &True, hash: &hashNode{}}
 		return unset(cld, cld.Val, key, pos+len(cld.Key), removeLeft)
 	case nil:
 		// If the node is nil, then it's a child of the fork point
@@ -457,15 +457,15 @@ func hasRightElement(node node, key []byte) bool {
 // Expect the normal case, this function can also be used to verify the following
 // range proofs:
 //
-// - All elements proof. In this case the proof can be nil, but the range should
-//   be all the leaves in the trie.
+//   - All elements proof. In this case the proof can be nil, but the range should
+//     be all the leaves in the trie.
 //
-// - One element proof. In this case no matter the edge proof is a non-existent
-//   proof or not, we can always verify the correctness of the proof.
+//   - One element proof. In this case no matter the edge proof is a non-existent
+//     proof or not, we can always verify the correctness of the proof.
 //
-// - Zero element proof. In this case a single non-existent proof is enough to prove.
-//   Besides, if there are still some other leaves available on the right side, then
-//   an error will be returned.
+//   - Zero element proof. In this case a single non-existent proof is enough to prove.
+//     Besides, if there are still some other leaves available on the right side, then
+//     an error will be returned.
 //
 // Except returning the error to indicate the proof is valid or not, the function will
 // also return a flag to indicate whether there exists more accounts/slots in the trie.
