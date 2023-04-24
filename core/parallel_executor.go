@@ -266,6 +266,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state), gov.Gte140VersionState(state)) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state), gov.Gte140VersionState(state), gov.Gte150VersionState(state)) || state.GetCodeSize(*address) > 0
 	return isContract
 }

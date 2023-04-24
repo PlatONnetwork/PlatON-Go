@@ -257,7 +257,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if st.evm.GetVMConfig().VmTimeoutDuration > 0 &&
-		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), gov.Gte120VersionState(st.state), gov.Gte140VersionState(st.state))) {
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), gov.Gte120VersionState(st.state), gov.Gte140VersionState(st.state), gov.Gte150VersionState(st.state))) {
 
 		timeout := time.Duration(st.evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)
@@ -268,12 +268,14 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// set req context to vm context
 	st.evm.Context.Ctx = ctx
 
+	// Set up the initial access list.
+	if gov.Gte150VersionState(st.state) {
+		st.state.PrepareAccessList(msg.From(), msg.To(), st.evm.ActivePrecompiles(st.state), msg.AccessList())
+	}
+
 	var (
-		ret []byte
-		// vm errors do not effect consensus and are therefor
-		// not assigned to err, except for insufficient balance
-		// error.
-		vmerr error
+		ret   []byte
+		vmerr error // vm errors do not effect consensus and are therefore not assigned to err
 	)
 
 	if contractCreation {
