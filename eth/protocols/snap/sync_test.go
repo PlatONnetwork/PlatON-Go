@@ -21,12 +21,13 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"sort"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
