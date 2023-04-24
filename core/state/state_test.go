@@ -275,7 +275,7 @@ func TestEmptyByte(t *testing.T) {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
 	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
@@ -335,7 +335,7 @@ func TestEmptyByte(t *testing.T) {
 func TestForEachStorage(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
@@ -370,7 +370,7 @@ func TestMigrateStorage(t *testing.T) {
 
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}

@@ -245,7 +245,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, stateBloom *trie.Sync
 		originAndPivotCh: make(chan dataPack, 1),
 		quitCh:           make(chan struct{}),
 		stateCh:          make(chan dataPack),
-		SnapSyncer:       snap.NewSyncer(stateDb, stateBloom),
+		SnapSyncer:       snap.NewSyncer(stateDb),
 		stateSyncStart:   make(chan *stateSync),
 		syncStatsState: stateSyncStats{
 			processed: rawdb.ReadFastTrieProgress(stateDb),

@@ -20,8 +20,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
+	"os"
 	"testing"
 
 	"golang.org/x/crypto/sha3"
@@ -401,4 +403,58 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 		}
 	}
 	return nil
+}
+
+func TestAncientStorage(t *testing.T) {
+	// Freezer style fast import the chain.
+	frdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatalf("failed to create temp freezer dir: %v", err)
+	}
+	defer os.Remove(frdir)
+
+	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
+	if err != nil {
+		t.Fatalf("failed to create database with ancient backend")
+	}
+	// Create a test block
+	block := types.NewBlockWithHeader(&types.Header{
+		Number:      big.NewInt(0),
+		Extra:       []byte("test block"),
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
+	})
+	// Ensure nothing non-existent will be read
+	hash, number := block.Hash(), block.NumberU64()
+	if blob := ReadHeaderRLP(db, hash, number); len(blob) > 0 {
+		t.Fatalf("non existent header returned")
+	}
+	if blob := ReadBodyRLP(db, hash, number); len(blob) > 0 {
+		t.Fatalf("non existent body returned")
+	}
+	if blob := ReadReceiptsRLP(db, hash, number); len(blob) > 0 {
+		t.Fatalf("non existent receipts returned")
+	}
+	// Write and verify the header in the database
+	WriteAncientBlock(db, block, nil)
+	if blob := ReadHeaderRLP(db, hash, number); len(blob) == 0 {
+		t.Fatalf("no header returned")
+	}
+	if blob := ReadBodyRLP(db, hash, number); len(blob) == 0 {
+		t.Fatalf("no body returned")
+	}
+	if blob := ReadReceiptsRLP(db, hash, number); len(blob) == 0 {
+		t.Fatalf("no receipts returned")
+	}
+	// Use a fake hash for data retrieval, nothing should be returned.
+	fakeHash := common.BytesToHash([]byte{0x01, 0x02, 0x03})
+	if blob := ReadHeaderRLP(db, fakeHash, number); len(blob) != 0 {
+		t.Fatalf("invalid header returned")
+	}
+	if blob := ReadBodyRLP(db, fakeHash, number); len(blob) != 0 {
+		t.Fatalf("invalid body returned")
+	}
+	if blob := ReadReceiptsRLP(db, fakeHash, number); len(blob) != 0 {
+		t.Fatalf("invalid receipts returned")
+	}
 }
