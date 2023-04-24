@@ -594,13 +594,13 @@ func (srv *Server) setupDiscovery() error {
 	srv.discmix = enode.NewFairMix(discmixTimeout)
 
 	// Add protocol-specific discovery sources.
-	added := make(map[string]bool)
-	for _, proto := range srv.Protocols {
-		if proto.DialCandidates != nil && !added[proto.Name] {
-			srv.discmix.AddSource(proto.DialCandidates)
-			added[proto.Name] = true
-		}
-	}
+	//added := make(map[string]bool)
+	//for _, proto := range srv.Protocols {
+	//	if proto.DialCandidates != nil && !added[proto.Name] {
+	//		srv.discmix.AddSource(proto.DialCandidates)
+	//		added[proto.Name] = true
+	//	}
+	//}
 
 	// Don't listen on UDP endpoint if DHT is disabled.
 	if srv.NoDiscovery && !srv.DiscoveryV5 {
