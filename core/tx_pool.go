@@ -729,7 +729,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.currentState)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil)
 	if err != nil {
 		return err
 	}
@@ -1169,7 +1169,7 @@ func (pool *TxPool) count() int {
 	return pool.all.Count()
 }
 
-// requestPromoteExecutables requests a pool reset to the new head block.
+// requestReset requests a pool reset to the new head block.
 // The returned channel is closed when the reset has occurred.
 func (pool *TxPool) requestReset(oldHead *types.Header, newHead *types.Header) chan struct{} {
 	select {

@@ -61,10 +61,6 @@ func testHandshake(t *testing.T, protocol uint) {
 			code: StatusMsg, data: StatusPacket{uint32(protocol), 1, head.Number(), head.Hash(), common.Hash{3}},
 			want: errGenesisMismatch,
 		},
-		{
-			code: StatusMsg, data: StatusPacket{uint32(protocol), 1, head.Number(), head.Hash(), genesis.Hash()},
-			want: errForkIDRejected,
-		},
 	}
 	for i, test := range tests {
 		// Create the two peers to shake with each other

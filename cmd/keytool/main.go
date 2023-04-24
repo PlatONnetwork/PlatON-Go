@@ -18,9 +18,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -34,7 +34,7 @@ var gitDate = ""
 var app *cli.App
 
 func init() {
-	app = utils.NewApp(gitCommit, gitDate, "an PlatON-Go key manager")
+	app = flags.NewApp(gitCommit, gitDate, "an PlatON-Go key manager")
 	app.Commands = []cli.Command{
 		commandGenerate,
 		commandInspect,
@@ -45,7 +45,7 @@ func init() {
 		commandGenblskeypair,
 		commandAddressHexToBech32,
 	}
-	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 }
 
 // Commonly used command line flags.
@@ -61,7 +61,7 @@ var (
 )
 
 func main() {
-	cli.CommandHelpTemplate = utils.OriginCommandHelpTemplate
+	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

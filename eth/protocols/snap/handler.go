@@ -19,12 +19,14 @@ package snap
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enr"
@@ -48,6 +50,11 @@ const (
 	// maxTrieNodeLookups is the maximum number of state trie nodes to serve. This
 	// number is there to limit the number of disk lookups.
 	maxTrieNodeLookups = 1024
+
+	// maxTrieNodeTimeSpent is the maximum time we should spend on looking up trie nodes.
+	// If we spend too much time, then it's a fairly high chance of timing out
+	// at the remote side, which means all the work is in vain.
+	maxTrieNodeTimeSpent = 5 * time.Second
 )
 
 // Handler is a callback to invoke from an outside runner after the boilerplate
@@ -77,6 +84,12 @@ type Backend interface {
 
 // MakeProtocols constructs the P2P protocol definitions for `snap`.
 func MakeProtocols(backend Backend, dnsdisc enode.Iterator) []p2p.Protocol {
+	// Filter the discovery iterator for nodes advertising snap support.
+	dnsdisc = enode.Filter(dnsdisc, func(n *enode.Node) bool {
+		var snap enrEntry
+		return n.Load(&snap) == nil
+	})
+
 	protocols := make([]p2p.Protocol, len(ProtocolVersions))
 	for i, version := range ProtocolVersions {
 		version := version // Closure
@@ -115,7 +128,7 @@ func handle(backend Backend, peer *Peer) error {
 }
 
 // handleMessage is invoked whenever an inbound message is received from a
-// remote peer on the `spap` protocol. The remote connection is torn down upon
+// remote peer on the `snap` protocol. The remote connection is torn down upon
 // returning any error.
 func handleMessage(backend Backend, peer *Peer) error {
 	// Read the next message from the remote peer, and ensure it's fully consumed
@@ -127,7 +140,19 @@ func handleMessage(backend Backend, peer *Peer) error {
 		return fmt.Errorf("%w: %v > %v", errMsgTooLarge, msg.Size, maxMessageSize)
 	}
 	defer msg.Discard()
-
+	start := time.Now()
+	// Track the emount of time it takes to serve the request and run the handler
+	if metrics.Enabled {
+		h := fmt.Sprintf("%s/%s/%d/%#02x", p2p.HandleHistName, ProtocolName, peer.Version(), msg.Code)
+		defer func(start time.Time) {
+			sampler := func() metrics.Sample {
+				return metrics.ResettingSample(
+					metrics.NewExpDecaySample(1028, 0.015),
+				)
+			}
+			metrics.GetOrRegisterHistogramLazy(h, nil, sampler).Update(time.Since(start).Microseconds())
+		}(start)
+	}
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == GetAccountRangeMsg:
@@ -256,8 +281,13 @@ func handleMessage(backend Backend, peer *Peer) error {
 			var (
 				storage []*StorageData
 				last    common.Hash
+				abort   bool
 			)
-			for it.Next() && size < hardLimit {
+			for it.Next() {
+				if size >= hardLimit {
+					abort = true
+					break
+				}
 				hash, slot := it.Hash(), common.CopyBytes(it.Slot())
 
 				// Track the returned interval for the Merkle proofs
@@ -280,7 +310,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 			// Generate the Merkle proofs for the first and last storage slot, but
 			// only if the response was capped. If the entire storage trie included
 			// in the response, no need for any proofs.
-			if origin != (common.Hash{}) || size >= hardLimit {
+			if origin != (common.Hash{}) || abort {
 				// Request started at a non-zero hash or was capped prematurely, add
 				// the endpoint Merkle proofs
 				accTrie, err := trie.New(req.Root, backend.Chain().StateCache().TrieDB())
@@ -328,7 +358,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 		if err := msg.Decode(res); err != nil {
 			return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 		}
-		// Ensure the ranges ae monotonically increasing
+		// Ensure the ranges are monotonically increasing
 		for i, slots := range res.Slots {
 			for j := 1; j < len(slots); j++ {
 				if bytes.Compare(slots[j-1].Hash[:], slots[j].Hash[:]) >= 0 {
@@ -451,13 +481,13 @@ func handleMessage(backend Backend, peer *Peer) error {
 					bytes += uint64(len(blob))
 
 					// Sanity check limits to avoid DoS on the store trie loads
-					if bytes > req.Bytes || loads > maxTrieNodeLookups {
+					if bytes > req.Bytes || loads > maxTrieNodeLookups || time.Since(start) > maxTrieNodeTimeSpent {
 						break
 					}
 				}
 			}
 			// Abort request processing if we've exceeded our limits
-			if bytes > req.Bytes || loads > maxTrieNodeLookups {
+			if bytes > req.Bytes || loads > maxTrieNodeLookups || time.Since(start) > maxTrieNodeTimeSpent {
 				break
 			}
 		}

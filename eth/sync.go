@@ -243,17 +243,21 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	if cs.handler.peers.len() < minPeers {
 		return nil
 	}
-	// We have enough peers, check TD
-	peer := cs.handler.peers.peerWithHighestTD()
+	// We have enough peers, check highest block number
+	peer := cs.handler.peers.peerWithHighestBlock()
 	if peer == nil {
 		return nil
 	}
-	mode := cs.modeAndLocalHead()
+	mode, ourHighest := cs.modeAndLocalHead()
 	if mode == downloader.FastSync && atomic.LoadUint32(&cs.handler.snapSync) == 1 {
 		// Fast sync via the snap protocol
 		mode = downloader.SnapSync
 	}
 	op := peerToSyncOp(mode, peer)
+	_, highestBn := op.peer.Head()
+	if highestBn.Uint64() <= ourHighest {
+		return nil // We're in sync.
+	}
 	return op
 }
 
@@ -262,20 +266,21 @@ func peerToSyncOp(mode downloader.SyncMode, p *eth.Peer) *chainSyncOp {
 	return &chainSyncOp{mode: mode, peer: p, head: peerHead}
 }
 
-func (cs *chainSyncer) modeAndLocalHead() downloader.SyncMode {
+func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	// If we're in fast sync mode, return that directly
+	head := cs.handler.chain.CurrentBlock()
 	if atomic.LoadUint32(&cs.handler.fastSync) == 1 {
-		return downloader.FastSync
+		return downloader.FastSync, head.NumberU64()
 	}
 	// We are probably in full sync, but we might have rewound to before the
 	// fast sync pivot, check if we should reenable
 	if pivot := rawdb.ReadLastPivotNumber(cs.handler.database); pivot != nil {
 		if head := cs.handler.chain.CurrentBlock(); head.NumberU64() < *pivot {
-			return downloader.FastSync
+			return downloader.FastSync, head.NumberU64()
 		}
 	}
 	// Nope, we're really full syncing
-	return downloader.FullSync
+	return downloader.FullSync, head.NumberU64()
 }
 
 // startSync launches doSync in a new goroutine.

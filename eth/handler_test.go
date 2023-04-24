@@ -138,12 +138,48 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	}).MustCommit(db)
 
-	chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFaker(), vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFakerWithDataBase(db), vm.Config{}, nil, nil)
 
-	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFaker(), db, blocks, nil)
+	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFakerWithDataBase(db), db, blocks, nil)
 	if _, err := chain.InsertChain(bs); err != nil {
 		panic(err)
 	}
+	txpool := newTestTxPool()
+
+	handler, _ := newHandler(&handlerConfig{
+		Database:   db,
+		Chain:      chain,
+		TxPool:     txpool,
+		Network:    1,
+		Sync:       downloader.FastSync,
+		BloomCache: 1,
+	})
+	handler.Start(1000)
+
+	return &testHandler{
+		db:      db,
+		chain:   chain,
+		txpool:  txpool,
+		handler: handler,
+	}
+}
+
+// newTestHandler2 creates a new handler for testing purposes with no blocks.
+func newTestHandler2() *testHandler {
+	return newTestHandlerWithBlocks2(0)
+}
+
+// newTestHandlerWithBlocks2 creates a new handler for testing purposes, with a
+// given number of initial blocks.
+func newTestHandlerWithBlocks2(blocks int) *testHandler {
+	// Create a database pre-initialize with a genesis block
+	db := rawdb.NewMemoryDatabase()
+	genesis := &(core.Genesis{
+		Config: params.TestChainConfig,
+		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
+	})
+	parent := genesis.MustCommit(db)
+	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, consensus.NewFakerWithDataBase(db), db, blocks, nil)
 	txpool := newTestTxPool()
 
 	handler, _ := newHandler(&handlerConfig{

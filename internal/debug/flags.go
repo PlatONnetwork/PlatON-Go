@@ -41,22 +41,22 @@ var (
 		Usage: "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
 		Value: 3,
 	}
-	logjsonFlag = cli.BoolFlag{
-		Name:  "log.json",
-		Usage: "Format logs with JSON",
-	}
 	vmoduleFlag = cli.StringFlag{
 		Name:  "vmodule",
 		Usage: "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. eth/*=5,p2p=4)",
 		Value: "",
 	}
+	logjsonFlag = cli.BoolFlag{
+		Name:  "log.json",
+		Usage: "Format logs with JSON",
+	}
 	backtraceAtFlag = cli.StringFlag{
-		Name:  "backtrace",
+		Name:  "log.backtrace",
 		Usage: "Request a stack trace at a specific logging statement (e.g. \"block.go:271\")",
 		Value: "",
 	}
 	debugFlag = cli.BoolFlag{
-		Name:  "debug",
+		Name:  "log.debug",
 		Usage: "Prepends log messages with call-site location (file and line number)",
 	}
 	pprofFlag = cli.BoolFlag{
@@ -114,6 +114,15 @@ var (
 		Name:  "cpuprofile",
 		Usage: "Write CPU profile to the given file (deprecated, use --pprof.cpuprofile)",
 	}
+	legacyBacktraceAtFlag = cli.StringFlag{
+		Name:  "backtrace",
+		Usage: "Request a stack trace at a specific logging statement (e.g. \"block.go:271\") (deprecated, use --log.backtrace)",
+		Value: "",
+	}
+	legacyDebugFlag = cli.BoolFlag{
+		Name:  "debug",
+		Usage: "Prepends log messages with call-site location (file and line number) (deprecated, use --log.debug)",
+	}
 
 	wasmLogFileFlag = cli.StringFlag{
 		Name:  "wasmlog",
@@ -124,15 +133,30 @@ var (
 
 // Flags holds all command-line flags required for debugging.
 var Flags = []cli.Flag{
-	verbosityFlag, logjsonFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
-	pprofFlag, pprofAddrFlag, pprofPortFlag, memprofilerateFlag,
-	blockprofilerateFlag, cpuprofileFlag, traceFlag,
+	verbosityFlag,
+	vmoduleFlag,
+	logjsonFlag,
+	backtraceAtFlag,
+	debugFlag,
+	pprofFlag,
+	pprofAddrFlag,
+	pprofPortFlag,
+	memprofilerateFlag,
+	blockprofilerateFlag,
+	cpuprofileFlag,
+	traceFlag,
 	wasmLogFileFlag,
 }
 
+// This is the list of deprecated debugging flags.
 var DeprecatedFlags = []cli.Flag{
-	legacyPprofPortFlag, legacyPprofAddrFlag, legacyMemprofilerateFlag,
-	legacyBlockprofilerateFlag, legacyCpuprofileFlag,
+	legacyPprofPortFlag,
+	legacyPprofAddrFlag,
+	legacyMemprofilerateFlag,
+	legacyBlockprofilerateFlag,
+	legacyCpuprofileFlag,
+	legacyBacktraceAtFlag,
+	legacyDebugFlag,
 }
 
 var glogger *log.GlogHandler
@@ -158,25 +182,54 @@ func Setup(ctx *cli.Context) error {
 		ostream = log.StreamHandler(output, log.TerminalFormat(usecolor))
 	}
 	glogger.SetHandler(ostream)
+
 	// logging
-	log.PrintOrigins(ctx.GlobalBool(debugFlag.Name))
-	glogger.Verbosity(log.Lvl(ctx.GlobalInt(verbosityFlag.Name)))
-	glogger.Vmodule(ctx.GlobalString(vmoduleFlag.Name))
-	glogger.BacktraceAt(ctx.GlobalString(backtraceAtFlag.Name))
+	verbosity := ctx.GlobalInt(verbosityFlag.Name)
+	glogger.Verbosity(log.Lvl(verbosity))
+	vmodule := ctx.GlobalString(vmoduleFlag.Name)
+	glogger.Vmodule(vmodule)
+
+	debug := ctx.GlobalBool(debugFlag.Name)
+	if ctx.GlobalIsSet(legacyDebugFlag.Name) {
+		debug = ctx.GlobalBool(legacyDebugFlag.Name)
+		log.Warn("The flag --debug is deprecated and will be removed in the future, please use --log.debug")
+	}
+	if ctx.GlobalIsSet(debugFlag.Name) {
+		debug = ctx.GlobalBool(debugFlag.Name)
+	}
+	log.PrintOrigins(debug)
+
+	backtrace := ctx.GlobalString(backtraceAtFlag.Name)
+	if b := ctx.GlobalString(legacyBacktraceAtFlag.Name); b != "" {
+		backtrace = b
+		log.Warn("The flag --backtrace is deprecated and will be removed in the future, please use --log.backtrace")
+	}
+	if b := ctx.GlobalString(backtraceAtFlag.Name); b != "" {
+		backtrace = b
+	}
+	glogger.BacktraceAt(backtrace)
+
 	log.Root().SetHandler(glogger)
 
 	// profiling, tracing
+	runtime.MemProfileRate = memprofilerateFlag.Value
 	if ctx.GlobalIsSet(legacyMemprofilerateFlag.Name) {
 		runtime.MemProfileRate = ctx.GlobalInt(legacyMemprofilerateFlag.Name)
 		log.Warn("The flag --memprofilerate is deprecated and will be removed in the future, please use --pprof.memprofilerate")
 	}
-	runtime.MemProfileRate = ctx.GlobalInt(memprofilerateFlag.Name)
+	if ctx.GlobalIsSet(memprofilerateFlag.Name) {
+		runtime.MemProfileRate = ctx.GlobalInt(memprofilerateFlag.Name)
+	}
 
+	blockProfileRate := blockprofilerateFlag.Value
 	if ctx.GlobalIsSet(legacyBlockprofilerateFlag.Name) {
-		Handler.SetBlockProfileRate(ctx.GlobalInt(legacyBlockprofilerateFlag.Name))
+		blockProfileRate = ctx.GlobalInt(legacyBlockprofilerateFlag.Name)
 		log.Warn("The flag --blockprofilerate is deprecated and will be removed in the future, please use --pprof.blockprofilerate")
 	}
-	Handler.SetBlockProfileRate(ctx.GlobalInt(blockprofilerateFlag.Name))
+	if ctx.GlobalIsSet(blockprofilerateFlag.Name) {
+		blockProfileRate = ctx.GlobalInt(blockprofilerateFlag.Name)
+	}
+	Handler.SetBlockProfileRate(blockProfileRate)
 
 	if traceFile := ctx.GlobalString(traceFlag.Name); traceFile != "" {
 		if err := Handler.StartGoTrace(traceFile); err != nil {
@@ -189,26 +242,12 @@ func Setup(ctx *cli.Context) error {
 			return err
 		}
 	}
-	if cpuFile := ctx.GlobalString(legacyCpuprofileFlag.Name); cpuFile != "" {
-		log.Warn("The flag --cpuprofile is deprecated and will be removed in the future, please use --pprof.cpuprofile")
-		if err := Handler.StartCPUProfile(cpuFile); err != nil {
-			return err
-		}
-	}
 
 	// pprof server
 	if ctx.GlobalBool(pprofFlag.Name) {
 		listenHost := ctx.GlobalString(pprofAddrFlag.Name)
-		if ctx.GlobalIsSet(legacyPprofAddrFlag.Name) && !ctx.GlobalIsSet(pprofAddrFlag.Name) {
-			listenHost = ctx.GlobalString(legacyPprofAddrFlag.Name)
-			log.Warn("The flag --pprofaddr is deprecated and will be removed in the future, please use --pprof.addr")
-		}
 
 		port := ctx.GlobalInt(pprofPortFlag.Name)
-		if ctx.GlobalIsSet(legacyPprofPortFlag.Name) && !ctx.GlobalIsSet(pprofPortFlag.Name) {
-			port = ctx.GlobalInt(legacyPprofPortFlag.Name)
-			log.Warn("The flag --pprofport is deprecated and will be removed in the future, please use --pprof.port")
-		}
 
 		address := fmt.Sprintf("%s:%d", listenHost, port)
 		// This context value ("metrics.addr") represents the utils.MetricsHTTPFlag.Name.

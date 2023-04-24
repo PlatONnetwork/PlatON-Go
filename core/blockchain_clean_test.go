@@ -81,7 +81,7 @@ func TestCleaner(t *testing.T) {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
 	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)
@@ -139,7 +139,7 @@ func TestStopCleaner(t *testing.T) {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
 	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 
 	blockchain, err := newBlockChainForTesting(db)

@@ -36,6 +36,10 @@ import (
 )
 
 var (
+	// errReadOnly is returned if the freezer is opened in read only mode. All the
+	// mutations are disallowed.
+	errReadOnly = errors.New("read only")
+
 	// errUnknownTable is returned if the user attempts to read from a table that is
 	// not tracked by the freezer.
 	errUnknownTable = errors.New("unknown table")
@@ -74,6 +78,7 @@ type freezer struct {
 	frozen    uint64 // Number of blocks already frozen
 	threshold uint64 // Number of recent blocks not to freeze (params.FullImmutabilityThreshold apart from tests)
 
+	readonly     bool
 	tables       map[string]*freezerTable // Data tables for storing everything
 	instanceLock fileutil.Releaser        // File-system lock to prevent double opens
 
@@ -85,7 +90,7 @@ type freezer struct {
 
 // newFreezer creates a chain freezer that moves ancient chain data into
 // append-only flat file containers.
-func newFreezer(datadir string, namespace string) (*freezer, error) {
+func newFreezer(datadir string, namespace string, readonly bool) (*freezer, error) {
 	// Create the initial freezer object
 	var (
 		readMeter  = metrics.NewRegisteredMeter(namespace+"ancient/read", nil)
@@ -107,6 +112,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 	}
 	// Open all the supported data tables
 	freezer := &freezer{
+		readonly:     readonly,
 		threshold:    params.FullImmutabilityThreshold,
 		tables:       make(map[string]*freezerTable),
 		instanceLock: lock,
@@ -131,7 +137,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 		lock.Release()
 		return nil, err
 	}
-	log.Info("Opened ancient database", "database", datadir)
+	log.Info("Opened ancient database", "database", datadir, "readonly", readonly)
 	return freezer, nil
 }
 
@@ -139,7 +145,7 @@ func newFreezer(datadir string, namespace string) (*freezer, error) {
 func (f *freezer) Close() error {
 	var errs []error
 	f.closeOnce.Do(func() {
-		f.quit <- struct{}{}
+		close(f.quit)
 		for _, table := range f.tables {
 			if err := table.Close(); err != nil {
 				errs = append(errs, err)
@@ -192,6 +198,9 @@ func (f *freezer) AncientSize(kind string) (uint64, error) {
 // injection will be rejected. But if two injections with same number happen at
 // the same time, we can get into the trouble.
 func (f *freezer) AppendAncient(number uint64, hash, header, body, receipts []byte) (err error) {
+	if f.readonly {
+		return errReadOnly
+	}
 	// Ensure the binary blobs we are appending is continuous with freezer.
 	if atomic.LoadUint64(&f.frozen) != number {
 		return errOutOrderInsertion
@@ -229,8 +238,11 @@ func (f *freezer) AppendAncient(number uint64, hash, header, body, receipts []by
 	return nil
 }
 
-// Truncate discards any recent data above the provided threshold number.
+// TruncateAncients discards any recent data above the provided threshold number.
 func (f *freezer) TruncateAncients(items uint64) error {
+	if f.readonly {
+		return errReadOnly
+	}
 	if atomic.LoadUint64(&f.frozen) <= items {
 		return nil
 	}
@@ -243,7 +255,7 @@ func (f *freezer) TruncateAncients(items uint64) error {
 	return nil
 }
 
-// sync flushes all data tables to disk.
+// Sync flushes all data tables to disk.
 func (f *freezer) Sync() error {
 	var errs []error
 	for _, table := range f.tables {
