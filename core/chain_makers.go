@@ -18,6 +18,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"time"
 
@@ -45,6 +46,10 @@ type BlockGen struct {
 
 	config *params.ChainConfig
 	engine consensus.Engine
+}
+
+func (b *BlockGen) SetActiveVersion(version uint32) {
+	gov.AddActiveVersion(version, 0, b.statedb)
 }
 
 // SetCoinbase sets the coinbase of the generated block.
