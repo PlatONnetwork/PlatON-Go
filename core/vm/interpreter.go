@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"hash"
 	"sync/atomic"
 
@@ -108,7 +109,11 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
-		cfg.JumpTable = istanbulInstructionSet
+		if gov.Gte150VersionState(evm.StateDB) {
+			cfg.JumpTable = berlinInstructionSet
+		} else {
+			cfg.JumpTable = istanbulInstructionSet
+		}
 	}
 
 	return &EVMInterpreter{

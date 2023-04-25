@@ -64,6 +64,12 @@ func opChainID(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]
 	return nil, nil
 }
 
+// enable2200 applies EIP-2200 (Rebalance net-metered SSTORE)
+func enable2200(jt *JumpTable) {
+	jt[SLOAD].constantGas = params.SloadGasEIP2200
+	jt[SSTORE].dynamicGas = gasSStoreEIP2200
+}
+
 // enable2315 applies EIP-2315 (Simple Subroutines)
 // - Adds opcodes that jump to and return from subroutines
 func enable2315(jt *JumpTable) {
