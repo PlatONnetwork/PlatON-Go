@@ -20,9 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
 	"io/ioutil"
 	"math"
@@ -34,6 +31,10 @@ import (
 	"text/tabwriter"
 	"text/template"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
@@ -1223,6 +1224,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.NetworkId = 2000
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+	default:
+		SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)
 	}
 
 	if ctx.GlobalIsSet(DBNoGCFlag.Name) {
@@ -1262,6 +1265,26 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.VmTimeoutDuration = ctx.GlobalUint64(VmTimeoutDuration.Name)
 	}
 
+}
+
+// SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
+// no URLs are set.
+func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
+	if cfg.EthDiscoveryURLs != nil {
+		return // already set through flags/config
+	}
+	protocol := "all"
+	if cfg.SyncMode == downloader.LightSync {
+		protocol = "les"
+	}
+	if url := params.KnownDNSNetwork(genesis, protocol); url != "" {
+		cfg.EthDiscoveryURLs = []string{url}
+	}
+	if cfg.SyncMode == downloader.SnapSync {
+		if url := params.KnownDNSNetwork(genesis, "snap"); url != "" {
+			cfg.SnapDiscoveryURLs = []string{url}
+		}
+	}
 }
 
 func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
