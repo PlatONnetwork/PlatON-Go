@@ -38,7 +38,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 var (
@@ -129,6 +129,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	blockChainCache := core.NewBlockChainCache(chain)
 
 	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db), nil)
+	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, stateDB)
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 
