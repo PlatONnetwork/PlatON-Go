@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -186,6 +188,14 @@ var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
 	vm.RewardManagerPoolAddr:   &rewardEmpty{},
 	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 	vm.VrfInnerContractAddr:    &vrf{},
+}
+
+// ActivePrecompiles returns the precompiles enabled with the current configuration.
+func ActivePrecompiles(state xcom.StateDB) []common.Address {
+	if gov.Gte150VersionState(state) {
+		return PrecompiledAddressesBerlin2
+	}
+	return PrecompiledAddressesBerlin
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -367,9 +377,10 @@ var (
 // modexpMultComplexity implements bigModexp multComplexity formula, as defined in EIP-198
 //
 // def mult_complexity(x):
-//    if x <= 64: return x ** 2
-//    elif x <= 1024: return x ** 2 // 4 + 96 * x - 3072
-//    else: return x ** 2 // 16 + 480 * x - 199680
+//
+//	if x <= 64: return x ** 2
+//	elif x <= 1024: return x ** 2 // 4 + 96 * x - 3072
+//	else: return x ** 2 // 16 + 480 * x - 199680
 //
 // where is x is max(length_of_MODULUS, length_of_BASE)
 func modexpMultComplexity(x *big.Int) *big.Int {
