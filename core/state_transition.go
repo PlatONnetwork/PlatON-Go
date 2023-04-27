@@ -270,7 +270,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 
 	// Set up the initial access list.
 	if gov.Gte150VersionState(st.state) {
-		st.state.PrepareAccessList(msg.From(), msg.To(), st.evm.ActivePrecompiles(st.state), msg.AccessList())
+		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
 	}
 
 	var (
