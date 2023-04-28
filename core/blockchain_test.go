@@ -20,6 +20,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"testing"
@@ -1451,8 +1452,8 @@ func TestEIP2718Transition(t *testing.T) {
 		aa = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 
 		// Generate a canonical chain to act as the main dataset
-		engine = consensus.NewFaker()
 		db     = rawdb.NewMemoryDatabase()
+		engine = consensus.NewFakerWithDataBase(db)
 
 		// A sender who makes transactions, has some funds
 		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1494,11 +1495,13 @@ func TestEIP2718Transition(t *testing.T) {
 				StorageKeys: []common.Hash{{0}},
 			}},
 		})
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, b.statedb)
 		b.AddTx(tx)
 	})
 
 	// Import the canonical chain
-	diskdb := rawdb.NewMemoryDatabase()
+	//diskdb := rawdb.NewMemoryDatabase()
+	diskdb := db
 	gspec.MustCommit(diskdb)
 
 	chain, err := NewBlockChain(diskdb, nil, gspec.Config, engine, vm.Config{}, nil, nil)
