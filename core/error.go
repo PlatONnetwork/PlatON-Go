@@ -29,6 +29,10 @@ var (
 	// by a transaction is higher than what's left in the block.
 	ErrGasLimitReached = errors.New("gas limit reached")
 
+	// ErrInsufficientFundsForTransfer is returned if the transaction sender doesn't
+	// have enough funds for transfer(topmost call only).
+	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
+
 	// ErrBlacklistedHash is returned if a block to import is on the blacklist.
 	ErrBlacklistedHash = errors.New("blacklisted hash")
 
