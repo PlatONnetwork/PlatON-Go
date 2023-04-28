@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -47,8 +48,8 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 			txs.Shift()
 		}
 	}
-
-	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, core.GetExecutor().MakeSigner(w.current.state), tempContractCache)
+	signer := types.MakeSigner(c.worker.chainConfig, header.Number, gov.Gte150VersionState(w.current.state))
+	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, signer, tempContractCache)
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(parallelTxs)

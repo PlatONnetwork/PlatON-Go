@@ -186,7 +186,7 @@ var testCase = []*Case{
 		},
 		funcName: "platon_caller_test",
 		init: func(self *Case, t *testing.T) {
-			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_0_11_0, ActiveBlock: 1}
+			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_1_1_0, ActiveBlock: 1}
 			avList := []gov.ActiveVersionValue{curAv}
 			avListBytes, _ := json.Marshal(avList)
 			self.ctx.evm.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), avListBytes)

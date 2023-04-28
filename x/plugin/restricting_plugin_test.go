@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -100,7 +99,6 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 
 	from, to := addrArr[0], addrArr[1]
 	sdb := snapshotdb.Instance()
@@ -272,7 +270,7 @@ func NewTestRestrictingPlugin() *TestRestrictingPlugin {
 	return tp
 }
 
-//the plan is AdvanceLockedFunds,then release, then ReturnLockFunds,the info will delete
+// the plan is AdvanceLockedFunds,then release, then ReturnLockFunds,the info will delete
 func TestRestrictingPlugin_Compose3(t *testing.T) {
 	plugin := NewTestRestrictingPlugin()
 
@@ -308,7 +306,7 @@ func TestRestrictingPlugin_Compose3(t *testing.T) {
 	}
 }
 
-//the record  exist,have NeedRelease,the NeedRelease amount is less than add plan amount
+// the record  exist,have NeedRelease,the NeedRelease amount is less than add plan amount
 func TestRestrictingPlugin_Compose2(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 
@@ -360,7 +358,7 @@ func TestRestrictingPlugin_Compose2(t *testing.T) {
 	infoAssertF(big.NewInt(3e18), []uint64{2}, big.NewInt(2e18), big.NewInt(0))
 }
 
-//the record  exist,have NeedRelease,the NeedRelease amount is grate or equal than  add plan amount
+// the record  exist,have NeedRelease,the NeedRelease amount is grate or equal than  add plan amount
 func TestRestrictingPlugin_Compose(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()

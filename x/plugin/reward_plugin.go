@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
@@ -290,7 +291,7 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 	return nil
 }
 
-func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, list []*DelegationInfoWithRewardPerList, state xcom.StateDB) ([]reward.NodeDelegateReward, error) {
+func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockNum uint64, account common.Address, list []*DelegationInfoWithRewardPerList, state xcom.StateDB, rules params.Rules) ([]reward.NodeDelegateReward, error) {
 	log.Debug("Call withdraw delegate reward: begin", "account", account, "list", list, "blockNum", blockNum, "blockHash", blockHash, "epoch", xutil.CalculateEpoch(blockNum))
 
 	rewards := make([]reward.NodeDelegateReward, 0)
@@ -317,7 +318,7 @@ func (rmp *RewardMgrPlugin) WithdrawDelegateReward(blockHash common.Hash, blockN
 		if delWithPer.DelegationInfo.Delegation.CumulativeIncome.Cmp(common.Big0) > 0 {
 			receiveReward.Add(receiveReward, delWithPer.DelegationInfo.Delegation.CumulativeIncome)
 			delWithPer.DelegationInfo.Delegation.CleanCumulativeIncome(uint32(currentEpoch))
-			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, gov.Gte130VersionState(state)); err != nil {
+			if err := rmp.stakingPlugin.db.SetDelegateStore(blockHash, account, delWithPer.DelegationInfo.NodeID, delWithPer.DelegationInfo.StakeBlockNumber, delWithPer.DelegationInfo.Delegation, rules.IsEinstein); err != nil {
 				return nil, err
 			}
 		}

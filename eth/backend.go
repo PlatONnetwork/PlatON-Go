@@ -198,6 +198,17 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				}
 			}
 			log.Info("last fast sync is fail,init  db finish")
+		} else {
+			// Just commit the new block if there is no stored genesis block.
+			stored := rawdb.ReadCanonicalHash(chainDb, 0)
+			//todo 这是一个暂时的hack方法,针对我们的测试链使用,待测试链版本升级到1.5.0后此方法可以删除
+			if stored != params.MainnetGenesisHash && config.Genesis == nil {
+				// private net
+				config.Genesis = new(core.Genesis)
+				if err := config.Genesis.InitGenesisAndSetEconomicConfig(stack.GenesisPath()); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -340,7 +351,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			reactor.SetVRFhandler(vrfhandler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, chainConfig, config.DBValidatorsHistory)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -657,7 +668,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chainConfig *params.ChainConfig, isValidatorsHistory bool) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -671,6 +682,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
+	xplugin.StakingInstance().SetChainConfig(chainConfig)
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}

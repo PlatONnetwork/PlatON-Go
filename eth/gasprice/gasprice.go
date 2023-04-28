@@ -124,7 +124,7 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 	)
 
 	for sent < gpo.checkBlocks && number > 0 {
-		go gpo.getBlockPrices(ctx, types.NewPIP11Signer(gpo.backend.ChainConfig().ChainID, gpo.backend.ChainConfig().PIP7ChainID), number, sampleNumber, result, quit)
+		go gpo.getBlockPrices(ctx, nil, number, sampleNumber, result, quit)
 		sent++
 		exp++
 		number--
@@ -148,7 +148,7 @@ func (gpo *Oracle) SuggestPrice(ctx context.Context) (*big.Int, error) {
 		// meaningful returned, try to query more blocks. But the maximum
 		// is 2*checkBlocks.
 		if len(res.prices) == 1 && len(txPrices)+1+exp < gpo.checkBlocks*2 && number > 0 {
-			go gpo.getBlockPrices(ctx, types.NewPIP11Signer(gpo.backend.ChainConfig().ChainID, gpo.backend.ChainConfig().PIP7ChainID), number, sampleNumber, result, quit)
+			go gpo.getBlockPrices(ctx, nil, number, sampleNumber, result, quit)
 			sent++
 			exp++
 			number--
@@ -201,7 +201,7 @@ func (gpo *Oracle) getBlockPrices(ctx context.Context, signer types.Signer, bloc
 
 	var prices []*big.Int
 	for _, tx := range txs {
-		sender, err := types.Sender(signer, tx)
+		sender, err := types.Sender(types.NewEIP2930Signer(tx.ChainId()), tx)
 		if err == nil && sender != block.Coinbase() {
 			prices = append(prices, tx.GasPrice())
 			if len(prices) >= limit {
