@@ -71,7 +71,7 @@ func init() {
 
 	signer := types.NewEIP2930Signer(chainConfig.PIP7ChainID)
 	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
-		ChainID: params.TestChainConfig.ChainID,
+		ChainID: params.TestChainConfig.PIP7ChainID,
 		Nonce:   0,
 		To:      &testUserAddress,
 		Value:   big.NewInt(1000),
