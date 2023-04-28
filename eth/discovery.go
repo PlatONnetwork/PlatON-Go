@@ -18,7 +18,6 @@ package eth
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -57,14 +56,4 @@ func (eth *Ethereum) startEthEntryUpdate(ln *enode.LocalNode) {
 
 func (eth *Ethereum) currentEthEntry() *ethEntry {
 	return &ethEntry{}
-}
-
-// setupDiscovery creates the node discovery source for the `eth` and `snap`
-// protocols.
-func setupDiscovery(urls []string) (enode.Iterator, error) {
-	if len(urls) == 0 {
-		return nil, nil
-	}
-	client := dnsdisc.NewClient(dnsdisc.Config{})
-	return client.NewIterator(urls...)
 }
