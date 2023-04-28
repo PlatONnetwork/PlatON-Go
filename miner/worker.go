@@ -463,7 +463,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						}
 					}
 					timer.Reset(50 * time.Millisecond)
-				} else if w.chainConfig.Clique == nil || w.chainConfig.Clique.Period > 0 {
+				} else {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
 						timer.Reset(recommit)
@@ -761,7 +761,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state), gov.Gte150VersionState(state)),
+		signer:     types.MakeSigner(w.chainConfig, header.Number, gov.Gte150VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,

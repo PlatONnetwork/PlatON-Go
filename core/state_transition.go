@@ -257,7 +257,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if st.evm.GetVMConfig().VmTimeoutDuration > 0 &&
-		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), gov.Gte120VersionState(st.state), gov.Gte140VersionState(st.state), gov.Gte150VersionState(st.state))) {
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber), gov.Gte150VersionState(st.state))) {
 
 		timeout := time.Duration(st.evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)

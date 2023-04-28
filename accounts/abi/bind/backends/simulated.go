@@ -573,7 +573,7 @@ func (b *SimulatedBackend) SendTransaction(_ context.Context, tx *types.Transact
 
 	// Check transaction validity.
 	block := b.blockchain.CurrentBlock()
-	signer := types.NewEIP2930Signer(b.config.PIP7ChainID)
+	signer := types.MakeSigner(b.blockchain.Config(), block.Number(), true)
 	sender, err := types.Sender(signer, tx)
 	if err != nil {
 		panic(fmt.Errorf("invalid transaction: %v", err))

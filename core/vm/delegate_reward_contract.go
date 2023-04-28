@@ -143,7 +143,7 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 		return nil, nil
 	}
 
-	reward, err := rc.Plugin.WithdrawDelegateReward(blockHash, blockNum.Uint64(), from, delegationInfoWithRewardPerList, state)
+	reward, err := rc.Plugin.WithdrawDelegateReward(blockHash, blockNum.Uint64(), from, delegationInfoWithRewardPerList, state, rc.Evm.chainRules)
 	if err != nil {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward,

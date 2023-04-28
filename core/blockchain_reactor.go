@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -332,9 +333,9 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
+func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address, rules params.Rules) error {
 
-	if !vm.IsPlatONPrecompiledContract(to, true) {
+	if !vm.IsPlatONPrecompiledContract(to, rules) {
 		return nil
 	}
 

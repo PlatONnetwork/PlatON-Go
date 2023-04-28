@@ -68,14 +68,10 @@ func init() {
 	testTxPoolConfig = core.DefaultTxPoolConfig
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
-	chainConfig.Clique = &params.CliqueConfig{
-		Period: 10,
-		Epoch:  30000,
-	}
 
-	signer := types.NewEIP2930Signer(chainConfig.ChainID)
+	signer := types.NewEIP2930Signer(chainConfig.PIP7ChainID)
 	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
-		ChainID: params.TestChainConfig.ChainID,
+		ChainID: params.TestChainConfig.PIP7ChainID,
 		Nonce:   0,
 		To:      &testUserAddress,
 		Value:   big.NewInt(1000),
