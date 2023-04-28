@@ -179,7 +179,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 	}{
 		{
 			body: `{"query": "{block {number transactions { from { address } to { address } value hash type accessList { address storageKeys } index}}}"}`,
-			want: `{"data":{"block":{"number":1,"transactions":[{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x64","hash":"0xa20f53352272dcf4acb84bd1364de8240a53bb7c7725d8516b626107c0ff77af","type":0,"accessList":[],"index":0},{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x32","hash":"0x987adca5ed9ffb933980ed6a2eebf104012eab8a258f29de7429e7d5c56abf6d","type":1,"accessList":[{"address":"0x0000000000000000000000000000000000000DAd","storageKeys":["0x0000000000000000000000000000000000000000000000000000000000000000"]}],"index":1}]}}}`,
+			want: `{"data":{"block":{"number":1,"transactions":[{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x64","hash":"0xa20f53352272dcf4acb84bd1364de8240a53bb7c7725d8516b626107c0ff77af","type":0,"accessList":[],"index":0},{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x32","hash":"0xb3ea15151ca9997a2e6db0f1d94193d60f4b4c5353f437460b92579e3900b0e8","type":1,"accessList":[{"address":"0x0000000000000000000000000000000000000DAd","storageKeys":["0x0000000000000000000000000000000000000000000000000000000000000000"]}],"index":1}]}}}`,
 			code: 200,
 		},
 	} {
