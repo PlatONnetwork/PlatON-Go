@@ -76,36 +76,8 @@ const (
 	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 )
 
-func Gte110VersionState(state xcom.StateDB) bool {
-	return Gte110Version(GetCurrentActiveVersion(state))
-}
-
-func Gte110Version(version uint32) bool {
-	return version >= params.FORKVERSION_1_1_0
-}
-
-func Gte120VersionState(state xcom.StateDB) bool {
-	return Gte120Version(GetCurrentActiveVersion(state))
-}
-
-func Gte120Version(version uint32) bool {
-	return version >= params.FORKVERSION_1_2_0
-}
-
-func Gte130VersionState(state xcom.StateDB) bool {
-	return Gte130Version(GetCurrentActiveVersion(state))
-}
-
 func Gte130Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_3_0
-}
-
-func Gte140VersionState(state xcom.StateDB) bool {
-	return Gte140Version(GetCurrentActiveVersion(state))
-}
-
-func Gte140Version(version uint32) bool {
-	return version >= params.FORKVERSION_1_4_0
 }
 
 func Gte150VersionState(state xcom.StateDB) bool {

@@ -54,11 +54,12 @@ require (
 	github.com/rjeczalik/notify v0.9.1
 	github.com/robfig/cron v1.2.1-0.20190616124356-61d93e07d1be
 	github.com/rs/cors v1.7.0
-	github.com/shirou/gopsutil v2.20.5+incompatible
+	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible
 	github.com/status-im/keycard-go v0.0.0-20190316090335-8537d3370df4
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tealeg/xlsx v1.0.5
+	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/sys v0.7.0
 	golang.org/x/text v0.9.0

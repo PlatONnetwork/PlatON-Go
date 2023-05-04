@@ -288,7 +288,7 @@ func newPlugins() {
 	SlashInstance()
 	RestrictingInstance()
 	RewardMgrInstance()
-
+	StakingInstance().SetChainConfig(params.TestChainConfig)
 	snapshotdb.Instance()
 }
 

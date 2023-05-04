@@ -231,7 +231,7 @@ func TestCallTracer(t *testing.T) {
 			if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 				t.Fatalf("failed to parse testcase input: %v", err)
 			}
-			signer := types.MakeSigner(test.Genesis.Config, false, true, false)
+			signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(1), true)
 			origin, _ := signer.Sender(tx)
 			txContext := vm.TxContext{
 				Origin:   origin,

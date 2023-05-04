@@ -65,7 +65,7 @@ func BenchmarkFilters(b *testing.B) {
 	genesis := core.GenesisBlockForTesting(db, addr1, big.NewInt(1000000))
 
 	ctx, _ := node.New(&node.Config{DataDir: ""})
-	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 100010, func(i int, gen *core.BlockGen) {
+	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.TestChainConfig.Cbft, nil, nil, ctx), db, 100010, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 2403:
 			receipt := makeReceipt(addr1)

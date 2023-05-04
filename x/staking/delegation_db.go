@@ -49,10 +49,10 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 }
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
-	stakeBlockNumber uint64, del *Delegation, lock bool) error {
+	stakeBlockNumber uint64, del *Delegation, isEinstein bool) error {
 
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
-	if lock {
+	if isEinstein {
 		delByte, err := encodeStoredDelegateRLP(del)
 		if nil != err {
 			return err

@@ -59,8 +59,13 @@ func enable1344(jt *JumpTable) {
 
 // opChainID implements CHAINID opcode
 func opChainID(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
-	chainId, _ := uint256.FromBig(interpreter.evm.chainConfig.ChainID)
-	scope.Stack.push(chainId)
+	if interpreter.evm.chainRules.IsEinstein {
+		chainId, _ := uint256.FromBig(interpreter.evm.chainConfig.PIP7ChainID)
+		scope.Stack.push(chainId)
+	} else {
+		chainId, _ := uint256.FromBig(interpreter.evm.chainConfig.ChainID)
+		scope.Stack.push(chainId)
+	}
 	return nil, nil
 }
 

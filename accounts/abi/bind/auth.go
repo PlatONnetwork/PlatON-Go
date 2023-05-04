@@ -140,7 +140,7 @@ func NewKeyedTransactorWithChainID(key *ecdsa.PrivateKey, chainID *big.Int) (*Tr
 	if chainID == nil {
 		return nil, ErrNoChainID
 	}
-	signer := types.NewEIP2930Signer(chainID)
+	signer := types.LatestSignerForChainID(chainID)
 	return &TransactOpts{
 		From: keyAddr,
 		Signer: func(signer2 types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {

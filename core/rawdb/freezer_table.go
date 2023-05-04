@@ -104,6 +104,11 @@ type freezerTable struct {
 	lock   sync.RWMutex // Mutex protecting the data file descriptors
 }
 
+// NewFreezerTable opens the given path as a freezer table.
+func NewFreezerTable(path, name string, disableSnappy bool) (*freezerTable, error) {
+	return newTable(path, name, metrics.NilMeter{}, metrics.NilMeter{}, metrics.NilGauge{}, disableSnappy)
+}
+
 // newTable opens a freezer table with default settings - 2G files
 func newTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Gauge, disableSnappy bool) (*freezerTable, error) {
 	return newCustomTable(path, name, readMeter, writeMeter, sizeGauge, 2*1000*1000*1000, disableSnappy)
@@ -633,25 +638,24 @@ func (t *freezerTable) Sync() error {
 	return t.head.Sync()
 }
 
-// printIndex is a debug print utility function for testing
-func (t *freezerTable) printIndex() {
+// DumpIndex is a debug print utility function, mainly for testing. It can also
+// be used to analyse a live freezer table index.
+func (t *freezerTable) DumpIndex(start, stop int64) {
 	buf := make([]byte, indexEntrySize)
 
-	fmt.Printf("|-----------------|\n")
-	fmt.Printf("| fileno | offset |\n")
-	fmt.Printf("|--------+--------|\n")
+	fmt.Printf("| number | fileno | offset |\n")
+	fmt.Printf("|--------|--------|--------|\n")
 
-	for i := uint64(0); ; i++ {
+	for i := uint64(start); ; i++ {
 		if _, err := t.index.ReadAt(buf, int64(i*indexEntrySize)); err != nil {
 			break
 		}
 		var entry indexEntry
 		entry.unmarshalBinary(buf)
-		fmt.Printf("|  %03d   |  %03d   | \n", entry.filenum, entry.offset)
-		if i > 100 {
-			fmt.Printf(" ... \n")
+		fmt.Printf("|  %03d   |  %03d   |  %03d   | \n", i, entry.filenum, entry.offset)
+		if stop > 0 && i >= uint64(stop) {
 			break
 		}
 	}
-	fmt.Printf("|-----------------|\n")
+	fmt.Printf("|--------------------------|\n")
 }

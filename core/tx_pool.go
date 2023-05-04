@@ -321,21 +321,12 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
-	pip7, gte140, gte150 := true, false, false
-	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
-		stateDB, err := chain.GetState(currentBlock.Header())
-		if err == nil && stateDB != nil {
-			gte140 = gov.Gte140VersionState(stateDB)
-			gte150 = gov.Gte150VersionState(stateDB)
-		}
-	}
-
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.MakeSigner(chainconfig, pip7, gte140, gte150),
+		signer:      types.NewPIP11Signer(chainconfig.ChainID, chainconfig.PIP7ChainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -351,10 +342,16 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
 	}
-
-	if gte150 {
-		pool.eip2718 = true
+	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
+		stateDB, err := chain.GetState(currentBlock.Header())
+		if err == nil && stateDB != nil {
+			if gte150 := gov.Gte150VersionState(stateDB); gte150 {
+				pool.eip2718 = true
+				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
+			}
+		}
 	}
+
 	pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 
 	pool.locals = newAccountSet(pool.signer)
@@ -512,7 +509,7 @@ func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block
 	pool.currentMaxGas = newHeader.GasLimit
 
 	// reset signer
-	pool.resetSigner(statedb)
+	pool.resetSigner(newHeader.Number, statedb)
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -739,7 +736,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// Verify inner contract tx
 	if nil != tx.To() {
-		if err := bcr.VerifyTx(tx, *(tx.To())); nil != err {
+		if err := bcr.VerifyTx(tx, *(tx.To()), pool.chainconfig.Rules(pool.chainconfig.NewtonBlock)); nil != err {
 			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
@@ -1430,7 +1427,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	pool.pendingNonces = newTxNoncer(statedb)
 	pool.currentMaxGas = newHead.GasLimit
 	// reset signer
-	pool.resetSigner(statedb)
+	pool.resetSigner(newHead.Number, statedb)
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
 	SenderCacher.recover(pool.signer, reinject)
@@ -1438,22 +1435,14 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
 }
 
-func (pool *TxPool) resetSigner(statedb *state.StateDB) {
-	var signer types.Signer
-	gte140 := gov.Gte140VersionState(statedb)
+func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	gte150 := gov.Gte150VersionState(statedb)
 	if gte150 {
-		signer = types.MakeSigner(pool.chainconfig, true, true, true)
 		pool.eip2718 = true
-	} else if gte140 {
-		signer = types.MakeSigner(pool.chainconfig, true, true, false)
-	} else if gov.Gte120VersionState(statedb) {
-		signer = types.MakeSigner(pool.chainconfig, true, false, false)
 	} else {
-		signer = types.MakeSigner(pool.chainconfig, false, false, false)
+		pool.eip2718 = false
 	}
-
-	pool.signer = signer
+	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer
 	pool.cacheAccountNeedPromoted.signer = pool.signer
 }

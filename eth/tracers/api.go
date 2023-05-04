@@ -164,6 +164,16 @@ type TraceConfig struct {
 	Reexec  *uint64
 }
 
+// TraceCallConfig is the config for traceCall API. It holds one more
+// field to override the state for tracing.
+type TraceCallConfig struct {
+	*vm.LogConfig
+	Tracer         *string
+	Timeout        *string
+	Reexec         *uint64
+	StateOverrides *ethapi.StateOverride
+}
+
 // StdTraceConfig holds extra parameters to standard-json trace functions.
 type StdTraceConfig struct {
 	vm.LogConfig
@@ -260,11 +270,10 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.NewEIP2930Signer(api.backend.ChainConfig().PIP7ChainID)
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(localctx))
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
-					msg, _ := tx.AsMessage(signer)
+					msg, _ := tx.AsMessage(types.NewEIP2930Signer(tx.ChainId()))
 					txctx := &txTraceContext{
 						index: i,
 						hash:  tx.Hash(),
@@ -496,7 +505,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.backend.ChainConfig(), false, false, false)
+		signer = types.MakeSigner(api.backend.ChainConfig(), block.Number(), false)
 
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
@@ -599,7 +608,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	// Execute transaction, either tracing all or just the requested one
 	var (
 		dumps       []string
-		signer      = types.MakeSigner(api.backend.ChainConfig(), gov.Gte120VersionState(statedb), gov.Gte140VersionState(statedb), gov.Gte150VersionState(statedb))
+		signer      = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.Gte150VersionState(statedb))
 		chainConfig = api.backend.ChainConfig()
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 		canon       = true
@@ -718,7 +727,7 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 // created during the execution of EVM if the given transaction was added on
 // top of the provided block and returns them as a JSON object.
 // You can provide -2 as a block number to trace on top of the pending block.
-func (api *API) TraceCall(ctx context.Context, args ethapi.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceConfig) (interface{}, error) {
+func (api *API) TraceCall(ctx context.Context, args ethapi.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
 	// Try to retrieve the specified block
 	var (
 		err   error
@@ -728,6 +737,8 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.CallArgs, blockNrOrHa
 		block, err = api.blockByHash(ctx, hash)
 	} else if number, ok := blockNrOrHash.Number(); ok {
 		block, err = api.blockByNumber(ctx, number)
+	} else {
+		return nil, errors.New("invalid arguments; neither block nor hash specified")
 	}
 	if err != nil {
 		return nil, err
@@ -741,11 +752,26 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.CallArgs, blockNrOrHa
 	if err != nil {
 		return nil, err
 	}
+	// Apply the customized state rules if required.
+	if config != nil {
+		if err := config.StateOverrides.Apply(statedb); err != nil {
+			return nil, err
+		}
+	}
 	// Execute the trace
 	msg := args.ToMessage(api.backend.RPCGasCap())
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 
-	return api.traceTx(ctx, msg, new(txTraceContext), vmctx, statedb, config)
+	var traceConfig *TraceConfig
+	if config != nil {
+		traceConfig = &TraceConfig{
+			LogConfig: config.LogConfig,
+			Tracer:    config.Tracer,
+			Timeout:   config.Timeout,
+			Reexec:    config.Reexec,
+		}
+	}
+	return api.traceTx(ctx, msg, new(txTraceContext), vmctx, statedb, traceConfig)
 }
 
 // traceTx configures a new tracer according to the provided configuration, and
@@ -795,7 +821,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *txTrac
 
 	result, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()))
 	if err != nil {
-		return nil, fmt.Errorf("tracing failed: %v", err)
+		return nil, fmt.Errorf("tracing failed: %w", err)
 	}
 
 	// Depending on the tracer type, format and return the output.

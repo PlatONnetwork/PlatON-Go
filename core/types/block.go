@@ -356,24 +356,11 @@ type Block struct {
 	CalTxFromCH chan int
 }
 
-// [deprecated by eth/63]
-// StorageBlock defines the RLP encoding of a Block stored in the
-// state database. The StorageBlock encoding contains fields that
-// would otherwise need to be recomputed.
-type StorageBlock Block
-
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
 	Header    *Header
 	Txs       []*Transaction
 	ExtraData []byte
-}
-
-// [deprecated by eth/63]
-// "storage" block encoding. used for database.
-type storageblock struct {
-	Header *Header
-	Txs    []*Transaction
 }
 
 // NewBlock creates a new block. The input data is copied,
@@ -456,18 +443,6 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 		ExtraData: b.extraData,
 	})
 }
-
-// [deprecated by eth/63]
-func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
-	var sb storageblock
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	b.header, b.transactions = sb.Header, sb.Txs
-	return nil
-}
-
-// TODO: copies
 
 func (b *Block) Transactions() Transactions { return b.transactions }
 
