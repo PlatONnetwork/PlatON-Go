@@ -329,6 +329,8 @@ func handleBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	requestTracker.Fulfil(peer.id, peer.version, BlockHeadersMsg, res.RequestId)
+
 	return backend.Handle(peer, &res.BlockHeadersPacket)
 }
 
@@ -347,6 +349,8 @@ func handleBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	requestTracker.Fulfil(peer.id, peer.version, BlockBodiesMsg, res.RequestId)
+
 	return backend.Handle(peer, &res.BlockBodiesPacket)
 }
 
@@ -365,6 +369,7 @@ func handleNodeData66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+
 	return backend.Handle(peer, &res.NodeDataPacket)
 }
 
@@ -383,6 +388,8 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	requestTracker.Fulfil(peer.id, peer.version, ReceiptsMsg, res.RequestId)
+
 	return backend.Handle(peer, &res.ReceiptsPacket)
 }
 
@@ -508,6 +515,7 @@ func handlePooledTransactions66(backend Backend, msg Decoder, peer *Peer) error 
 		}
 		peer.markTransaction(tx.Hash())
 	}
+
 	return backend.Handle(peer, &txs.PooledTransactionsPacket)
 }
 
