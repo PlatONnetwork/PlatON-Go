@@ -347,7 +347,7 @@ func (s PIP7Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big.I
 		return nil, nil, nil, ErrTxTypeNotSupported
 	}
 	R, S, V = decodeSignature(sig)
-	if s.chainId.Sign() != 0 {
+	if s.PIP7ChainId.Sign() != 0 {
 		V = big.NewInt(int64(sig[64] + 35))
 		V.Add(V, s.PIP7ChainIdMul)
 	}
@@ -390,6 +390,9 @@ func (s PIP11Signer) Equal(s2 Signer) bool {
 }
 
 func (s PIP11Signer) Sender(tx *Transaction) (common.Address, error) {
+	if tx.Type() != LegacyTxType {
+		return common.Address{}, ErrTxTypeNotSupported
+	}
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}

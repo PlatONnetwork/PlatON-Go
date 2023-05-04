@@ -333,6 +333,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}(gas, time.Now())
 	}
 	ret, err = run(evm, contract, input, false)
+	gas = contract.Gas
 
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally

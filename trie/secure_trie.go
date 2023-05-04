@@ -127,7 +127,6 @@ func (t *SecureTrie) Delete(key []byte) {
 func (t *SecureTrie) TryDelete(key []byte) error {
 	hk := t.hashKey(key)
 	delete(t.getSecKeyCache(), string(hk))
-
 	return t.trie.TryDelete(hk)
 }
 

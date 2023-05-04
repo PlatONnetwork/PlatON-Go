@@ -232,8 +232,17 @@ func (st *StateTransition) preCheck() error {
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+	// First check this message satisfies all consensus rules before
+	// applying the message. The rules include these clauses
+	//
+	// 1. the nonce of the message caller is correct
+	// 2. caller has enough balance to cover transaction fee(gaslimit * gasprice)
+	// 3. the amount of gas required is available in the block
+	// 4. the purchased gas is enough to cover intrinsic usage
+	// 5. there is no overflow when calculating intrinsic gas
+	// 6. caller has enough balance to cover asset transfer for **topmost** call
 
-	// init initialGas value = txMsg.gas
+	// Check clauses 1-3, buy gas if everything is correct
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}
@@ -241,7 +250,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	sender := vm.AccountRef(msg.From())
 	contractCreation := msg.To() == nil
 
-	// Pay intrinsic gas
+	// Check clauses 4-5, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation)
 	if err != nil {
 		return nil, err
@@ -251,6 +260,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		return nil, fmt.Errorf("%w: have %d, want %d", ErrIntrinsicGas, st.gas, gas)
 	}
 	st.gas -= gas
+
+	// Check clause 6
+	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
+		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
+	}
 
 	// Limit the time it takes for a virtual machine to execute the smart contract,
 	// Except precompiled contracts.

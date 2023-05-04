@@ -21,6 +21,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 
@@ -60,6 +61,7 @@ Remove blockchain and state databases`,
 			dbDeleteCmd,
 			dbPutCmd,
 			dbGetSlotsCmd,
+			dbDumpFreezerIndex,
 		},
 	}
 	dbInspectCmd = cli.Command{
@@ -114,6 +116,19 @@ corruption if it is aborted during execution'!`,
 			utils.TestnetFlag,
 		},
 		Description: "This command looks up the specified database key from the database.",
+	}
+	dbDumpFreezerIndex = cli.Command{
+		Action:    utils.MigrateFlags(freezerInspect),
+		Name:      "freezer-index",
+		Usage:     "Dump out the index of a given freezer type",
+		ArgsUsage: "<type> <start (int)> <end (int)>",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.SyncModeFlag,
+			utils.MainFlag,
+			utils.TestnetFlag,
+		},
+		Description: "This command displays information about the freezer index.",
 	}
 	dbDeleteCmd = cli.Command{
 		Action:    utils.MigrateFlags(dbDelete),
@@ -187,6 +202,46 @@ func removeDB(ctx *cli.Context) error {
 		confirmAndRemoveDB(path, "light node database")
 	} else {
 		log.Info("Light node database missing", "path", path)
+	}
+	return nil
+}
+
+func freezerInspect(ctx *cli.Context) error {
+	var (
+		start, end    int64
+		disableSnappy bool
+		err           error
+	)
+	if ctx.NArg() < 3 {
+		return fmt.Errorf("required arguments: %v", ctx.Command.ArgsUsage)
+	}
+	kind := ctx.Args().Get(0)
+	if noSnap, ok := rawdb.FreezerNoSnappy[kind]; !ok {
+		var options []string
+		for opt := range rawdb.FreezerNoSnappy {
+			options = append(options, opt)
+		}
+		sort.Strings(options)
+		return fmt.Errorf("Could read freezer-type '%v'. Available options: %v", kind, options)
+	} else {
+		disableSnappy = noSnap
+	}
+	if start, err = strconv.ParseInt(ctx.Args().Get(1), 10, 64); err != nil {
+		log.Info("Could read start-param", "error", err)
+		return err
+	}
+	if end, err = strconv.ParseInt(ctx.Args().Get(2), 10, 64); err != nil {
+		log.Info("Could read count param", "error", err)
+		return err
+	}
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+	path := filepath.Join(stack.ResolvePath("chaindata"), "ancient")
+	log.Info("Opening freezer", "location", path, "name", kind)
+	if f, err := rawdb.NewFreezerTable(path, kind, disableSnappy); err != nil {
+		return err
+	} else {
+		f.DumpIndex(start, end)
 	}
 	return nil
 }
