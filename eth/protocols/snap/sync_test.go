@@ -1476,10 +1476,11 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (*trie
 			codehash = getCodeHash(i)
 		}
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    i,
-			Balance:  big.NewInt(int64(i)),
-			Root:     stRoot,
-			CodeHash: codehash,
+			Nonce:            i,
+			Balance:          big.NewInt(int64(i)),
+			Root:             stRoot,
+			CodeHash:         codehash,
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key, value}
 		accTrie.Update(elem.k, elem.v)
@@ -1579,10 +1580,11 @@ func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 	accIt := trie.NewIterator(accTrie.NodeIterator(nil))
 	for accIt.Next() {
 		var acc struct {
-			Nonce    uint64
-			Balance  *big.Int
-			Root     common.Hash
-			CodeHash []byte
+			Nonce            uint64
+			Balance          *big.Int
+			Root             common.Hash
+			CodeHash         []byte
+			StorageKeyPrefix []byte
 		}
 		if err := rlp.DecodeBytes(accIt.Value, &acc); err != nil {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err)

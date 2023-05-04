@@ -88,7 +88,7 @@ func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
 	if checkInputEmpty(input) {
 		return nil, nil
 	}
-	if gov.Gte130VersionState(stkc.Evm.StateDB) {
+	if stkc.Evm.chainRules.IsEinstein {
 		return execPlatonContract(input, stkc.FnSigns())
 	}
 	return execPlatonContract(input, stkc.FnSignsV1())
@@ -735,7 +735,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big
 	can.CandidateBase = canBase
 	can.CandidateMutable = canMutable
 
-	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canAddr, can, typ, amount, delegateRewardPerList)
+	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canAddr, can, typ, amount, delegateRewardPerList, stkc.Evm.chainRules.IsEinstein)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
@@ -804,7 +804,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 		return nil, nil
 	}
 
-	issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan, err := stkc.Plugin.WithdrewDelegation(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList)
+	issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan, err := stkc.Plugin.WithdrewDelegation(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList, stkc.Evm.chainRules.IsEinstein)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
 
@@ -816,7 +816,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 			return nil, err
 		}
 	}
-	if gov.Gte130VersionState(state) {
+	if stkc.Evm.chainRules.IsEinstein {
 		return txResultHandlerWithRes(vm.StakingContractAddr, stkc.Evm, "",
 			"", TxWithdrewDelegation, int(common.NoErr.Code), issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan), nil
 	} else {
@@ -973,8 +973,7 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr com
 			delAddr, nodeId, stakingBlockNum),
 			del, staking.ErrQueryDelegateInfo.Wrap("Delegate info is not found")), nil
 	}
-
-	if gov.Gte130VersionState(stkc.Evm.StateDB) {
+	if stkc.Evm.chainRules.IsEinstein {
 		return callResultHandler(stkc.Evm, fmt.Sprintf("getDelegateInfo, delAddr: %s, nodeId: %s, stakingBlockNumber: %d",
 			delAddr, nodeId, stakingBlockNum),
 			del, nil), nil

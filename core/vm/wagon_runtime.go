@@ -36,7 +36,7 @@ type VMContext struct {
 	Log      *WasmLogger
 }
 
-//DO NOT DELETE  used by cdt test
+// DO NOT DELETE  used by cdt test
 func NewVMContext(evm *EVM, contract *Contract, config Config, db StateDB) *VMContext {
 	return &VMContext{
 		evm:      evm,
@@ -920,12 +920,9 @@ func Caller(proc *exec.Process, dst uint32) {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
 
-	// get current version
-	currentValue := ctx.evm.StateDB.GetCurrentActiveVersion()
-
 	// get caller address
 	callerAddress := ctx.contract.caller.Address().Bytes()
-	if currentValue >= params.FORKVERSION_1_1_0 {
+	if ctx.evm.chainRules.IsCopernicus {
 		callerAddress = ctx.contract.Caller().Bytes()
 	}
 

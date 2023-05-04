@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"math/rand"
 	"strconv"
@@ -56,6 +57,7 @@ type StakingPlugin struct {
 	chainReaderDB           ethdb.KeyValueReader
 	chainWriterDB           ethdb.KeyValueWriter
 	enableValidatorsHistory bool
+	chainConfig             *params.ChainConfig
 }
 
 var (
@@ -110,6 +112,10 @@ func (sk *StakingPlugin) SetChainDB(reader ethdb.KeyValueReader, writer ethdb.Ke
 	sk.chainWriterDB = writer
 }
 
+func (sk *StakingPlugin) SetChainConfig(config *params.ChainConfig) {
+	sk.chainConfig = config
+}
+
 func (sk *StakingPlugin) EnableValidatorsHistory() {
 	sk.enableValidatorsHistory = true
 }
@@ -155,7 +161,7 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 		}
 	}
 	if xutil.IsEndOfConsensus(blockNumber) {
-		if gov.Gte140VersionState(state) {
+		if sk.chainConfig.IsHubble(header.Number) {
 			// Store the list of consensus nodes for the next round in the DB in the last block of the consensus round.
 			// Used to record historical consensus round node information.
 			// 1. Simplify the consensus node information
@@ -974,7 +980,7 @@ func (sk *StakingPlugin) GetGetDelegationLockCompactInfo(blockHash common.Hash, 
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, canAddr common.NodeAddress, can *staking.Candidate,
-	typ uint16, amount *big.Int, delegateRewardPerList []*reward.DelegateRewardPer) error {
+	typ uint16, amount *big.Int, delegateRewardPerList []*reward.DelegateRewardPer, isEinstein bool) error {
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
 
@@ -983,7 +989,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	if err := UpdateDelegateRewardPer(blockHash, can.NodeId, can.StakingBlockNum, rewardsReceive, sk.db.GetDB()); err != nil {
 		return err
 	}
-	version13 := gov.Gte130VersionState(state)
 
 	if typ == FreeVon { // from account free von
 		origin := state.GetBalance(delAddr)
@@ -1009,7 +1014,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	} else {
-		if version13 && typ == LockVon {
+		if isEinstein && typ == LockVon {
 			lockReleasedHes, lockRestrictingHes, err := sk.AdvanceDelegationLockedFunds(blockHash, delAddr, uint32(epoch), amount)
 			if err != nil {
 				log.Error("Failed to Delegate on stakingPlugin: call  AdvanceDelegationLockedFunds() is failed",
@@ -1030,7 +1035,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	del.DelegateEpoch = uint32(epoch)
 
 	// set new delegate info
-	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, version13); nil != err {
+	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del, isEinstein); nil != err {
 		log.Error("Failed to Delegate on stakingPlugin: Store Delegate info is failed",
 			"delAddr", delAddr.String(), "nodeId", can.NodeId.String(), "StakingNum",
 			can.StakingBlockNum, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1091,7 +1096,7 @@ func (sk *StakingPlugin) AdvanceDelegationLockedFunds(blockHash common.Hash, acc
 }
 
 func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int,
-	delAddr common.Address, nodeId enode.IDv0, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
+	delAddr common.Address, nodeId enode.IDv0, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer, isEinstein bool) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	issueIncome, returnReleased, returnRestrictingPlan, returnLockReleased, returnLockRestrictingPlan := new(big.Int), new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -1136,7 +1141,6 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 
 	del.DelegateEpoch = uint32(epoch)
 
-	versionLockDelegation := gov.Gte130VersionState(state)
 	switch {
 	// Illegal parameter
 	case can.IsNotEmpty() && stakingBlockNum > can.StakingBlockNum:
@@ -1162,7 +1166,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			if can.IsNotEmpty() {
 				can.DelegateTotalHes = new(big.Int).Sub(can.DelegateTotalHes, new(big.Int).Sub(refundAmount, rm))
 			}
-			if versionLockDelegation {
+			if isEinstein {
 				returnReleased.Add(returnReleased, new(big.Int).Sub(del.ReleasedHes, rbalance))
 				returnRestrictingPlan.Add(returnRestrictingPlan, new(big.Int).Sub(del.RestrictingPlanHes, lbalance))
 			}
@@ -1170,7 +1174,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 			refundAmount, del.ReleasedHes, del.RestrictingPlanHes = rm, rbalance, lbalance
 		}
 
-		if versionLockDelegation {
+		if isEinstein {
 			delegationLock, err := sk.db.GetDelegationLock(blockHash, delAddr, uint32(epoch))
 			if err != nil {
 				if err == snapshotdb.ErrNotFound {
@@ -1265,7 +1269,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				return nil, nil, nil, nil, nil, err
 			}
 		} else {
-			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, versionLockDelegation); nil != err {
+			if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del, isEinstein); nil != err {
 				log.Error("Failed to WithdrewDelegation on stakingPlugin: Store detegate is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr,
 					"nodeId", nodeId.String(), "stakingBlockNum", stakingBlockNum, "err", err)
@@ -2083,11 +2087,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 			status.IsInvalidDuplicateSign()
 	}
 
-	currentVersion := gov.GetCurrentActiveVersion(state)
-	if currentVersion == 0 {
+	isCopernicus := sk.chainConfig.IsCopernicus(header.Number)
+	/*if currentVersion == 0 {
 		log.Error("Failed to Election, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 		return errors.New("Failed to get CurrentActiveVersion")
-	}
+	}*/
 
 	currMap := make(map[enode.IDv0]*big.Int, len(curr.Arr))
 	currqueen := make([]*staking.Validator, 0)
@@ -2233,7 +2237,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	}
 
 	if vrfLen != 0 {
-		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash, blockNumber, currentVersion); nil != err {
+		if queue, err := vrfElection(diffQueue, vrfLen, header.Nonce.Bytes(), header.ParentHash, blockNumber, isCopernicus); nil != err {
 			log.Error("Failed to VrfElection on Election",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
@@ -3154,7 +3158,7 @@ func (svs newSortValidatorQueue) Swap(i, j int) {
 // validatorList：Waiting for the elected node
 // nonce：Vrf proof of the current block
 // parentHash：Parent block hash
-func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash, blockNumber uint64, currentVersion uint32) (staking.ValidatorQueue, error) {
+func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byte, parentHash common.Hash, blockNumber uint64, copernicus bool) (staking.ValidatorQueue, error) {
 	preNonces, err := handler.GetVrfHandlerInstance().Load(parentHash)
 	if nil != err {
 		return nil, err
@@ -3167,12 +3171,12 @@ func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byt
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]
 	}
-	return probabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces, blockNumber, currentVersion)
+	return probabilityElection(validatorList, shiftLen, vrf.ProofToHash(nonce), preNonces, blockNumber, copernicus)
 }
 
-func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte, blockNumber uint64, currentVersion uint32) (staking.ValidatorQueue, error) {
+func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, currentNonce []byte, preNonces [][]byte, blockNumber uint64, copernicus bool) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
-		log.Error("Failed to probabilityElection", "blockNumber", blockNumber, "currentVersion", currentVersion, "validators Size", len(validatorList),
+		log.Error("Failed to probabilityElection", "blockNumber", blockNumber, "copernicus", copernicus, "validators Size", len(validatorList),
 			"currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces))
 		return nil, staking.ErrWrongFuncParams
 	}
@@ -3206,17 +3210,17 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 	}
 
 	var p float64
-	if gov.Gte110Version(currentVersion) {
+	if copernicus {
 		p = xcom.CalcPV110(totalSqrtWeightsFloat)
 	} else {
 		p = xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
 	}
 
 	shuffleSeed := new(big.Int).SetBytes(preNonces[0]).Int64()
-	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "currentVersion", currentVersion, "validatorListSize", len(validatorList),
+	log.Debug("Call probabilityElection Basic parameter on Election", "blockNumber", blockNumber, "copernicus", copernicus, "validatorListSize", len(validatorList),
 		"p", p, "totalWeights", totalWeightsFloat, "totalSqrtWeightsFloat", totalSqrtWeightsFloat, "shiftValidatorNum", shiftLen, "shuffleSeed", shuffleSeed)
 
-	if gov.Gte110Version(currentVersion) {
+	if copernicus {
 		rd := rand.New(rand.NewSource(shuffleSeed))
 		rd.Shuffle(len(svList), func(i, j int) {
 			svList[i], svList[j] = svList[j], svList[i]
@@ -3246,9 +3250,9 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	vrfQueue := make(staking.ValidatorQueue, shiftLen)
 
-	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "currentVersion", currentVersion, "list", svList)
+	log.Debug("Call probabilityElection, sort probability queue", "blockNumber", blockNumber, "copernicus", copernicus, "list", svList)
 
-	if gov.Gte110Version(currentVersion) {
+	if copernicus {
 		sort.Sort(newSortValidatorQueue(svList))
 	} else {
 		sort.Sort(svList)
@@ -3260,7 +3264,7 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 		vrfQueue[index] = sv.v
 	}
 
-	log.Debug("Call probabilityElection finished", "blockNumber", blockNumber, "currentVersion", currentVersion, "vrfQueue", vrfQueue)
+	log.Debug("Call probabilityElection finished", "blockNumber", blockNumber, "copernicus", copernicus, "vrfQueue", vrfQueue)
 
 	return vrfQueue, nil
 }

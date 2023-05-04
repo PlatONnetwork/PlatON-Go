@@ -1460,7 +1460,7 @@ func TestEIP2718Transition(t *testing.T) {
 		address = crypto.PubkeyToAddress(key.PublicKey)
 		funds   = big.NewInt(1000000000)
 		gspec   = &Genesis{
-			Config: params.TestChainConfig,
+			Config: params.AllEthashProtocolChanges,
 			Alloc: GenesisAlloc{
 				address: {Balance: funds},
 				// The address 0xAAAA sloads 0x00 and 0x01
@@ -1478,12 +1478,12 @@ func TestEIP2718Transition(t *testing.T) {
 		}
 		genesis = gspec.MustCommit(db)
 	)
-
 	blocks, _ := GenerateChain(gspec.Config, genesis, engine, db, 1, func(i int, b *BlockGen) {
+		b.SetActiveVersion(params.FORKVERSION_1_5_0)
 		b.SetCoinbase(common.Address{1})
 
 		// One transaction to 0xAAAA
-		signer := types.NewEIP2930Signer(gspec.Config.PIP7ChainID)
+		signer := types.LatestSignerForChainID(gspec.Config.PIP7ChainID)
 		tx, _ := types.SignNewTx(key, signer, &types.AccessListTx{
 			ChainID:  gspec.Config.PIP7ChainID,
 			Nonce:    0,

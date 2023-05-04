@@ -153,7 +153,7 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 		return nil, vm.BlockContext{}, statedb, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(b.chainConfig, false, false, false)
+	signer := types.MakeSigner(b.chainConfig, block.Number(), true)
 	for idx, tx := range block.Transactions() {
 		msg, _ := tx.AsMessage(signer)
 		txContext := core.NewEVMTxContext(msg)
@@ -181,7 +181,7 @@ func TestTraceCall(t *testing.T) {
 		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
 	}}
 	genBlocks := 10
-	signer := types.MakeSigner(params.TestChainConfig, false, false, false)
+	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
@@ -310,7 +310,7 @@ func TestTraceTransaction(t *testing.T) {
 		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
 	}}
 	target := common.Hash{}
-	signer := types.MakeSigner(params.TestChainConfig, false, false, false)
+	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, 1, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei
@@ -344,7 +344,7 @@ func TestTraceBlock(t *testing.T) {
 		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
 	}}
 	genBlocks := 10
-	signer := types.MakeSigner(params.TestChainConfig, false, false, false)
+	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei

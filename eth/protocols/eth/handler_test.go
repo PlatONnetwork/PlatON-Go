@@ -370,7 +370,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.NewPIP7Signer(new(big.Int).SetUint64(1), new(big.Int).SetUint64(1))
+	signer := types.LatestSigner(params.TestChainConfig, true)
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -469,7 +469,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.NewPIP7Signer(new(big.Int).SetUint64(1), new(big.Int).SetUint64(1))
+	signer := types.LatestSigner(params.TestChainConfig, true)
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
