@@ -23,6 +23,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"reflect"
+	"sort"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -37,10 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"math/big"
-	"reflect"
-	"sort"
-	"testing"
 )
 
 var (
@@ -312,7 +313,7 @@ func TestOverridenTraceCall(t *testing.T) {
 		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
 	}}
 	genBlocks := 10
-	signer := types.NewEIP155Signer(big.NewInt(1))
+	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
 		// Transfer from account[0] to account[1]
 		//    value: 1000 wei

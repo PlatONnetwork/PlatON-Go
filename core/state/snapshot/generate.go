@@ -19,6 +19,7 @@ package snapshot
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/VictoriaMetrics/fastcache"
@@ -40,6 +42,53 @@ var (
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
+
+	// accountCheckRange is the upper limit of the number of accounts involved in
+	// each range check. This is a value estimated based on experience. If this
+	// value is too large, the failure rate of range prove will increase. Otherwise
+	// the the value is too small, the efficiency of the state recovery will decrease.
+	accountCheckRange = 128
+
+	// storageCheckRange is the upper limit of the number of storage slots involved
+	// in each range check. This is a value estimated based on experience. If this
+	// value is too large, the failure rate of range prove will increase. Otherwise
+	// the the value is too small, the efficiency of the state recovery will decrease.
+	storageCheckRange = 1024
+
+	// errMissingTrie is returned if the target trie is missing while the generation
+	// is running. In this case the generation is aborted and wait the new signal.
+	errMissingTrie = errors.New("missing trie")
+)
+
+// Metrics in generation
+var (
+	snapGeneratedAccountMeter     = metrics.NewRegisteredMeter("state/snapshot/generation/account/generated", nil)
+	snapRecoveredAccountMeter     = metrics.NewRegisteredMeter("state/snapshot/generation/account/recovered", nil)
+	snapWipedAccountMeter         = metrics.NewRegisteredMeter("state/snapshot/generation/account/wiped", nil)
+	snapMissallAccountMeter       = metrics.NewRegisteredMeter("state/snapshot/generation/account/missall", nil)
+	snapGeneratedStorageMeter     = metrics.NewRegisteredMeter("state/snapshot/generation/storage/generated", nil)
+	snapRecoveredStorageMeter     = metrics.NewRegisteredMeter("state/snapshot/generation/storage/recovered", nil)
+	snapWipedStorageMeter         = metrics.NewRegisteredMeter("state/snapshot/generation/storage/wiped", nil)
+	snapMissallStorageMeter       = metrics.NewRegisteredMeter("state/snapshot/generation/storage/missall", nil)
+	snapSuccessfulRangeProofMeter = metrics.NewRegisteredMeter("state/snapshot/generation/proof/success", nil)
+	snapFailedRangeProofMeter     = metrics.NewRegisteredMeter("state/snapshot/generation/proof/failure", nil)
+
+	// snapAccountProveCounter measures time spent on the account proving
+	snapAccountProveCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/account/prove", nil)
+	// snapAccountTrieReadCounter measures time spent on the account trie iteration
+	snapAccountTrieReadCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/account/trieread", nil)
+	// snapAccountSnapReadCounter measues time spent on the snapshot account iteration
+	snapAccountSnapReadCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/account/snapread", nil)
+	// snapAccountWriteCounter measures time spent on writing/updating/deleting accounts
+	snapAccountWriteCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/account/write", nil)
+	// snapStorageProveCounter measures time spent on storage proving
+	snapStorageProveCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/storage/prove", nil)
+	// snapStorageTrieReadCounter measures time spent on the storage trie iteration
+	snapStorageTrieReadCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/storage/trieread", nil)
+	// snapStorageSnapReadCounter measures time spent on the snapshot storage iteration
+	snapStorageSnapReadCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/storage/snapread", nil)
+	// snapStorageWriteCounter measures time spent on writing/updating/deleting storages
+	snapStorageWriteCounter = metrics.NewRegisteredCounter("state/snapshot/generation/duration/storage/write", nil)
 )
 
 // generatorStats is a collection of statistics gathered by the snapshot generator
