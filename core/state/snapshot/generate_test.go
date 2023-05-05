@@ -60,10 +60,10 @@ func TestGeneration(t *testing.T) {
 	acc = &Account{Balance: big.NewInt(3), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
 	accTrie.Update([]byte("acc-3"), val) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
-	root, _ := accTrie.Commit(nil)       // Root: 0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd
+	root, _ := accTrie.Commit(nil)       // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 	triedb.Commit(root, false, true)
 
-	if have, want := root, common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"); have != want {
+	if have, want := root, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"); have != want {
 		t.Fatalf("have %#x want %#x", have, want)
 	}
 	snap := generateSnapshot(diskdb, triedb, 16, root)
@@ -128,7 +128,7 @@ func TestGenerateExistentState(t *testing.T) {
 	rawdb.WriteStorageSnapshot(diskdb, hashData([]byte("acc-3")), hashData([]byte("key-2")), []byte("val-2"))
 	rawdb.WriteStorageSnapshot(diskdb, hashData([]byte("acc-3")), hashData([]byte("key-3")), []byte("val-3"))
 
-	root, _ := accTrie.Commit(nil) // Root: 0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd
+	root, _ := accTrie.Commit(nil) // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 	triedb.Commit(root, false, true)
 
 	snap := generateSnapshot(diskdb, triedb, 16, root)
@@ -437,32 +437,32 @@ func TestGenerateMissingStorageTrie(t *testing.T) {
 	accTrie, _ := trie.NewSecure(common.Hash{}, triedb)
 	acc := &Account{Balance: big.NewInt(1), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ := rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
+	accTrie.Update([]byte("acc-1"), val) //  0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
 
 	acc = &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-2"), val) // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
+	accTrie.Update([]byte("acc-2"), val) // 0x70da4ebd7602dd313c936b39000ed9ab7f849986a90ea934f0c3ec4cc9840441
 
 	acc = &Account{Balance: big.NewInt(3), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-3"), val) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
-	accTrie.Commit(nil)                  // Root: 0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd
+	accTrie.Update([]byte("acc-3"), val) // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
+	accTrie.Commit(nil)                  // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 
 	// We can only corrupt the disk database, so flush the tries out
 	triedb.Reference(
 		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
-		common.HexToHash("0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e"),
+		common.HexToHash("0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb"),
 	)
 	triedb.Reference(
 		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
-		common.HexToHash("0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2"),
+		common.HexToHash("0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e"),
 	)
-	triedb.Commit(common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"), false, true)
+	triedb.Commit(common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"), false, true)
 
 	// Delete a storage trie root and ensure the generator chokes
 	diskdb.Delete(common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67").Bytes())
 
-	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"))
+	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"))
 	select {
 	case <-snap.genPending:
 		// Snapshot generation succeeded
@@ -496,32 +496,32 @@ func TestGenerateCorruptStorageTrie(t *testing.T) {
 	accTrie, _ := trie.NewSecure(common.Hash{}, triedb)
 	acc := &Account{Balance: big.NewInt(1), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ := rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
+	accTrie.Update([]byte("acc-1"), val) // 0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
 
 	acc = &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-2"), val) // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
+	accTrie.Update([]byte("acc-2"), val) // 0x70da4ebd7602dd313c936b39000ed9ab7f849986a90ea934f0c3ec4cc9840441
 
 	acc = &Account{Balance: big.NewInt(3), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
-	accTrie.Update([]byte("acc-3"), val) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
-	accTrie.Commit(nil)                  // Root: 0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd
+	accTrie.Update([]byte("acc-3"), val) // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
+	accTrie.Commit(nil)                  // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 
 	// We can only corrupt the disk database, so flush the tries out
 	triedb.Reference(
 		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
-		common.HexToHash("0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e"),
+		common.HexToHash("0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb"),
 	)
 	triedb.Reference(
 		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
-		common.HexToHash("0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2"),
+		common.HexToHash("0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e"),
 	)
-	triedb.Commit(common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"), false, true)
+	triedb.Commit(common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"), false, true)
 
 	// Delete a storage trie leaf and ensure the generator chokes
 	diskdb.Delete(common.HexToHash("0x18a0f4d79cff4459642dd7604f303886ad9d77c30cf3d7d7cedb3a693ab6d371").Bytes())
 
-	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"))
+	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"))
 	select {
 	case <-snap.genPending:
 		// Snapshot generation succeeded

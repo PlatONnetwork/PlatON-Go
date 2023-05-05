@@ -219,6 +219,8 @@ func init() {
 		dbCommand,
 		// See cmd/utils/flags_legacy.go
 		utils.ShowDeprecated,
+		// See snapshot.go
+		snapshotCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
