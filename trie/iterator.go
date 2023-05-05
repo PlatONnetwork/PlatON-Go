@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"container/heap"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -101,6 +102,19 @@ type NodeIterator interface {
 	// iterator is not positioned at a leaf. Callers must not retain references
 	// to the value after calling Next.
 	LeafProof() [][]byte
+
+	// AddResolver sets an intermediate database to use for looking up trie nodes
+	// before reaching into the real persistent layer.
+	//
+	// This is not required for normal operation, rather is an optimization for
+	// cases where trie nodes can be recovered from some external mechanism without
+	// reading from disk. In those cases, this resolver allows short circuiting
+	// accesses and returning them from memory.
+	//
+	// Before adding a similar mechanism to any other place in Geth, consider
+	// making trie.Database an interface and wrapping at that level. It's a huge
+	// refactor, but it could be worth it if another occurrence arises.
+	AddResolver(ethdb.KeyValueStore)
 }
 
 // nodeIteratorState represents the iteration state at one particular node of the
@@ -118,6 +132,8 @@ type nodeIterator struct {
 	stack []*nodeIteratorState // Hierarchy of trie nodes persisting the iteration state
 	path  []byte               // Path to the current node
 	err   error                // Failure set in case of an internal error in the iterator
+
+	resolver ethdb.KeyValueStore // Optional intermediate resolver above the disk layer
 }
 
 // errIteratorEnd is stored in nodeIterator.err when iteration is done.
@@ -140,6 +156,10 @@ func newNodeIterator(trie *Trie, start []byte) NodeIterator {
 	it := &nodeIterator{trie: trie}
 	it.err = it.seek(start)
 	return it
+}
+
+func (it *nodeIterator) AddResolver(resolver ethdb.KeyValueStore) {
+	it.resolver = resolver
 }
 
 func (it *nodeIterator) Hash() common.Hash {
@@ -261,7 +281,7 @@ func (it *nodeIterator) init() (*nodeIteratorState, error) {
 	if root != emptyRoot {
 		state.hash = root
 	}
-	return state, state.resolve(it.trie, nil)
+	return state, state.resolve(it, nil)
 }
 
 // peek creates the next state of the iterator.
@@ -285,7 +305,7 @@ func (it *nodeIterator) peek(descend bool) (*nodeIteratorState, *int, []byte, er
 		}
 		state, path, ok := it.nextChild(parent, ancestor)
 		if ok {
-			if err := state.resolve(it.trie, path); err != nil {
+			if err := state.resolve(it, path); err != nil {
 				return parent, &parent.index, path, err
 			}
 			return state, &parent.index, path, nil
@@ -318,7 +338,7 @@ func (it *nodeIterator) peekSeek(seekKey []byte) (*nodeIteratorState, *int, []by
 		}
 		state, path, ok := it.nextChildAt(parent, ancestor, seekKey)
 		if ok {
-			if err := state.resolve(it.trie, path); err != nil {
+			if err := state.resolve(it, path); err != nil {
 				return parent, &parent.index, path, err
 			}
 			return state, &parent.index, path, nil
@@ -329,9 +349,21 @@ func (it *nodeIterator) peekSeek(seekKey []byte) (*nodeIteratorState, *int, []by
 	return nil, nil, nil, errIteratorEnd
 }
 
-func (st *nodeIteratorState) resolve(tr *Trie, path []byte) error {
+func (it *nodeIterator) resolveHash(hash hashNode, path []byte) (node, error) {
+	if it.resolver != nil {
+		if blob, err := it.resolver.Get(hash); err == nil && len(blob) > 0 {
+			if resolved, err := decodeNode(hash, blob); err == nil {
+				return resolved, nil
+			}
+		}
+	}
+	resolved, err := it.trie.resolveHash(hash, path)
+	return resolved, err
+}
+
+func (st *nodeIteratorState) resolve(it *nodeIterator, path []byte) error {
 	if hash, ok := st.node.(hashNode); ok {
-		resolved, err := tr.resolveHash(hash, path)
+		resolved, err := it.resolveHash(hash, path)
 		if err != nil {
 			return err
 		}
@@ -516,6 +548,10 @@ func (it *differenceIterator) Path() []byte {
 	return it.b.Path()
 }
 
+func (it *differenceIterator) AddResolver(resolver ethdb.KeyValueStore) {
+	panic("not implemented")
+}
+
 func (it *differenceIterator) Next(bool) bool {
 	// Invariants:
 	// - We always advance at least one element in b.
@@ -621,6 +657,10 @@ func (it *unionIterator) LeafProof() [][]byte {
 
 func (it *unionIterator) Path() []byte {
 	return (*it.items)[0].Path()
+}
+
+func (it *unionIterator) AddResolver(resolver ethdb.KeyValueStore) {
+	panic("not implemented")
 }
 
 // Next returns the next node in the union of tries being iterated over.
