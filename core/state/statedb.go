@@ -1280,7 +1280,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		start = time.Now()
 	}
 	// Write trie changes.
-	root, err := s.trie.Commit(func(path []byte, leaf []byte, parent common.Hash) error {
+	root, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash) error {
 		var account Account
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil

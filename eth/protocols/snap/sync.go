@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -52,7 +53,7 @@ const (
 	// maxRequestSize is the maximum number of bytes to request from a remote peer.
 	maxRequestSize = 128 * 1024
 
-	// maxStorageSetRequestCountis th maximum number of contracts to request the
+	// maxStorageSetRequestCount is the maximum number of contracts to request the
 	// storage of in a single query. If this number is too low, we're not filling
 	// responses fully and waste round trip times. If it's too high, we're capping
 	// responses and waste bandwidth.
@@ -436,9 +437,14 @@ type Syncer struct {
 	bytecodeHealDups   uint64             // Number of bytecodes already processed
 	bytecodeHealNops   uint64             // Number of bytecodes not requested
 
-	startTime time.Time   // Time instance when snapshot sync started
-	startAcc  common.Hash // Account hash where sync started from
-	logTime   time.Time   // Time instance when status was last reported
+	stateWriter        ethdb.Batch        // Shared batch writer used for persisting raw states
+	accountHealed      uint64             // Number of accounts downloaded during the healing stage
+	accountHealedBytes common.StorageSize // Number of raw account bytes persisted to disk during the healing stage
+	storageHealed      uint64             // Number of storage slots downloaded during the healing stage
+	storageHealedBytes common.StorageSize // Number of raw storage bytes persisted to disk during the healing stage
+
+	startTime time.Time // Time instance when snapshot sync started
+	logTime   time.Time // Time instance when status was last reported
 
 	pend sync.WaitGroup // Tracks network request goroutines for graceful shutdown
 	lock sync.RWMutex   // Protects fields that can change outside of sync (peers, reqs, root)
@@ -478,6 +484,7 @@ func NewSyncer(db ethdb.KeyValueStore) *Syncer {
 		bytecodeHealReqFails: make(chan *bytecodeHealRequest),
 		trienodeHealResps:    make(chan *trienodeHealResponse),
 		bytecodeHealResps:    make(chan *bytecodeHealResponse),
+		stateWriter:          db.NewBatch(),
 	}
 }
 
@@ -545,7 +552,7 @@ func (s *Syncer) Sync(root common.Hash, cancel chan struct{}) error {
 	s.lock.Lock()
 	s.root = root
 	s.healer = &healTask{
-		scheduler: state.NewStateSync(root, s.db, nil),
+		scheduler: state.NewStateSync(root, s.db, nil, s.onHealState),
 		trieTasks: make(map[common.Hash]trie.SyncPath),
 		codeTasks: make(map[common.Hash]struct{}),
 	}
@@ -561,6 +568,11 @@ func (s *Syncer) Sync(root common.Hash, cancel chan struct{}) error {
 		log.Debug("Snapshot sync already completed")
 		return nil
 	}
+	// If sync is still not finished, we need to ensure that any marker is wiped.
+	// Otherwise, it may happen that requests for e.g. genesis-data is delivered
+	// from the snapshot data, instead of from the trie
+	snapshot.ClearSnapshotMarker(s.db)
+
 	defer func() { // Persist any progress, independent of failure
 		for _, task := range s.tasks {
 			s.forwardAccountTask(task)
@@ -570,6 +582,14 @@ func (s *Syncer) Sync(root common.Hash, cancel chan struct{}) error {
 	}()
 
 	log.Debug("Starting snapshot sync cycle", "root", root)
+
+	// Flush out the last committed raw states
+	defer func() {
+		if s.stateWriter.ValueSize() > 0 {
+			s.stateWriter.Write()
+			s.stateWriter.Reset()
+		}
+	}()
 	defer s.report(true)
 
 	// Whether sync completed or not, disregard any future packets
@@ -1695,7 +1715,7 @@ func (s *Syncer) processBytecodeResponse(res *bytecodeResponse) {
 // processStorageResponse integrates an already validated storage response
 // into the account tasks.
 func (s *Syncer) processStorageResponse(res *storageResponse) {
-	// Switch the suntask from pending to idle
+	// Switch the subtask from pending to idle
 	if res.subTask != nil {
 		res.subTask.req = nil
 	}
@@ -1827,6 +1847,14 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 			nodes++
 		}
 		it.Release()
+
+		// Persist the received storage segements. These flat state maybe
+		// outdated during the sync, but it can be fixed later during the
+		// snapshot generation.
+		for j := 0; j < len(res.hashes[i]); j++ {
+			rawdb.WriteStorageSnapshot(batch, account, res.hashes[i][j], res.slots[i][j])
+			bytes += common.StorageSize(1 + 2*common.HashLength + len(res.slots[i][j]))
+		}
 	}
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to persist storage slots", "err", err)
@@ -1984,6 +2012,14 @@ func (s *Syncer) forwardAccountTask(task *accountTask) {
 	}
 	it.Release()
 
+	// Persist the received account segements. These flat state maybe
+	// outdated during the sync, but it can be fixed later during the
+	// snapshot generation.
+	for i, hash := range res.hashes {
+		blob := snapshot.SlimAccountRLP(res.accounts[i].Nonce, res.accounts[i].Balance, res.accounts[i].Root, res.accounts[i].CodeHash, res.accounts[i].StorageKeyPrefix)
+		rawdb.WriteAccountSnapshot(batch, hash, blob)
+		bytes += common.StorageSize(1 + common.HashLength + len(blob))
+	}
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to persist accounts", "err", err)
 	}
@@ -2570,6 +2606,33 @@ func (s *Syncer) onHealByteCodes(peer SyncPeer, id uint64, bytecodes [][]byte) e
 	return nil
 }
 
+// onHealState is a callback method to invoke when a flat state(account
+// or storage slot) is downloded during the healing stage. The flat states
+// can be persisted blindly and can be fixed later in the generation stage.
+// Note it's not concurrent safe, please handle the concurrent issue outside.
+func (s *Syncer) onHealState(paths [][]byte, value []byte) error {
+	if len(paths) == 1 {
+		var account state.Account
+		if err := rlp.DecodeBytes(value, &account); err != nil {
+			return nil
+		}
+		blob := snapshot.SlimAccountRLP(account.Nonce, account.Balance, account.Root, account.CodeHash, account.StorageKeyPrefix)
+		rawdb.WriteAccountSnapshot(s.stateWriter, common.BytesToHash(paths[0]), blob)
+		s.accountHealed += 1
+		s.accountHealedBytes += common.StorageSize(1 + common.HashLength + len(blob))
+	}
+	if len(paths) == 2 {
+		rawdb.WriteStorageSnapshot(s.stateWriter, common.BytesToHash(paths[0]), common.BytesToHash(paths[1]), value)
+		s.storageHealed += 1
+		s.storageHealedBytes += common.StorageSize(1 + 2*common.HashLength + len(value))
+	}
+	if s.stateWriter.ValueSize() > ethdb.IdealBatchSize {
+		s.stateWriter.Write() // It's fine to ignore the error here
+		s.stateWriter.Reset()
+	}
+	return nil
+}
+
 // hashSpace is the total size of the 256 bit hash space for accounts.
 var hashSpace = new(big.Int).Exp(common.Big2, common.Big256, nil)
 
@@ -2633,7 +2696,9 @@ func (s *Syncer) reportHealProgress(force bool) {
 	var (
 		trienode = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(s.trienodeHealSynced), s.trienodeHealBytes.TerminalString())
 		bytecode = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(s.bytecodeHealSynced), s.bytecodeHealBytes.TerminalString())
+		accounts = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(s.accountHealed), s.accountHealedBytes.TerminalString())
+		storage  = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(s.storageHealed), s.storageHealedBytes.TerminalString())
 	)
-	log.Info("State heal in progress", "nodes", trienode, "codes", bytecode,
-		"pending", s.healer.scheduler.Pending())
+	log.Info("State heal in progress", "accounts", accounts, "slots", storage,
+		"codes", bytecode, "nodes", trienode, "pending", s.healer.scheduler.Pending())
 }

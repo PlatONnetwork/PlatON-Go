@@ -180,7 +180,7 @@ type Tree struct {
 // store, on a background thread. If the memory layers from the journal is not
 // continuous with disk layer or the journal is missing, all diffs will be discarded
 // iff it's in "recovery" mode, otherwise rebuild is mandatory.
-func New(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash, async bool, recovery bool) *Tree {
+func New(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash, async bool, rebuild bool, recovery bool) (*Tree, error) {
 	// Create a new, empty snapshot tree
 	snap := &Tree{
 		diskdb: diskdb,
@@ -194,16 +194,19 @@ func New(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, root comm
 	// Attempt to load a previously persisted snapshot and rebuild one if failed
 	head, err := loadSnapshot(diskdb, triedb, cache, root, recovery)
 	if err != nil {
-		log.Warn("Failed to load snapshot, regenerating", "err", err)
-		snap.Rebuild(root)
-		return snap
+		if rebuild {
+			log.Warn("Failed to load snapshot, regenerating", "err", err)
+			snap.Rebuild(root)
+			return snap, nil
+		}
+		return nil, err // Bail out the error, don't rebuild automatically.
 	}
 	// Existing snapshot loaded, seed all the layers
 	for head != nil {
 		snap.layers[head.Root()] = head
 		head = head.Parent()
 	}
-	return snap
+	return snap, nil
 }
 
 // waitBuild blocks until the snapshot finishes rebuilding. This method is meant
@@ -660,9 +663,6 @@ func (t *Tree) Rebuild(root common.Hash) {
 	// building a brand new snapshot.
 	rawdb.DeleteSnapshotRecoveryNumber(t.diskdb)
 
-	// Track whether there's a wipe currently running and keep it alive if so
-	var wiper chan struct{}
-
 	// Iterate over and mark all layers stale
 	for _, layer := range t.layers {
 		switch layer := layer.(type) {
@@ -671,10 +671,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 			if layer.genAbort != nil {
 				abort := make(chan *generatorStats)
 				layer.genAbort <- abort
-
-				if stats := <-abort; stats != nil {
-					wiper = stats.wiping
-				}
+				<-abort
 			}
 			// Layer should be inactive now, mark it as stale
 			layer.lock.Lock()
@@ -695,7 +692,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 	// generator will run a wiper first if there's not one running right now.
 	log.Info("Rebuilding state snapshot")
 	t.layers = map[common.Hash]snapshot{
-		root: generateSnapshot(t.diskdb, t.triedb, t.cache, root, wiper),
+		root: generateSnapshot(t.diskdb, t.triedb, t.cache, root),
 	}
 }
 
@@ -728,33 +725,32 @@ func (t *Tree) StorageIterator(root common.Hash, account common.Hash, seek commo
 // Verify iterates the whole state(all the accounts as well as the corresponding storages)
 // with the specific root and compares the re-computed hash with the original one.
 func (t *Tree) Verify(root common.Hash) error {
-	//TODO: 这部分内容在合并21724时再合
-	/*	acctIt, err := t.AccountIterator(root, common.Hash{})
+	acctIt, err := t.AccountIterator(root, common.Hash{})
+	if err != nil {
+		return err
+	}
+	defer acctIt.Release()
+
+	got, err := generateTrieRoot(nil, acctIt, common.Hash{}, stackTrieGenerate, func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
+		storageIt, err := t.StorageIterator(root, accountHash, common.Hash{})
 		if err != nil {
-			return err
+			return common.Hash{}, err
 		}
-		defer acctIt.Release()
+		defer storageIt.Release()
 
-		got, err := generateTrieRoot(nil, acctIt, common.Hash{}, stackTrieGenerate, func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
-			storageIt, err := t.StorageIterator(root, accountHash, common.Hash{})
-			if err != nil {
-				return common.Hash{}, err
-			}
-			defer storageIt.Release()
-
-			hash, err := generateTrieRoot(nil, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
-			if err != nil {
-				return common.Hash{}, err
-			}
-			return hash, nil
-		}, newGenerateStats(), true)
-
+		hash, err := generateTrieRoot(nil, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
 		if err != nil {
-			return err
+			return common.Hash{}, err
 		}
-		if got != root {
-			return fmt.Errorf("state root hash mismatch: got %x, want %x", got, root)
-		}*/
+		return hash, nil
+	}, newGenerateStats(), true)
+
+	if err != nil {
+		return err
+	}
+	if got != root {
+		return fmt.Errorf("state root hash mismatch: got %x, want %x", got, root)
+	}
 	return nil
 }
 
@@ -779,6 +775,16 @@ func (t *Tree) disklayer() *diskLayer {
 	}
 }
 
+// diskRoot is a internal helper function to return the disk layer root.
+// The lock of snapTree is assumed to be held already.
+func (t *Tree) diskRoot() common.Hash {
+	disklayer := t.disklayer()
+	if disklayer == nil {
+		return common.Hash{}
+	}
+	return disklayer.Root()
+}
+
 // generating is an internal helper function which reports whether the snapshot
 // is still under the construction.
 func (t *Tree) generating() (bool, error) {
@@ -792,16 +798,6 @@ func (t *Tree) generating() (bool, error) {
 	layer.lock.RLock()
 	defer layer.lock.RUnlock()
 	return layer.genMarker != nil, nil
-}
-
-// diskRoot is a internal helper function to return the disk layer root.
-// The lock of snapTree is assumed to be held already.
-func (t *Tree) diskRoot() common.Hash {
-	disklayer := t.disklayer()
-	if disklayer == nil {
-		return common.Hash{}
-	}
-	return disklayer.Root()
 }
 
 // diskRoot is a external helper function to return the disk layer root.
