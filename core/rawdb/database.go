@@ -359,8 +359,12 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			shutdownInfo.Add(size)
 		default:
 			var accounted bool
-			for _, meta := range [][]byte{databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, lastPivotKey,
-				fastTrieProgressKey, uncleanShutdownKey, uncleanShutdownKey, badBlockKey} {
+			for _, meta := range [][]byte{
+				databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, lastPivotKey,
+				fastTrieProgressKey, snapshotDisabledKey, snapshotRootKey, snapshotJournalKey,
+				snapshotGeneratorKey, snapshotRecoveryKey, txIndexTailKey, fastTxLookupLimitKey,
+				uncleanShutdownKey, badBlockKey,
+			} {
 				if bytes.Equal(key, meta) {
 					metadata.Add(size)
 					accounted = true
