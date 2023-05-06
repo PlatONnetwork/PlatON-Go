@@ -1354,10 +1354,11 @@ func makeAccountTrieNoStorage(n int) (*trie.Trie, entrySlice) {
 	var entries entrySlice
 	for i := uint64(1); i <= uint64(n); i++ {
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    i,
-			Balance:  big.NewInt(int64(i)),
-			Root:     emptyRoot,
-			CodeHash: getCodeHash(i),
+			Nonce:            i,
+			Balance:          big.NewInt(int64(i)),
+			Root:             emptyRoot,
+			CodeHash:         getCodeHash(i),
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		key := key32(i)
 		elem := &kv{key, value}
