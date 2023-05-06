@@ -21,11 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"math/big"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
 	"github.com/PlatONnetwork/PlatON-Go/light"
 
@@ -74,7 +75,9 @@ const (
 	// and waste round trip times. If it's too high, we're capping responses and
 	// waste bandwidth.
 	maxTrieRequestCount = 256
+)
 
+var (
 	// accountConcurrency is the number of chunks to split the account trie into
 	// to allow concurrent retrievals.
 	accountConcurrency = 16
@@ -82,9 +85,7 @@ const (
 	// storageConcurrency is the number of chunks to split the a large contract
 	// storage trie into to allow concurrent retrievals.
 	storageConcurrency = 16
-)
 
-var (
 	// requestTimeout is the maximum time a peer is allowed to spend on serving
 	// a single network request.
 	requestTimeout = 15 * time.Second // TODO(karalabe): Make it dynamic ala fast-sync?
@@ -127,12 +128,6 @@ type accountResponse struct {
 
 	hashes   []common.Hash    // Account hashes in the returned range
 	accounts []*state.Account // Expanded accounts in the returned range
-
-	nodes ethdb.KeyValueStore // Database containing the reconstructed trie nodes
-	trie  *trie.Trie          // Reconstructed trie to reject incomplete account paths
-
-	bounds   map[common.Hash]struct{} // Boundary nodes to avoid persisting incomplete accounts
-	overflow *light.NodeSet           // Overflow nodes to avoid persisting across chunk boundaries
 
 	cont bool // Whether the account range has a continuation
 }
@@ -207,15 +202,10 @@ type storageResponse struct {
 	accounts []common.Hash // Account hashes requested, may be only partially filled
 	roots    []common.Hash // Storage roots requested, may be only partially filled
 
-	hashes [][]common.Hash       // Storage slot hashes in the returned range
-	slots  [][][]byte            // Storage slot values in the returned range
-	nodes  []ethdb.KeyValueStore // Database containing the reconstructed trie nodes
-	tries  []*trie.Trie          // Reconstructed tries to reject overflown slots
+	hashes [][]common.Hash // Storage slot hashes in the returned range
+	slots  [][][]byte      // Storage slot values in the returned range
 
-	// Fields relevant for the last account only
-	bounds   map[common.Hash]struct{} // Boundary nodes to avoid persisting (incomplete)
-	overflow *light.NodeSet           // Overflow nodes to avoid persisting across chunk boundaries
-	cont     bool                     // Whether the last storage range has a continuation
+	cont bool // Whether the last storage range has a continuation
 }
 
 // trienodeHealRequest tracks a pending state trie request to ensure responses
@@ -302,6 +292,9 @@ type accountTask struct {
 	codeTasks  map[common.Hash]struct{}    // Code hashes that need retrieval
 	stateTasks map[common.Hash]common.Hash // Account hashes->roots that need full state retrieval
 
+	genBatch ethdb.Batch     // Batch used by the node generator
+	genTrie  *trie.StackTrie // Node generator from storage slots
+
 	done bool // Flag whether the task can be removed
 }
 
@@ -313,7 +306,11 @@ type storageTask struct {
 	// These fields are internals used during runtime
 	root common.Hash     // Storage root hash for this instance
 	req  *storageRequest // Pending request to fill this task
-	done bool            // Flag whether the task can be removed
+
+	genBatch ethdb.Batch     // Batch used by the node generator
+	genTrie  *trie.StackTrie // Node generator from storage slots
+
+	done bool // Flag whether the task can be removed
 }
 
 // healTask represents the sync task for healing the snap-synced chunk boundaries.
@@ -360,7 +357,7 @@ type SyncPeer interface {
 	// trie, starting with the origin.
 	RequestAccountRange(id uint64, root, origin, limit common.Hash, bytes uint64) error
 
-	// RequestStorageRange fetches a batch of storage slots belonging to one or
+	// RequestStorageRanges fetches a batch of storage slots belonging to one or
 	// more accounts. If slots from only one accout is requested, an origin marker
 	// may also be used to retrieve from there.
 	RequestStorageRanges(id uint64, root common.Hash, accounts []common.Hash, origin, limit []byte, bytes uint64) error
@@ -554,11 +551,6 @@ func (s *Syncer) Sync(root common.Hash, cancel chan struct{}) error {
 		log.Debug("Snapshot sync already completed")
 		return nil
 	}
-	// If sync is still not finished, we need to ensure that any marker is wiped.
-	// Otherwise, it may happen that requests for e.g. genesis-data is delivered
-	// from the snapshot data, instead of from the trie
-	snapshot.ClearSnapshotMarker(s.db)
-
 	defer func() { // Persist any progress, independent of failure
 		for _, task := range s.tasks {
 			s.forwardAccountTask(task)
@@ -681,6 +673,27 @@ func (s *Syncer) loadSyncStatus() {
 				log.Debug("Scheduled account sync task", "from", task.Next, "last", task.Last)
 			}
 			s.tasks = progress.Tasks
+			for _, task := range s.tasks {
+				task.genBatch = ethdb.HookedBatch{
+					Batch: s.db.NewBatch(),
+					OnPut: func(key []byte, value []byte) {
+						s.accountBytes += common.StorageSize(len(key) + len(value))
+					},
+				}
+				task.genTrie = trie.NewStackTrie(task.genBatch)
+
+				for _, subtasks := range task.SubTasks {
+					for _, subtask := range subtasks {
+						subtask.genBatch = ethdb.HookedBatch{
+							Batch: s.db.NewBatch(),
+							OnPut: func(key []byte, value []byte) {
+								s.storageBytes += common.StorageSize(len(key) + len(value))
+							},
+						}
+						subtask.genTrie = trie.NewStackTrie(subtask.genBatch)
+					}
+				}
+			}
 			s.snapped = len(s.tasks) == 0
 
 			s.accountSynced = progress.AccountSynced
@@ -711,7 +724,7 @@ func (s *Syncer) loadSyncStatus() {
 	step := new(big.Int).Sub(
 		new(big.Int).Div(
 			new(big.Int).Exp(common.Big2, common.Big256, nil),
-			big.NewInt(accountConcurrency),
+			big.NewInt(int64(accountConcurrency)),
 		), common.Big1,
 	)
 	for i := 0; i < accountConcurrency; i++ {
@@ -720,10 +733,18 @@ func (s *Syncer) loadSyncStatus() {
 			// Make sure we don't overflow if the step is not a proper divisor
 			last = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 		}
+		batch := ethdb.HookedBatch{
+			Batch: s.db.NewBatch(),
+			OnPut: func(key []byte, value []byte) {
+				s.accountBytes += common.StorageSize(len(key) + len(value))
+			},
+		}
 		s.tasks = append(s.tasks, &accountTask{
 			Next:     next,
 			Last:     last,
 			SubTasks: make(map[common.Hash][]*storageTask),
+			genBatch: batch,
+			genTrie:  trie.NewStackTrie(batch),
 		})
 		log.Debug("Created account sync task", "from", next, "last", last)
 		next = common.BigToHash(new(big.Int).Add(last.Big(), common.Big1))
@@ -732,6 +753,20 @@ func (s *Syncer) loadSyncStatus() {
 
 // saveSyncStatus marshals the remaining sync tasks into leveldb.
 func (s *Syncer) saveSyncStatus() {
+	// Serialize any partial progress to disk before spinning down
+	for _, task := range s.tasks {
+		if err := task.genBatch.Write(); err != nil {
+			log.Error("Failed to persist account slots", "err", err)
+		}
+		for _, subtasks := range task.SubTasks {
+			for _, subtask := range subtasks {
+				if err := subtask.genBatch.Write(); err != nil {
+					log.Error("Failed to persist storage slots", "err", err)
+				}
+			}
+		}
+	}
+	// Store the actual progress markers
 	progress := &syncProgress{
 		Tasks:              s.tasks,
 		AccountSynced:      s.accountSynced,
@@ -755,16 +790,25 @@ func (s *Syncer) saveSyncStatus() {
 // cleanAccountTasks removes account range retrieval tasks that have already been
 // completed.
 func (s *Syncer) cleanAccountTasks() {
+	// If the sync was already done before, don't even bother
+	if len(s.tasks) == 0 {
+		return
+	}
+	// Sync wasn't finished previously, check for any task that can be finalized
 	for i := 0; i < len(s.tasks); i++ {
 		if s.tasks[i].done {
 			s.tasks = append(s.tasks[:i], s.tasks[i+1:]...)
 			i--
 		}
 	}
+	// If everything was just finalized just, generate the account trie and start heal
 	if len(s.tasks) == 0 {
 		s.lock.Lock()
 		s.snapped = true
 		s.lock.Unlock()
+
+		// Push the final sync report
+		s.reportSyncProgress(true)
 	}
 }
 
@@ -1601,12 +1645,7 @@ func (s *Syncer) processAccountResponse(res *accountResponse) {
 			continue
 		}
 		if cmp > 0 {
-			// Chunk overflown, cut off excess, but also update the boundary nodes
-			for j := i; j < len(res.hashes); j++ {
-				if err := res.trie.Prove(res.hashes[j][:], 0, res.overflow); err != nil {
-					panic(err) // Account range was already proven, what happened
-				}
-			}
+			// Chunk overflown, cut off excess
 			res.hashes = res.hashes[:i]
 			res.accounts = res.accounts[:i]
 			res.cont = false // Mark range completed
@@ -1682,7 +1721,6 @@ func (s *Syncer) processBytecodeResponse(res *bytecodeResponse) {
 
 	var (
 		codes uint64
-		bytes common.StorageSize
 	)
 	for i, hash := range res.hashes {
 		code := res.codes[i]
@@ -1700,17 +1738,16 @@ func (s *Syncer) processBytecodeResponse(res *bytecodeResponse) {
 			}
 		}
 		// Push the bytecode into a database batch
-		s.bytecodeSynced++
-		s.bytecodeBytes += common.StorageSize(len(code))
-
 		codes++
-		bytes += common.StorageSize(len(code))
-
 		rawdb.WriteCode(batch, hash, code)
 	}
+	bytes := common.StorageSize(batch.ValueSize())
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to persist bytecodes", "err", err)
 	}
+	s.bytecodeSynced += codes
+	s.bytecodeBytes += bytes
+
 	log.Debug("Persisted set of bytecodes", "count", codes, "bytes", bytes)
 
 	// If this delivery completed the last pending task, forward the account task
@@ -1730,13 +1767,15 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 	if res.subTask != nil {
 		res.subTask.req = nil
 	}
-	batch := s.db.NewBatch()
-
+	batch := ethdb.HookedBatch{
+		Batch: s.db.NewBatch(),
+		OnPut: func(key []byte, value []byte) {
+			s.storageBytes += common.StorageSize(len(key) + len(value))
+		},
+	}
 	var (
-		slots   int
-		nodes   int
-		skipped int
-		bytes   common.StorageSize
+		slots           int
+		oldStorageBytes = s.storageBytes
 	)
 	// Iterate over all the accounts and reconstruct their storage tries from the
 	// delivered slots
@@ -1773,27 +1812,60 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 				// the subtasks for it within the main account task
 				if tasks, ok := res.mainTask.SubTasks[account]; !ok {
 					var (
-						next common.Hash
+						keys    = res.hashes[i]
+						chunks  = uint64(storageConcurrency)
+						lastKey common.Hash
 					)
-					step := new(big.Int).Sub(
-						new(big.Int).Div(
-							new(big.Int).Exp(common.Big2, common.Big256, nil),
-							big.NewInt(storageConcurrency),
-						), common.Big1,
-					)
-					for k := 0; k < storageConcurrency; k++ {
-						last := common.BigToHash(new(big.Int).Add(next.Big(), step))
-						if k == storageConcurrency-1 {
-							// Make sure we don't overflow if the step is not a proper divisor
-							last = common.HexToHash("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+					if len(keys) > 0 {
+						lastKey = keys[len(keys)-1]
+					}
+					// If the number of slots remaining is low, decrease the
+					// number of chunks. Somewhere on the order of 10-15K slots
+					// fit into a packet of 500KB. A key/slot pair is maximum 64
+					// bytes, so pessimistically maxRequestSize/64 = 8K.
+					//
+					// Chunk so that at least 2 packets are needed to fill a task.
+					if estimate, err := estimateRemainingSlots(len(keys), lastKey); err == nil {
+						if n := estimate / (2 * (maxRequestSize / 64)); n+1 < chunks {
+							chunks = n + 1
+						}
+						log.Debug("Chunked large contract", "initiators", len(keys), "tail", lastKey, "remaining", estimate, "chunks", chunks)
+					} else {
+						log.Debug("Chunked large contract", "initiators", len(keys), "tail", lastKey, "chunks", chunks)
+					}
+					r := newHashRange(lastKey, chunks)
+
+					// Our first task is the one that was just filled by this response.
+					batch := ethdb.HookedBatch{
+						Batch: s.db.NewBatch(),
+						OnPut: func(key []byte, value []byte) {
+							s.storageBytes += common.StorageSize(len(key) + len(value))
+						},
+					}
+					tasks = append(tasks, &storageTask{
+						Next:     common.Hash{},
+						Last:     r.End(),
+						root:     acc.Root,
+						genBatch: batch,
+						genTrie:  trie.NewStackTrie(batch),
+					})
+					for r.Next() {
+						batch := ethdb.HookedBatch{
+							Batch: s.db.NewBatch(),
+							OnPut: func(key []byte, value []byte) {
+								s.storageBytes += common.StorageSize(len(key) + len(value))
+							},
 						}
 						tasks = append(tasks, &storageTask{
-							Next: next,
-							Last: last,
-							root: acc.Root,
+							Next:     r.Start(),
+							Last:     r.End(),
+							root:     acc.Root,
+							genBatch: batch,
+							genTrie:  trie.NewStackTrie(batch),
 						})
-						log.Debug("Created storage sync task", "account", account, "root", acc.Root, "from", next, "last", last)
-						next = common.BigToHash(new(big.Int).Add(last.Big(), common.Big1))
+					}
+					for _, task := range tasks {
+						log.Debug("Created storage sync task", "account", account, "root", acc.Root, "from", task.Next, "last", task.Last)
 					}
 					res.mainTask.SubTasks[account] = tasks
 
@@ -1806,74 +1878,81 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 			if res.subTask != nil {
 				// Ensure the response doesn't overflow into the subsequent task
 				last := res.subTask.Last.Big()
-				for k, hash := range res.hashes[i] {
-					// Mark the range complete if the last is already included.
-					// Keep iteration to delete the extra states if exists.
-					cmp := hash.Big().Cmp(last)
-					if cmp == 0 {
+				// Find the first overflowing key. While at it, mark res as complete
+				// if we find the range to include or pass the 'last'
+				index := sort.Search(len(res.hashes[i]), func(k int) bool {
+					cmp := res.hashes[i][k].Big().Cmp(last)
+					if cmp >= 0 {
 						res.cont = false
-						continue
 					}
-					if cmp > 0 {
-						// Chunk overflown, cut off excess, but also update the boundary
-						for l := k; l < len(res.hashes[i]); l++ {
-							if err := res.tries[i].Prove(res.hashes[i][l][:], 0, res.overflow); err != nil {
-								panic(err) // Account range was already proven, what happened
-							}
-						}
-						res.hashes[i] = res.hashes[i][:k]
-						res.slots[i] = res.slots[i][:k]
-						res.cont = false // Mark range completed
-						break
-					}
+					return cmp > 0
+				})
+				if index >= 0 {
+					// cut off excess
+					res.hashes[i] = res.hashes[i][:index]
+					res.slots[i] = res.slots[i][:index]
 				}
 				// Forward the relevant storage chunk (even if created just now)
 				if res.cont {
-					res.subTask.Next = common.BigToHash(new(big.Int).Add(res.hashes[i][len(res.hashes[i])-1].Big(), big.NewInt(1)))
+					res.subTask.Next = incHash(res.hashes[i][len(res.hashes[i])-1])
 				} else {
 					res.subTask.done = true
 				}
 			}
 		}
-		// Iterate over all the reconstructed trie nodes and push them to disk
+		// Iterate over all the complete contracts, reconstruct the trie nodes and
+		// push them to disk. If the contract is chunked, the trie nodes will be
+		// reconstructed later.
 		slots += len(res.hashes[i])
 
-		it := res.nodes[i].NewIterator(nil, nil)
-		for it.Next() {
-			// Boundary nodes are not written for the last result, since they are incomplete
-			if i == len(res.hashes)-1 && res.subTask != nil {
-				if _, ok := res.bounds[common.BytesToHash(it.Key())]; ok {
-					skipped++
-					continue
-				}
-				if _, err := res.overflow.Get(it.Key()); err == nil {
-					skipped++
-					continue
-				}
+		if i < len(res.hashes)-1 || res.subTask == nil {
+			tr := trie.NewStackTrie(batch)
+			for j := 0; j < len(res.hashes[i]); j++ {
+				tr.Update(res.hashes[i][j][:], res.slots[i][j])
 			}
-			// Node is not a boundary, persist to disk
-			batch.Put(it.Key(), it.Value())
-
-			bytes += common.StorageSize(common.HashLength + len(it.Value()))
-			nodes++
+			tr.Commit()
 		}
-		it.Release()
-
 		// Persist the received storage segements. These flat state maybe
 		// outdated during the sync, but it can be fixed later during the
 		// snapshot generation.
 		for j := 0; j < len(res.hashes[i]); j++ {
 			rawdb.WriteStorageSnapshot(batch, account, res.hashes[i][j], res.slots[i][j])
-			bytes += common.StorageSize(1 + 2*common.HashLength + len(res.slots[i][j]))
+
+			// If we're storing large contracts, generate the trie nodes
+			// on the fly to not trash the gluing points
+			if i == len(res.hashes)-1 && res.subTask != nil {
+				res.subTask.genTrie.Update(res.hashes[i][j][:], res.slots[i][j])
+			}
 		}
 	}
+	// Large contracts could have generated new trie nodes, flush them to disk
+	if res.subTask != nil {
+		if res.subTask.done {
+			if root, err := res.subTask.genTrie.Commit(); err != nil {
+				log.Error("Failed to commit stack slots", "err", err)
+			} else if root == res.subTask.root {
+				// If the chunk's root is an overflown but full delivery, clear the heal request
+				for i, account := range res.mainTask.res.hashes {
+					if account == res.accounts[len(res.accounts)-1] {
+						res.mainTask.needHeal[i] = false
+					}
+				}
+			}
+		}
+		if res.subTask.genBatch.ValueSize() > ethdb.IdealBatchSize || res.subTask.done {
+			if err := res.subTask.genBatch.Write(); err != nil {
+				log.Error("Failed to persist stack slots", "err", err)
+			}
+			res.subTask.genBatch.Reset()
+		}
+	}
+	// Flush anything written just now and update the stats
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to persist storage slots", "err", err)
 	}
 	s.storageSynced += uint64(slots)
-	s.storageBytes += bytes
 
-	log.Debug("Persisted set of storage slots", "accounts", len(res.hashes), "slots", slots, "nodes", nodes, "skipped", skipped, "bytes", bytes)
+	log.Debug("Persisted set of storage slots", "accounts", len(res.hashes), "slots", slots, "bytes", s.storageBytes-oldStorageBytes)
 
 	// If this delivery completed the last pending task, forward the account task
 	// to the next chunk
@@ -1968,76 +2047,39 @@ func (s *Syncer) forwardAccountTask(task *accountTask) {
 	}
 	task.res = nil
 
-	// Iterate over all the accounts and gather all the incomplete trie nodes. A
-	// node is incomplete if we haven't yet filled it (sync was interrupted), or
-	// if we filled it in multiple chunks (storage trie), in which case the few
-	// nodes on the chunk boundaries are missing.
-	incompletes := light.NewNodeSet()
-	for i := range res.accounts {
-		// If the filling was interrupted, mark everything after as incomplete
-		if task.needCode[i] || task.needState[i] {
-			for j := i; j < len(res.accounts); j++ {
-				if err := res.trie.Prove(res.hashes[j][:], 0, incompletes); err != nil {
-					panic(err) // Account range was already proven, what happened
-				}
-			}
-			break
-		}
-		// Filling not interrupted until this point, mark incomplete if needs healing
-		if task.needHeal[i] {
-			if err := res.trie.Prove(res.hashes[i][:], 0, incompletes); err != nil {
-				panic(err) // Account range was already proven, what happened
-			}
-		}
-	}
-	// Persist every finalized trie node that's not on the boundary
-	batch := s.db.NewBatch()
-
-	var (
-		nodes   int
-		skipped int
-		bytes   common.StorageSize
-	)
-	it := res.nodes.NewIterator(nil, nil)
-	for it.Next() {
-		// Boundary nodes are not written, since they are incomplete
-		if _, ok := res.bounds[common.BytesToHash(it.Key())]; ok {
-			skipped++
-			continue
-		}
-		// Overflow nodes are not written, since they mess with another task
-		if _, err := res.overflow.Get(it.Key()); err == nil {
-			skipped++
-			continue
-		}
-		// Accounts with split storage requests are incomplete
-		if _, err := incompletes.Get(it.Key()); err == nil {
-			skipped++
-			continue
-		}
-		// Node is neither a boundary, not an incomplete account, persist to disk
-		batch.Put(it.Key(), it.Value())
-
-		bytes += common.StorageSize(common.HashLength + len(it.Value()))
-		nodes++
-	}
-	it.Release()
-
 	// Persist the received account segements. These flat state maybe
 	// outdated during the sync, but it can be fixed later during the
 	// snapshot generation.
-	for i, hash := range res.hashes {
-		blob := snapshot.SlimAccountRLP(res.accounts[i].Nonce, res.accounts[i].Balance, res.accounts[i].Root, res.accounts[i].CodeHash, res.accounts[i].StorageKeyPrefix)
-		rawdb.WriteAccountSnapshot(batch, hash, blob)
-		bytes += common.StorageSize(1 + common.HashLength + len(blob))
+	oldAccountBytes := s.accountBytes
+
+	batch := ethdb.HookedBatch{
+		Batch: s.db.NewBatch(),
+		OnPut: func(key []byte, value []byte) {
+			s.accountBytes += common.StorageSize(len(key) + len(value))
+		},
 	}
+	for i, hash := range res.hashes {
+		if task.needCode[i] || task.needState[i] {
+			break
+		}
+		slim := snapshot.SlimAccountRLP(res.accounts[i].Nonce, res.accounts[i].Balance, res.accounts[i].Root, res.accounts[i].CodeHash)
+		rawdb.WriteAccountSnapshot(batch, hash, slim)
+
+		// If the task is complete, drop it into the stack trie to generate
+		// account trie nodes for it
+		if !task.needHeal[i] {
+			full, err := snapshot.FullAccountRLP(slim) // TODO(karalabe): Slim parsing can be omitted
+			if err != nil {
+				panic(err) // Really shouldn't ever happen
+			}
+			task.genTrie.Update(hash[:], full)
+		}
+	}
+	// Flush anything written just now and update the stats
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to persist accounts", "err", err)
 	}
-	s.accountBytes += bytes
 	s.accountSynced += uint64(len(res.accounts))
-
-	log.Debug("Persisted range of accounts", "accounts", len(res.accounts), "nodes", nodes, "skipped", skipped, "bytes", bytes)
 
 	// Task filling persisted, push it the chunk marker forward to the first
 	// account still missing data.
@@ -2045,10 +2087,26 @@ func (s *Syncer) forwardAccountTask(task *accountTask) {
 		if task.needCode[i] || task.needState[i] {
 			return
 		}
-		task.Next = common.BigToHash(new(big.Int).Add(hash.Big(), big.NewInt(1)))
+		task.Next = incHash(hash)
 	}
 	// All accounts marked as complete, track if the entire task is done
 	task.done = !res.cont
+
+	// Stack trie could have generated trie nodes, push them to disk (we need to
+	// flush after finalizing task.done. It's fine even if we crash and lose this
+	// write as it will only cause more data to be downloaded during heal.
+	if task.done {
+		if _, err := task.genTrie.Commit(); err != nil {
+			log.Error("Failed to commit stack account", "err", err)
+		}
+	}
+	if task.genBatch.ValueSize() > ethdb.IdealBatchSize || task.done {
+		if err := task.genBatch.Write(); err != nil {
+			log.Error("Failed to persist stack account", "err", err)
+		}
+		task.genBatch.Reset()
+	}
+	log.Debug("Persisted range of accounts", "accounts", len(res.accounts), "bytes", s.accountBytes-oldAccountBytes)
 }
 
 // OnAccounts is a callback method to invoke when a range of accounts are
@@ -2092,7 +2150,6 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 		s.lock.Unlock()
 		return nil
 	}
-
 	// Response is valid, but check if peer is signalling that it does not have
 	// the requested data. For account range queries that means the state being
 	// retrieved was either already pruned remotely, or the peer is not yet
@@ -2124,22 +2181,13 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 	if len(keys) > 0 {
 		end = keys[len(keys)-1]
 	}
-	db, tr, notary, cont, err := trie.VerifyRangeProof(root, req.origin[:], end, keys, accounts, proofdb)
+	cont, err := trie.VerifyRangeProof(root, req.origin[:], end, keys, accounts, proofdb)
 	if err != nil {
 		logger.Warn("Account range failed proof", "err", err)
 		// Signal this request as failed, and ready for rescheduling
 		s.scheduleRevertAccountRequest(req)
 		return err
 	}
-	// Partial trie reconstructed, send it to the scheduler for storage filling
-	bounds := make(map[common.Hash]struct{})
-
-	it := notary.Accessed().NewIterator(nil, nil)
-	for it.Next() {
-		bounds[common.BytesToHash(it.Key())] = struct{}{}
-	}
-	it.Release()
-
 	accs := make([]*state.Account, len(accounts))
 	for i, account := range accounts {
 		acc := new(state.Account)
@@ -2152,10 +2200,6 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 		task:     req.task,
 		hashes:   hashes,
 		accounts: accs,
-		nodes:    db,
-		trie:     tr,
-		bounds:   bounds,
-		overflow: light.NewNodeSet(),
 		cont:     cont,
 	}
 	select {
@@ -2354,12 +2398,8 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 	s.lock.Unlock()
 
 	// Reconstruct the partial tries from the response and verify them
-	var (
-		dbs    = make([]ethdb.KeyValueStore, len(hashes))
-		tries  = make([]*trie.Trie, len(hashes))
-		notary *trie.KeyValueNotary
-		cont   bool
-	)
+	var cont bool
+
 	for i := 0; i < len(hashes); i++ {
 		// Convert the keys and proofs into an internal format
 		keys := make([][]byte, len(hashes[i]))
@@ -2376,7 +2416,7 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 		if len(nodes) == 0 {
 			// No proof has been attached, the response must cover the entire key
 			// space and hash to the origin root.
-			dbs[i], tries[i], _, _, err = trie.VerifyRangeProof(req.roots[i], nil, nil, keys, slots[i], nil)
+			_, err = trie.VerifyRangeProof(req.roots[i], nil, nil, keys, slots[i], nil)
 			if err != nil {
 				s.scheduleRevertStorageRequest(req) // reschedule request
 				logger.Warn("Storage slots failed proof", "err", err)
@@ -2391,7 +2431,7 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 			if len(keys) > 0 {
 				end = keys[len(keys)-1]
 			}
-			dbs[i], tries[i], notary, cont, err = trie.VerifyRangeProof(req.roots[i], req.origin[:], end, keys, slots[i], proofdb)
+			cont, err = trie.VerifyRangeProof(req.roots[i], req.origin[:], end, keys, slots[i], proofdb)
 			if err != nil {
 				s.scheduleRevertStorageRequest(req) // reschedule request
 				logger.Warn("Storage range failed proof", "err", err)
@@ -2400,15 +2440,6 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 		}
 	}
 	// Partial tries reconstructed, send them to the scheduler for storage filling
-	bounds := make(map[common.Hash]struct{})
-
-	if notary != nil { // if all contract storages are delivered in full, no notary will be created
-		it := notary.Accessed().NewIterator(nil, nil)
-		for it.Next() {
-			bounds[common.BytesToHash(it.Key())] = struct{}{}
-		}
-		it.Release()
-	}
 	response := &storageResponse{
 		mainTask: req.mainTask,
 		subTask:  req.subTask,
@@ -2416,10 +2447,6 @@ func (s *Syncer) OnStorage(peer SyncPeer, id uint64, hashes [][]common.Hash, slo
 		roots:    req.roots,
 		hashes:   hashes,
 		slots:    slots,
-		nodes:    dbs,
-		tries:    tries,
-		bounds:   bounds,
-		overflow: light.NewNodeSet(),
 		cont:     cont,
 	}
 	select {
@@ -2627,7 +2654,7 @@ func (s *Syncer) onHealState(paths [][]byte, value []byte) error {
 		if err := rlp.DecodeBytes(value, &account); err != nil {
 			return nil
 		}
-		blob := snapshot.SlimAccountRLP(account.Nonce, account.Balance, account.Root, account.CodeHash, account.StorageKeyPrefix)
+		blob := snapshot.SlimAccountRLP(account.Nonce, account.Balance, account.Root, account.CodeHash)
 		rawdb.WriteAccountSnapshot(s.stateWriter, common.BytesToHash(paths[0]), blob)
 		s.accountHealed += 1
 		s.accountHealedBytes += common.StorageSize(1 + common.HashLength + len(blob))
@@ -2659,7 +2686,7 @@ func (s *Syncer) report(force bool) {
 // reportSyncProgress calculates various status reports and provides it to the user.
 func (s *Syncer) reportSyncProgress(force bool) {
 	// Don't report all the events, just occasionally
-	if !force && time.Since(s.logTime) < 3*time.Second {
+	if !force && time.Since(s.logTime) < 8*time.Second {
 		return
 	}
 	// Don't report anything until we have a meaningful progress
@@ -2698,7 +2725,7 @@ func (s *Syncer) reportSyncProgress(force bool) {
 // reportHealProgress calculates various status reports and provides it to the user.
 func (s *Syncer) reportHealProgress(force bool) {
 	// Don't report all the events, just occasionally
-	if !force && time.Since(s.logTime) < 3*time.Second {
+	if !force && time.Since(s.logTime) < 8*time.Second {
 		return
 	}
 	s.logTime = time.Now()
@@ -2712,4 +2739,20 @@ func (s *Syncer) reportHealProgress(force bool) {
 	)
 	log.Info("State heal in progress", "accounts", accounts, "slots", storage,
 		"codes", bytecode, "nodes", trienode, "pending", s.healer.scheduler.Pending())
+}
+
+// estimateRemainingSlots tries to determine roughly how many slots are left in
+// a contract storage, based on the number of keys and the last hash. This method
+// assumes that the hashes are lexicographically ordered and evenly distributed.
+func estimateRemainingSlots(hashes int, last common.Hash) (uint64, error) {
+	if last == (common.Hash{}) {
+		return 0, errors.New("last hash empty")
+	}
+	space := new(big.Int).Mul(math.MaxBig256, big.NewInt(int64(hashes)))
+	space.Div(space, last.Big())
+	if !space.IsUint64() {
+		// Gigantic address space probably due to too few or malicious slots
+		return 0, errors.New("too few slots for estimation")
+	}
+	return space.Uint64() - uint64(hashes), nil
 }
