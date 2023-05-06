@@ -23,14 +23,16 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
 	"github.com/PlatONnetwork/PlatON-Go/light"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -2062,7 +2064,7 @@ func (s *Syncer) forwardAccountTask(task *accountTask) {
 		if task.needCode[i] || task.needState[i] {
 			break
 		}
-		slim := snapshot.SlimAccountRLP(res.accounts[i].Nonce, res.accounts[i].Balance, res.accounts[i].Root, res.accounts[i].CodeHash)
+		slim := snapshot.SlimAccountRLP(res.accounts[i].Nonce, res.accounts[i].Balance, res.accounts[i].Root, res.accounts[i].CodeHash, res.accounts[i].StorageKeyPrefix)
 		rawdb.WriteAccountSnapshot(batch, hash, slim)
 
 		// If the task is complete, drop it into the stack trie to generate
@@ -2654,7 +2656,7 @@ func (s *Syncer) onHealState(paths [][]byte, value []byte) error {
 		if err := rlp.DecodeBytes(value, &account); err != nil {
 			return nil
 		}
-		blob := snapshot.SlimAccountRLP(account.Nonce, account.Balance, account.Root, account.CodeHash)
+		blob := snapshot.SlimAccountRLP(account.Nonce, account.Balance, account.Root, account.CodeHash, account.StorageKeyPrefix)
 		rawdb.WriteAccountSnapshot(s.stateWriter, common.BytesToHash(paths[0]), blob)
 		s.accountHealed += 1
 		s.accountHealedBytes += common.StorageSize(1 + common.HashLength + len(blob))
