@@ -1400,10 +1400,11 @@ func makeBoundaryAccountTrie(n int) (*trie.Trie, entrySlice) {
 	// Fill boundary accounts
 	for i := 0; i < len(boundaries); i++ {
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    uint64(0),
-			Balance:  big.NewInt(int64(i)),
-			Root:     emptyRoot,
-			CodeHash: getCodeHash(uint64(i)),
+			Nonce:            uint64(0),
+			Balance:          big.NewInt(int64(i)),
+			Root:             emptyRoot,
+			CodeHash:         getCodeHash(uint64(i)),
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{boundaries[i].Bytes(), value}
 		trie.Update(elem.k, elem.v)
@@ -1412,10 +1413,11 @@ func makeBoundaryAccountTrie(n int) (*trie.Trie, entrySlice) {
 	// Fill other accounts if required
 	for i := uint64(1); i <= uint64(n); i++ {
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    i,
-			Balance:  big.NewInt(int64(i)),
-			Root:     emptyRoot,
-			CodeHash: getCodeHash(i),
+			Nonce:            i,
+			Balance:          big.NewInt(int64(i)),
+			Root:             emptyRoot,
+			CodeHash:         getCodeHash(i),
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key32(i), value}
 		trie.Update(elem.k, elem.v)
@@ -1448,10 +1450,11 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 		stRoot := stTrie.Hash()
 		stTrie.Commit(nil)
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    i,
-			Balance:  big.NewInt(int64(i)),
-			Root:     stRoot,
-			CodeHash: codehash,
+			Nonce:            i,
+			Balance:          big.NewInt(int64(i)),
+			Root:             stRoot,
+			CodeHash:         codehash,
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key, value}
 		accTrie.Update(elem.k, elem.v)
@@ -1495,10 +1498,11 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (*trie
 			codehash = getCodeHash(i)
 		}
 		value, _ := rlp.EncodeToBytes(state.Account{
-			Nonce:    i,
-			Balance:  big.NewInt(int64(i)),
-			Root:     stRoot,
-			CodeHash: codehash,
+			Nonce:            i,
+			Balance:          big.NewInt(int64(i)),
+			Root:             stRoot,
+			CodeHash:         codehash,
+			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key, value}
 		accTrie.Update(elem.k, elem.v)
