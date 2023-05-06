@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"math/big"
 	"time"
 
