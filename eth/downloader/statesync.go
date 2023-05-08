@@ -102,7 +102,6 @@ func (d *Downloader) runStateSync(s *stateSync) *stateSync {
 		finished []*stateReq                  // Completed or failed requests
 		timeout  = make(chan *stateReq)       // Timed out active requests
 	)
-
 	log.Trace("State sync starting", "root", s.root)
 
 	defer func() {
@@ -113,7 +112,6 @@ func (d *Downloader) runStateSync(s *stateSync) *stateSync {
 			req.peer.SetNodeDataIdle(int(req.nItems), time.Now())
 		}
 	}()
-
 	go s.run()
 	defer s.Cancel()
 
@@ -301,7 +299,7 @@ func newStateSync(d *Downloader, root common.Hash) *stateSync {
 	return &stateSync{
 		d:         d,
 		root:      root,
-		sched:     state.NewStateSync(root, d.stateDB, d.stateBloom),
+		sched:     state.NewStateSync(root, d.stateDB, d.stateBloom, nil),
 		keccak:    sha3.NewLegacyKeccak256().(crypto.KeccakState),
 		trieTasks: make(map[common.Hash]*trieTask),
 		codeTasks: make(map[common.Hash]*codeTask),

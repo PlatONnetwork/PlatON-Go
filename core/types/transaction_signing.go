@@ -37,18 +37,59 @@ type sigCache struct {
 }
 
 // MakeSigner returns a Signer based on the given chain config and block number.
-func MakeSigner(config *params.ChainConfig, pip7 bool, gte140 bool, gte150 bool) Signer {
+func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, gte150 bool) Signer {
 	var signer Signer
 	if gte150 {
 		signer = NewEIP2930Signer(config.PIP7ChainID)
-	} else if gte140 {
+	} else if config.IsHubble(blockNumber) {
 		signer = NewPIP11Signer(config.ChainID, config.PIP7ChainID)
-	} else if pip7 {
+	} else if config.IsNewton(blockNumber) {
 		signer = NewPIP7Signer(config.ChainID, config.PIP7ChainID)
 	} else {
 		signer = NewEIP155Signer(config.ChainID)
 	}
 	return signer
+}
+
+// LatestSigner returns the 'most permissive' Signer available for the given chain
+// configuration. Specifically, this enables support of EIP-155 replay protection and
+// EIP-2930 access list transactions when their respective forks are scheduled to occur at
+// any block number in the chain config.
+//
+// Use this in transaction-handling code where the current block number is unknown. If you
+// have the current block number available, use MakeSigner instead.
+func LatestSigner(config *params.ChainConfig, gte150 bool) Signer {
+	if config.PIP7ChainID != nil {
+		if gte150 {
+			return NewEIP2930Signer(config.PIP7ChainID)
+		}
+	}
+	if config.ChainID != nil && config.PIP7ChainID != nil {
+		if config.HubbleBlock != nil {
+			return NewPIP11Signer(config.ChainID, config.PIP7ChainID)
+		}
+		if config.NewtonBlock != nil {
+			return NewPIP7Signer(config.ChainID, config.PIP7ChainID)
+		}
+	}
+	if config.ChainID != nil {
+		return NewEIP155Signer(config.ChainID)
+	}
+	return HomesteadSigner{}
+}
+
+// LatestSignerForChainID returns the 'most permissive' Signer available. Specifically,
+// this enables support for EIP-155 replay protection and all implemented EIP-2718
+// transaction types if chainID is non-nil.
+//
+// Use this in transaction-handling code where the current block number and fork
+// configuration are unknown. If you have a ChainConfig, use LatestSigner instead.
+// If you have a ChainConfig and know the current block number, use MakeSigner instead.
+func LatestSignerForChainID(chainID *big.Int) Signer {
+	if chainID == nil {
+		return HomesteadSigner{}
+	}
+	return NewEIP2930Signer(chainID)
 }
 
 // SignTx signs the transaction using the given signer and private key

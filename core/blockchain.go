@@ -373,7 +373,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			log.Warn("Enabling snapshot recovery", "chainhead", head.NumberU64(), "diskbase", *layer)
 			recover = true
 		}
-		bc.snaps = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, head.Root(), !bc.cacheConfig.SnapshotWait, recover)
+		bc.snaps, _ = snapshot.New(bc.db, bc.stateCache.TrieDB(), bc.cacheConfig.SnapshotLimit, head.Root(), !bc.cacheConfig.SnapshotWait, true, recover)
 	}
 	// Take ownership of this particular state
 	go bc.update()
@@ -683,7 +683,8 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 	headBlockGauge.Update(int64(block.NumberU64()))
 	bc.chainmu.Unlock()
 
-	// Destroy any existing state snapshot and regenerate it in the background
+	// Destroy any existing state snapshot and regenerate it in the background,
+	// also resuming the normal maintenance of any previously paused snapshot.
 	if bc.snaps != nil {
 		bc.snaps.Rebuild(block.Root())
 	}
@@ -1224,7 +1225,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		size  = 0
 	)
 	// updateHead updates the head fast sync block if the inserted blocks are better
-	// and returns a indicator whether the inserted blocks are canonical.
+	// and returns an indicator whether the inserted blocks are canonical.
 	updateHead := func(head *types.Block) bool {
 		bc.chainmu.Lock()
 
@@ -1277,71 +1278,17 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			if !bc.HasHeader(block.Hash(), block.NumberU64()) {
 				return i, fmt.Errorf("containing header #%d [%x..] unknown", block.Number(), block.Hash().Bytes()[:4])
 			}
-			var (
-				start  = time.Now()
-				logged = time.Now()
-				count  int
-			)
-			// Migrate all ancient blocks. This can happen if someone upgrades from Geth
-			// 1.8.x to 1.9.x mid-fast-sync. Perhaps we can get rid of this path in the
-			// long term.
-			for {
-				// We can ignore the error here since light client won't hit this code path.
-				frozen, _ := bc.db.Ancients()
-				if frozen >= block.NumberU64() {
-					break
+			if block.NumberU64() == 1 {
+				// Make sure to write the genesis into the freezer
+				if frozen, _ := bc.db.Ancients(); frozen == 0 {
+					h := rawdb.ReadCanonicalHash(bc.db, 0)
+					b := rawdb.ReadBlock(bc.db, h, 0)
+					size += rawdb.WriteAncientBlock(bc.db, b, rawdb.ReadReceipts(bc.db, h, 0, bc.chainConfig))
+					log.Info("Wrote genesis to ancients")
 				}
-				h := rawdb.ReadCanonicalHash(bc.db, frozen)
-				b := rawdb.ReadBlock(bc.db, h, frozen)
-				size += rawdb.WriteAncientBlock(bc.db, b, rawdb.ReadReceipts(bc.db, h, frozen, bc.chainConfig))
-				count += 1
-
-				// Always keep genesis block in active database.
-				if b.NumberU64() != 0 {
-					deleted = append(deleted, &numberHash{b.NumberU64(), b.Hash()})
-				}
-				if time.Since(logged) > 8*time.Second {
-					log.Info("Migrating ancient blocks", "count", count, "elapsed", common.PrettyDuration(time.Since(start)))
-					logged = time.Now()
-				}
-				// Don't collect too much in-memory, write it out every 100K blocks
-				if len(deleted) > 100000 {
-
-					// Sync the ancient store explicitly to ensure all data has been flushed to disk.
-					if err := bc.db.Sync(); err != nil {
-						return 0, err
-					}
-					// Wipe out canonical block data.
-					for _, nh := range deleted {
-						rawdb.DeleteBlockWithoutNumber(batch, nh.hash, nh.number)
-						rawdb.DeleteCanonicalHash(batch, nh.number)
-					}
-					if err := batch.Write(); err != nil {
-						return 0, err
-					}
-					batch.Reset()
-					// Wipe out side chain too.
-					for _, nh := range deleted {
-						for _, hash := range rawdb.ReadAllHashes(bc.db, nh.number) {
-							rawdb.DeleteBlock(batch, hash, nh.number)
-						}
-					}
-					if err := batch.Write(); err != nil {
-						return 0, err
-					}
-					batch.Reset()
-					deleted = deleted[0:]
-				}
-			}
-			if count > 0 {
-				log.Info("Migrated ancient blocks", "count", count, "elapsed", common.PrettyDuration(time.Since(start)))
 			}
 			// Flush data into ancient database.
-			if receiptChain == nil {
-				size += rawdb.WriteAncientBlock(bc.db, block, nil)
-			} else {
-				size += rawdb.WriteAncientBlock(bc.db, block, receiptChain[i])
-			}
+			size += rawdb.WriteAncientBlock(bc.db, block, receiptChain[i])
 
 			// Write tx indices if any condition is satisfied:
 			// * If user requires to reserve all tx indices(txlookuplimit=0)

@@ -28,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -441,6 +443,11 @@ func (dl *downloadTester) dropPeer(id string) {
 	defer dl.lock.Unlock()
 	delete(dl.peers, id)
 	dl.downloader.UnregisterPeer(id)
+}
+
+// Snapshots implements the BlockChain interface for the downloader, but is a noop.
+func (dl *downloadTester) Snapshots() *snapshot.Tree {
+	return nil
 }
 
 type downloadTesterPeer struct {

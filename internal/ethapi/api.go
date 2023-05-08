@@ -1227,7 +1227,7 @@ type RPCTransaction struct {
 // newRPCTransaction returns a transaction that will serialize to the RPC
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *RPCTransaction {
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.LatestSignerForChainID(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 
@@ -1532,7 +1532,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	}
 	receipt := receipts[index]
 
-	var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
+	var signer types.Signer = types.LatestSignerForChainID(tx.ChainId())
 	from, _ := types.Sender(signer, tx)
 
 	fields := map[string]interface{}{
@@ -1710,7 +1710,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	// Print a log with full tx details for manual investigations and interventions
-	signer := types.MakeSigner(b.ChainConfig(), true, true, false)
+	signer := types.NewEIP2930Signer(tx.ChainId())
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -1856,8 +1856,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	}
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
-		var signer types.Signer = types.NewPIP11Signer(tx.ChainId(), tx.ChainId())
-		from, _ := types.Sender(signer, tx)
+		from, _ := types.Sender(types.NewEIP2930Signer(tx.ChainId()), tx)
 		if _, exists := accounts[from]; exists {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
 		}
@@ -1889,7 +1888,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	}
 
 	for _, p := range pending {
-		var signer types.Signer = types.NewPIP11Signer(p.ChainId(), p.ChainId())
+		signer := types.NewEIP2930Signer(p.ChainId())
 		wantSigHash := signer.Hash(matchTx, p.ChainId())
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p, p.ChainId()) == wantSigHash {

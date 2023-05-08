@@ -215,13 +215,13 @@ func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, con
 	return nil, ErrOutOfGas
 }
 
-func IsEVMPrecompiledContract(addr common.Address, gte140Version bool, gte150Version bool) bool {
+func IsEVMPrecompiledContract(addr common.Address, rules params.Rules, gte150Version bool) bool {
 	if gte150Version {
 		if _, ok := PrecompiledContractsBerlin2[addr]; ok {
 			return true
 		}
 	}
-	if gte140Version {
+	if rules.IsHubble {
 		if _, ok := PrecompiledContractsBerlin[addr]; ok {
 			return true
 		}
@@ -233,8 +233,8 @@ func IsEVMPrecompiledContract(addr common.Address, gte140Version bool, gte150Ver
 	return false
 }
 
-func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
-	if Gte120Version {
+func IsPlatONPrecompiledContract(addr common.Address, rules params.Rules) bool {
+	if rules.IsNewton {
 		if _, ok := PlatONPrecompiledContracts120[addr]; ok {
 			return true
 		}
@@ -246,11 +246,11 @@ func IsPlatONPrecompiledContract(addr common.Address, Gte120Version bool) bool {
 	return false
 }
 
-func IsPrecompiledContract(addr common.Address, gte120Version bool, gte140Version bool, gte150Version bool) bool {
-	if IsEVMPrecompiledContract(addr, gte140Version, gte150Version) {
+func IsPrecompiledContract(addr common.Address, rules params.Rules, gte150Version bool) bool {
+	if IsEVMPrecompiledContract(addr, rules, gte150Version) {
 		return true
 	} else {
-		return IsPlatONPrecompiledContract(addr, gte120Version)
+		return IsPlatONPrecompiledContract(addr, rules)
 	}
 }
 

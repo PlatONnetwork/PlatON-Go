@@ -128,7 +128,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	}
 	state.ClearReference()
 
-	singine := types.NewEIP2930Signer(new(big.Int).SetInt64(txg.eth.blockchain.Config().ChainID.Int64()))
+	singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
 
 	txsCh := make(chan []*types.Transaction, 2)
 
@@ -339,7 +339,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		defer currentState.ClearReference()
 		account := crypto.PubkeyToAddress(pri.PublicKey)
 		nonce := currentState.GetNonce(account)
-		singine := types.NewEIP2930Signer(new(big.Int).SetInt64(txg.eth.blockchain.Config().ChainID.Int64()))
+		singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
 		gasPrice := txg.eth.txPool.GasPrice()
 
 		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {

@@ -172,12 +172,12 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 		switch n := n.(type) {
 		case *shortNode:
 			if child, ok := n.Val.(valueNode); ok {
-				c.onleaf(nil, child, hash2)
+				c.onleaf(nil, nil, child, hash2)
 			}
 		case *fullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(valueNode); ok {
-					c.onleaf(nil, child, hash2)
+					c.onleaf(nil, nil, child, hash2)
 				}
 			}
 		}
@@ -191,8 +191,8 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 //
 // All node encoding must be done like this:
 //
-//     node.encode(h.encbuf)
-//     enc := h.encodedBytes()
+//	node.encode(h.encbuf)
+//	enc := h.encodedBytes()
 //
 // This convention exists because node.encode can only be inlined/escape-analyzed when
 // called on a concrete receiver type.

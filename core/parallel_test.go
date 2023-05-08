@@ -46,7 +46,7 @@ var (
 	blockGasLimit        = uint64(500000000000)
 
 	gasPrice = big.NewInt(15000)
-	signer   = types.NewEIP155Signer(chainConfig.ChainID)
+	signer   = types.LatestSignerForChainID(chainConfig.PIP7ChainID)
 
 	//blockchain *BlockChain
 	//stateDb *state2.StateDB
@@ -304,10 +304,11 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 
 func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header, tempContractCache map[common.Address]struct{}) *types.Block {
 	//initState := stateDb.Copy()
+
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
-	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil, tempContractCache)
+	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, types.MakeSigner(chainConfig, header.Number, true), tempContractCache)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(testTxList)
