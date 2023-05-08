@@ -21,10 +21,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -139,16 +140,6 @@ func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 		}
 	}
 	log.Info(msg, ctx...)
-}
-
-// ClearSnapshotMarker sets the snapshot marker to zero, meaning that snapshots
-// are not usable.
-func ClearSnapshotMarker(diskdb ethdb.KeyValueStore) {
-	batch := diskdb.NewBatch()
-	journalProgress(batch, []byte{}, nil)
-	if err := batch.Write(); err != nil {
-		log.Crit("Failed to write initialized state marker", "err", err)
-	}
 }
 
 // generateSnapshot regenerates a brand new snapshot based on an existing state
@@ -368,7 +359,7 @@ func (dl *diskLayer) proveRange(stats *generatorStats, root common.Hash, prefix 
 	}
 	// Verify the snapshot segment with range prover, ensure that all flat states
 	// in this range correspond to merkle trie.
-	_, _, _, cont, err := trie.VerifyRangeProof(root, origin, last, keys, vals, proof)
+	cont, err := trie.VerifyRangeProof(root, origin, last, keys, vals, proof)
 	return &proofResult{
 			keys:     keys,
 			vals:     vals,
