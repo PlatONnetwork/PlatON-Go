@@ -51,12 +51,6 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 		},
 	},
 	{
-		Name: "DEVELOPER CHAIN",
-		Flags: []cli.Flag{
-			utils.DeveloperPeriodFlag,
-		},
-	},
-	{
 		Name: "TRANSACTION POOL",
 		Flags: []cli.Flag{
 			utils.TxPoolLocalsFlag,
@@ -131,7 +125,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.BootnodesFlag,
 			utils.BootnodesV4Flag,
 			//	utils.BootnodesV5Flag,
-			utils.DNSDiscoveryFlag,
+			//	utils.DNSDiscoveryFlag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
 			utils.MaxConsensusPeersFlag,
@@ -158,12 +152,12 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.GpoMaxGasPriceFlag,
 		},
 	},
-	{
+	/*	{
 		Name: "LOGGING AND DEBUGGING",
 		Flags: append([]cli.Flag{
 			utils.NoCompactionFlag,
 		}, debug.Flags...),
-	},
+	},*/
 	{
 		Name:  "METRICS AND STATS",
 		Flags: metricsFlags,
