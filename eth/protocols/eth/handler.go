@@ -173,64 +173,33 @@ type Decoder interface {
 	Time() time.Time
 }
 
-var eth64 = map[uint64]msgHandler{
-	GetBlockHeadersMsg: handleGetBlockHeaders,
-	BlockHeadersMsg:    handleBlockHeaders,
-	GetBlockBodiesMsg:  handleGetBlockBodies,
-	BlockBodiesMsg:     handleBlockBodies,
-	GetNodeDataMsg:     handleGetNodeData,
-	NodeDataMsg:        handleNodeData,
-	GetReceiptsMsg:     handleGetReceipts,
-	ReceiptsMsg:        handleReceipts,
-	NewBlockHashesMsg:  handleNewBlockhashes,
-	NewBlockMsg:        handleNewBlock,
-	TransactionsMsg:    handleTransactions,
-
-	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
-	PPOSStorageMsg:       handlePPosStorageMsg,
-	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
-	OriginAndPivotMsg:    handleOriginAndPivotMsg,
-	PPOSInfoMsg:          handlePPOSInfoMsg,
-}
 var eth65 = map[uint64]msgHandler{
-	// old 64 messages
-	GetBlockHeadersMsg: handleGetBlockHeaders,
-	BlockHeadersMsg:    handleBlockHeaders,
-	GetBlockBodiesMsg:  handleGetBlockBodies,
-	BlockBodiesMsg:     handleBlockBodies,
-	GetNodeDataMsg:     handleGetNodeData,
-	NodeDataMsg:        handleNodeData,
-	GetReceiptsMsg:     handleGetReceipts,
-	ReceiptsMsg:        handleReceipts,
-	NewBlockHashesMsg:  handleNewBlockhashes,
-	NewBlockMsg:        handleNewBlock,
-	TransactionsMsg:    handleTransactions,
-
-	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
-	PPOSStorageMsg:       handlePPosStorageMsg,
-	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
-	OriginAndPivotMsg:    handleOriginAndPivotMsg,
-	PPOSInfoMsg:          handlePPOSInfoMsg,
-
-	// New eth65 messages
+	GetBlockHeadersMsg:            handleGetBlockHeaders,
+	BlockHeadersMsg:               handleBlockHeaders,
+	GetBlockBodiesMsg:             handleGetBlockBodies,
+	BlockBodiesMsg:                handleBlockBodies,
+	GetNodeDataMsg:                handleGetNodeData,
+	NodeDataMsg:                   handleNodeData,
+	GetReceiptsMsg:                handleGetReceipts,
+	ReceiptsMsg:                   handleReceipts,
+	NewBlockHashesMsg:             handleNewBlockhashes,
+	NewBlockMsg:                   handleNewBlock,
+	TransactionsMsg:               handleTransactions,
 	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
 	GetPooledTransactionsMsg:      handleGetPooledTransactions,
 	PooledTransactionsMsg:         handlePooledTransactions,
-}
-
-var eth66 = map[uint64]msgHandler{
-	// eth64 announcement messages (no id)
-	NewBlockHashesMsg: handleNewBlockhashes,
-	NewBlockMsg:       handleNewBlock,
-	TransactionsMsg:   handleTransactions,
-
+	// PPOS messages
 	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
 	PPOSStorageMsg:       handlePPosStorageMsg,
 	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
 	OriginAndPivotMsg:    handleOriginAndPivotMsg,
 	PPOSInfoMsg:          handlePPOSInfoMsg,
+}
 
-	// eth65 announcement messages (no id)
+var eth66 = map[uint64]msgHandler{
+	NewBlockHashesMsg:             handleNewBlockhashes,
+	NewBlockMsg:                   handleNewBlock,
+	TransactionsMsg:               handleTransactions,
 	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
 	// eth66 messages with request-id
 	GetBlockHeadersMsg:       handleGetBlockHeaders66,
@@ -243,6 +212,12 @@ var eth66 = map[uint64]msgHandler{
 	ReceiptsMsg:              handleReceipts66,
 	GetPooledTransactionsMsg: handleGetPooledTransactions66,
 	PooledTransactionsMsg:    handlePooledTransactions66,
+	// PPOS messages
+	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
+	PPOSStorageMsg:       handlePPosStorageMsg,
+	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
+	OriginAndPivotMsg:    handleOriginAndPivotMsg,
+	PPOSInfoMsg:          handlePPOSInfoMsg,
 }
 
 // handleMessage is invoked whenever an inbound message is received from a remote
@@ -258,10 +233,8 @@ func handleMessage(backend Backend, peer *Peer) error {
 	}
 	defer msg.Discard()
 
-	var handlers = eth64
-	if peer.Version() == ETH65 {
-		handlers = eth65
-	} else if peer.Version() >= ETH66 {
+	var handlers = eth65
+	if peer.Version() >= ETH66 {
 		handlers = eth66
 	}
 	// Track the amount of time it takes to serve the request and run the handler
