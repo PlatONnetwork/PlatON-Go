@@ -510,6 +510,8 @@ func makeLargeTestTrie() (*Database, *SecureTrie, *loggingDb) {
 }
 
 // Tests that the node iterator indeed walks over the entire database contents.
+// After the trie is submitted, the root hangs on the real node instead of the hashnode
+// so the node iterator indeed walks over the entire database contents
 func TestNodeIteratorLargeTrie(t *testing.T) {
 	// Create some arbitrary test trie to iterate
 	db, trie, logDb := makeLargeTestTrie()
@@ -518,7 +520,8 @@ func TestNodeIteratorLargeTrie(t *testing.T) {
 	trie.NodeIterator(common.FromHex("0x77667766776677766778855885885885"))
 	// master: 24 get operations
 	// this pr: 5 get operations
-	if have, want := logDb.getCount, uint64(5); have != want {
+	// platon: 0 get operations
+	if have, want := logDb.getCount, uint64(0); have != want {
 		t.Fatalf("Too many lookups during seek, have %d want %d", have, want)
 	}
 }

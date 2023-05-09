@@ -20,6 +20,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -475,8 +476,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 			d.mux.Post(DoneEvent{})
 		}
 	}()
-	if p.version < 64 {
-		return fmt.Errorf("%w: advertized %d < required %d", errTooOld, p.version, 64)
+	if p.version < eth.ETH65 {
+		return fmt.Errorf("%w: advertized %d < required %d", errTooOld, p.version, eth.ETH65)
 	}
 	mode := d.getMode()
 
