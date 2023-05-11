@@ -27,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
+	"math/big"
 	"strconv"
 )
 
@@ -396,16 +397,21 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx
 // opExtCodeHash returns the code hash of a specified account.
 // There are several cases when the function is called, while we can relay everything
 // to `state.GetCodeHash` function to ensure the correctness.
-//   (1) Caller tries to get the code hash of a normal contract account, state
+//
+//	(1) Caller tries to get the code hash of a normal contract account, state
+//
 // should return the relative code hash and set it as the result.
 //
-//   (2) Caller tries to get the code hash of a non-existent account, state should
+//	(2) Caller tries to get the code hash of a non-existent account, state should
+//
 // return common.Hash{} and zero will be set as the result.
 //
-//   (3) Caller tries to get the code hash for an account without contract code,
+//	(3) Caller tries to get the code hash for an account without contract code,
+//
 // state should return emptyCodeHash(0xc5d246...) as the result.
 //
-//   (4) Caller tries to get the code hash of a precompiled account, the result
+//	(4) Caller tries to get the code hash of a precompiled account, the result
+//
 // should be zero or emptyCodeHash.
 //
 // It is worth noting that in order to avoid unnecessary create and clean,
@@ -414,10 +420,12 @@ func opExtCodeCopy(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx
 // If the precompile account is not transferred any amount on a private or
 // customized chain, the return value will be zero.
 //
-//   (5) Caller tries to get the code hash for an account which is marked as suicided
+//	(5) Caller tries to get the code hash for an account which is marked as suicided
+//
 // in the current transaction, the code hash of this account should be returned.
 //
-//   (6) Caller tries to get the code hash for an account which is marked as deleted,
+//	(6) Caller tries to get the code hash for an account which is marked as deleted,
+//
 // this account should be regarded as a non-existent account and zero should be returned.
 func opExtCodeHash(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]byte, error) {
 	slot := callContext.stack.peek()
@@ -700,7 +708,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([]by
 		bigVal = value.ToBig()
 	}
 
-	ret, returnGas, err := interpreter.evm.Call(callContext.contract, toAddr, args, gas, bigVal)
+	ret, returnGas, err := interpreter.evm.Call(InvokedByContract, callContext.contract, toAddr, args, gas, bigVal)
 
 	if err != nil {
 		temp.Clear()
@@ -840,8 +848,15 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	interpreter.evm.StateDB.AddBalance(common.Address(beneficiary.Bytes20()), balance)
 	interpreter.evm.StateDB.Suicide(callContext.contract.Address())
 
-	//把销毁的合约记录下来
+	//stats: 把销毁的合约记录下来
+	log.Debug("processing contract suicide", "address", callContext.contract.Address())
 	saveContractSuicided(interpreter, callContext.contract.Address())
+
+	//stats: 收集隐含交易
+	if balance.Sign() > 0 {
+		log.Info("collect embed transfer in opSuicide()", "blockNumber", interpreter.evm.Context.BlockNumber.Uint64(), "txHash", interpreter.evm.StateDB.TxHash(), "caller", callContext.contract.Address().Bech32(), "to", common.Address(beneficiary.Bytes20()).Bech32(), "&value", &balance)
+		saveEmbedTransfer(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), callContext.contract.Address(), common.Address(beneficiary.Bytes20()), balance)
+	}
 
 	return nil, nil
 }
@@ -1072,5 +1087,47 @@ func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
 	}
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
-	log.Debug("save ContractSuicided success")
+	log.Warn("save ContractSuicided success")
+}
+
+func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.Address, amount *big.Int) {
+	log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
+
+	transKey := plugin.EmbedTransfer + txHash.String()
+	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+	if nil != err {
+		log.Error("failed to load embed transfers", "err", err)
+		return
+	}
+
+	var embedTransferList []*types.EmbedTransfer
+	common.ParseJson(data, &embedTransferList)
+
+	embedTransfer := new(types.EmbedTransfer)
+	embedTransfer.From = from
+	embedTransfer.To = to
+	embedTransfer.Value = amount
+
+	embedTransferList = append(embedTransferList, embedTransfer)
+
+	json := common.ToJson(embedTransferList)
+	if len(json) > 0 {
+		plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), json)
+	}
+
+}
+
+func GetEmbedTransfer(blockNumber uint64, txHash common.Hash) []*types.EmbedTransfer {
+	log.Debug("GetEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex())
+
+	transKey := plugin.EmbedTransfer + txHash.String()
+	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+	if nil != err {
+		log.Error("failed to load embed transfers", "err", err)
+		return nil
+	}
+
+	var embedTransferList []*types.EmbedTransfer
+	common.ParseJson(data, &embedTransferList)
+	return embedTransferList
 }

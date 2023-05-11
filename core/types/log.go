@@ -18,6 +18,7 @@ package types
 
 import (
 	"io"
+	"math/big"
 
 	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 
@@ -104,6 +105,12 @@ type ContractCreated struct {
 
 type ContractSuicided struct {
 	Address common.Address `json:"address" gencodec:"required"`
+}
+
+type EmbedTransfer struct {
+	From  common.Address `json:"from" gencodec:"required"`
+	To    common.Address `json:"to" gencodec:"required"`
+	Value *big.Int       `json:"value" gencodec:"required"`
 }
 
 type logMarshaling struct {
