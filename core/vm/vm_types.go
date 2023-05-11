@@ -43,7 +43,7 @@ func (t *InterpType) SetBytes(b []byte) {
 	copy(t[InterpTypeLen-len(b):], b)
 }
 
-func CanUseEVMInterp (b []byte) bool {
+func CanUseEVMInterp(b []byte) bool {
 	if len(b) != 0 {
 		magicNum := BytesToInterpType(b[:InterpTypeLen])
 		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
@@ -57,7 +57,7 @@ func CanUseEVMInterp (b []byte) bool {
 	return false
 }
 
-func CanUseWASMInterp (b []byte) bool {
+func CanUseWASMInterp(b []byte) bool {
 	if len(b) != 0 {
 		magicNum := BytesToInterpType(b[:InterpTypeLen])
 		if magicNum == WasmInterp {

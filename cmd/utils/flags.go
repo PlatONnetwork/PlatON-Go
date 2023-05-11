@@ -150,10 +150,6 @@ var (
 		Name:  "addressHRP",
 		Usage: "set the address hrp,if not set,use default address hrp",
 	}
-	DeveloperPeriodFlag = cli.IntFlag{
-		Name:  "dev.period",
-		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
-	}
 	IdentityFlag = cli.StringFlag{
 		Name:  "identity",
 		Usage: "Custom node name",
