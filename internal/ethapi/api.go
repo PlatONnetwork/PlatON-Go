@@ -1627,6 +1627,13 @@ func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, bl
 			}
 		}
 
+		embedTransfer := vm.GetEmbedTransfer(blockNumber, value.Hash())
+		if len(embedTransfer) > 0 {
+			fields["embedTransfer"] = embedTransfer
+		} else {
+			fields["embedTransfer"] = []*types.EmbedTransfer{}
+		}
+
 		queue[key] = fields
 	}
 	return queue, nil

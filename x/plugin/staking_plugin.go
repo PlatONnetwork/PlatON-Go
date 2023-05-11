@@ -101,6 +101,7 @@ const (
 	TransHashName       = "TransHash"
 	InnerContractCreate = "ContractCreate"
 	ContractSuicided    = "ContractSuicided"
+	EmbedTransfer       = "EmbedTransfer"
 )
 
 // Instance a global StakingPlugin
