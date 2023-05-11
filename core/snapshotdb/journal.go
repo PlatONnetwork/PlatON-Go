@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -46,6 +45,7 @@ type blockWal struct {
 }
 
 func (s *snapshotDB) loopWriteWal() {
+	s.walLoop = true
 	for {
 		select {
 		case block := <-s.walCh:
@@ -63,9 +63,9 @@ func (s *snapshotDB) loopWriteWal() {
 				continue
 			}
 			s.walSync.Done()
-		case <-s.walExitCh:
+		case exitCH := <-s.walExitCh:
 			logger.Info("loopWriteWal exist")
-			close(s.walCh)
+			exitCH <- struct{}{}
 			return
 		}
 	}
