@@ -251,7 +251,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		head    = h.chain.CurrentHeader()
 		hash    = head.Hash()
 	)
-	if err := peer.Handshake(h.networkID, hash, genesis.Hash()); err != nil {
+	if err := peer.Handshake(h.networkID, head.Number, hash, genesis.Hash()); err != nil {
 		peer.Log().Debug("Ethereum handshake failed", "err", err)
 		return err
 	}
