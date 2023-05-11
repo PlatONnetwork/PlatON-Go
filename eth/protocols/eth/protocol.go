@@ -71,9 +71,9 @@ const (
 	PPOSInfoMsg          = 0x15
 
 	// Protocol messages overloaded in eth/65
-	NewPooledTransactionHashesMsg = 0x08
-	GetPooledTransactionsMsg      = 0x09
-	PooledTransactionsMsg         = 0x0a
+	NewPooledTransactionHashesMsg = 0x16
+	GetPooledTransactionsMsg      = 0x17
+	PooledTransactionsMsg         = 0x18
 )
 
 var (

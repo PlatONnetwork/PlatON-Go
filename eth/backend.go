@@ -216,9 +216,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 
 	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
-	if err := snapshotBaseDB.Close(); err != nil {
-		return nil, err
-	}
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -318,7 +315,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
 	currentHash := currentBlock.Hash()
-	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash)
+	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
+	if err := snapshotBaseDB.Close(); err != nil {
+		return nil, err
+	}
 	if nil != err {
 		log.Error("Failed to query gasCeil from snapshotdb", "err", err)
 		return nil, err

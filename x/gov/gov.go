@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"strconv"
 
@@ -818,8 +819,8 @@ func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32,
 	return uint32(reward), nil
 }
 
-func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash) (int, error) {
-	gasLimitStr, err := GetGovernParamValue(ModuleBlock, KeyMaxBlockGasLimit, blockNumber, blockHash)
+func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash, db snapshotdb.DB) (int, error) {
+	gasLimitStr, err := GetGovernParamValueWithDataBase(ModuleBlock, KeyMaxBlockGasLimit, blockNumber, blockHash, db)
 	if nil != err {
 		return 0, err
 	}

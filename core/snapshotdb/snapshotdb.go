@@ -20,6 +20,7 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 	"math/big"
 	"os"
 	"sync"
@@ -51,22 +52,23 @@ const (
 	MaxBlockTriggerCompaction = 200
 )
 
-//DB the main snapshotdb interface
-//  example
-//  new a recognized blockData(sync from other peer)
-//  dbInstance.NewBlock(blockNumber, parentHash, hash)
-//  dbInstance.Put(hash, kv.key, kv.value)
-//  dbInstance.Commit(hash)
+// DB the main snapshotdb interface
 //
-//  new a unrecognized blockData(a block produce by self)
-//  dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
-//  dbInstance.Put(hash, kv.key, kv.value)
-//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
-//  dbInstance.Commit(hash)
-//  get a  blockData with hash
-//  dbInstance.Get(hash, key)
-//  get a  blockData without hash
-//  dbInstance.Get(common.zerohash, key)
+//	example
+//	new a recognized blockData(sync from other peer)
+//	dbInstance.NewBlock(blockNumber, parentHash, hash)
+//	dbInstance.Put(hash, kv.key, kv.value)
+//	dbInstance.Commit(hash)
+//
+//	new a unrecognized blockData(a block produce by self)
+//	dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
+//	dbInstance.Put(hash, kv.key, kv.value)
+//	dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
+//	dbInstance.Commit(hash)
+//	get a  blockData with hash
+//	dbInstance.Get(hash, key)
+//	get a  blockData without hash
+//	dbInstance.Get(common.zerohash, key)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
@@ -149,7 +151,8 @@ type snapshotDB struct {
 	commitLock sync.RWMutex
 
 	walCh     chan *blockData
-	walExitCh chan struct{}
+	walLoop   bool
+	walExitCh chan chan struct{}
 	walSync   sync.WaitGroup
 
 	corn *cron.Cron
@@ -184,7 +187,7 @@ func SetDBOptions(cache int, handles int) {
 	baseDBhandles = handles
 }
 
-//Instance return the Instance of the db
+// Instance return the Instance of the db
 func Instance() DB {
 	instance.Lock()
 	defer instance.Unlock()
@@ -247,7 +250,7 @@ func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, erro
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
 		walCh:         make(chan *blockData, 2),
-		walExitCh:     make(chan struct{}),
+		walExitCh:     make(chan chan struct{}),
 	}
 	if baseOnly {
 		return db, nil
@@ -288,6 +291,67 @@ func Open(path string, cache int, handles int, baseOnly bool) (DB, error) {
 	return db, nil
 }
 
+func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) (*snapshotDB, error) {
+	logger.Info("open snapshot db Allocated cache and file handles", "cache", cache, "handles", handles, "baseDB", baseOnly)
+
+	baseDB, err := leveldb.Open(st, &opt.Options{
+		OpenFilesCacheCapacity: handles,
+		BlockCacheCapacity:     cache / 2 * opt.MiB,
+		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),
+	})
+	if err != nil {
+		if _, corrupted := err.(*leveldbError.ErrCorrupted); corrupted {
+			baseDB, err = leveldb.Recover(st, nil)
+			if err != nil {
+				return nil, fmt.Errorf("[SnapshotDB.recover]RecoverFile baseDB fail:%v", err)
+			}
+		} else {
+			return nil, err
+		}
+	}
+
+	unCommitBlock := new(unCommitBlocks)
+	unCommitBlock.blocks = make(map[common.Hash]*blockData)
+	db := &snapshotDB{
+		path:          "",
+		unCommit:      unCommitBlock,
+		committed:     make([]*blockData, 0),
+		baseDB:        baseDB,
+		snapshotLockC: snapshotUnLock,
+	}
+	if baseOnly {
+		return db, nil
+	}
+
+	_, getCurrentError := baseDB.Get([]byte(CurrentSet), nil)
+	if getCurrentError == nil {
+		logger.Info("begin recover", "path", "")
+		if err := db.loadCurrent(); err != nil {
+			return nil, err
+		}
+		logger.Info("load current", "base", db.current.base, "high", db.current.highest)
+		if err := db.recover(); err != nil {
+			logger.Error("recover db fail:", "error", err)
+			return nil, err
+		}
+	} else if getCurrentError == leveldb.ErrNotFound {
+		logger.Info("begin init db current", "path", "")
+		if err := db.SetCurrent(common.ZeroHash, *common.Big0, *common.Big0); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, getCurrentError
+	}
+
+	if !baseOnly {
+		if err := db.Start(); err != nil {
+			return nil, err
+		}
+	}
+	return db, nil
+}
+
 func copyDB(from, to *snapshotDB) {
 	to.path = from.path
 	to.current = from.current
@@ -302,15 +366,28 @@ func copyDB(from, to *snapshotDB) {
 }
 
 func initDB(path string, sdb *snapshotDB) error {
-	dbInterface, err := open(path, baseDBcache, baseDBhandles, false)
-	if err != nil {
-		return err
+	if path == "" {
+		// only for test
+		dbInterface, err := OpenWithStorage(storage.NewMemStorage(), baseDBcache, baseDBhandles, false)
+		if err != nil {
+			return err
+		}
+		copyDB(dbInterface, sdb)
+		if err := sdb.Start(); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		dbInterface, err := open(path, baseDBcache, baseDBhandles, false)
+		if err != nil {
+			return err
+		}
+		copyDB(dbInterface, sdb)
+		if err := sdb.Start(); err != nil {
+			return err
+		}
+		return nil
 	}
-	copyDB(dbInterface, sdb)
-	if err := sdb.Start(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *snapshotDB) Start() error {
@@ -539,10 +616,10 @@ func (s *snapshotDB) writeToBasedb(commitNum int) error {
 	return nil
 }
 
-//NewBlock call when you need a new unRecognized or recognized  block data
-//it will set JournalHeader for the block
-//if hash nil ,new unRecognized data
-//if hash not nul,new Recognized data
+// NewBlock call when you need a new unRecognized or recognized  block data
+// it will set JournalHeader for the block
+// if hash nil ,new unRecognized data
+// if hash not nul,new Recognized data
 func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error {
 	if blockNumber == nil {
 		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
@@ -670,8 +747,8 @@ func (s *snapshotDB) GetBaseDB(key []byte) ([]byte, error) {
 	}
 }
 
-//Has check the key is exist in chain
-//same logic with get
+// Has check the key is exist in chain
+// same logic with get
 func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 	_, err := s.Get(hash, key)
 	if err == nil {
@@ -812,9 +889,11 @@ func (s *snapshotDB) Clear() error {
 	if err := s.Close(); err != nil {
 		return err
 	}
-	logger.Info("begin clear file", "path", s.path)
-	if err := os.RemoveAll(s.path); err != nil {
-		return err
+	if s.path != "" {
+		logger.Info("begin clear file", "path", s.path)
+		if err := os.RemoveAll(s.path); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -882,7 +961,13 @@ func (s *snapshotDB) Close() error {
 		s.corn.Stop()
 	}
 	s.walSync.Wait()
-	close(s.walExitCh)
+
+	if s.walLoop {
+		walExitDone := make(chan struct{})
+		s.walExitCh <- walExitDone
+		<-walExitDone
+		s.walLoop = false
+	}
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {

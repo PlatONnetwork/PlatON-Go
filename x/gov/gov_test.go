@@ -841,7 +841,7 @@ func TestGov_GovernMaxBlockGasLimit(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepair_sndb(chain)
-	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash()); err != nil {
+	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash(), chain.SnapDB); err != nil {
 		t.Error("GovernMaxBlockGasLimit, err", err)
 	} else {
 		assert.NotNil(t, threshold)
