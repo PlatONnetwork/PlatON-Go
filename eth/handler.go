@@ -18,6 +18,7 @@ package eth
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -255,6 +256,18 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
+	pHead, pBN := peer.Head()
+
+	// A simple hash consistency check,but does not prevent malicious node connections
+	if head.Number == pBN && hash != pHead {
+		return fmt.Errorf("block mismatch: blockNumber=%v,%x (!= %x)", hash, hash.String(), pHead.String())
+	} else if head.Number.Uint64() > pBN.Uint64() {
+		lowHeader := h.chain.GetHeaderByNumber(pBN.Uint64())
+		if lowHeader.Hash() != pHead {
+			return fmt.Errorf("block mismatch: blockNumber=%v,%x (!= %x)", hash, hash.String(), pHead.String())
+		}
+	}
+
 	reject := false // reserved peer slots
 	if atomic.LoadUint32(&h.snapSync) == 1 {
 		if snap == nil {
