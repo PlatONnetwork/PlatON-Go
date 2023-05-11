@@ -849,12 +849,10 @@ func opSuicide(pc *uint64, interpreter *EVMInterpreter, callContext *callCtx) ([
 	interpreter.evm.StateDB.Suicide(callContext.contract.Address())
 
 	//stats: 把销毁的合约记录下来
-	log.Debug("processing contract suicide", "address", callContext.contract.Address())
 	saveContractSuicided(interpreter, callContext.contract.Address())
 
 	//stats: 收集隐含交易
 	if balance.Sign() > 0 {
-		log.Info("collect embed transfer in opSuicide()", "blockNumber", interpreter.evm.Context.BlockNumber.Uint64(), "txHash", interpreter.evm.StateDB.TxHash(), "caller", callContext.contract.Address().Bech32(), "to", common.Address(beneficiary.Bytes20()).Bech32(), "&value", &balance)
 		saveEmbedTransfer(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), callContext.contract.Address(), common.Address(beneficiary.Bytes20()), balance)
 	}
 
@@ -1030,6 +1028,7 @@ func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr comm
 	if nil != err {
 		return
 	}
+	log.Info("saveContractCreate", "address", addr)
 
 	txHash := interpreter.evm.StateDB.TxHash().String()
 
@@ -1062,6 +1061,8 @@ func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr comm
 }
 
 func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
+	log.Info("saveContractSuicided", "address", addr)
+
 	txHash := interpreter.evm.StateDB.TxHash().String()
 
 	transKey := plugin.ContractSuicided + txHash
@@ -1087,11 +1088,11 @@ func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
 	}
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
-	log.Warn("save ContractSuicided success")
+	log.Info("saveContractSuicided success")
 }
 
 func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.Address, amount *big.Int) {
-	log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
+	log.Info("saveEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
 
 	transKey := plugin.EmbedTransfer + txHash.String()
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
@@ -1114,7 +1115,7 @@ func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.A
 	if len(json) > 0 {
 		plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), json)
 	}
-
+	log.Info("saveEmbedTransfer success")
 }
 
 func GetEmbedTransfer(blockNumber uint64, txHash common.Hash) []*types.EmbedTransfer {
