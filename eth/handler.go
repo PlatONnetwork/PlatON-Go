@@ -252,7 +252,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		hash    = head.Hash()
 	)
 	if err := peer.Handshake(h.networkID, head.Number, hash, genesis.Hash()); err != nil {
-		peer.Log().Debug("Ethereum handshake failed", "err", err)
+		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
 	reject := false // reserved peer slots
@@ -272,11 +272,11 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			return p2p.DiscTooManyPeers
 		}
 	}
-	peer.Log().Debug("Ethereum peer connected", "name", peer.Name())
+	peer.Log().Debug("PlatON peer connected", "name", peer.Name())
 
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap); err != nil {
-		peer.Log().Error("Ethereum peer registration failed", "err", err)
+		peer.Log().Error("PlatON peer registration failed", "err", err)
 		return err
 	}
 	defer h.removePeer(peer.ID())
@@ -397,7 +397,7 @@ func (h *handler) Stop() {
 	h.peers.close()
 	h.peerWG.Wait()
 
-	log.Info("Ethereum protocol stopped")
+	log.Info("PlatON protocol stopped")
 }
 
 // BroadcastBlock will either propagate a block to a subset of its peers, or
