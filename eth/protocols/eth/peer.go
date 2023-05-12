@@ -550,7 +550,7 @@ func (p *Peer) RequestPPOSStorage() error {
 }
 
 func (p *Peer) RequestOriginAndPivotByCurrent(current uint64) error {
-	p.Log().Debug("Fetching Origin and  Pivot", "curremt", current)
+	p.Log().Debug("Fetching Origin and  Pivot", "current", current)
 	if err := p2p.Send(p.rw, GetOriginAndPivotMsg, current); err != nil {
 		p.Log().Error("Fetching Origin and  Pivot error", "err", err.Error())
 		return err

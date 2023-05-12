@@ -19,10 +19,9 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 	"math/big"
 	"math/rand"
-	"os"
-	"path"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -79,8 +78,7 @@ type downloadTester struct {
 
 // newTester creates a new downloader test mocker.
 func newTester() *downloadTester {
-	sdbPath := path.Join(os.TempDir(), fmt.Sprint(rand.Int63()))
-	sdb, err := snapshotdb.Open(sdbPath, 0, 0, false)
+	sdb, err := snapshotdb.OpenWithStorage(storage.NewMemStorage(), 0, 0, false)
 	if err != nil {
 		panic(err)
 	}

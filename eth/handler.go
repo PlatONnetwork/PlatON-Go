@@ -18,7 +18,9 @@ package eth
 
 import (
 	"errors"
+	"fmt"
 	"math"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -251,8 +253,20 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		head    = h.chain.CurrentHeader()
 		hash    = head.Hash()
 	)
-	if err := peer.Handshake(h.networkID, hash, genesis.Hash()); err != nil {
-		peer.Log().Debug("Ethereum handshake failed", "err", err)
+	verify := func(remoteNum *big.Int, remoteHash common.Hash) error {
+		// A simple hash consistency check,but does not prevent malicious node connections
+		if head.Number == remoteNum && hash != remoteHash {
+			return fmt.Errorf("block %v, hash %s != remote %s", remoteNum, hash, remoteHash)
+		} else if head.Number.Uint64() > remoteNum.Uint64() {
+			lowHeader := h.chain.GetHeaderByNumber(remoteNum.Uint64())
+			if lowHeader.Hash() != remoteHash {
+				return fmt.Errorf("block %v, hash %s != remote %s", remoteNum, lowHeader.Hash(), remoteHash)
+			}
+		}
+		return nil
+	}
+	if err := peer.Handshake(h.networkID, head.Number, hash, genesis.Hash(), verify); err != nil {
+		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
 	reject := false // reserved peer slots
@@ -272,11 +286,11 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			return p2p.DiscTooManyPeers
 		}
 	}
-	peer.Log().Debug("Ethereum peer connected", "name", peer.Name())
+	peer.Log().Debug("PlatON peer connected", "name", peer.Name())
 
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap); err != nil {
-		peer.Log().Error("Ethereum peer registration failed", "err", err)
+		peer.Log().Error("PlatON peer registration failed", "err", err)
 		return err
 	}
 	defer h.removePeer(peer.ID())
@@ -397,7 +411,7 @@ func (h *handler) Stop() {
 	h.peers.close()
 	h.peerWG.Wait()
 
-	log.Info("Ethereum protocol stopped")
+	log.Info("PlatON protocol stopped")
 }
 
 // BroadcastBlock will either propagate a block to a subset of its peers, or

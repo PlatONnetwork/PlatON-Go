@@ -976,7 +976,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor),
+		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, snapshotdb.Instance()),
 		Time:       uint64(timestamp),
 	}
 
