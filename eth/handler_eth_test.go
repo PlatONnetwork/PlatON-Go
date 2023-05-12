@@ -449,7 +449,7 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 		go source.handler.runEthPeer(sourcePeer, func(peer *eth.Peer) error {
 			return eth.Handle((*ethHandler)(source.handler), peer)
 		})
-		if err := sinkPeer.Handshake(1, genesis.Number(), genesis.Hash(), genesis.Hash(), nil); err != nil {
+		if err := sinkPeer.Handshake(1, big.NewInt(0), genesis.Hash(), genesis.Hash(), nil); err != nil {
 			t.Fatalf("failed to run protocol handshake")
 		}
 		go eth.Handle(sink, sinkPeer)
@@ -521,7 +521,7 @@ func testBroadcastMalformedBlock(t *testing.T, protocol uint) {
 	var (
 		genesis = source.chain.Genesis()
 	)
-	if err := sink.Handshake(1, genesis.Number(), genesis.Hash(), genesis.Hash(), nil); err != nil {
+	if err := sink.Handshake(1, big.NewInt(0), genesis.Hash(), genesis.Hash(), nil); err != nil {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// After the handshake completes, the source handler should stream the sink
