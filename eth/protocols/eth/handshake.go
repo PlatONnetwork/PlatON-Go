@@ -33,7 +33,7 @@ const (
 
 // Handshake executes the eth protocol handshake, negotiating version number,
 // network IDs, head and genesis blocks.
-func (p *Peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash) error {
+func (p *Peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash, verify func(*big.Int, common.Hash) error) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 
@@ -43,13 +43,13 @@ func (p *Peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis 
 		errc <- p2p.Send(p.rw, StatusMsg, &StatusPacket{
 			ProtocolVersion: uint32(p.version),
 			NetworkID:       network,
-			BN:              bn,
+			Number:          bn,
 			Head:            head,
 			Genesis:         genesis,
 		})
 	}()
 	go func() {
-		errc <- p.readStatus(network, &status, genesis)
+		errc <- p.readStatus(network, &status, genesis, verify)
 	}()
 	timeout := time.NewTimer(handshakeTimeout)
 	defer timeout.Stop()
@@ -63,13 +63,13 @@ func (p *Peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis 
 			return p2p.DiscReadTimeout
 		}
 	}
-	p.bn, p.head = status.BN, status.Head
+	p.bn, p.head = status.Number, status.Head
 	p.head = status.Head
 	return nil
 }
 
 // readStatus reads the remote handshake message.
-func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.Hash) error {
+func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.Hash, verify func(*big.Int, common.Hash) error) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
@@ -92,6 +92,12 @@ func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.H
 	}
 	if status.Genesis != genesis {
 		return fmt.Errorf("%w: %x (!= %x)", errGenesisMismatch, status.Genesis, genesis)
+	}
+	if verify != nil {
+		if err := verify(status.Number, status.Head); err != nil {
+			return fmt.Errorf("%w: %v", ErrBlockMismatch, err)
+		}
+
 	}
 	return nil
 }
