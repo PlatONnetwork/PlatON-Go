@@ -20,7 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/holiman/uint256"
 	"io/ioutil"
 	"testing"
@@ -649,4 +653,39 @@ func TestCreate2Addreses(t *testing.T) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
 		}
 	}
+}
+
+func getDataBytes() []byte {
+	return nil
+}
+func TestSaveContractCreate(t *testing.T) {
+	addr := common.Address{01, 02}
+	log.Info("saveContractCreate", "address", addr)
+
+	txHash := common.Hash{03, 04}.String()
+
+	transKey := plugin.InnerContractCreate + txHash
+	data := getDataBytes()
+
+	var contractCreateList []*types.ContractCreated
+	if len(data) > 0 {
+		err := rlp.DecodeBytes(data, &contractCreateList)
+		if nil != err {
+			log.Error("saveContractCreate rlp decode innerContractCreate error ", "err", err)
+			return
+		}
+	}
+
+	contractCreate := new(types.ContractCreated)
+	contractCreate.Address = addr
+	contractCreateList = append(contractCreateList, contractCreate)
+
+	transHashByte, err := rlp.EncodeToBytes(contractCreateList)
+	if nil != err {
+		log.Error("saveContractCreate rlp encode innerContractCreate error", "err", err)
+		return
+	}
+
+	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
+	log.Debug("saveContractCreate success")
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/holiman/uint256"
+	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/sha3"
 	"math/big"
 	"strconv"
@@ -955,11 +956,11 @@ func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(blockKey))
 	var transBlock staking.TransBlock
 	if nil != err {
-		log.Error("saveTransData rlp get transblock error ", err)
+		log.Error("saveTransData rlp get transblock error", "err", err)
 	} else {
 		err = rlp.DecodeBytes(data, &transBlock)
 		if nil != err {
-			log.Error("saveTransData rlp decode transblock error ", err)
+			log.Error("saveTransData rlp decode transblock error", "err", err)
 			return
 		}
 	}
@@ -969,7 +970,7 @@ func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code
 	flag := true
 	for _, v := range transHash {
 		if v == txHash {
-			log.Info("saveTransBlock agagin ", "input", input)
+			log.Debug("saveTransBlock agagin ", "input", input)
 			flag = false
 			break
 		}
@@ -999,7 +1000,7 @@ func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code
 	}
 	//for _,v:= range transHash.TransData{
 	//	if v.Input == input{
-	//		log.Info("saveTransData agagin ", "input", input)
+	//		log.Debug("saveTransData agagin ", "input", input)
 	//		return
 	//	}
 	//}
@@ -1024,21 +1025,18 @@ func saveTransData(interpreter *EVMInterpreter, inputData, from, to []byte, code
 }
 
 func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr common.Address, err error) {
-
-	if nil != err {
-		return
-	}
-	log.Info("saveContractCreate", "address", addr)
-
+	log.Debug("saveContractCreate", "address", addr)
 	txHash := interpreter.evm.StateDB.TxHash().String()
 
 	transKey := plugin.InnerContractCreate + txHash
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
+	if nil != err && err != leveldb.ErrNotFound {
+		log.Error("saveContractCreate rlp get innerContractCreate error ", "err", err)
+		return
+	}
 
 	var contractCreateList []*types.ContractCreated
-	if nil != err {
-		log.Error("saveContractCreate rlp get innerContractCreate error ", "err", err)
-	} else {
+	if len(data) > 0 {
 		err = rlp.DecodeBytes(data, &contractCreateList)
 		if nil != err {
 			log.Error("saveContractCreate rlp decode innerContractCreate error ", "err", err)
@@ -1061,22 +1059,25 @@ func saveContractCreate(interpreter *EVMInterpreter, inputData []byte, addr comm
 }
 
 func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
-	log.Info("saveContractSuicided", "address", addr)
+	log.Debug("saveContractSuicided", "address", addr)
 
 	txHash := interpreter.evm.StateDB.TxHash().String()
 
 	transKey := plugin.ContractSuicided + txHash
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
-	if nil != err {
+	if nil != err && err != leveldb.ErrNotFound {
 		log.Error("failed to find ContractSuicided", "err", err)
 		return
 	}
 	var contractSuicidedList []*types.ContractSuicided
-	err = rlp.DecodeBytes(data, &contractSuicidedList)
-	if nil != err {
-		log.Error("failed to rlp decode ContractSuicided", "err", err)
-		return
+	if len(data) > 0 {
+		err = rlp.DecodeBytes(data, &contractSuicidedList)
+		if nil != err {
+			log.Error("failed to rlp decode ContractSuicided", "err", err)
+			return
+		}
 	}
+
 	contractSuicided := new(types.ContractSuicided)
 	contractSuicided.Address = addr
 	contractSuicidedList = append(contractSuicidedList, contractSuicided)
@@ -1088,22 +1089,21 @@ func saveContractSuicided(interpreter *EVMInterpreter, addr common.Address) {
 	}
 
 	plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), transHashByte)
-	log.Info("saveContractSuicided success")
+	log.Debug("saveContractSuicided success")
 }
 
 func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.Address, amount *big.Int) {
-	log.Info("saveEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
+	log.Debug("saveEmbedTransfer", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
 
 	transKey := plugin.EmbedTransfer + txHash.String()
 	data, err := plugin.STAKING_DB.HistoryDB.Get([]byte(transKey))
-	if nil != err {
+	if nil != err && err != leveldb.ErrNotFound {
 		log.Error("failed to load embed transfers", "err", err)
 		return
 	}
 
 	var embedTransferList []*types.EmbedTransfer
 	common.ParseJson(data, &embedTransferList)
-
 	embedTransfer := new(types.EmbedTransfer)
 	embedTransfer.From = from
 	embedTransfer.To = to
@@ -1115,7 +1115,7 @@ func saveEmbedTransfer(blockNumber uint64, txHash common.Hash, from, to common.A
 	if len(json) > 0 {
 		plugin.STAKING_DB.HistoryDB.Put([]byte(transKey), json)
 	}
-	log.Info("saveEmbedTransfer success")
+	log.Debug("saveEmbedTransfer success")
 }
 
 func GetEmbedTransfer(blockNumber uint64, txHash common.Hash) []*types.EmbedTransfer {
