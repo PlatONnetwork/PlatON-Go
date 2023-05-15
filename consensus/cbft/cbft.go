@@ -1645,7 +1645,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	for _, p := range votes {
 		//Check whether two votes are equal
 		if !vote.EqualState(p) {
-			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same  vote1:%s vote2:%s", vote.String(), p.String()))
+			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same, vote1:%s vote2:%s", vote.String(), p.String()))
 			return nil
 		}
 		if p.NodeIndex() != vote.NodeIndex() {

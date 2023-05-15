@@ -117,15 +117,15 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", ethconfig.Defaults.Miner.GasPrice)
 		config.Miner.GasPrice = new(big.Int).Set(ethconfig.Defaults.Miner.GasPrice)
 	}
-	if config.NoPruning && config.TrieDirtyCache > 0 {
-		if config.SnapshotCache > 0 {
-			config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
-			config.SnapshotCache += config.TrieDirtyCache * 2 / 5
-		} else {
-			config.TrieCleanCache += config.TrieDirtyCache
-		}
-		config.TrieDirtyCache = 0
-	}
+	//if config.NoPruning && config.TrieDirtyCache > 0 {
+	//	if config.SnapshotCache > 0 {
+	//		config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
+	//		config.SnapshotCache += config.TrieDirtyCache * 2 / 5
+	//	} else {
+	//		config.TrieCleanCache += config.TrieDirtyCache
+	//	}
+	//	config.TrieDirtyCache = 0
+	//}
 	// Assemble the Ethereum object
 	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/", false)
 	if err != nil {
