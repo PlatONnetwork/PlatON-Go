@@ -1288,7 +1288,11 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 				}
 			}
 			// Flush data into ancient database.
-			size += rawdb.WriteAncientBlock(bc.db, block, receiptChain[i])
+			if receiptChain == nil {
+				size += rawdb.WriteAncientBlock(bc.db, block, nil)
+			} else {
+				size += rawdb.WriteAncientBlock(bc.db, block, receiptChain[i])
+			}
 
 			// Write tx indices if any condition is satisfied:
 			// * If user requires to reserve all tx indices(txlookuplimit=0)
