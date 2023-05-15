@@ -1515,12 +1515,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		limit := common.StorageSize(bc.cacheConfig.TrieDirtyLimit) * 1024 * 1024
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
-			triedb.ReferenceVersion(root)
+			//triedb.ReferenceVersion(root)
 			if err := triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
-			triedb.Dereference(currentBlock.Root())
+			//triedb.Dereference(currentBlock.Root())
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
