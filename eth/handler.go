@@ -269,6 +269,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
+
 	reject := false // reserved peer slots
 	if atomic.LoadUint32(&h.snapSync) == 1 {
 		if snap == nil {

@@ -225,7 +225,7 @@ func (h *Header) SanityCheck() error {
 	if h.Number != nil && !h.Number.IsUint64() {
 		return fmt.Errorf("too large block number: bitlen %d", h.Number.BitLen())
 	}
-	if eLen := len(h.Extra); eLen > 100*1024 {
+	if eLen := len(h.Extra); eLen > ExtraMaxSize {
 		return fmt.Errorf("too large block extradata: size %d", eLen)
 	}
 	return nil
@@ -313,11 +313,6 @@ func (h *Header) ExtraData() []byte {
 		return []byte{}
 	}
 	return h.Extra[:32]
-}
-
-// Check whether the Extra field exceeds the limit size
-func (h *Header) IsInvalid() bool {
-	return len(h.Extra) > ExtraMaxSize
 }
 
 // EmptyBody returns true if there is no additional 'body' to complete the header

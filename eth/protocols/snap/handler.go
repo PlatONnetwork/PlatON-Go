@@ -167,10 +167,12 @@ func handleMessage(backend Backend, peer *Peer) error {
 		// Retrieve the requested state and bail out if non existent
 		tr, err := trie.New(req.Root, backend.Chain().StateCache().TrieDB())
 		if err != nil {
+			log.Info("New Trie failed", "err", err)
 			return p2p.Send(peer.rw, AccountRangeMsg, &AccountRangePacket{ID: req.ID})
 		}
 		it, err := backend.Chain().Snapshots().AccountIterator(req.Root, req.Origin)
 		if err != nil {
+			log.Info("AccountIterator failed", "err", err)
 			return p2p.Send(peer.rw, AccountRangeMsg, &AccountRangePacket{ID: req.ID})
 		}
 		// Iterate over the requested range and pile accounts up
