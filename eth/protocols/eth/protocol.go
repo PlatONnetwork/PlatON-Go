@@ -84,6 +84,7 @@ var (
 	errProtocolVersionMismatch = errors.New("protocol version mismatch")
 	errNetworkIDMismatch       = errors.New("network ID mismatch")
 	errGenesisMismatch         = errors.New("genesis mismatch")
+	ErrBlockMismatch           = errors.New("block not compare")
 )
 
 // Packet represents a p2p message in the `eth` protocol.
@@ -97,7 +98,7 @@ type Packet interface {
 type StatusPacket struct {
 	ProtocolVersion uint32
 	NetworkID       uint64
-	BN              *big.Int
+	Number          *big.Int
 	Head            common.Hash
 	Genesis         common.Hash
 }
