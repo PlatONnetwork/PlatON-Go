@@ -45,7 +45,6 @@ type blockWal struct {
 }
 
 func (s *snapshotDB) loopWriteWal() {
-	s.walLoop = true
 	for {
 		select {
 		case block := <-s.walCh:
@@ -63,9 +62,8 @@ func (s *snapshotDB) loopWriteWal() {
 				continue
 			}
 			s.walSync.Done()
-		case exitCH := <-s.walExitCh:
+		case <-s.walLoopCtx.Done():
 			logger.Info("loopWriteWal exist")
-			exitCH <- struct{}{}
 			return
 		}
 	}
