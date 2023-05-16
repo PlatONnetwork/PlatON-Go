@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb/storage"
+	"golang.org/x/net/context"
 	"math/big"
 	"os"
 	"sync"
@@ -150,10 +151,10 @@ type snapshotDB struct {
 	committed  []*blockData
 	commitLock sync.RWMutex
 
-	walCh     chan *blockData
-	walLoop   bool
-	walExitCh chan chan struct{}
-	walSync   sync.WaitGroup
+	walCh         chan *blockData
+	walLoopCtx    context.Context
+	walLoopCancel context.CancelFunc
+	walSync       sync.WaitGroup
 
 	corn *cron.Cron
 
@@ -250,7 +251,6 @@ func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, erro
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
 		walCh:         make(chan *blockData, 2),
-		walExitCh:     make(chan chan struct{}),
 	}
 	if baseOnly {
 		return db, nil
@@ -361,7 +361,7 @@ func copyDB(from, to *snapshotDB) {
 	to.corn = from.corn
 	to.closed = from.closed
 	to.snapshotLockC = from.snapshotLockC
-	to.walExitCh = from.walExitCh
+	to.walLoopCtx = from.walLoopCtx
 	to.walCh = from.walCh
 }
 
@@ -394,6 +394,7 @@ func (s *snapshotDB) Start() error {
 	if err := s.cornStart(); err != nil {
 		return err
 	}
+	s.walLoopCtx, s.walLoopCancel = context.WithCancel(context.Background())
 	go s.loopWriteWal()
 	return nil
 }
@@ -962,11 +963,8 @@ func (s *snapshotDB) Close() error {
 	}
 	s.walSync.Wait()
 
-	if s.walLoop {
-		walExitDone := make(chan struct{})
-		s.walExitCh <- walExitDone
-		<-walExitDone
-		s.walLoop = false
+	if s.walLoopCancel != nil {
+		s.walLoopCancel()
 	}
 
 	if s.baseDB != nil {
