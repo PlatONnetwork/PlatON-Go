@@ -708,9 +708,9 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
 	case cfg.BootstrapNodes != nil:
+	case ctx.Command.Name == strings.ToLower("init"):
 		return // already set, don't apply defaults.
 	}
-
 	cfg.BootstrapNodes = make([]*discover.Node, 0, len(urls))
 	for _, url := range urls {
 		if url != "" {
