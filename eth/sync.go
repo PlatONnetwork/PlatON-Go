@@ -160,10 +160,11 @@ type chainSyncer struct {
 
 // chainSyncOp is a scheduled sync operation.
 type chainSyncOp struct {
-	mode    downloader.SyncMode
-	peer    *eth.Peer
-	head    common.Hash
-	headNum *big.Int
+	mode downloader.SyncMode
+	peer *eth.Peer
+	head common.Hash
+	bn   *big.Int
+	diff *big.Int
 }
 
 // newChainSyncer creates a chainSyncer.
@@ -252,7 +253,8 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	}
 	mode, ourHighest := cs.modeAndLocalHead()
 
-	if pBn.Uint64()-ourHighest < 2 {
+	diff := new(big.Int).SetUint64(pBn.Uint64() - ourHighest)
+	if diff.Cmp(big.NewInt(2)) < 0 {
 		return nil
 	}
 
@@ -260,22 +262,13 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 		// Fast sync via the snap protocol
 		mode = downloader.SnapSync
 	}
-	op := peerToSyncOp(mode, peer)
-	_, highestBn := op.peer.Head()
-	if highestBn.Uint64() <= ourHighest {
-		return nil // We're in sync.
-	}
-	return op
-}
-
-func peerToSyncOp(mode downloader.SyncMode, p *eth.Peer) *chainSyncOp {
-	peerHead, bn := p.Head()
-	return &chainSyncOp{mode: mode, peer: p, head: peerHead, headNum: bn}
+	head, bn := peer.Head()
+	return &chainSyncOp{mode: mode, peer: peer, head: head, bn: bn, diff: diff}
 }
 
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	// If we're in fast sync mode, return that directly
-	head := cs.handler.chain.CurrentBlock()
+	head := cs.handler.engine.CurrentBlock()
 	if atomic.LoadUint32(&cs.handler.fastSync) == 1 {
 		return downloader.FastSync, head.NumberU64()
 	}
@@ -316,16 +309,14 @@ func (h *handler) doSync(op *chainSyncOp) error {
 			log.Warn("Update txLookup limit", "provided", limit, "updated", *stored)
 		}
 	}
-	head := h.chain.CurrentBlock()
-
 	//wn chain is syncing,keep the chain not receive txs
-	if op.headNum.Uint64() > head.Number().Uint64()+5 {
+	if op.diff.Cmp(big.NewInt(5)) > 0 {
 		atomic.StoreUint32(&h.acceptTxs, 0)
 		defer atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done
 	}
 
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
-	err := h.downloader.Synchronise(op.peer.ID(), op.head, op.headNum, op.mode)
+	err := h.downloader.Synchronise(op.peer.ID(), op.head, op.bn, op.mode)
 	if err != nil {
 		log.Debug("doSync synchronise fail", "err", err)
 		return err
@@ -340,6 +331,7 @@ func (h *handler) doSync(op *chainSyncOp) error {
 	}
 	// If we've successfully finished a sync cycle and passed any required checkpoint,
 	// enable accepting transactions from the network.
+	head := h.chain.CurrentBlock()
 	if head.NumberU64() > 0 {
 		// We've completed a sync cycle, notify all peers of new state. This path is
 		// essential in star-topology networks where a gateway node needs to notify

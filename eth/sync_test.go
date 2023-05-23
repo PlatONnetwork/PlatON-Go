@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"math/big"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -71,7 +72,8 @@ func testFastSyncDisabling(t *testing.T, protocol uint) {
 
 	// Check that fast sync was disabled
 	p, _ := empty.handler.peers.peerWithHighestBlock()
-	op := peerToSyncOp(downloader.FastSync, p)
+	head, bn := p.Head()
+	op := &chainSyncOp{mode: downloader.FastSync, peer: p, head: head, bn: bn, diff: new(big.Int).SetUint64(0)}
 	if err := empty.handler.doSync(op); err != nil {
 		t.Fatal("sync failed:", err)
 	}
