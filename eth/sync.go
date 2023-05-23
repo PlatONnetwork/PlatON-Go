@@ -325,7 +325,7 @@ func (h *handler) doSync(op *chainSyncOp) error {
 	}
 
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
-	err := h.downloader.Synchronise(op.peer.ID(), op.head, head.Number(), op.mode)
+	err := h.downloader.Synchronise(op.peer.ID(), op.head, op.headNum, op.mode)
 	if err != nil {
 		log.Debug("doSync synchronise fail", "err", err)
 		return err
