@@ -266,11 +266,6 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	return &chainSyncOp{mode: mode, peer: peer, head: head, bn: bn, diff: diff}
 }
 
-func peerToSyncOp(mode downloader.SyncMode, p *eth.Peer) *chainSyncOp {
-	peerHead, bn := p.Head()
-	return &chainSyncOp{mode: mode, peer: p, head: peerHead, bn: bn}
-}
-
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	// If we're in fast sync mode, return that directly
 	head := cs.handler.engine.CurrentBlock()
