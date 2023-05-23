@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"math/big"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -159,9 +160,10 @@ type chainSyncer struct {
 
 // chainSyncOp is a scheduled sync operation.
 type chainSyncOp struct {
-	mode downloader.SyncMode
-	peer *eth.Peer
-	head common.Hash
+	mode    downloader.SyncMode
+	peer    *eth.Peer
+	head    common.Hash
+	headNum *big.Int
 }
 
 // newChainSyncer creates a chainSyncer.
@@ -244,11 +246,16 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 		return nil
 	}
 	// We have enough peers, check highest block number
-	peer := cs.handler.peers.peerWithHighestBlock()
+	peer, pBn := cs.handler.peers.peerWithHighestBlock()
 	if peer == nil {
 		return nil
 	}
 	mode, ourHighest := cs.modeAndLocalHead()
+
+	if pBn.Uint64()-ourHighest < 2 {
+		return nil
+	}
+
 	if mode == downloader.FastSync && atomic.LoadUint32(&cs.handler.snapSync) == 1 {
 		// Fast sync via the snap protocol
 		mode = downloader.SnapSync
@@ -262,8 +269,8 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 }
 
 func peerToSyncOp(mode downloader.SyncMode, p *eth.Peer) *chainSyncOp {
-	peerHead, _ := p.Head()
-	return &chainSyncOp{mode: mode, peer: p, head: peerHead}
+	peerHead, bn := p.Head()
+	return &chainSyncOp{mode: mode, peer: p, head: peerHead, headNum: bn}
 }
 
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
@@ -310,6 +317,13 @@ func (h *handler) doSync(op *chainSyncOp) error {
 		}
 	}
 	head := h.chain.CurrentBlock()
+
+	//wn chain is syncing,keep the chain not receive txs
+	if op.headNum.Uint64() > head.Number().Uint64()+5 {
+		atomic.StoreUint32(&h.acceptTxs, 0)
+		defer atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done
+	}
+
 	// Run the sync cycle, and disable fast sync if we're past the pivot block
 	err := h.downloader.Synchronise(op.peer.ID(), op.head, head.Number(), op.mode)
 	if err != nil {
