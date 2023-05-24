@@ -59,10 +59,25 @@ var (
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot verify-state <state-root>
+platon snapshot verify-state <state-root>
 will traverse the whole accounts and storages set based on the specified
 snapshot and recalculate the root hash of state for verification.
 In other words, this command does the snapshot to trie conversion.
+`,
+			},
+			{
+				Name:      "check-dangling-storage",
+				Usage:     "Check that there is no 'dangling' snap storage",
+				ArgsUsage: "<root>",
+				Action:    utils.MigrateFlags(checkDanglingStorage),
+				Category:  "MISCELLANEOUS COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.TestnetFlag,
+				},
+				Description: `
+geth snapshot check-dangling-storage <state-root> traverses the snap storage 
+data, and verifies that all snapshot storage data has a corresponding account. 
 `,
 			},
 			{
@@ -76,12 +91,27 @@ In other words, this command does the snapshot to trie conversion.
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot traverse-state <state-root>
+platon snapshot traverse-state <state-root>
 will traverse the whole state from the given state root and will abort if any
 referenced trie node or contract code is missing. This command can be used for
 state integrity verification. The default checking target is the HEAD state.
 
 It's also usable without snapshot enabled.
+`,
+			},
+			{
+				Name:      "inspect-account",
+				Usage:     "Check all snapshot layers for the a specific account",
+				ArgsUsage: "<address | hash>",
+				Action:    utils.MigrateFlags(checkAccount),
+				Category:  "MISCELLANEOUS COMMANDS",
+				Flags: []cli.Flag{
+					utils.DataDirFlag,
+					utils.TestnetFlag,
+				},
+				Description: `
+geth snapshot inspect-account <address | hash> checks all snapshot layers and prints out
+information about the specified address. 
 `,
 			},
 			{
@@ -95,7 +125,7 @@ It's also usable without snapshot enabled.
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot traverse-rawstate <state-root>
+platon snapshot traverse-rawstate <state-root>
 will traverse the whole state from the given root and will abort if any referenced
 trie node or contract code is missing. This command can be used for state integrity
 verification. The default checking target is the HEAD state. It's basically identical
@@ -120,7 +150,7 @@ func verifyState(ctx *cli.Context) error {
 	}
 	snaptree, err := snapshot.New(chaindb, trie.NewDatabase(chaindb), 256, headBlock.Root(), false, false, false)
 	if err != nil {
-		log.Error("Failed to open snapshot tree", "error", err)
+		log.Error("Failed to open snapshot tree", "err", err)
 		return err
 	}
 	if ctx.NArg() > 1 {
@@ -131,16 +161,25 @@ func verifyState(ctx *cli.Context) error {
 	if ctx.NArg() == 1 {
 		root, err = parseRoot(ctx.Args()[0])
 		if err != nil {
-			log.Error("Failed to resolve state root", "error", err)
+			log.Error("Failed to resolve state root", "err", err)
 			return err
 		}
 	}
 	if err := snaptree.Verify(root); err != nil {
-		log.Error("Failed to verfiy state", "error", err)
+		log.Error("Failed to verify state", "root", root, "err", err)
 		return err
 	}
-	log.Info("Verified the state")
-	return nil
+	log.Info("Verified the state", "root", root)
+	return snapshot.CheckDanglingStorage(chaindb)
+}
+
+// checkDanglingStorage iterates the snap storage data, and verifies that all
+// storage also has corresponding account data.
+func checkDanglingStorage(ctx *cli.Context) error {
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+
+	return snapshot.CheckDanglingStorage(utils.MakeChainDatabase(ctx, stack, true))
 }
 
 // traverseState is a helper function used for pruning verification.
@@ -167,7 +206,7 @@ func traverseState(ctx *cli.Context) error {
 	if ctx.NArg() == 1 {
 		root, err = parseRoot(ctx.Args()[0])
 		if err != nil {
-			log.Error("Failed to resolve state root", "error", err)
+			log.Error("Failed to resolve state root", "err", err)
 			return err
 		}
 		log.Info("Start traversing the state", "root", root)
@@ -178,7 +217,7 @@ func traverseState(ctx *cli.Context) error {
 	triedb := trie.NewDatabase(chaindb)
 	t, err := trie.NewSecure(root, triedb)
 	if err != nil {
-		log.Error("Failed to open trie", "root", root, "error", err)
+		log.Error("Failed to open trie", "root", root, "err", err)
 		return err
 	}
 	var (
@@ -193,13 +232,13 @@ func traverseState(ctx *cli.Context) error {
 		accounts += 1
 		var acc state.Account
 		if err := rlp.DecodeBytes(accIter.Value, &acc); err != nil {
-			log.Error("Invalid account encountered during traversal", "error", err)
+			log.Error("Invalid account encountered during traversal", "err", err)
 			return err
 		}
 		if acc.Root != emptyRoot {
 			storageTrie, err := trie.NewSecure(acc.Root, triedb)
 			if err != nil {
-				log.Error("Failed to open storage trie", "root", acc.Root, "error", err)
+				log.Error("Failed to open storage trie", "root", acc.Root, "err", err)
 				return err
 			}
 			storageIter := trie.NewIterator(storageTrie.NodeIterator(nil))
@@ -207,7 +246,7 @@ func traverseState(ctx *cli.Context) error {
 				slots += 1
 			}
 			if storageIter.Err != nil {
-				log.Error("Failed to traverse storage trie", "root", acc.Root, "error", storageIter.Err)
+				log.Error("Failed to traverse storage trie", "root", acc.Root, "err", storageIter.Err)
 				return storageIter.Err
 			}
 		}
@@ -225,7 +264,7 @@ func traverseState(ctx *cli.Context) error {
 		}
 	}
 	if accIter.Err != nil {
-		log.Error("Failed to traverse state trie", "root", root, "error", accIter.Err)
+		log.Error("Failed to traverse state trie", "root", root, "err", accIter.Err)
 		return accIter.Err
 	}
 	log.Info("State is complete", "accounts", accounts, "slots", slots, "codes", codes, "elapsed", common.PrettyDuration(time.Since(start)))
@@ -257,7 +296,7 @@ func traverseRawState(ctx *cli.Context) error {
 	if ctx.NArg() == 1 {
 		root, err = parseRoot(ctx.Args()[0])
 		if err != nil {
-			log.Error("Failed to resolve state root", "error", err)
+			log.Error("Failed to resolve state root", "err", err)
 			return err
 		}
 		log.Info("Start traversing the state", "root", root)
@@ -268,7 +307,7 @@ func traverseRawState(ctx *cli.Context) error {
 	triedb := trie.NewDatabase(chaindb)
 	t, err := trie.NewSecure(root, triedb)
 	if err != nil {
-		log.Error("Failed to open trie", "root", root, "error", err)
+		log.Error("Failed to open trie", "root", root, "err", err)
 		return err
 	}
 	var (
@@ -299,13 +338,13 @@ func traverseRawState(ctx *cli.Context) error {
 			accounts += 1
 			var acc state.Account
 			if err := rlp.DecodeBytes(accIter.LeafBlob(), &acc); err != nil {
-				log.Error("Invalid account encountered during traversal", "error", err)
+				log.Error("Invalid account encountered during traversal", "err", err)
 				return errors.New("invalid account")
 			}
 			if acc.Root != emptyRoot {
 				storageTrie, err := trie.NewSecure(acc.Root, triedb)
 				if err != nil {
-					log.Error("Failed to open storage trie", "root", acc.Root, "error", err)
+					log.Error("Failed to open storage trie", "root", acc.Root, "err", err)
 					return errors.New("missing storage trie")
 				}
 				storageIter := storageTrie.NodeIterator(nil)
@@ -328,7 +367,7 @@ func traverseRawState(ctx *cli.Context) error {
 					}
 				}
 				if storageIter.Error() != nil {
-					log.Error("Failed to traverse storage trie", "root", acc.Root, "error", storageIter.Error())
+					log.Error("Failed to traverse storage trie", "root", acc.Root, "err", storageIter.Error())
 					return storageIter.Error()
 				}
 			}
@@ -347,7 +386,7 @@ func traverseRawState(ctx *cli.Context) error {
 		}
 	}
 	if accIter.Error() != nil {
-		log.Error("Failed to traverse state trie", "root", root, "error", accIter.Error())
+		log.Error("Failed to traverse state trie", "root", root, "err", accIter.Error())
 		return accIter.Error()
 	}
 	log.Info("State is complete", "nodes", nodes, "accounts", accounts, "slots", slots, "codes", codes, "elapsed", common.PrettyDuration(time.Since(start)))
@@ -360,4 +399,36 @@ func parseRoot(input string) (common.Hash, error) {
 		return h, err
 	}
 	return h, nil
+}
+
+// checkAccount iterates the snap data layers, and looks up the given account
+// across all layers.
+func checkAccount(ctx *cli.Context) error {
+	if ctx.NArg() != 1 {
+		return errors.New("need <address|hash> arg")
+	}
+	var (
+		hash common.Hash
+		addr common.Address
+	)
+	switch len(ctx.Args()[0]) {
+	case 40, 42:
+		addr = common.HexToAddress(ctx.Args()[0])
+		hash = crypto.Keccak256Hash(addr.Bytes())
+	case 64, 66:
+		hash = common.HexToHash(ctx.Args()[0])
+	default:
+		return errors.New("malformed address or hash")
+	}
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+	chaindb := utils.MakeChainDatabase(ctx, stack, true)
+	defer chaindb.Close()
+	start := time.Now()
+	log.Info("Checking difflayer journal", "address", addr, "hash", hash)
+	if err := snapshot.CheckJournalAccount(chaindb, hash); err != nil {
+		return err
+	}
+	log.Info("Checked the snapshot journalled storage", "time", common.PrettyDuration(time.Since(start)))
+	return nil
 }

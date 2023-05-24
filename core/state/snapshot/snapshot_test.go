@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -324,7 +325,7 @@ func TestPostCapBasicDataAccess(t *testing.T) {
 	}
 }
 
-// TestSnaphots tests the functionality for retrieveing the snapshot
+// TestSnaphots tests the functionality for retrieving the snapshot
 // with given head root and the desired depth.
 func TestSnaphots(t *testing.T) {
 	// setAccount is a helper to construct a random account entry and assign it to
@@ -424,10 +425,21 @@ func TestSnaphots(t *testing.T) {
 	}
 }
 
-// Based on a certain diff state fork
-// confirm a path after cap and remove the fork
-func TestDiffLayerForkAndRemoveFork(t *testing.T) {
-	// Create an empty base layer and a snapshot tree out of it
+// TestReadStateDuringFlattening tests the scenario that, during the
+// bottom diff layers are merging which tags these as stale, the read
+// happens via a pre-created top snapshot layer which tries to access
+// the state in these stale layers. Ensure this read can retrieve the
+// right state back(block until the flattening is finished) instead of
+// an unexpected error(snapshot layer is stale).
+func TestReadStateDuringFlattening(t *testing.T) {
+	// setAccount is a helper to construct a random account entry and assign it to
+	// an account slot in a snapshot
+	setAccount := func(accKey string) map[common.Hash][]byte {
+		return map[common.Hash][]byte{
+			common.HexToHash(accKey): randomAccount(),
+		}
+	}
+	// Create a starting base layer and a snapshot tree out of it
 	base := &diskLayer{
 		diskdb: rawdb.NewMemoryDatabase(),
 		root:   common.HexToHash("0x01"),
@@ -438,145 +450,37 @@ func TestDiffLayerForkAndRemoveFork(t *testing.T) {
 			base.root: base,
 		},
 	}
-	// Commit three diffs on top and fork two state paths starting from 0x02
-	accounts := map[common.Hash][]byte{
-		common.HexToHash("0xa1"): randomAccount(),
-	}
-	if err := snaps.Update(common.HexToHash("0x02"), common.HexToHash("0x01"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x03"), common.HexToHash("0x02"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x04"), common.HexToHash("0x03"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	// first fork path
-	if err := snaps.Update(common.HexToHash("0x05"), common.HexToHash("0x02"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x06"), common.HexToHash("0x05"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	// second fork path
-	if err := snaps.Update(common.HexToHash("0x07"), common.HexToHash("0x02"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x08"), common.HexToHash("0x07"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
+	// 4 layers in total, 3 diff layers and 1 disk layers
+	snaps.Update(common.HexToHash("0xa1"), common.HexToHash("0x01"), nil, setAccount("0xa1"), nil)
+	snaps.Update(common.HexToHash("0xa2"), common.HexToHash("0xa1"), nil, setAccount("0xa2"), nil)
+	snaps.Update(common.HexToHash("0xa3"), common.HexToHash("0xa2"), nil, setAccount("0xa3"), nil)
 
-	if n := len(snaps.layers); n != 8 {
-		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 8)
-	}
+	// Obtain the topmost snapshot handler for state accessing
+	snap := snaps.Snapshot(common.HexToHash("0xa3"))
 
-	children := make(map[common.Hash][]common.Hash)
-	for root, snap := range snaps.layers {
-		if diff, ok := snap.(*diffLayer); ok {
-			parent := diff.parent.Root()
-			children[parent] = append(children[parent], root)
+	// Register the testing hook to access the state after flattening
+	var result = make(chan *Account)
+	snaps.onFlatten = func() {
+		// Spin up a thread to read the account from the pre-created
+		// snapshot handler. It's expected to be blocked.
+		go func() {
+			account, _ := snap.Account(common.HexToHash("0xa1"))
+			result <- account
+		}()
+		select {
+		case res := <-result:
+			t.Fatalf("Unexpected return %v", res)
+		case <-time.NewTimer(time.Millisecond * 300).C:
 		}
 	}
-
-	if n := len(children[common.HexToHash("0x02")]); n != 3 {
-		t.Errorf("children layer count mismatch: have %d, want %d", n, 3)
-	}
-
-	// Flatten the diff layer into the bottom accumulator and remove fork state paths
-	if err := snaps.Cap(common.HexToHash("0x04"), 1); err != nil {
-		t.Fatalf("failed to flatten diff layer into accumulator: %v", err)
-	}
-	if n := len(snaps.layers); n != 3 {
-		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 3)
-		fmt.Println(snaps.layers)
-	}
-	children = make(map[common.Hash][]common.Hash)
-	for root, snap := range snaps.layers {
-		if diff, ok := snap.(*diffLayer); ok {
-			parent := diff.parent.Root()
-			children[parent] = append(children[parent], root)
+	// Cap the snap tree, which will mark the bottom-most layer as stale.
+	snaps.Cap(common.HexToHash("0xa3"), 1)
+	select {
+	case account := <-result:
+		if account == nil {
+			t.Fatal("Failed to retrieve account")
 		}
-	}
-	if children[common.HexToHash("0x01")][0] != common.HexToHash("0x03") {
-		t.Errorf("wrong relationship in layers")
-	}
-}
-
-// Based on a certain disk state fork
-// confirm a path after cap and remove the fork
-func TestDiskLayerForkAndRemoveFork(t *testing.T) {
-	// Create an empty base layer and a snapshot tree out of it
-	base := &diskLayer{
-		diskdb: rawdb.NewMemoryDatabase(),
-		root:   common.HexToHash("0x01"),
-		cache:  fastcache.New(1024 * 500),
-	}
-	snaps := &Tree{
-		layers: map[common.Hash]snapshot{
-			base.root: base,
-		},
-		aggregatorMemoryLimitMock: uint64(1),
-	}
-	// Commit three diffs on top and fork two state paths starting from 0x02
-	accounts := map[common.Hash][]byte{
-		common.HexToHash("0xa1"): randomAccount(),
-	}
-	if err := snaps.Update(common.HexToHash("0x02"), common.HexToHash("0x01"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x03"), common.HexToHash("0x02"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x04"), common.HexToHash("0x03"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	// first fork path
-	if err := snaps.Update(common.HexToHash("0x05"), common.HexToHash("0x01"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x06"), common.HexToHash("0x05"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	// second fork path
-	if err := snaps.Update(common.HexToHash("0x07"), common.HexToHash("0x01"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-	if err := snaps.Update(common.HexToHash("0x08"), common.HexToHash("0x07"), nil, accounts, nil); err != nil {
-		t.Fatalf("failed to create a diff layer: %v", err)
-	}
-
-	if n := len(snaps.layers); n != 8 {
-		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 8)
-	}
-
-	children := make(map[common.Hash][]common.Hash)
-	for root, snap := range snaps.layers {
-		if diff, ok := snap.(*diffLayer); ok {
-			parent := diff.parent.Root()
-			children[parent] = append(children[parent], root)
-		}
-	}
-
-	if n := len(children[common.HexToHash("0x01")]); n != 3 {
-		t.Errorf("children layer count mismatch: have %d, want %d", n, 3)
-	}
-
-	// Flatten the diff layer into the bottom accumulator and remove fork state paths
-	if err := snaps.Cap(common.HexToHash("0x04"), 1); err != nil {
-		t.Fatalf("failed to flatten diff layer into accumulator: %v", err)
-	}
-	if n := len(snaps.layers); n != 2 {
-		t.Errorf("post-cap layer count mismatch: have %d, want %d", n, 2)
-		fmt.Println(snaps.layers)
-	}
-	children = make(map[common.Hash][]common.Hash)
-	for root, snap := range snaps.layers {
-		if diff, ok := snap.(*diffLayer); ok {
-			parent := diff.parent.Root()
-			children[parent] = append(children[parent], root)
-		}
-	}
-	if len(children[common.HexToHash("0x01")]) != 0 {
-		t.Errorf("wrong relationship in layers")
+	case <-time.NewTimer(time.Millisecond * 300).C:
+		t.Fatal("Unexpected blocker")
 	}
 }

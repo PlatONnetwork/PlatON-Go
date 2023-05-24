@@ -230,7 +230,7 @@ func (ps *peerSet) snapLen() int {
 }
 
 // peerWithHighestBlock retrieves the known peer with the currently highest blockNumber
-func (ps *peerSet) peerWithHighestBlock() *eth.Peer {
+func (ps *peerSet) peerWithHighestBlock() (*eth.Peer, *big.Int) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -243,7 +243,7 @@ func (ps *peerSet) peerWithHighestBlock() *eth.Peer {
 			bestPeer, bestBn = p.Peer, bn
 		}
 	}
-	return bestPeer
+	return bestPeer, bestBn
 }
 
 // close disconnects all peers.
