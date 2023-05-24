@@ -121,10 +121,8 @@ func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 			"at", common.BytesToHash(marker[common.HashLength:]),
 		}...)
 	}
-	markerData := binary.BigEndian.Uint64(marker[:8])
 	// Add the usual measurements
 	ctx = append(ctx, []interface{}{
-		"markerData", markerData,
 		"origin", gs.origin,
 		"accounts", gs.accounts,
 		"slots", gs.slots,
@@ -726,7 +724,6 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		exhausted, last, err := dl.generateRange(dl.root, rawdb.SnapshotAccountPrefix, "account", accOrigin, accountRange, stats, onAccount, FullAccountRLP)
 		// The procedure it aborted, either by external signal or internal error
 		if err != nil {
-			log.Info("generateRange failed", "err", err)
 			if abort == nil { // aborted by internal error, wait the signal
 				abort = <-dl.genAbort
 			}
