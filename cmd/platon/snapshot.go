@@ -59,7 +59,7 @@ var (
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot verify-state <state-root>
+platon snapshot verify-state <state-root>
 will traverse the whole accounts and storages set based on the specified
 snapshot and recalculate the root hash of state for verification.
 In other words, this command does the snapshot to trie conversion.
@@ -91,7 +91,7 @@ data, and verifies that all snapshot storage data has a corresponding account.
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot traverse-state <state-root>
+platon snapshot traverse-state <state-root>
 will traverse the whole state from the given state root and will abort if any
 referenced trie node or contract code is missing. This command can be used for
 state integrity verification. The default checking target is the HEAD state.
@@ -125,7 +125,7 @@ information about the specified address.
 					utils.TestnetFlag,
 				},
 				Description: `
-geth snapshot traverse-rawstate <state-root>
+platon snapshot traverse-rawstate <state-root>
 will traverse the whole state from the given root and will abort if any referenced
 trie node or contract code is missing. This command can be used for state integrity
 verification. The default checking target is the HEAD state. It's basically identical
