@@ -121,8 +121,11 @@ func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 			"at", common.BytesToHash(marker[common.HashLength:]),
 		}...)
 	}
+	markerData := binary.BigEndian.Uint64(marker[:8])
 	// Add the usual measurements
 	ctx = append(ctx, []interface{}{
+		"markerData", markerData,
+		"origin", gs.origin,
 		"accounts", gs.accounts,
 		"slots", gs.slots,
 		"storage", gs.storage,
@@ -561,6 +564,12 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		default:
 		}
 		if batch.ValueSize() > ethdb.IdealBatchSize || abort != nil {
+			if bytes.Compare(currentLocation, dl.genMarker) < 0 {
+				log.Error("Snapshot generator went backwards",
+					"currentLocation", fmt.Sprintf("%x", currentLocation),
+					"genMarker", fmt.Sprintf("%x", dl.genMarker))
+			}
+
 			// Flush out the batch anyway no matter it's empty or not.
 			// It's possible that all the states are recovered and the
 			// generation indeed makes progress.
@@ -636,8 +645,15 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 			stats.storage += common.StorageSize(1 + common.HashLength + dataLen)
 			stats.accounts++
 		}
+		marker := accountHash[:]
+		// If the snap generation goes here after interrupted, genMarker may go backward
+		// when last genMarker is consisted of accountHash and storageHash
+		if accMarker != nil && bytes.Equal(marker, accMarker) && len(dl.genMarker) > common.HashLength {
+			marker = dl.genMarker[:]
+		}
+
 		// If we've exceeded our batch allowance or termination was requested, flush to disk
-		if err := checkAndFlush(accountHash[:]); err != nil {
+		if err := checkAndFlush(marker); err != nil {
 			return err
 		}
 		// If the iterated account is the contract, create a further loop to
@@ -710,6 +726,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		exhausted, last, err := dl.generateRange(dl.root, rawdb.SnapshotAccountPrefix, "account", accOrigin, accountRange, stats, onAccount, FullAccountRLP)
 		// The procedure it aborted, either by external signal or internal error
 		if err != nil {
+			log.Info("generateRange failed", "err", err)
 			if abort == nil { // aborted by internal error, wait the signal
 				abort = <-dl.genAbort
 			}
