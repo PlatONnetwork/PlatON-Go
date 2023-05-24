@@ -252,9 +252,12 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 		return nil
 	}
 	mode, ourHighest := cs.modeAndLocalHead()
+	if pBn.Uint64() <= ourHighest {
+		return nil
+	}
+	diff := new(big.Int).Sub(pBn, new(big.Int).SetUint64(ourHighest))
 
-	diff := new(big.Int).SetUint64(pBn.Uint64() - ourHighest)
-	if diff.Cmp(big.NewInt(2)) < 0 {
+	if diff.Cmp(big.NewInt(5)) < 0 {
 		return nil
 	}
 
@@ -268,9 +271,9 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	// If we're in fast sync mode, return that directly
-	head := cs.handler.engine.CurrentBlock()
+	ehead := cs.handler.engine.CurrentBlock()
 	if atomic.LoadUint32(&cs.handler.fastSync) == 1 {
-		return downloader.FastSync, head.NumberU64()
+		return downloader.FastSync, ehead.NumberU64()
 	}
 	// We are probably in full sync, but we might have rewound to before the
 	// fast sync pivot, check if we should reenable
@@ -280,7 +283,7 @@ func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 		}
 	}
 	// Nope, we're really full syncing
-	return downloader.FullSync, head.NumberU64()
+	return downloader.FullSync, ehead.NumberU64()
 }
 
 // startSync launches doSync in a new goroutine.
