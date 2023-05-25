@@ -1236,7 +1236,6 @@ func RPCMarshalHeader(head *types.Header, ethCompatible bool) map[string]interfa
 		"miner":     head.Coinbase,
 		//		"difficulty":       (*hexutil.Big)(head.Difficulty),
 		"extraData":        hexutil.Bytes(head.Extra),
-		"size":             hexutil.Uint64(head.Size()),
 		"gasLimit":         hexutil.Uint64(head.GasLimit),
 		"gasUsed":          hexutil.Uint64(head.GasUsed),
 		"timestamp":        hexutil.Uint64(head.Time),
