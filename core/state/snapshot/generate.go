@@ -647,6 +647,9 @@ func generateAccounts(ctx *generatorContext, dl *diskLayer, accMarker []byte) er
 	for {
 		exhausted, last, err := dl.generateRange(ctx, dl.root, rawdb.SnapshotAccountPrefix, snapAccount, origin, accountRange, onAccount, FullAccountRLP)
 		if err != nil {
+			if _, ok := err.(*abortErr); !ok {
+				log.Error("generateRange error", "err", err)
+			}
 			return err // The procedure it aborted, either by external signal or internal error.
 		}
 		origin = increaseKey(last)
@@ -691,7 +694,11 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		// Extract the received interruption signal if exists
 		if aerr, ok := err.(*abortErr); ok {
 			abort = aerr.abort
+		} else {
+			stats.Log("generateAccounts failed", dl.root, dl.genMarker)
+			log.Error("generateAccounts error", "err", err)
 		}
+
 		// Aborted by internal error, wait the signal
 		if abort == nil {
 			abort = <-dl.genAbort
