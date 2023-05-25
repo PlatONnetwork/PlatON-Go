@@ -73,7 +73,7 @@ func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache i
 	rawdb.WriteSnapshotRoot(batch, root)
 	journalProgress(batch, genMarker, stats)
 	if err := batch.Write(); err != nil {
-		log.Crit("Failed to write initialized state marker", "err", err)
+		log.Crit("Failed to write initialized state marker ", "err", err)
 	}
 	base := &diskLayer{
 		diskdb:     diskdb,
