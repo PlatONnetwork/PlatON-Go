@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -647,6 +648,9 @@ func generateAccounts(ctx *generatorContext, dl *diskLayer, accMarker []byte) er
 	for {
 		exhausted, last, err := dl.generateRange(ctx, dl.root, rawdb.SnapshotAccountPrefix, snapAccount, origin, accountRange, onAccount, FullAccountRLP)
 		if err != nil {
+			if strings.Compare(err.Error(), "aborted") != 0 {
+				log.Info("generateAccounts generateRange failed", "err", err)
+			}
 			return err // The procedure it aborted, either by external signal or internal error.
 		}
 		origin = increaseKey(last)
@@ -691,7 +695,11 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 		// Extract the received interruption signal if exists
 		if aerr, ok := err.(*abortErr); ok {
 			abort = aerr.abort
+		} else {
+			stats.Log("generateAccounts failed", dl.root, dl.genMarker)
+			log.Error("generateAccounts error", "err", err)
 		}
+
 		// Aborted by internal error, wait the signal
 		if abort == nil {
 			abort = <-dl.genAbort
