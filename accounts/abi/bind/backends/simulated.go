@@ -639,7 +639,7 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	// Get the last block
 	block, err := b.blockByHash(ctx, b.pendingBlock.ParentHash())
 	if err != nil {
-		return fmt.Errorf("could not fetch parent")
+		return errors.New("could not fetch parent")
 	}
 	signer := types.MakeSigner(b.blockchain.Config(), block.Number(), true)
 	sender, err := types.Sender(signer, tx)
@@ -773,7 +773,7 @@ func (b *SimulatedBackend) AdjustTime(adjustment time.Duration) error {
 	// Get the last block
 	block := b.blockchain.GetBlockByHash(b.pendingBlock.ParentHash())
 	if block == nil {
-		return fmt.Errorf("could not find parent")
+		return errors.New("could not find parent")
 	}
 
 	blocks, _ := core.GenerateChain(b.config, block, b.blockchain.Engine(), b.database, 1, func(number int, block *core.BlockGen) {
