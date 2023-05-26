@@ -515,8 +515,8 @@ func (bc *BlockChain) loadLastState() error {
 // was fast synced or full synced and in which state, the method will try to
 // delete minimal data from disk whilst retaining chain consistency.
 func (bc *BlockChain) SetHead(head uint64) error {
-	_, err := bc.SetHeadBeyondRoot(head, common.Hash{})
-	return err
+	// PlatON do not support rewind
+	return nil
 }
 
 // SetHeadBeyondRoot rewinds the local chain to a new head with the extra condition
