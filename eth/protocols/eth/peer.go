@@ -79,10 +79,11 @@ type Peer struct {
 	queuedBlocks    chan *blockPropagation // Queue of blocks to broadcast to the peer
 	queuedBlockAnns chan *types.Block      // Queue of blocks to announce to the peer
 
-	txpool      TxPool             // Transaction pool used by the broadcasters for liveness checks
-	knownTxs    mapset.Set         // Set of transaction hashes known to be known by this peer
-	txBroadcast chan []common.Hash // Channel used to queue transaction propagation requests
-	txAnnounce  chan []common.Hash // Channel used to queue transaction announcement requests
+	txpool      TxPool // Transaction pool used by the broadcasters for liveness checks
+	runTxGenFun RunTxGenFun
+	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
+	txBroadcast chan []*types.Transaction // Channel used to queue transaction propagation requests
+	txAnnounce  chan []common.Hash        // Channel used to queue transaction announcement requests
 
 	term chan struct{} // Termination channel to stop the broadcasters
 	lock sync.RWMutex  // Mutex protecting the internal fields
@@ -90,7 +91,7 @@ type Peer struct {
 
 // NewPeer create a wrapper for a network connection and negotiated  protocol
 // version.
-func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool) *Peer {
+func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool, runTxGenFun RunTxGenFun) *Peer {
 	peer := &Peer{
 		id:              p.ID().String(),
 		Peer:            p,
@@ -100,9 +101,10 @@ func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter, txpool TxPool) *Pe
 		knownBlocks:     mapset.NewSet(),
 		queuedBlocks:    make(chan *blockPropagation, maxQueuedBlocks),
 		queuedBlockAnns: make(chan *types.Block, maxQueuedBlockAnns),
-		txBroadcast:     make(chan []common.Hash),
+		txBroadcast:     make(chan []*types.Transaction),
 		txAnnounce:      make(chan []common.Hash),
 		txpool:          txpool,
+		runTxGenFun:     runTxGenFun,
 		term:            make(chan struct{}),
 	}
 	// Start up all the broadcasters
@@ -199,21 +201,21 @@ func (p *Peer) SendTransactions(txs types.Transactions) error {
 	return p2p.Send(p.rw, TransactionsMsg, txs)
 }
 
-// AsyncSendTransactions queues a list of transactions (by hash) to eventually
-// propagate to a remote peer. The number of pending sends are capped (new ones
-// will force old sends to be dropped)
-func (p *Peer) AsyncSendTransactions(hashes []common.Hash) {
+// AsyncSendTransactions queues list of transactions propagation to a remote
+// peer. If the peer's broadcast queue is full, the event is silently dropped.
+func (p *Peer) AsyncSendTransactions(txs []*types.Transaction) {
 	select {
-	case p.txBroadcast <- hashes:
+	case p.txBroadcast <- txs:
 		// Mark all the transactions as known, but ensure we don't overflow our limits
-		for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(hashes)) {
+		for p.knownTxs.Cardinality() > max(0, maxKnownTxs-len(txs)) {
 			p.knownTxs.Pop()
 		}
-		for _, hash := range hashes {
-			p.knownTxs.Add(hash)
+
+		for _, tx := range txs {
+			p.knownTxs.Add(tx.Hash())
 		}
 	case <-p.term:
-		p.Log().Debug("Dropping transaction propagation", "count", len(hashes))
+		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
 	}
 }
 

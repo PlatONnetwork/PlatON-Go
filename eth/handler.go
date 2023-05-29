@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,6 +47,13 @@ const (
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
+
+	numBroadcastTxPeers     = 5 // Maximum number of peers for broadcast transactions
+	numBroadcastTxHashPeers = 5 // Maximum number of peers for broadcast transactions hash
+	numBroadcastBlockPeers  = 5 // Maximum number of peers for broadcast new block
+
+	defaultTxsCacheSize      = 20
+	defaultBroadcastInterval = 100 * time.Millisecond
 )
 
 var (
@@ -429,8 +437,20 @@ func (h *handler) BroadcastBlock(block *types.Block, propagate bool) {
 			return
 		}
 
-		// Send the block to a subset of our peers
-		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+		var transfer []*ethPeer
+		if len(peers) <= numBroadcastBlockPeers {
+			// Send the block to all peers
+			transfer = peers
+		} else {
+			// Send the block to a subset of our peers
+			rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			indexes := rd.Perm(len(peers))
+			maxPeers := int(math.Sqrt(float64(len(peers))))
+			transfer = make([]*ethPeer, 0, maxPeers)
+			for i := 0; i < maxPeers; i++ {
+				transfer = append(transfer, peers[indexes[i]])
+			}
+		}
 		for _, peer := range transfer {
 			peer.AsyncSendNewBlock(block)
 		}
@@ -457,27 +477,43 @@ func (h *handler) BroadcastTransactions(txs types.Transactions) {
 		directCount int // Count of the txs sent directly to peers
 		directPeers int // Count of the peers that were sent transactions directly
 
-		txset = make(map[*ethPeer][]common.Hash) // Set peer->hash to transfer directly
-		annos = make(map[*ethPeer][]common.Hash) // Set peer->hash to announce
+		txset = make(map[*ethPeer]types.Transactions) // Set peer->transaction to transfer directly
+		annos = make(map[*ethPeer][]common.Hash)      // Set peer->hash to announce
 
 	)
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		peers := h.peers.peersWithoutTransaction(tx.Hash())
-		// Send the tx unconditionally to a subset of our peers
-		numDirect := int(math.Sqrt(float64(len(peers))))
-		for _, peer := range peers[:numDirect] {
-			txset[peer] = append(txset[peer], tx.Hash())
-		}
-		// For the remaining peers, send announcement only
-		for _, peer := range peers[numDirect:] {
-			annos[peer] = append(annos[peer], tx.Hash())
+		if len(peers) <= numBroadcastTxPeers {
+			for _, peer := range peers {
+				txset[peer] = append(txset[peer], tx)
+			}
+		} else {
+			indexes := rd.Perm(len(peers))
+			numAnnos := int(math.Sqrt(float64(len(peers) - numBroadcastTxPeers)))
+			countAnnos := 0
+			if numAnnos > numBroadcastTxHashPeers {
+				numAnnos = numBroadcastTxHashPeers
+			}
+			for i, c := 0, 0; i < len(peers) && countAnnos < numAnnos; i, c = i+1, c+1 {
+				peer := peers[indexes[i]]
+				if c < numBroadcastTxPeers {
+					txset[peer] = append(txset[peer], tx)
+				} else {
+					// For the remaining peers, send announcement only
+					annos[peer] = append(annos[peer], tx.Hash())
+					countAnnos++
+				}
+			}
 		}
 	}
-	for peer, hashes := range txset {
+
+	for peer, txs := range txset {
 		directPeers++
-		directCount += len(hashes)
-		peer.AsyncSendTransactions(hashes)
+		directCount += len(txs)
+		peer.AsyncSendTransactions(txs)
 	}
 	for peer, hashes := range annos {
 		annoPeers++
@@ -504,10 +540,28 @@ func (h *handler) minedBroadcastLoop() {
 // txBroadcastLoop announces new transactions to connected peers.
 func (h *handler) txBroadcastLoop() {
 	defer h.wg.Done()
+
+	timer := time.NewTimer(defaultBroadcastInterval)
+
 	for {
 		select {
 		case event := <-h.txsCh:
-			h.BroadcastTransactions(event.Txs)
+			h.txsCache = append(h.txsCache, event.Txs...)
+			if len(h.txsCache) >= defaultTxsCacheSize {
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
+				h.BroadcastTransactions(h.txsCache)
+				h.txsCache = make([]*types.Transaction, 0)
+				timer.Reset(defaultBroadcastInterval)
+			}
+		case <-timer.C:
+			if len(h.txsCache) > 0 {
+				//log.Trace("broadcast txs", "count", len(pm.txsCache))
+				h.BroadcastTransactions(h.txsCache)
+				h.txsCache = make([]*types.Transaction, 0)
+			}
+			timer.Reset(defaultBroadcastInterval)
+
+			// Err() channel will be closed when unsubscribing.
 		case <-h.txsSub.Err():
 			return
 		}

@@ -396,7 +396,7 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 func handleNewPooledTransactionHashes(backend Backend, msg Decoder, peer *Peer) error {
 	// New transaction announcement arrived, make sure we have
 	// a valid and fresh chain to handle them
-	if !backend.AcceptTxs() {
+	if !backend.AcceptTxs() || !backend.AcceptRemoteTxs() {
 		return nil
 	}
 	ann := new(NewPooledTransactionHashesPacket)
@@ -460,7 +460,7 @@ func answerGetPooledTransactions(backend Backend, query GetPooledTransactionsPac
 
 func handleTransactions(backend Backend, msg Decoder, peer *Peer) error {
 	// Transactions arrived, make sure we have a valid and fresh chain to handle them
-	if !backend.AcceptTxs() {
+	if !backend.AcceptTxs() || !backend.AcceptRemoteTxs() {
 		return nil
 	}
 	// Transactions can be processed, parse all of them and deliver to the pool
@@ -480,7 +480,7 @@ func handleTransactions(backend Backend, msg Decoder, peer *Peer) error {
 
 func handlePooledTransactions(backend Backend, msg Decoder, peer *Peer) error {
 	// Transactions arrived, make sure we have a valid and fresh chain to handle them
-	if !backend.AcceptTxs() {
+	if !backend.AcceptTxs() || !backend.AcceptRemoteTxs() {
 		return nil
 	}
 	// Transactions can be processed, parse all of them and deliver to the pool
@@ -500,7 +500,7 @@ func handlePooledTransactions(backend Backend, msg Decoder, peer *Peer) error {
 
 func handlePooledTransactions66(backend Backend, msg Decoder, peer *Peer) error {
 	// Transactions arrived, make sure we have a valid and fresh chain to handle them
-	if !backend.AcceptTxs() {
+	if !backend.AcceptTxs() || !backend.AcceptRemoteTxs() {
 		return nil
 	}
 	// Transactions can be processed, parse all of them and deliver to the pool

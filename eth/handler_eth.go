@@ -58,6 +58,19 @@ func (h *ethHandler) AcceptTxs() bool {
 	return atomic.LoadUint32(&h.acceptTxs) == 1
 }
 
+// AcceptRemoteTxs retrieves whether txgen plugin is started
+// if it is started, the node does not receive remote transactions
+func (h *ethHandler) AcceptRemoteTxs() bool {
+	return atomic.LoadUint32(&h.acceptRemoteTxs) == 0
+}
+
+// RunTxGenFun encapsulates the txgen plugin startup flag
+func (h *ethHandler) RunTxGenFun() func() bool {
+	return func() bool {
+		return atomic.LoadUint32(&h.acceptRemoteTxs) == 1
+	}
+}
+
 // Handle is invoked from a peer's message handler when it receives a new remote
 // message that the handler couldn't consume and serve itself.
 func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
