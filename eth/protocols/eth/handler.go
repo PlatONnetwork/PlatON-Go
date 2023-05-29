@@ -82,6 +82,13 @@ type Backend interface {
 	// or if inbound transactions should simply be dropped.
 	AcceptTxs() bool
 
+	// AcceptRemoteTxs retrieves whether txgen plugin is started
+	// if it is started, the node does not receive remote transactions
+	AcceptRemoteTxs() bool
+
+	// RunTxGenFun encapsulates the txgen plugin startup flag
+	RunTxGenFun() func() bool
+
 	// RunPeer is invoked when a peer joins on the `eth` protocol. The handler
 	// should do any peer maintenance work, handshakes and validations. If all
 	// is passed, control should be given back to the `handler` to process the
@@ -103,6 +110,8 @@ type TxPool interface {
 	Get(hash common.Hash) *types.Transaction
 }
 
+type RunTxGenFun func() bool
+
 // MakeProtocols constructs the P2P protocol definitions for `eth`.
 func MakeProtocols(backend Backend, network uint64, dnsdisc enode.Iterator) []p2p.Protocol {
 	protocols := make([]p2p.Protocol, len(ProtocolVersions))
@@ -114,7 +123,7 @@ func MakeProtocols(backend Backend, network uint64, dnsdisc enode.Iterator) []p2
 			Version: version,
 			Length:  protocolLengths[version],
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-				peer := NewPeer(version, p, rw, backend.TxPool())
+				peer := NewPeer(version, p, rw, backend.TxPool(), backend.RunTxGenFun())
 				defer peer.Close()
 
 				return backend.RunPeer(peer, func(peer *Peer) error {

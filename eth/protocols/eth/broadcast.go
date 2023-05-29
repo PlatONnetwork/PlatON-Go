@@ -1,18 +1,18 @@
-// Copyright 2019 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2021 The PlatON Network Authors
+// This file is part of the PlatON-Go library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The PlatON-Go library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The PlatON-Go library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 package eth
 
@@ -62,7 +62,7 @@ func (p *Peer) broadcastBlocks() {
 // node internals and at the same time rate limits queued data.
 func (p *Peer) broadcastTransactions() {
 	var (
-		queue  []common.Hash         // Queue of hashes to broadcast as full transactions
+		queue  []*types.Transaction  // Queue of hashes to broadcast as full transactions
 		done   chan struct{}         // Non-nil if background broadcaster is running
 		fail   = make(chan error, 1) // Channel used to receive network error
 		failed bool                  // Flag whether a send failed, discard everything onward
@@ -72,18 +72,23 @@ func (p *Peer) broadcastTransactions() {
 		if done == nil && len(queue) > 0 {
 			// Pile transaction until we reach our allowed network limit
 			var (
-				hashes []common.Hash
-				txs    []*types.Transaction
-				size   common.StorageSize
+				hashesCount uint64
+				txs         []*types.Transaction
+				size        common.StorageSize
 			)
 			for i := 0; i < len(queue) && size < maxTxPacketSize; i++ {
-				if tx := p.txpool.Get(queue[i]); tx != nil {
+				// If the txgen plugin is enabled, there is no need to determine whether the transaction is in the txpool
+				if tx := p.txpool.Get(queue[i].Hash()); tx != nil || p.runTxGenFun() {
+					if tx == nil {
+						tx = queue[i]
+					}
 					txs = append(txs, tx)
 					size += tx.Size()
 				}
-				hashes = append(hashes, queue[i])
+				hashesCount++
 			}
-			queue = queue[:copy(queue, queue[len(hashes):])]
+			// Shift and trim queue
+			queue = queue[:copy(queue, queue[hashesCount:])]
 
 			// If there's anything available to transfer, fire up an async writer
 			if len(txs) > 0 {
@@ -100,13 +105,13 @@ func (p *Peer) broadcastTransactions() {
 		}
 		// Transfer goroutine may or may not have been started, listen for events
 		select {
-		case hashes := <-p.txBroadcast:
+		case txs := <-p.txBroadcast:
 			// If the connection failed, discard all transaction events
 			if failed {
 				continue
 			}
 			// New batch of transactions to be broadcast, queue them (with cap)
-			queue = append(queue, hashes...)
+			queue = append(queue, txs...)
 			if len(queue) > maxQueuedTxs {
 				// Fancy copy and resize to ensure buffer doesn't grow indefinitely
 				queue = queue[:copy(queue, queue[len(queue)-maxQueuedTxs:])]
@@ -144,7 +149,8 @@ func (p *Peer) announceTransactions() {
 				size    common.StorageSize
 			)
 			for count = 0; count < len(queue) && size < maxTxPacketSize; count++ {
-				if p.txpool.Get(queue[count]) != nil {
+				// If the txgen plugin is enabled, there is no need to determine whether the transaction is in the txpool
+				if p.txpool.Get(queue[count]) != nil || p.runTxGenFun() {
 					pending = append(pending, queue[count])
 					size += common.HashLength
 				}

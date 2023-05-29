@@ -112,6 +112,15 @@ func (b *testBackend) PeerInfo(enode.ID) interface{} { panic("not implemented") 
 func (b *testBackend) AcceptTxs() bool {
 	panic("data processing tests should be done in the handler package")
 }
+
+func (b *testBackend) AcceptRemoteTxs() bool {
+	panic("data processing tests should be done in the handler package")
+}
+
+func (b *testBackend) RunTxGenFun() func() bool {
+	panic("data processing tests should be done in the handler package")
+}
+
 func (b *testBackend) Handle(*Peer, Packet) error {
 	panic("data processing tests should be done in the handler package")
 }
