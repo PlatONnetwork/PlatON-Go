@@ -19,13 +19,14 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb/storage"
 	"math/big"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/syndtr/goleveldb/leveldb/storage"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
