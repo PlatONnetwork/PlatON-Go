@@ -501,7 +501,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	origin = originh.Number.Uint64()
 
 	// Ensure our origin point is below any fast sync pivot point
-	if mode == FastSync {
+	/*if mode == FastSync {
 		pivotNumber := pivoth.Number.Uint64()
 		if pivotNumber > 0 && pivotNumber <= origin {
 			origin = pivotNumber - 1
@@ -509,7 +509,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		// Write out the pivot into the database so a rollback beyond it will
 		// reenable fast sync
 		rawdb.WriteLastPivotNumber(d.stateDB, pivotNumber)
-	}
+	}*/
 	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
@@ -1393,7 +1393,6 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 	)
 	defer func() {
 		// PlatON do not support rollback
-		rollback = 0
 		if rollback > 0 {
 			lastHeader, lastFastBlock, lastBlock := d.lightchain.CurrentHeader().Number, common.Big0, common.Big0
 			if mode != LightSync {
