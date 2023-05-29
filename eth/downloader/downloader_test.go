@@ -51,7 +51,7 @@ var logger = log.New("test", "down")
 // Reduce some of the parameters to make the tester faster.
 func init() {
 	rand.Seed(time.Now().Unix())
-	maxForkAncestry = 0
+	maxForkAncestry = 10000
 	fsHeaderContCheck = 500 * time.Millisecond
 }
 

@@ -64,5 +64,5 @@ const (
 	// segment is considered immutable for light client(i.e. soft finality). It is used by
 	// the downloader as a hard limit against deep ancestors, by the blockchain against deep
 	// reorgs, by the light pruner as the pruning validity guarantee.
-	LightImmutabilityThreshold = 0
+	LightImmutabilityThreshold = 30000
 )
