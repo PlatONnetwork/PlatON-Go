@@ -19,13 +19,14 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/syndtr/goleveldb/leveldb/storage"
 	"math/big"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/syndtr/goleveldb/leveldb/storage"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
@@ -50,7 +51,7 @@ var logger = log.New("test", "down")
 // Reduce some of the parameters to make the tester faster.
 func init() {
 	rand.Seed(time.Now().Unix())
-	maxForkAncestry = 10000
+	maxForkAncestry = 0
 	fsHeaderContCheck = 500 * time.Millisecond
 }
 
