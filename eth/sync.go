@@ -266,22 +266,28 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 		mode = downloader.SnapSync
 	}
 	head, bn := peer.Head()
-	return &chainSyncOp{mode: mode, peer: peer, head: head, bn: bn, diff: diff}
+	return &chainSyncOp{mode: mode, peer: peer, head: head, bn: new(big.Int).Set(bn), diff: diff}
 }
 
 func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	// If we're in fast sync mode, return that directly
 	ehead := cs.handler.engine.CurrentBlock()
+	if ehead.NumberU64() > 0 {
+		log.Info("Blockchain not empty, auto disabling fast sync")
+		atomic.StoreUint32(&cs.handler.fastSync, 0)
+		return downloader.FullSync, ehead.NumberU64()
+	}
 	if atomic.LoadUint32(&cs.handler.fastSync) == 1 {
 		return downloader.FastSync, ehead.NumberU64()
 	}
+
 	// We are probably in full sync, but we might have rewound to before the
 	// fast sync pivot, check if we should reenable
-	if pivot := rawdb.ReadLastPivotNumber(cs.handler.database); pivot != nil {
+	/*if pivot := rawdb.ReadLastPivotNumber(cs.handler.database); pivot != nil {
 		if head := cs.handler.chain.CurrentBlock(); head.NumberU64() < *pivot {
 			return downloader.FastSync, head.NumberU64()
 		}
-	}
+	}*/
 	// Nope, we're really full syncing
 	return downloader.FullSync, ehead.NumberU64()
 }
