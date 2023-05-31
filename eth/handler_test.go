@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"sort"
 	"sync"
@@ -132,6 +133,7 @@ func newTestHandler() *testHandler {
 // given number of initial blocks.
 func newTestHandlerWithBlocks(blocks int) *testHandler {
 	// Create a database pre-initialize with a genesis block
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	db := rawdb.NewMemoryDatabase()
 	(&core.Genesis{
 		Config: params.TestChainConfig,
