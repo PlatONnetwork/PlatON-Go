@@ -20,11 +20,12 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
@@ -75,7 +76,7 @@ var (
 	reorgProtHeaderDelay = 2 // Number of headers to delay delivering to cover mini reorgs
 
 	fsHeaderCheckFrequency = 100             // Verification frequency of the downloaded headers during fast sync
-	fsHeaderSafetyNet      = 2048            // Number of headers to discard in case a chain violation is detected
+	fsHeaderSafetyNet      = 0               // PlatON use PoS and safe distance is 0
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
 )
@@ -500,7 +501,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	origin = originh.Number.Uint64()
 
 	// Ensure our origin point is below any fast sync pivot point
-	if mode == FastSync {
+	/*if mode == FastSync {
 		pivotNumber := pivoth.Number.Uint64()
 		if pivotNumber > 0 && pivotNumber <= origin {
 			origin = pivotNumber - 1
@@ -508,7 +509,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		// Write out the pivot into the database so a rollback beyond it will
 		// reenable fast sync
 		rawdb.WriteLastPivotNumber(d.stateDB, pivotNumber)
-	}
+	}*/
 	log.Info("synchronising findOrigin", "peer", p.id, "origin", origin, "pivot", pivoth.Number)
 	// Ensure our origin point is below any fast sync pivot point
 	d.committed = 1
@@ -1391,6 +1392,7 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 		mode        = d.getMode()
 	)
 	defer func() {
+		// PlatON do not support rollback
 		if rollback > 0 {
 			lastHeader, lastFastBlock, lastBlock := d.lightchain.CurrentHeader().Number, common.Big0, common.Big0
 			if mode != LightSync {
