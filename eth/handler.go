@@ -492,7 +492,7 @@ func (h *handler) BroadcastTransactions(txs types.Transactions) {
 			}
 		} else {
 			indexes := rd.Perm(len(peers))
-			numAnnos := int(math.Sqrt(float64(len(peers) - numBroadcastTxPeers)))
+			numAnnos := len(peers) - numBroadcastTxPeers
 			countAnnos := 0
 			if numAnnos > numBroadcastTxHashPeers {
 				numAnnos = numBroadcastTxHashPeers
