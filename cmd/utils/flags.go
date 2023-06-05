@@ -263,6 +263,11 @@ var (
 		Name:  "snapshot",
 		Usage: `Enables snapshot-database mode (default = enable)`,
 	}
+	BloomFilterSizeFlag = cli.Uint64Flag{
+		Name:  "bloomfilter.size",
+		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
+		Value: 2048,
+	}
 	CacheGCFlag = cli.IntFlag{
 		Name:  "cache.gc",
 		Usage: "Percentage of cache memory allowance to use for trie pruning (default = 25% full mode, 0% archive mode)",
