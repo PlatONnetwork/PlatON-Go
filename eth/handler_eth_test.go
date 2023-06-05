@@ -19,20 +19,16 @@ package eth
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
@@ -246,8 +242,8 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 		defer sourcePipe.Close()
 		defer sinkPipe.Close()
 
-		sourcePeer := eth.NewPeer(protocol, p2p.NewPeer(enode.ID{byte(i)}, "", nil), sourcePipe, source.txpool, nil)
-		sinkPeer := eth.NewPeer(protocol, p2p.NewPeer(enode.ID{0}, "", nil), sinkPipe, sink.txpool, nil)
+		sourcePeer := eth.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{byte(i)}, "", nil, sourcePipe), sourcePipe, source.txpool, nil)
+		sinkPeer := eth.NewPeer(protocol, p2p.NewPeerPipe(enode.ID{0}, "", nil, sinkPipe), sinkPipe, sink.txpool, nil)
 		defer sourcePeer.Close()
 		defer sinkPeer.Close()
 
@@ -285,125 +281,6 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 			case <-time.NewTimer(time.Second).C:
 				t.Errorf("sink %d: transaction propagation timed out: have %d, want %d", i, arrived, len(txs))
 			}
-		}
-	}
-}
-
-// Tests that post eth protocol handshake, clients perform a mutual checkpoint
-// challenge to validate each other's chains. Hash mismatches, or missing ones
-// during a fast sync should lead to the peer getting dropped.
-func TestCheckpointChallenge(t *testing.T) {
-	t.Skip("checkpoint not have now")
-	tests := []struct {
-		syncmode   downloader.SyncMode
-		checkpoint bool
-		timeout    bool
-		empty      bool
-		match      bool
-		drop       bool
-	}{
-		// If checkpointing is not enabled locally, don't challenge and don't drop
-		{downloader.FullSync, false, false, false, false, false},
-		{downloader.FastSync, false, false, false, false, false},
-
-		// If checkpointing is enabled locally and remote response is empty, only drop during fast sync
-		{downloader.FullSync, true, false, true, false, false},
-		{downloader.FastSync, true, false, true, false, true}, // Special case, fast sync, unsynced peer
-
-		// If checkpointing is enabled locally and remote response mismatches, always drop
-		{downloader.FullSync, true, false, false, false, true},
-		{downloader.FastSync, true, false, false, false, true},
-
-		// If checkpointing is enabled locally and remote response matches, never drop
-		{downloader.FullSync, true, false, false, true, false},
-		{downloader.FastSync, true, false, false, true, false},
-
-		// If checkpointing is enabled locally and remote times out, always drop
-		{downloader.FullSync, true, true, false, true, true},
-		{downloader.FastSync, true, true, false, true, true},
-	}
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("sync %v checkpoint %v timeout %v empty %v match %v", tt.syncmode, tt.checkpoint, tt.timeout, tt.empty, tt.match), func(t *testing.T) {
-			testCheckpointChallenge(t, tt.syncmode, tt.checkpoint, tt.timeout, tt.empty, tt.match, tt.drop)
-		})
-	}
-}
-
-func testCheckpointChallenge(t *testing.T, syncmode downloader.SyncMode, checkpoint bool, timeout bool, empty bool, match bool, drop bool) {
-	// Reduce the checkpoint handshake challenge timeout
-	defer func(old time.Duration) { syncChallengeTimeout = old }(syncChallengeTimeout)
-	syncChallengeTimeout = 250 * time.Millisecond
-
-	// Create a test handler and inject a CHT into it. The injection is a bit
-	// ugly, but it beats creating everything manually just to avoid reaching
-	// into the internals a bit.
-	handler := newTestHandler()
-	defer handler.close()
-
-	if syncmode == downloader.FastSync {
-		atomic.StoreUint32(&handler.handler.fastSync, 1)
-	} else {
-		atomic.StoreUint32(&handler.handler.fastSync, 0)
-	}
-	var response *types.Header
-	if checkpoint {
-		number := (uint64(rand.Intn(500))+1)*params.CHTFrequency - 1
-		response = &types.Header{Number: big.NewInt(int64(number)), Extra: []byte("valid")}
-	}
-	// Create a challenger peer and a challenged one
-	p2pLocal, p2pRemote := p2p.MsgPipe()
-	defer p2pLocal.Close()
-	defer p2pRemote.Close()
-
-	local := eth.NewPeer(eth.ETH65, p2p.NewPeer(enode.ID{1}, "", nil), p2pLocal, handler.txpool, nil)
-	remote := eth.NewPeer(eth.ETH65, p2p.NewPeer(enode.ID{2}, "", nil), p2pRemote, handler.txpool, nil)
-	defer local.Close()
-	defer remote.Close()
-
-	go handler.handler.runEthPeer(local, func(peer *eth.Peer) error {
-		return eth.Handle((*ethHandler)(handler.handler), peer)
-	})
-	// Run the handshake locally to avoid spinning up a remote handler
-	var (
-		genesis = handler.chain.Genesis()
-		head    = handler.chain.CurrentBlock()
-	)
-	if err := remote.Handshake(1, head.Number(), head.Hash(), genesis.Hash(), nil); err != nil {
-		t.Fatalf("failed to run protocol handshake")
-	}
-	// Connect a new peer and check that we receive the checkpoint challenge
-	if checkpoint {
-		if err := remote.ExpectRequestHeadersByNumber(response.Number.Uint64(), 1, 0, false); err != nil {
-			t.Fatalf("challenge mismatch: %v", err)
-		}
-		// Create a block to reply to the challenge if no timeout is simulated
-		if !timeout {
-			if empty {
-				if err := remote.SendBlockHeaders([]*types.Header{}); err != nil {
-					t.Fatalf("failed to answer challenge: %v", err)
-				}
-			} else if match {
-				if err := remote.SendBlockHeaders([]*types.Header{response}); err != nil {
-					t.Fatalf("failed to answer challenge: %v", err)
-				}
-			} else {
-				if err := remote.SendBlockHeaders([]*types.Header{{Number: response.Number}}); err != nil {
-					t.Fatalf("failed to answer challenge: %v", err)
-				}
-			}
-		}
-	}
-	// Wait until the test timeout passes to ensure proper cleanup
-	time.Sleep(syncChallengeTimeout + 300*time.Millisecond)
-
-	// Verify that the remote peer is maintained or dropped
-	if drop {
-		if peers := handler.handler.peers.len(); peers != 0 {
-			t.Fatalf("peer count mismatch: have %d, want %d", peers, 0)
-		}
-	} else {
-		if peers := handler.handler.peers.len(); peers != 1 {
-			t.Fatalf("peer count mismatch: have %d, want %d", peers, 1)
 		}
 	}
 }
