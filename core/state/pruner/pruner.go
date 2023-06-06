@@ -231,7 +231,7 @@ func prune(snaptree *snapshot.Tree, root common.Hash, maindb ethdb.Database, sta
 
 // Prune deletes all historical state nodes except the nodes belong to the
 // specified state version. If user doesn't specify the state version, use
-// the bottom-most snapshot diff layer as the target.
+// the top-most snapshot diff layer as the target.
 func (p *Pruner) Prune(root common.Hash) error {
 	// If the state bloom filter is already committed previously,
 	// reuse it for pruning instead of generating a new one. It's
@@ -244,62 +244,37 @@ func (p *Pruner) Prune(root common.Hash) error {
 	if stateBloomRoot != (common.Hash{}) {
 		return RecoverPruning(p.datadir, p.db, p.trieCachePath)
 	}
-	// If the target state root is not specified, use the HEAD-127 as the
-	// target. The reason for picking it is:
+	// The target state root must be the root corresponding to the current HEAD
+	// The reason for picking it is:
 	// - in most of the normal cases, the related state is available
 	// - the probability of this layer being reorg is very low
-	var layers []snapshot.Snapshot
-	if root == (common.Hash{}) {
-		// Retrieve all snapshot layers from the current HEAD.
-		// In theory there are 128 difflayers + 1 disk layer present,
-		// so 128 diff layers are expected to be returned.
-		layers = p.snaptree.Snapshots(p.headHeader.Root, 128, true)
-		if len(layers) != 128 {
-			// Reject if the accumulated diff layers are less than 128. It
-			// means in most of normal cases, there is no associated state
-			// with bottom-most diff layer.
-			return fmt.Errorf("snapshot not old enough yet: need %d more blocks", 128-len(layers))
-		}
-		// Use the bottom-most diff layer as the target
-		root = layers[len(layers)-1].Root()
+	if root != (common.Hash{}) && root != p.headHeader.Root {
+		log.Error("Invalid specified root", "specified root", root.TerminalString(), "expected root", p.headHeader.Root.TerminalString())
+		return fmt.Errorf("invalid specified root: specified:%s, expected:%s", root, p.headHeader.Root)
 	}
+	var layers []snapshot.Snapshot
+	// Retrieve all snapshot layers from the current HEAD.
+	// In theory there are 128 difflayers + 1 disk layer present,
+	// so 128 diff layers are expected to be returned.
+	layers = p.snaptree.Snapshots(p.headHeader.Root, snapshot.CapLayers, true)
+	if len(layers) != snapshot.CapLayers {
+		// Reject if the accumulated diff layers are less than 128. It
+		// means in most of normal cases, there is no associated state
+		// with bottom-most diff layer.
+		return fmt.Errorf("snapshot not old enough yet: need %d more blocks", snapshot.CapLayers-len(layers))
+	}
+	// Use the top-most diff layer as the target
+	root = layers[0].Root()
+
 	// Ensure the root is really present. The weak assumption
 	// is the presence of root can indicate the presence of the
 	// entire trie.
 	if blob := rawdb.ReadTrieNode(p.db, root); len(blob) == 0 {
-		// The special case is for clique based networks(rinkeby, goerli
-		// and some other private networks), it's possible that two
-		// consecutive blocks will have same root. In this case snapshot
-		// difflayer won't be created. So HEAD-127 may not paired with
-		// head-127 layer. Instead the paired layer is higher than the
-		// bottom-most diff layer. Try to find the bottom-most snapshot
-		// layer with state available.
-		//
-		// Note HEAD and HEAD-1 is ignored. Usually there is the associated
-		// state available, but we don't want to use the topmost state
-		// as the pruning target.
-		var found bool
-		for i := len(layers) - 2; i >= 2; i-- {
-			if blob := rawdb.ReadTrieNode(p.db, layers[i].Root()); len(blob) != 0 {
-				root = layers[i].Root()
-				found = true
-				log.Info("Selecting middle-layer as the pruning target", "root", root, "depth", i)
-				break
-			}
-		}
-		if !found {
-			if len(layers) > 0 {
-				return errors.New("no snapshot paired state")
-			}
-			return fmt.Errorf("associated state[%x] is not present", root)
-		}
-	} else {
-		if len(layers) > 0 {
-			log.Info("Selecting bottom-most difflayer as the pruning target", "root", root, "height", p.headHeader.Number.Uint64()-127)
-		} else {
-			log.Info("Selecting user-specified state as the pruning target", "root", root)
-		}
+		log.Error("Could not find the trie node corresponding to root", "root", root.TerminalString())
+		return fmt.Errorf("could not find the trie node corresponding to root:%s", root)
 	}
+	log.Info("Selecting current head difflayer as the pruning target", "root", root, "height", p.headHeader.Number.Uint64())
+
 	// Before start the pruning, delete the clean trie cache first.
 	// It's necessary otherwise in the next restart we will hit the
 	// deleted state root in the "clean cache" so that the incomplete
@@ -315,6 +290,8 @@ func (p *Pruner) Prune(root common.Hash) error {
 		}
 		middleRoots[layer.Root()] = struct{}{}
 	}
+	log.Info("MiddleRoots should be empty", "middleRoots", len(middleRoots))
+
 	// Traverse the target state, re-construct the whole state trie and
 	// commit to the given bloom filter.
 	start := time.Now()
@@ -383,7 +360,7 @@ func RecoverPruning(datadir string, db ethdb.Database, trieCachePath string) err
 	// otherwise the dangling state will be left.
 	var (
 		found       bool
-		layers      = snaptree.Snapshots(headBlock.Root(), 128, true)
+		layers      = snaptree.Snapshots(headBlock.Root(), snapshot.CapLayers, true)
 		middleRoots = make(map[common.Hash]struct{})
 	)
 	for _, layer := range layers {

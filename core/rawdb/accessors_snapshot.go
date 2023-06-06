@@ -131,6 +131,7 @@ func WriteSnapshotJournal(db ethdb.KeyValueWriter, journal []byte) {
 	if err := db.Put(snapshotJournalKey, journal); err != nil {
 		log.Crit("Failed to store snapshot journal", "err", err)
 	}
+	log.Debug("WriteSnapshotJournal success", "journal", len(journal))
 }
 
 // DeleteSnapshotJournal deletes the serialized in-memory diff layers saved at
