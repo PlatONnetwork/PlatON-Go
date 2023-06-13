@@ -196,6 +196,12 @@ type Config struct {
 	trustedNodesWarning    bool
 	oldGethResourceWarning bool
 
+	// BatchRequestLimit is the maximum number of requests in a batch.
+	BatchRequestLimit int `toml:",omitempty"`
+
+	// BatchResponseMaxSize is the maximum number of bytes returned from a batched rpc call.
+	BatchResponseMaxSize int `toml:",omitempty"`
+
 	// JWTSecret is the path to the hex-encoded jwt secret.
 	JWTSecret string `toml:",omitempty"`
 
