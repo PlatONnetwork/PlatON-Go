@@ -794,10 +794,13 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 		}
 
 		bh, _, err := q.decodeExtra(extra)
+		log.Debug("DeliverBodies equalExtra", "bh", bh, "header.Hash", header.Hash(), "blockNumber", header.Number)
 		return err == nil && bh == header.Hash()
 	}
 	validate := func(index int, header *types.Header) error {
-		if types.DeriveSha(types.Transactions(txLists[index]), trie.NewStackTrie(nil)) != header.TxHash && !equalExtra(header, extraData[index]) {
+		deriveSha := types.DeriveSha(types.Transactions(txLists[index]), trie.NewStackTrie(nil))
+		if deriveSha != header.TxHash || !equalExtra(header, extraData[index]) {
+			log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
 			return errInvalidBody
 		}
 		return nil

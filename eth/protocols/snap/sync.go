@@ -2122,7 +2122,9 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 		size += common.StorageSize(len(node))
 	}
 	logger := peer.Log().New("reqid", id)
-	logger.Trace("Delivering range of accounts", "hashes", len(hashes), "accounts", len(accounts), "proofs", len(proof), "bytes", size)
+	if len(hashes) != len(accounts) {
+		logger.Warn("OnAccounts items mismatch", "len(hashs)", len(hashes), "len(accounts)", len(accounts), "len(proof)", len(proof))
+	}
 
 	// Whether or not the response is valid, we can mark the peer as idle and
 	// notify the scheduler to assign a new task. If the response is invalid,
@@ -2185,7 +2187,7 @@ func (s *Syncer) OnAccounts(peer SyncPeer, id uint64, hashes []common.Hash, acco
 	}
 	cont, err := trie.VerifyRangeProof(root, req.origin[:], end, keys, accounts, proofdb)
 	if err != nil {
-		logger.Warn("Account range failed proof", "err", err)
+		logger.Warn("Account range failed proof", "err", err, "root", root, "len(accounts)", len(accounts))
 		// Signal this request as failed, and ready for rescheduling
 		s.scheduleRevertAccountRequest(req)
 		return err

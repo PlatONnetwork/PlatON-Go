@@ -216,6 +216,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 		for _, blob := range proof.NodeList() {
 			proofs = append(proofs, blob)
 		}
+		log.Debug("Send AccountRangePacket to", "req.ID", req.ID, "root", req.Root, "len(accounts)", len(accounts))
 		// Send back anything accumulated
 		return p2p.Send(peer.rw, AccountRangeMsg, &AccountRangePacket{
 			ID:       req.ID,
