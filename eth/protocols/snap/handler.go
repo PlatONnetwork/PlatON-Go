@@ -350,6 +350,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 				break
 			}
 		}
+		log.Debug("Send StorageRangesMsg to", "req.ID", req.ID, "root", req.Root, "len(slots)", len(slots))
 		// Send back anything accumulated
 		return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{
 			ID:    req.ID,
