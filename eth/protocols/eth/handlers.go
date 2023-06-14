@@ -177,6 +177,9 @@ func answerGetBlockBodiesQuery(backend Backend, query GetBlockBodiesPacket, peer
 			bytes += len(data)
 		}
 	}
+	if len(bodies) != len(query) {
+		log.Debug("answerGetBlockBodiesQuery length mismatch", "len(bodies", len(bodies), "len(query)", len(query))
+	}
 	return bodies
 }
 
