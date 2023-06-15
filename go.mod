@@ -68,3 +68,6 @@ require (
 	gotest.tools v2.2.0+incompatible
 	gotest.tools/v3 v3.4.0 // indirect
 )
+replace (
+	github.com/supranational/blst => github.com/TraceBundy/blst v1.0.0
+)

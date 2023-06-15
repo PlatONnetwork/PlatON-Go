@@ -1,12 +1,9 @@
-[submodule "crypto/bls/bls_linux_darwin/src/mcl"]
-	path = crypto/bls/bls_linux_darwin/src/mcl
-    url = https://github.com/herumi/mcl.git
-    ignore = dirty
-[submodule "crypto/bls/bls_linux_darwin/src/bls"]
-	path = crypto/bls/bls_linux_darwin/src/bls
+[submodule "crypto/blsswap/bls_linux_darwin/src/mcl"]
+	path = crypto/blsswap/bls_linux_darwin/src/mcl
+	url = https://github.com/herumi/mcl.git
+[submodule "crypto/blsswap/bls_linux_darwin/src/bls"]
+	path = crypto/blsswap/bls_linux_darwin/src/bls
 	url = https://github.com/herumi/bls.git
-    ignore = dirty
-[submodule "crypto/bls/bls_win"]
-	path = crypto/bls/bls_win
+[submodule "crypto/blsswap/bls_win"]
+	path = crypto/blsswap/bls_win
 	url = https://github.com/PlatONnetwork/bls_win.git
-    ignore = dirty

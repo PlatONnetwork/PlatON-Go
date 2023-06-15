@@ -8,8 +8,12 @@ package common
 // SecretKey represents a BLS secret or private key.
 type SecretKey interface {
 	PublicKey() PublicKey
+	//P2() []byte
 	Sign(msg []byte) Signature
 	Marshal() []byte
+	SetLittleEndian(buf []byte) error
+	GetLittleEndian() []byte
+	MakeSchnorrNIZKP() SchnorrProof
 }
 
 // PublicKey represents a BLS public key.
@@ -30,4 +34,10 @@ type Signature interface {
 	Eth2FastAggregateVerify(pubKeys []PublicKey, msg [32]byte) bool
 	Marshal() []byte
 	Copy() Signature
+}
+
+type SchnorrProof interface {
+	Marshal() []byte
+	Unmarshal([]byte) error
+	Verify(key PublicKey) error
 }

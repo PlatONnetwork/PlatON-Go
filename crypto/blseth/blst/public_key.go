@@ -4,9 +4,9 @@
 
 package blst
 
+import "C"
 import (
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto/blseth/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/blseth/params"
 	"github.com/pkg/errors"

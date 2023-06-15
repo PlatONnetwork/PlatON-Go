@@ -233,10 +233,7 @@ func init() {
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
-		err := bls.Init(int(bls.BLS12_381))
-		if err != nil {
-			return err
-		}
+		bls.Init(bls.Bls12381Swap)
 
 		if err := debug.Setup(ctx); err != nil {
 			return err

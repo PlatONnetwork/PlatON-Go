@@ -745,15 +745,12 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 //
 // What is the invalid ?  That are DuplicateSign and lowRatio&invalid and lowVersion and withdrew&NotInEpochValidators
 //
-//
-//
 // Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
 // validaotorTerm: From big to small
 // Shares： From small to big
 // BlockNumber: From big to small
 // TxIndex: From big to small
-//
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -1046,7 +1043,7 @@ type HistoryValidator struct {
 func (hv *HistoryValidator) ID() common.Hash {
 	rawVal := make([]byte, 0)
 	rawVal = append(rawVal, hv.NodeId[:]...)
-	rawVal = append(rawVal, hv.BlsPubKey[:]...)
+	rawVal = append(rawVal, hv.BlsPubKey.Bytes()...)
 	return crypto.Keccak256Hash(rawVal)
 }
 

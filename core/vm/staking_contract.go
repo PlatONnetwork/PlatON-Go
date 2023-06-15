@@ -156,17 +156,17 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			TxCreateStaking, staking.ErrInvalidRewardPer)
 	}
 
-	if len(blsPubKey) != BLSPUBKEYLEN {
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
-			fmt.Sprintf("got blsKey length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN),
-			TxCreateStaking, staking.ErrWrongBlsPubKey)
-	}
-
-	if len(blsProof) != BLSPROOFLEN {
-		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
-			fmt.Sprintf("got blsProof length: %d, must be: %d", len(blsProof), BLSPROOFLEN),
-			TxCreateStaking, staking.ErrWrongBlsPubKeyProof)
-	}
+	//if len(blsPubKey) != BLSPUBKEYLEN {
+	//	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+	//		fmt.Sprintf("got blsKey length: %d, must be: %d", len(blsPubKey), BLSPUBKEYLEN),
+	//		TxCreateStaking, staking.ErrWrongBlsPubKey)
+	//}
+	//
+	//if len(blsProof) != BLSPROOFLEN {
+	//	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
+	//		fmt.Sprintf("got blsProof length: %d, must be: %d", len(blsProof), BLSPROOFLEN),
+	//		TxCreateStaking, staking.ErrWrongBlsPubKeyProof)
+	//}
 
 	// parse bls publickey
 	blsPk, err := blsPubKey.ParseBlsPubKey()
@@ -338,7 +338,7 @@ func verifyBlsProof(proofHex bls.SchnorrProofHex, pubKey *bls.PublicKey) error {
 		return err
 	}
 	// verify proof
-	return proof.VerifySchnorrNIZK(*pubKey)
+	return proof.VerifySchnorrNIZK(pubKey)
 }
 
 func verifyRewardPer(rewardPer uint16) bool {
