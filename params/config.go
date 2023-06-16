@@ -327,7 +327,7 @@ func (err *ConfigCompatError) Error() string {
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
-	bls.Init(bls.Bls12381)
+	bls.Init(bls.Bls12381Swap)
 	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, n := range initialNodes {
 

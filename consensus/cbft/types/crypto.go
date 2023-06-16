@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
@@ -32,40 +31,41 @@ const (
 	SignatureLength = 64
 )
 
-type Signature [SignatureLength]byte
+type Signature []byte
 
 func (sig *Signature) String() string {
-	return fmt.Sprintf("%x", sig[:])
+	return fmt.Sprintf("%x", sig)
 }
 
 func (sig *Signature) SetBytes(signSlice []byte) {
-	copy(sig[:], signSlice[:])
+	*sig = make([]byte, len(signSlice))
+	copy(*sig, signSlice[:])
 }
 
-func (sig *Signature) Bytes() []byte {
+func (sig Signature) Bytes() []byte {
 	target := make([]byte, len(sig))
-	copy(target[:], sig[:])
+	copy(target[:], sig)
 	return target
 }
 
 // MarshalText returns the hex representation of a.
 func (sig Signature) MarshalText() ([]byte, error) {
-	return hexutil.Bytes(sig[:]).MarshalText()
+	return hexutil.Bytes(sig).MarshalText()
 }
 
 // UnmarshalText parses a hash in hex syntax.
 func (sig *Signature) UnmarshalText(input []byte) error {
-	return hexutil.UnmarshalFixedText("BlockConfirmSign", input, sig[:])
+	return hexutil.UnmarshalFixedText("BlockConfirmSign", input, *sig)
 }
 
 // UnmarshalJSON parses a hash in hex syntax.
 func (sig *Signature) UnmarshalJSON(input []byte) error {
-	return hexutil.UnmarshalFixedJSON(reflect.TypeOf(Signature{}), input, sig[:])
+	return hexutil.UnmarshalFixedJSON(reflect.TypeOf(Signature{}), input, *sig)
 }
 
 func BytesToSignature(signSlice []byte) Signature {
 	var sign Signature
-	copy(sign[:], signSlice[:])
+	copy(sign, signSlice[:])
 	return sign
 }
 

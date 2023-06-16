@@ -45,7 +45,7 @@ import (
 )
 
 func init() {
-	bls.Init(bls.Bls12381)
+	bls.Init(bls.Bls12381Swap)
 }
 
 const initGas = 10000000

@@ -52,4 +52,4 @@ cd $BLS_ROOT/bls_linux_darwin/src/mcl
 rm -rf ffi
 cp -r $BLS_ROOT/bls_linux_darwin/src/mcl/include/mcl $BLS_ROOT/bls_linux_darwin/include/
 cp -r /$BLS_ROOT/bls_linux_darwin/src/mcl/include/cybozu $BLS_ROOT/bls_linux_darwin/include/
-cp $BLS_ROOT/bls_linux_darwin/src/bls/mcl/lib/*.a $BLS_ROOT/bls_linux_darwin/lib/
+cp $BLS_ROOT/bls_linux_darwin/src/mcl/lib/*.a $BLS_ROOT/bls_linux_darwin/lib/

@@ -141,6 +141,7 @@ func (s Sign) Serialize() []byte {
 }
 
 func (s *Sign) Deserialize(buf []byte) error {
+	s.sign = &blsswap.Sign{}
 	return s.sign.Deserialize(buf)
 }
 
@@ -158,6 +159,12 @@ func (s *SchnorrProof) UnmarshalText(text []byte) error {
 
 func (s SchnorrProof) MarshalText() ([]byte, error) {
 	return s.proof.MarshalText()
+}
+func (s *SchnorrProof) Serialize() []byte {
+	return s.proof.Serialize()
+}
+func (s *SchnorrProof) Deserialize(buf []byte) error {
+	return s.proof.Deserialize(buf)
 }
 
 type SchnorrProofHex struct {

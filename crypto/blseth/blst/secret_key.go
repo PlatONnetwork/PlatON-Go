@@ -27,9 +27,8 @@ type bls12SecretKey struct {
 }
 
 func NewEmptyKey() common.SecretKey {
-	var p blst.SecretKey
 	return &bls12SecretKey{
-		p: &p,
+		p: new(blst.SecretKey),
 	}
 }
 
@@ -99,7 +98,7 @@ func (s *bls12SecretKey) Marshal() []byte {
 	return keyBytes
 }
 func (s *bls12SecretKey) SetLittleEndian(buf []byte) error {
-	if sec := s.p.DeserializeLittleEndian(buf); sec != nil {
+	if sec := s.p.DeserializeLittleEndian(buf); sec == nil {
 		return errors.New("deserialize failed")
 	}
 	return nil

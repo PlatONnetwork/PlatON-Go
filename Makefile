@@ -14,7 +14,7 @@ GPATH = $(shell go env GOPATH)
 GORUN = env GO111MODULE=on GOPATH=$(GPATH) go run
 
 platon:
-#	build/build_deps.sh
+	build/build_deps.sh
 	$(GORUN) build/ci.go install ./cmd/platon
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/platon\" to launch platon."

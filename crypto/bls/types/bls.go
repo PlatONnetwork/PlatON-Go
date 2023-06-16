@@ -28,6 +28,8 @@ type ISchnorrProof interface {
 	VerifySchnorrNIZK(pk IPublicKey) error
 	UnmarshalText(text []byte) error
 	MarshalText() ([]byte, error)
+	Serialize() []byte
+	Deserialize(buf []byte) error
 }
 
 type ISchnorrProofHex interface {

@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/crypto/blsswap"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -100,4 +101,11 @@ func TestBlsAgg(t *testing.T) {
 		}
 	}
 	require.True(t, sign.Verify(pub, "hello"))
+}
+
+func TestA(t *testing.T) {
+	var sec blsswap.SecretKey
+	sec.SetByCSPRNG()
+	sign := sec.Sign("h")
+	t.Log(len(sign.Serialize()))
 }

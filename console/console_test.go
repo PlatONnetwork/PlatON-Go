@@ -46,7 +46,7 @@ const (
 )
 
 func init() {
-	bls.Init(bls.Bls12381)
+	bls.Init(bls.Bls12381Swap)
 }
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
