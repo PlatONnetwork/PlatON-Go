@@ -6,7 +6,7 @@ if [ ! -f "build/build_bls.sh" ]; then
 fi
 
 PLATON_ROOT=`pwd`
-BLS_ROOT=$PLATON_ROOT/crypto/bls
+BLS_ROOT=$PLATON_ROOT/crypto/blsswap
 
 if [ "`ls $BLS_ROOT/bls_win`" = "" ]; then
     # pull bls

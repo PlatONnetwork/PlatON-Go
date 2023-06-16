@@ -56,7 +56,6 @@ coverage.txt
 *.exe
 *.test
 
-go.sum
 
 life/resolver/builtins/build/
 
@@ -64,7 +63,7 @@ mpc.rlp
 
 consensus/cbft/data/
 
-crypto/bls/bls_linux_darwin/
+crypto/blsswap/bls_linux_darwin/
 
 
 consensus/cbft/transactions.rlp

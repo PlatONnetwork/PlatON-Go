@@ -52,7 +52,7 @@ var (
 )
 
 func init() {
-	bls.Init(bls.BLS12_381)
+	bls.Init(bls.Bls12381Swap)
 }
 func TestThreshold(t *testing.T) {
 	f := &Cbft{}
@@ -67,7 +67,7 @@ func TestThreshold(t *testing.T) {
 }
 
 func TestBls(t *testing.T) {
-	bls.Init(bls.BLS12_381)
+	bls.Init(bls.Bls12381Swap)
 	num := 4
 	pk, sk := GenerateKeys(num)
 	owner := sk[0]
@@ -95,7 +95,7 @@ func TestBls(t *testing.T) {
 }
 
 func TestPrepareBlockBls(t *testing.T) {
-	bls.Init(bls.BLS12_381)
+	bls.Init(bls.Bls12381Swap)
 	pk, sk := GenerateKeys(1)
 	owner := sk[0]
 	node := params.CbftNode{

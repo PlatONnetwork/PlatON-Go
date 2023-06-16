@@ -40,10 +40,8 @@ Generate a new bls private key pair.
 		jsonFlag,
 	},
 	Action: func(ctx *cli.Context) error {
-		err := bls.Init(int(bls.BLS12_381))
-		if err != nil {
-			return err
-		}
+		bls.Init(bls.Bls12381Swap)
+
 		var privateKey bls.SecretKey
 		privateKey.SetByCSPRNG()
 		pubKey := privateKey.GetPublicKey()
