@@ -141,7 +141,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
 	log.Debug("read header number from chain db", "height", height)
 	if height != nil && *height > 0 {
-		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
+		//when last fast syncing fail,we will clean chaindb,wal,snapshotdb
 		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
 
 		// systemError
@@ -154,11 +154,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
 		if err == nil {
-
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
 
-			log.Info("last fast sync is fail,init  db", "status", common.BytesToUint32(status), "prichain", config.Genesis == nil)
+			log.Info("last fast sync is fail,init db", "status", common.BytesToUint32(status), "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := snapshotBaseDB.Close(); err != nil {
 				return nil, err
@@ -192,7 +191,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			//only private net  need InitGenesisAndSetEconomicConfig
+			//only private net need InitGenesisAndSetEconomicConfig
 			if stored != params.MainnetGenesisHash && config.Genesis == nil {
 				// private net
 				config.Genesis = new(core.Genesis)
@@ -200,7 +199,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 					return nil, err
 				}
 			}
-			log.Info("last fast sync is fail,init  db finish")
+			log.Info("last fast sync is fail,init db finish")
 		} else {
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
