@@ -392,14 +392,20 @@ func MoveVotingProposalIDToEnd(proposalID common.Hash, blockHash common.Hash) er
 }
 
 func MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash) error {
-	//only one proposalID in PreActiveProposalIDList, so, just remove it
-	err := delPreActiveVersion(blockHash)
+	//only one proposalID in PreActiveProposalIDList, so, just set it empty.
+	err := del(blockHash, KeyPreActiveProposal())
 	if err != nil {
 		return err
 	}
 
 	// add this proposal ID to End list
 	err = addProposalByKey(blockHash, KeyEndProposals(), proposalID)
+	if err != nil {
+		return err
+	}
+
+	// remove the pre-active version
+	err = delPreActiveVersion(blockHash)
 	if err != nil {
 		return err
 	}
