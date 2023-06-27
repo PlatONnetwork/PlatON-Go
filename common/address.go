@@ -262,7 +262,7 @@ func (a *Address) UnmarshalText(input []byte) error {
 		return err
 	}
 	if !CheckAddressHRP(hrpDecode) {
-		log.Info("the address not compare current net,want %v,have %v", GetAddressHRP(), string(input))
+		log.Info("the address not compare current net", "want", GetAddressHRP(), "have", string(input))
 	}
 	a.SetBytes(converted)
 	return nil
@@ -281,7 +281,7 @@ func (a *Address) UnmarshalJSON(input []byte) error {
 		return &json.UnmarshalTypeError{Value: err.Error(), Type: addressT}
 	}
 	if !CheckAddressHRP(hrpDecode) {
-		log.Info("hrpDecode not compare the current net,want %v,have %v", GetAddressHRP(), hrpDecode)
+		log.Info("hrpDecode not compare the current net", "want", GetAddressHRP(), "have", hrpDecode)
 	}
 	a.SetBytes(v)
 	return nil
