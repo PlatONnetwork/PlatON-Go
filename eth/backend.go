@@ -153,7 +153,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
-		if err == nil {
+		if err == nil { // KeyFastSyncStatus == (FastSyncBegin || FastSyncFail)
 
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
@@ -201,7 +201,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				}
 			}
 			log.Info("last fast sync is fail,init  db finish")
-		} else {
+		} else { // err == snapshotdb.ErrNotFound
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
 			//todo 这是一个暂时的hack方法,针对我们的测试链使用,待测试链版本升级到1.5.0后此方法可以删除
