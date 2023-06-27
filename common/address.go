@@ -97,7 +97,7 @@ func Bech32ToAddress(s string) (Address, error) {
 		return Address{}, err
 	}
 	if !CheckAddressHRP(hrpDecode) {
-		return Address{}, fmt.Errorf("the address hrp not compare right,input:%s", s)
+		log.Warn("the address hrp not compare right,input:%s", s)
 	}
 
 	if currentAddressHRP == "" {
