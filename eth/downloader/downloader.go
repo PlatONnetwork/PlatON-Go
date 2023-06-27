@@ -602,8 +602,8 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	}
 	if mode == FastSync {
 		if err := d.snapshotDB.SetEmpty(); err != nil {
-			p.log.Error("set  snapshotDB empty fail")
-			return errors.New("set  snapshotDB empty fail:" + err.Error())
+			p.log.Error("set snapshotDB empty fail")
+			return errors.New("set snapshotDB empty fail:" + err.Error())
 		}
 		if err := d.snapshotDB.SetCurrent(pivoth.Hash(), *pivoth.Number, *pivoth.Number); err != nil {
 			p.log.Error("set snapshotdb current fail", "err", err)
@@ -742,11 +742,11 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 // if the sync is complete,will del the key
 func (d *Downloader) setFastSyncStatus(status uint16) error {
 	key := []byte(KeyFastSyncStatus)
-	log.Debug("set  fast sync status", "status", status)
+	log.Debug("set fast sync status", "status", status)
 	switch status {
 	case FastSyncDel:
 		if err := d.snapshotDB.DelBaseDB(key); err != nil {
-			log.Error("del  fast sync status  from snapshotdb  fail", "err", err)
+			log.Error("del fast sync status from snapshotdb fail", "err", err)
 			return err
 		}
 	case FastSyncBegin, FastSyncFail:
@@ -755,7 +755,7 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 			common.Uint16ToBytes(status),
 		}
 		if err := d.snapshotDB.WriteBaseDB([][2][]byte{syncStatus}); err != nil {
-			log.Error("save  fast sync status to snapshotdb  fail", "err", err)
+			log.Error("save fast sync status to snapshotdb fail", "err", err)
 			return err
 		}
 	default:
@@ -852,17 +852,18 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 	}
 	mode := d.getMode()
+	current := d.blockchain.CurrentBlock().NumberU64()
 	if mode == FastSync {
-		if failed {
-			if err := d.setFastSyncStatus(FastSyncFail); err != nil {
-				return err
-			}
+		if failed && current == 0 {
+			err = d.setFastSyncStatus(FastSyncFail)
 		} else {
-			if err := d.setFastSyncStatus(FastSyncDel); err != nil {
-				return err
-			}
+			err = d.setFastSyncStatus(FastSyncDel)
 		}
 	}
+	if mode == FullSync {
+		err = d.setFastSyncStatus(FastSyncDel)
+	}
+
 	d.queue.Close()
 	d.Cancel()
 	return err
