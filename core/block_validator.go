@@ -18,6 +18,7 @@ package core
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -152,5 +153,29 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64, db snapsho
 		}
 	}
 	log.Info("Call CalcGasLimit", "blockNumber", parent.Number().Uint64()+1, "gasFloor", gasFloor, "gasCeil", gasCeil, "parentLimit", parent.GasLimit(), "limit", limit)
+	return limit
+}
+
+// CalcGasLimit1559 calculates the next block gas limit under 1559 rules.
+func CalcGasLimit1559(parentGasLimit, desiredLimit uint64) uint64 {
+	delta := parentGasLimit/params.GasLimitBoundDivisor - 1
+	limit := parentGasLimit
+	if desiredLimit < params.MinGasLimit {
+		desiredLimit = params.MinGasLimit
+	}
+	// If we're outside our allowed gas range, we try to hone towards them
+	if limit < desiredLimit {
+		limit = parentGasLimit + delta
+		if limit > desiredLimit {
+			limit = desiredLimit
+		}
+		return limit
+	}
+	if limit > desiredLimit {
+		limit = parentGasLimit - delta
+		if limit < desiredLimit {
+			limit = desiredLimit
+		}
+	}
 	return limit
 }
