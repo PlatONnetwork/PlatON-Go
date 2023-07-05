@@ -907,5 +907,4 @@ func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash c
 		cbft.network.Send(id, msg)
 		cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
 	}
-
 }
