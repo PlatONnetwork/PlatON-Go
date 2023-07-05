@@ -855,13 +855,19 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 	current := d.blockchain.CurrentBlock().NumberU64()
 	if mode == FastSync {
 		if failed && current == 0 {
-			err = d.setFastSyncStatus(FastSyncFail)
+			if err := d.setFastSyncStatus(FastSyncFail); err != nil {
+				return err
+			}
 		} else {
-			err = d.setFastSyncStatus(FastSyncDel)
+			if err := d.setFastSyncStatus(FastSyncDel); err != nil {
+				return err
+			}
 		}
 	}
 	if mode == FullSync {
-		err = d.setFastSyncStatus(FastSyncDel)
+		if err := d.setFastSyncStatus(FastSyncDel); err != nil {
+			return err
+		}
 	}
 
 	d.queue.Close()
