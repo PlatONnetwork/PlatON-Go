@@ -22,8 +22,6 @@ package leveldb
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -244,23 +242,6 @@ func (db *Database) Path() string {
 	return db.fn
 }
 
-func walkDir(dir string) int64 {
-	entries, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Error("[ethdb] read dir fail", "err", err)
-		return 0
-	}
-	var dirSize int64
-	for _, f := range entries {
-		if f.IsDir() {
-			dirSize = walkDir(path.Join(dir, f.Name())) + dirSize
-		} else {
-			dirSize = f.Size() + dirSize
-		}
-	}
-	return dirSize
-}
-
 // meter periodically retrieves internal leveldb counters and reports them to
 // the metrics subsystem.
 //
@@ -423,10 +404,6 @@ func (db *Database) meter(refresh time.Duration) {
 		}
 		if db.diskWriteMeter != nil {
 			db.diskWriteMeter.Mark(int64((nWrite - iostats[1]) * 1024 * 1024))
-		}
-		if db.diskSizeGauge != nil {
-			size := walkDir(db.Path())
-			db.diskSizeGauge.Update(size)
 		}
 
 		iostats[0], iostats[1] = nRead, nWrite
