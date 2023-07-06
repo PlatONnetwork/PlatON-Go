@@ -33,15 +33,15 @@ func TestValidJumpdest(t *testing.T) {
 		CodeHash:  common.BytesToHash(code),
 		jumpdests: make(map[common.Hash]bitvec),
 	}
-	r := contract.validJumpdest(uint256.NewInt().SetUint64(3))
+	r := contract.validJumpdest(new(uint256.Int).SetUint64(3))
 	if r {
 		t.Errorf("Expected false, got true")
 	}
-	r = contract.validJumpdest(uint256.NewInt().SetUint64(1))
+	r = contract.validJumpdest(new(uint256.Int).SetUint64(1))
 	if !r {
 		t.Errorf("Expected true, got false")
 	}
-	r = contract.validJumpdest(uint256.NewInt().SetUint64(2))
+	r = contract.validJumpdest(new(uint256.Int).SetUint64(2))
 	if r {
 		t.Errorf("Expected false, got true")
 	}
