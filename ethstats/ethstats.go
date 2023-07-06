@@ -30,6 +30,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AlayaNetwork/Alaya-Go/les"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -92,6 +94,8 @@ type Service struct {
 	pongCh chan struct{} // Pong notifications are fed into this channel
 	histCh chan []uint64 // History request block numbers are fed into this channel
 
+	headSub event.Subscription
+	txSub   event.Subscription
 }
 
 // connWrapper is a wrapper to prevent concurrent-write or concurrent-read on the
@@ -187,7 +191,12 @@ func New(node *node.Node, backend backend, engine consensus.Engine, url string) 
 
 // Start implements node.Lifecycle, starting up the monitoring and reporting daemon.
 func (s *Service) Start() error {
-	go s.loop()
+	// Subscribe to chain events to execute updates on
+	chainHeadCh := make(chan core.ChainHeadEvent, chainHeadChanSize)
+	s.headSub = s.backend.SubscribeChainHeadEvent(chainHeadCh)
+	txEventCh := make(chan core.NewTxsEvent, txChanSize)
+	s.txSub = s.backend.SubscribeNewTxsEvent(txEventCh)
+	go s.loop(chainHeadCh, txEventCh)
 
 	log.Info("Stats daemon started")
 	return nil
@@ -195,22 +204,15 @@ func (s *Service) Start() error {
 
 // Stop implements node.Lifecycle, terminating the monitoring and reporting daemon.
 func (s *Service) Stop() error {
+	s.headSub.Unsubscribe()
+	s.txSub.Unsubscribe()
 	log.Info("Stats daemon stopped")
 	return nil
 }
 
 // loop keeps trying to connect to the netstats server, reporting chain events
 // until termination.
-func (s *Service) loop() {
-	// Subscribe to chain events to execute updates on
-	chainHeadCh := make(chan core.ChainHeadEvent, chainHeadChanSize)
-	headSub := s.backend.SubscribeChainHeadEvent(chainHeadCh)
-	defer headSub.Unsubscribe()
-
-	txEventCh := make(chan core.NewTxsEvent, txChanSize)
-	txSub := s.backend.SubscribeNewTxsEvent(txEventCh)
-	defer txSub.Unsubscribe()
-
+func (s *Service) loop(chainHeadCh chan core.ChainHeadEvent, txEventCh chan core.NewTxsEvent) {
 	// Start a goroutine that exhausts the subscriptions to avoid events piling up
 	var (
 		quitCh = make(chan struct{})
@@ -243,9 +245,9 @@ func (s *Service) loop() {
 				}
 
 			// node stopped
-			case <-txSub.Err():
+			case <-s.txSub.Err():
 				break HandleLoop
-			case <-headSub.Err():
+			case <-s.headSub.Err():
 				break HandleLoop
 			}
 		}
@@ -352,7 +354,7 @@ func (s *Service) loop() {
 // it, if they themselves are requests it initiates a reply, and lastly it drops
 // unknown packets.
 func (s *Service) readLoop(conn *connWrapper) {
-	// If the read loop exists, close the connection
+	// If the read loop exits, close the connection
 	defer conn.Close()
 
 	for {
@@ -473,7 +475,7 @@ func (s *Service) login(conn *connWrapper) error {
 	if info := infos.Protocols["eth"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		network = "0"
+		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
 	}
 	auth := &authMsg{
 		ID: s.node,

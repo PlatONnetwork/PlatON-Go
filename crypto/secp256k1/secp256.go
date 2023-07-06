@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
+// +build !gofuzz cgo
+
 // Package secp256k1 wraps the bitcoin secp256k1 C library.
 package secp256k1
 
@@ -37,8 +39,6 @@ import (
 	"errors"
 	"math/big"
 	"unsafe"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
 var context *C.secp256k1_context
@@ -175,13 +175,4 @@ func checkSignature(sig []byte) error {
 		return ErrInvalidRecoveryID
 	}
 	return nil
-}
-
-func PubkeyNotInfinity(x, y *big.Int) bool {
-	point := make([]byte, 64)
-	math.ReadBits(x, point[:32])
-	math.ReadBits(y, point[32:])
-	pointPtr := (*C.uchar)(unsafe.Pointer(&point[0]))
-	res := C.secp256k1_pubkey_is_infinity(context, pointPtr)
-	return res == 0
 }
