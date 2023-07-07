@@ -159,6 +159,32 @@ var (
 		Usage: "Document Root for HTTPClient file scheme",
 		Value: DirectoryString(HomeDir()),
 	}
+	IterativeOutputFlag = cli.BoolTFlag{
+		Name:  "iterative",
+		Usage: "Print streaming JSON iteratively, delimited by newlines",
+	}
+	ExcludeStorageFlag = cli.BoolFlag{
+		Name:  "nostorage",
+		Usage: "Exclude storage entries (save db lookups)",
+	}
+	IncludeIncompletesFlag = cli.BoolFlag{
+		Name:  "incompletes",
+		Usage: "Include accounts for which we don't have the address (missing preimage)",
+	}
+	ExcludeCodeFlag = cli.BoolFlag{
+		Name:  "nocode",
+		Usage: "Exclude contract code (save db lookups)",
+	}
+	StartKeyFlag = cli.StringFlag{
+		Name:  "start",
+		Usage: "Start position. Either a hash or address",
+		Value: "0x0000000000000000000000000000000000000000000000000000000000000000",
+	}
+	DumpLimitFlag = cli.Uint64Flag{
+		Name:  "limit",
+		Usage: "Max number of elements (0 = no limit)",
+		Value: 0,
+	}
 	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
