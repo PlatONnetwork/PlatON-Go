@@ -60,7 +60,7 @@ func TestSet32(t *testing.T) {
 	}
 	for _, v := range testCases {
 		m.Resize(32)
-		m.Set32(v.offset, uint256.NewInt().SetBytes(v.val.Bytes()))
+		m.Set32(v.offset, new(uint256.Int).SetBytes(v.val.Bytes()))
 		actual := common.Bytes2Hex(m.Data())
 		if actual != v.want.HexWithNoPrefix() {
 			t.Errorf("Expected: %s, got: %s", v.want.Hex(), actual)
