@@ -202,7 +202,7 @@ func TestCreate(t *testing.T) {
 		code,
 		cfg.GasLimit,
 		cfg.Value,
-		uint256.NewInt().SetBytes(cfg.Value.Bytes()),
+		new(uint256.Int).SetBytes(cfg.Value.Bytes()),
 	)
 	vmenv.Create(
 		sender,

@@ -110,9 +110,9 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
 		if evm.StateDB == nil {
-			cfg.JumpTable = berlinInstructionSet
+			cfg.JumpTable = londonInstructionSet
 		} else if gov.Gte150VersionState(evm.StateDB) {
-			cfg.JumpTable = berlinInstructionSet
+			cfg.JumpTable = londonInstructionSet
 		} else {
 			cfg.JumpTable = istanbulInstructionSet
 		}

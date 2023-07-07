@@ -402,7 +402,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 
 	genesisIssuance := new(big.Int)
 
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	statedb, e := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	if e != nil {
+		panic(e)
+	}
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
