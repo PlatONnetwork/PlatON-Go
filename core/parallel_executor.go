@@ -153,7 +153,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	}
 	tx := ctx.GetTx(idx)
 
-	msg, err := tx.AsMessage(ctx.signer)
+	msg, err := tx.AsMessage(ctx.signer, ctx.header.BaseFee)
 	if err != nil {
 		//gas pool is subbed
 		ctx.buildTransferFailedResult(idx, err, true)

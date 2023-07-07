@@ -39,13 +39,16 @@ type ChainContext interface {
 
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContext {
-
+	var baseFee *big.Int
 	beneficiary := header.Coinbase // we're must using header validation
 
 	blockHash := common.ZeroHash
 	// store the sign in  header.Extra[32:97]
 	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.CacheHash()
+	}
+	if header.BaseFee != nil {
+		baseFee = new(big.Int).Set(header.BaseFee)
 	}
 
 	return vm.BlockContext{
@@ -56,6 +59,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
 		Time:        new(big.Int).SetUint64(header.Time),
+		BaseFee:     baseFee,
 		GasLimit:    header.GasLimit,
 		BlockHash:   blockHash,
 		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
