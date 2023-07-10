@@ -18,12 +18,13 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -112,7 +113,7 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 	from := 0
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
-		gas := CalcGasLimit(block, block.GasLimit() /*, block.GasLimit()*/, nil)
+		gas := block.GasLimit()
 		for {
 			gas -= params.TxGas
 			if gas < params.TxGas {

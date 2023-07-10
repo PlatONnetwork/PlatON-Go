@@ -20,12 +20,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -83,11 +84,20 @@ const (
 	commitInterruptNone int32 = iota
 	commitInterruptNewHead
 	commitInterruptResubmit
-)
-
-const (
 	commitStatusIdle int32 = iota
 	commitStatusCommitting
+
+	// maxRecommitInterval is the maximum time interval to recreate the mining block with
+	// any newly arrived transactions.
+	maxRecommitInterval = 15 * time.Second
+
+	// intervalAdjustRatio is the impact a single interval adjustment has on sealing work
+	// resubmitting interval.
+	intervalAdjustRatio = 0.1
+
+	// intervalAdjustBias is applied during the new resubmit interval calculation in favor of
+	// increasing upper limit or decreasing lower limit so that the limit can be reachable.
+	intervalAdjustBias = 200 * 1000.0 * 1000.0
 )
 
 // newWorkReq represents a request for new sealing work submitting with relative interrupt notifier.
@@ -345,6 +355,28 @@ func (w *worker) close() {
 	close(w.exitCh)
 }
 
+// recalcRecommit recalculates the resubmitting interval upon feedback.
+func recalcRecommit(minRecommit, prev time.Duration, target float64, inc bool) time.Duration {
+	var (
+		prevF = float64(prev.Nanoseconds())
+		next  float64
+	)
+	if inc {
+		next = prevF*(1-intervalAdjustRatio) + intervalAdjustRatio*(target+intervalAdjustBias)
+		max := float64(maxRecommitInterval.Nanoseconds())
+		if next > max {
+			next = max
+		}
+	} else {
+		next = prevF*(1-intervalAdjustRatio) + intervalAdjustRatio*(target-intervalAdjustBias)
+		min := float64(minRecommit.Nanoseconds())
+		if next < min {
+			next = min
+		}
+	}
+	return time.Duration(int64(next))
+}
+
 // newWorkLoop is a standalone goroutine to submit new mining work upon received events.
 func (w *worker) newWorkLoop(recommit time.Duration) {
 	var (
@@ -375,27 +407,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timer.Reset(blockDeadline.Sub(timestamp))
 		atomic.StoreInt32(&w.newTxs, 0)
 	}
-	// recalcRecommit recalculates the resubmitting interval upon feedback.
-	recalcRecommit := func(target float64, inc bool) {
-		var (
-			prev = float64(recommit.Nanoseconds())
-			next float64
-		)
-		if inc {
-			next = prev*(1-w.miningConfig.IntervalAdjustRatio) + w.miningConfig.IntervalAdjustRatio*(target+w.miningConfig.IntervalAdjustBias)
-			// Recap if interval is larger than the maximum time interval
-			if next > float64(w.miningConfig.MaxRecommitInterval.Nanoseconds()) {
-				next = float64(w.miningConfig.MaxRecommitInterval.Nanoseconds())
-			}
-		} else {
-			next = prev*(1-w.miningConfig.IntervalAdjustRatio) + w.miningConfig.IntervalAdjustRatio*(target-w.miningConfig.IntervalAdjustBias)
-			// Recap if interval is less than the user specified minimum
-			if next < float64(minRecommit.Nanoseconds()) {
-				next = float64(minRecommit.Nanoseconds())
-			}
-		}
-		recommit = time.Duration(int64(next))
-	}
+
 	// clearPending cleans the stale pending tasks.
 	clearPending := func(number uint64) {
 		w.pendingMu.Lock()
@@ -498,11 +510,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {
 					before := recommit
-					recalcRecommit(float64(recommit.Nanoseconds())/adjust.ratio, true)
+					target := float64(recommit.Nanoseconds()) / adjust.ratio
+					recommit = recalcRecommit(minRecommit, recommit, target, true)
 					log.Trace("Increase miner recommit interval", "from", before, "to", recommit)
 				} else {
 					before := recommit
-					recalcRecommit(float64(minRecommit.Nanoseconds()), false)
+					recommit = recalcRecommit(minRecommit, recommit, float64(minRecommit.Nanoseconds()), false)
 					log.Trace("Decrease miner recommit interval", "from", before, "to", recommit)
 				}
 
@@ -816,8 +829,9 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		return true, timeout
 	}
 
+	gasLimit := w.current.header.GasLimit
 	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+		w.current.gasPool = new(core.GasPool).AddGas(gasLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -841,7 +855,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
-				ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				ratio := float64(gasLimit-w.current.gasPool.Gas()) / float64(gasLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
@@ -979,6 +993,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, snapshotdb.Instance()),
 		Time:       uint64(timestamp),
+	}
+	// Set baseFee and GasLimit if we are on an EIP-1559 chain
+	if w.chainConfig.IsLondon(header.Number) {
+		header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
+		parentGasLimit := parent.GasLimit()
+		if !w.chainConfig.IsLondon(parent.Number()) {
+			// Bump by 2x
+			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		}
+		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, w.config.GasCeil)
 	}
 
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
@@ -1139,16 +1163,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
-	//if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
-	//	return nil
-	//}
-
 	// Deep copy receipts here to avoid interaction between different tasks.
-	receipts := make([]*types.Receipt, len(w.current.receipts))
-	for i, l := range w.current.receipts {
-		receipts[i] = new(types.Receipt)
-		*receipts[i] = *l
-	}
+	receipts := copyReceipts(w.current.receipts)
 
 	s := w.current.state.Copy()
 
@@ -1174,15 +1190,8 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
 			w.unconfirmed.Shift(block.NumberU64() - 1)
-
-			feesWei := new(big.Int)
-			for i, tx := range block.Transactions() {
-				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
-			}
-			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
-
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
-				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", totalFees(block, receipts), "elapsed", common.PrettyDuration(time.Since(start)))
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}
@@ -1190,6 +1199,16 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 	w.commitWorkEnv.setCommitStatusIdle()
 	return nil
+}
+
+// copyReceipts makes a deep copy of the given receipts.
+func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
+	result := make([]*types.Receipt, len(receipts))
+	for i, l := range receipts {
+		cpy := *l
+		result[i] = &cpy
+	}
+	return result
 }
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
@@ -1210,6 +1229,15 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 		}
 	}
 	return nil, nil
+}
+
+// totalFees computes total consumed fees in ETH. Block transactions and receipts have to have the same order.
+func totalFees(block *types.Block, receipts []*types.Receipt) *big.Float {
+	feesWei := new(big.Int)
+	for i, tx := range block.Transactions() {
+		feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
+	}
+	return new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
 }
 
 func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {

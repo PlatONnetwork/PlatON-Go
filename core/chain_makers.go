@@ -18,13 +18,14 @@ package core
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -109,9 +110,9 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	b.receipts = append(b.receipts, receipt)
 }
 
-// Number returns the block number of the block being generated.
-func (b *BlockGen) Number() *big.Int {
-	return new(big.Int).Set(b.header.Number)
+// GetBalance returns the balance of the given address at the generated block.
+func (b *BlockGen) GetBalance(addr common.Address) *big.Int {
+	return b.statedb.GetBalance(addr)
 }
 
 // AddUncheckedTx forcefully adds a transaction to the block without any
@@ -121,6 +122,16 @@ func (b *BlockGen) Number() *big.Int {
 // chain processing. This is best used in conjunction with raw block insertion.
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
+}
+
+// Number returns the block number of the block being generated.
+func (b *BlockGen) Number() *big.Int {
+	return new(big.Int).Set(b.header.Number)
+}
+
+// BaseFee returns the EIP-1559 base fee of the block being generated.
+func (b *BlockGen) BaseFee() *big.Int {
+	return new(big.Int).Set(b.header.BaseFee)
 }
 
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
@@ -379,7 +390,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		GasLimit:   CalcGasLimit(parent, parent.GasLimit() /*, parent.GasLimit()*/, nil),
+		GasLimit:   parent.GasLimit(),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
 		Extra:      make([]byte, 65),

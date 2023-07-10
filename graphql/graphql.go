@@ -31,7 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -811,7 +810,7 @@ func (c *CallResult) Status() Long {
 }
 
 func (b *Block) Call(ctx context.Context, args struct {
-	Data ethapi.CallArgs
+	Data ethapi.TransactionArgs
 }) (*CallResult, error) {
 	if b.numberOrHash == nil {
 		_, err := b.resolve(ctx)
@@ -819,7 +818,7 @@ func (b *Block) Call(ctx context.Context, args struct {
 			return nil, err
 		}
 	}
-	result, err := ethapi.DoCall(ctx, b.backend, args.Data, *b.numberOrHash, nil, vm.Config{}, 5*time.Second, b.backend.RPCGasCap())
+	result, err := ethapi.DoCall(ctx, b.backend, args.Data, *b.numberOrHash, nil, 5*time.Second, b.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +835,7 @@ func (b *Block) Call(ctx context.Context, args struct {
 }
 
 func (b *Block) EstimateGas(ctx context.Context, args struct {
-	Data ethapi.CallArgs
+	Data ethapi.TransactionArgs
 }) (Long, error) {
 	if b.numberOrHash == nil {
 		_, err := b.resolveHeader(ctx)
@@ -886,10 +885,10 @@ func (p *Pending) Account(ctx context.Context, args struct {
 }
 
 func (p *Pending) Call(ctx context.Context, args struct {
-	Data ethapi.CallArgs
+	Data ethapi.TransactionArgs
 }) (*CallResult, error) {
 	pendingBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	result, err := ethapi.DoCall(ctx, p.backend, args.Data, pendingBlockNr, nil, vm.Config{}, 5*time.Second, p.backend.RPCGasCap())
+	result, err := ethapi.DoCall(ctx, p.backend, args.Data, pendingBlockNr, nil, 5*time.Second, p.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -906,7 +905,7 @@ func (p *Pending) Call(ctx context.Context, args struct {
 }
 
 func (p *Pending) EstimateGas(ctx context.Context, args struct {
-	Data ethapi.CallArgs
+	Data ethapi.TransactionArgs
 }) (Long, error) {
 	pendingBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
 	gas, err := ethapi.DoEstimateGas(ctx, p.backend, args.Data, pendingBlockNr, p.backend.RPCGasCap())

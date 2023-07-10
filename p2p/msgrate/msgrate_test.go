@@ -1,4 +1,4 @@
-// Copyright 2018 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,23 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build !windows
-// +build !windows
+package msgrate
 
-package metrics
+import "testing"
 
-import (
-	syscall "golang.org/x/sys/unix"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-)
-
-// getProcessCPUTime retrieves the process' CPU time since program startup.
-func getProcessCPUTime() int64 {
-	var usage syscall.Rusage
-	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {
-		log.Warn("Failed to retrieve CPU time", "err", err)
-		return 0
+func TestCapacityOverflow(t *testing.T) {
+	tracker := NewTracker(nil, 1)
+	tracker.Update(1, 1, 100000)
+	cap := tracker.Capacity(1, 10000000)
+	if int32(cap) < 0 {
+		t.Fatalf("Negative: %v", int32(cap))
 	}
-	return (usage.Utime.Sec+usage.Stime.Sec)*100 + int64(usage.Utime.Usec+usage.Stime.Usec)/10000 //nolint:unconvert
 }
