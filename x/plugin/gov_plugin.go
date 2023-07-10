@@ -76,19 +76,6 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
-	if govPlugin.chainConfig.PauliBlock == nil {
-		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
-		if err != nil {
-			return err
-		}
-		if len(ActiveVersionList) > 0 {
-			//todo this is a hard code
-			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
-				govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock)
-			}
-		}
-	}
-
 	if !xutil.IsBeginOfConsensus(blockNumber) {
 		return nil
 	}
