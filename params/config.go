@@ -151,7 +151,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, FORKVERSION_1_5_0}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, FORKVERSION_1_5_0}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -185,6 +185,7 @@ type ChainConfig struct {
 	NewtonBlock     *big.Int `json:"newtonBlock,omitempty"`
 	EinsteinBlock   *big.Int `json:"einsteinBlock,omitempty"`
 	HubbleBlock     *big.Int `json:"hubbleBlock,omitempty"`
+	PauliBlock      *big.Int `json:"pauliBlock,omitempty"`
 
 	// Various consensus engines
 	Cbft *CbftConfig `json:"cbft,omitempty"`
@@ -242,6 +243,11 @@ func (c *ChainConfig) IsEinstein(num *big.Int) bool {
 // version 1.4.0
 func (c *ChainConfig) IsHubble(num *big.Int) bool {
 	return isForked(c.HubbleBlock, num)
+}
+
+// version 1.5.0
+func (c *ChainConfig) IsPauli(num *big.Int) bool {
+	return isForked(c.PauliBlock, num)
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
@@ -391,8 +397,8 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                                *big.Int
-	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble bool
+	ChainID                                                         *big.Int
+	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -408,5 +414,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsNewton:     c.IsNewton(num),
 		IsEinstein:   c.IsEinstein(num),
 		IsHubble:     c.IsHubble(num),
+		IsPauli:      c.IsPauli(num),
 	}
 }

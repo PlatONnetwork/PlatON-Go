@@ -40,8 +40,9 @@ var (
 )
 
 type GovPlugin struct {
-	chainID *big.Int
-	chainDB ethdb.Writer
+	chainID     *big.Int
+	chainDB     ethdb.Writer
+	chainConfig *params.ChainConfig
 }
 
 var govp *GovPlugin
@@ -62,6 +63,10 @@ func (govPlugin *GovPlugin) SetChainDB(chainDB ethdb.Writer) {
 	govPlugin.chainDB = chainDB
 }
 
+func (govPlugin *GovPlugin) SetChainConfig(config *params.ChainConfig) {
+	govPlugin.chainConfig = config
+}
+
 func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
@@ -70,6 +75,19 @@ func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) err
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
+
+	if govPlugin.chainConfig.PauliBlock == nil {
+		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
+		if err != nil {
+			return err
+		}
+		if len(ActiveVersionList) > 0 {
+			//todo this is a hard code
+			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
+				govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock)
+			}
+		}
+	}
 
 	if !xutil.IsBeginOfConsensus(blockNumber) {
 		return nil
@@ -143,6 +161,11 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 					return err
 				}
 				log.Info("Successfully upgraded the new version 1.3.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
+			}
+			if versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
+				if govPlugin.chainConfig.PauliBlock == nil {
+					govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(versionProposal.ActiveBlock)
+				}
 			}
 
 			log.Info("version proposal is active", "blockNumber", blockNumber, "proposalID", versionProposal.ProposalID, "newVersion", versionProposal.NewVersion, "newVersionString", xutil.ProgramVersion2Str(versionProposal.NewVersion))

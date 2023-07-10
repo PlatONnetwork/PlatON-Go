@@ -694,6 +694,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
 	xplugin.StakingInstance().SetChainConfig(chainConfig)
+	xplugin.GovPluginInstance().SetChainConfig(chainConfig)
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
