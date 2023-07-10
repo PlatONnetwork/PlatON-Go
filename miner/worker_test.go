@@ -69,7 +69,7 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
 
-	signer := types.NewEIP2930Signer(chainConfig.PIP7ChainID)
+	signer := types.NewLondonSigner(chainConfig.PIP7ChainID)
 	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
 		ChainID: params.TestChainConfig.PIP7ChainID,
 		Nonce:   0,

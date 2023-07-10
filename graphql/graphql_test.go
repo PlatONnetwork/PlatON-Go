@@ -330,7 +330,7 @@ func createGQLServiceWithTransactions(t *testing.T, stack *node.Node) {
 		GasPrice: big.NewInt(1),
 	})
 
-	signer1 := types.NewEIP2930Signer(ethConf.Genesis.Config.PIP7ChainID)
+	signer1 := types.NewLondonSigner(ethConf.Genesis.Config.PIP7ChainID)
 	envelopTx, _ := types.SignNewTx(key, signer1, &types.AccessListTx{
 		ChainID:  ethConf.Genesis.Config.PIP7ChainID,
 		Nonce:    uint64(1),
