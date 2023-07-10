@@ -110,7 +110,7 @@ func TestDeriveFields(t *testing.T) {
 		t.Fatalf("DeriveFields(...) = %v, want <nil>", err)
 	}
 	// Iterate over all the computed fields and check that they're correct
-	signer := NewEIP2930Signer(params.TestChainConfig.PIP7ChainID)
+	signer := NewLondonSigner(params.TestChainConfig.PIP7ChainID)
 
 	logIndex := uint(0)
 	for i := range receipts {

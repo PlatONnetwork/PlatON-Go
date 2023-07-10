@@ -216,7 +216,7 @@ func (gpo *Oracle) getBlockPrices(ctx context.Context, signer types.Signer, bloc
 		if ignoreUnder != nil && tx.GasPrice().Cmp(ignoreUnder) == -1 {
 			continue
 		}
-		sender, err := types.Sender(types.NewEIP2930Signer(tx.ChainId()), tx)
+		sender, err := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
 		if err == nil && sender != block.Coinbase() {
 			prices = append(prices, tx.GasPrice())
 			if len(prices) >= limit {

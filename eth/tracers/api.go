@@ -274,7 +274,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(localctx))
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
-					msg, _ := tx.AsMessage(types.NewEIP2930Signer(tx.ChainId()), task.block.BaseFee())
+					msg, _ := tx.AsMessage(types.NewLondonSigner(tx.ChainId()), task.block.BaseFee())
 					txctx := &txTraceContext{
 						index: i,
 						hash:  tx.Hash(),
