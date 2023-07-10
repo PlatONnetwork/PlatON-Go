@@ -47,7 +47,7 @@ var FullNodeGPO = gasprice.Config{
 
 // Defaults contains default settings for use on the Ethereum main net.
 var Defaults = Config{
-	SyncMode: downloader.FullSync,
+	SyncMode: downloader.SnapSync,
 	CbftConfig: types.OptionsConfig{
 		WalMode:           true,
 		PeerMsgQueueSize:  1024,

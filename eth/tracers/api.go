@@ -22,13 +22,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -727,7 +728,7 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 // created during the execution of EVM if the given transaction was added on
 // top of the provided block and returns them as a JSON object.
 // You can provide -2 as a block number to trace on top of the pending block.
-func (api *API) TraceCall(ctx context.Context, args ethapi.CallArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
+func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, config *TraceCallConfig) (interface{}, error) {
 	// Try to retrieve the specified block
 	var (
 		err   error

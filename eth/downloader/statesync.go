@@ -18,9 +18,10 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"golang.org/x/crypto/sha3"
 
@@ -434,8 +435,8 @@ func (s *stateSync) assignTasks() {
 	peers, _ := s.d.peers.NodeDataIdlePeers()
 	for _, p := range peers {
 		// Assign a batch of fetches proportional to the estimated latency/bandwidth
-		cap := p.NodeDataCapacity(s.d.requestRTT())
-		req := &stateReq{peer: p, timeout: s.d.requestTTL()}
+		cap := p.NodeDataCapacity(s.d.peers.rates.TargetRoundTrip())
+		req := &stateReq{peer: p, timeout: s.d.peers.rates.TargetTimeout()}
 
 		nodes, _, codes := s.fillTasks(cap, req)
 

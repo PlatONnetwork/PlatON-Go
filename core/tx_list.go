@@ -112,14 +112,12 @@ func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transac
 }
 
 func (m *txSortedMap) reheap() {
-	start := time.Now()
 	*m.index = make([]uint64, 0, len(m.items))
 	for nonce := range m.items {
 		*m.index = append(*m.index, nonce)
 	}
 	heap.Init(m.index)
 	m.cache = nil
-	reheapTimer.Update(time.Since(start))
 }
 
 // filter is identical to Filter, but **does not** regenerate the heap. This method

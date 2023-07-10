@@ -194,7 +194,7 @@ func TestTraceCall(t *testing.T) {
 
 	var testSuite = []struct {
 		blockNumber rpc.BlockNumber
-		call        ethapi.CallArgs
+		call        ethapi.TransactionArgs
 		config      *TraceCallConfig
 		expectErr   error
 		expect      interface{}
@@ -202,7 +202,7 @@ func TestTraceCall(t *testing.T) {
 		// Standard JSON trace upon the genesis, plain transfer.
 		{
 			blockNumber: rpc.BlockNumber(0),
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
 				To:    &accounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -219,7 +219,7 @@ func TestTraceCall(t *testing.T) {
 		// Standard JSON trace upon the head, plain transfer.
 		{
 			blockNumber: rpc.BlockNumber(genBlocks),
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
 				To:    &accounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -236,7 +236,7 @@ func TestTraceCall(t *testing.T) {
 		// Standard JSON trace upon the non-existent block, error expects
 		{
 			blockNumber: rpc.BlockNumber(genBlocks + 1),
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
 				To:    &accounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -248,7 +248,7 @@ func TestTraceCall(t *testing.T) {
 		// Standard JSON trace upon the latest block
 		{
 			blockNumber: rpc.LatestBlockNumber,
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
 				To:    &accounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -265,7 +265,7 @@ func TestTraceCall(t *testing.T) {
 		// Standard JSON trace upon the pending block
 		{
 			blockNumber: rpc.PendingBlockNumber,
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
 				To:    &accounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -325,7 +325,7 @@ func TestOverridenTraceCall(t *testing.T) {
 
 	var testSuite = []struct {
 		blockNumber rpc.BlockNumber
-		call        ethapi.CallArgs
+		call        ethapi.TransactionArgs
 		config      *TraceCallConfig
 		expectErr   error
 		expect      *callTrace
@@ -333,7 +333,7 @@ func TestOverridenTraceCall(t *testing.T) {
 		// Succcessful call with state overriding
 		{
 			blockNumber: rpc.PendingBlockNumber,
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &randomAccounts[0].addr,
 				To:    &randomAccounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -357,7 +357,7 @@ func TestOverridenTraceCall(t *testing.T) {
 		// Invalid call without state overriding
 		{
 			blockNumber: rpc.PendingBlockNumber,
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From:  &randomAccounts[0].addr,
 				To:    &randomAccounts[1].addr,
 				Value: (*hexutil.Big)(big.NewInt(1000)),
@@ -386,7 +386,7 @@ func TestOverridenTraceCall(t *testing.T) {
 		//  }
 		{
 			blockNumber: rpc.PendingBlockNumber,
-			call: ethapi.CallArgs{
+			call: ethapi.TransactionArgs{
 				From: &randomAccounts[0].addr,
 				To:   &randomAccounts[2].addr,
 				Data: newRPCBytes(common.Hex2Bytes("8381f58a")), // call number()
