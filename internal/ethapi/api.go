@@ -1712,7 +1712,7 @@ func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		return common.Hash{}, err
 	}
 	// Print a log with full tx details for manual investigations and interventions
-	signer := types.NewEIP2930Signer(tx.ChainId())
+	signer := types.NewLondonSigner(tx.ChainId())
 	from, err := types.Sender(signer, tx)
 	if err != nil {
 		return common.Hash{}, err
@@ -1858,7 +1858,7 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 	}
 	transactions := make([]*RPCTransaction, 0, len(pending))
 	for _, tx := range pending {
-		from, _ := types.Sender(types.NewEIP2930Signer(tx.ChainId()), tx)
+		from, _ := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
 		if _, exists := accounts[from]; exists {
 			transactions = append(transactions, newRPCPendingTransaction(tx))
 		}
@@ -1890,7 +1890,7 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 	}
 
 	for _, p := range pending {
-		signer := types.NewEIP2930Signer(p.ChainId())
+		signer := types.NewLondonSigner(p.ChainId())
 		wantSigHash := signer.Hash(matchTx, p.ChainId())
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p, p.ChainId()) == wantSigHash {

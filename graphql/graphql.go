@@ -261,7 +261,7 @@ func (t *Transaction) From(ctx context.Context, args BlockNumberArgs) (*Account,
 		return nil, err
 	}
 
-	from, _ := types.Sender(types.NewEIP2930Signer(tx.ChainId()), tx)
+	from, _ := types.Sender(types.NewLondonSigner(tx.ChainId()), tx)
 	return &Account{
 		backend:       t.backend,
 		address:       from,
