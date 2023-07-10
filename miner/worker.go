@@ -26,9 +26,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/ethereum/go-ethereum/consensus/misc"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -1017,6 +1018,26 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return err
 	}
+
+	// Set baseFee and GasLimit if we are on an EIP-1559 chain
+	if gov.Gte150VersionState(w.current.state) {
+		//header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
+		//parentGasLimit := parent.GasLimit()
+		//if !w.chainConfig.IsLondon(parent.Number()) {
+		//	// Bump by 2x
+		//	parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		//}
+		//header.GasLimit = core.CalcGasLimit1559(parentGasLimit, w.config.GasCeil)
+		// TODO 替换上面的代码，但还未彻底修改完
+		header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
+		parentGasLimit := parent.GasLimit()
+		if parent.BaseFee == nil {
+			// Bump by 2x
+			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		}
+		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, 0)
+	}
+
 	//make header extra after w.current and it's state initialized
 	extraData := w.makeExtraData()
 	copy(header.Extra[:len(extraData)], extraData)
@@ -1109,7 +1130,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var localTimeout = false
 	tempContractCache := make(map[common.Address]struct{})
 	if len(localTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs, w.current.header.BaseFee)
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs, header.BaseFee)
 		if failed, timeout := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline, tempContractCache); failed {
 			return fmt.Errorf("commit transactions error")
 		} else {
@@ -1122,7 +1143,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	startTime = time.Now()
 	if !localTimeout && len(remoteTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs, w.current.header.BaseFee)
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs, header.BaseFee)
 
 		if failed, _ := w.committer.CommitTransactions(header, txs, interrupt, timestamp, blockDeadline, tempContractCache); failed {
 			return fmt.Errorf("commit transactions error")

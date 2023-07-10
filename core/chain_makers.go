@@ -25,6 +25,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -375,7 +376,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = parent.Time() + 10 // block time is fixed at 10 seconds
 	}
 
-	return &types.Header{
+	header := &types.Header{
 		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
@@ -384,6 +385,12 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Time:       time,
 		Extra:      make([]byte, 65),
 	}
+
+	if gov.Gte150VersionState(state) {
+		header.BaseFee = misc.CalcBaseFee(chain.Config(), parent.Header())
+	}
+
+	return header
 }
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.

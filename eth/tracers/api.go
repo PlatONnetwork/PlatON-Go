@@ -274,7 +274,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 				blockCtx := core.NewEVMBlockContext(task.block.Header(), api.chainContext(localctx))
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
-					msg, _ := tx.AsMessage(types.NewEIP2930Signer(tx.ChainId()))
+					msg, _ := tx.AsMessage(types.NewEIP2930Signer(tx.ChainId()), task.block.BaseFee())
 					txctx := &txTraceContext{
 						index: i,
 						hash:  tx.Hash(),
@@ -526,7 +526,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 			defer pend.Done()
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
-				msg, _ := txs[task.index].AsMessage(signer)
+				msg, _ := txs[task.index].AsMessage(signer, block.BaseFee())
 				txctx := &txTraceContext{
 					index: task.index,
 					hash:  txs[task.index].Hash(),
@@ -548,7 +548,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
 
 		// Generate the next state snapshot fast without tracing
-		msg, _ := tx.AsMessage(signer)
+		msg, _ := tx.AsMessage(signer, block.BaseFee())
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		txContext := core.NewEVMTxContext(msg)
 		vmenv := vm.NewEVM(blockCtx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{})
@@ -630,7 +630,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	for i, tx := range block.Transactions() {
 		// Prepare the trasaction for un-traced execution
 		var (
-			msg, _    = tx.AsMessage(signer)
+			msg, _    = tx.AsMessage(signer, block.BaseFee())
 			txContext = core.NewEVMTxContext(msg)
 			vmConf    vm.Config
 			dump      *os.File

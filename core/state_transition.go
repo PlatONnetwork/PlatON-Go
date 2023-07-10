@@ -28,6 +28,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -58,6 +59,8 @@ type StateTransition struct {
 	msg        Message
 	gas        uint64
 	gasPrice   *big.Int
+	gasFeeCap  *big.Int
+	gasTipCap  *big.Int
 	initialGas uint64
 	value      *big.Int
 	data       []byte
@@ -71,6 +74,8 @@ type Message interface {
 	To() *common.Address
 
 	GasPrice() *big.Int
+	GasFeeCap() *big.Int
+	GasTipCap() *big.Int
 	Gas() uint64
 	Value() *big.Int
 
@@ -165,13 +170,15 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
-		gp:       gp,
-		evm:      evm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    evm.StateDB,
+		gp:        gp,
+		evm:       evm,
+		msg:       msg,
+		gasPrice:  msg.GasPrice(),
+		gasFeeCap: msg.GasFeeCap(),
+		gasTipCap: msg.GasTipCap(),
+		value:     msg.Value(),
+		data:      msg.Data(),
+		state:     evm.StateDB,
 	}
 }
 
@@ -219,6 +226,15 @@ func (st *StateTransition) preCheck() error {
 		} else if stNonce > msgNonce {
 			return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
 				st.msg.From().Hex(), msgNonce, stNonce)
+		}
+	}
+	// Make sure that transaction feeCap is greater than the baseFee (post london)
+	if gov.Gte150VersionState(st.state) {
+		// This will panic if baseFee is nil, but basefee presence is verified
+		// as part of header validation.
+		if st.gasFeeCap.Cmp(st.evm.Context.BaseFee) < 0 {
+			return fmt.Errorf("%w: address %v, feeCap: %s baseFee: %s", ErrFeeCapTooLow,
+				st.msg.From().Hex(), st.gasFeeCap, st.evm.Context.BaseFee)
 		}
 	}
 	return st.buyGas()
@@ -324,7 +340,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.refundGas(params.RefundQuotient)
 	}
 
-	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	effectiveTip := st.gasPrice
+	if gov.Gte150VersionState(st.state) {
+		effectiveTip = cmath.BigMin(st.gasTipCap, new(big.Int).Sub(st.gasFeeCap, st.evm.Context.BaseFee))
+	}
+	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), effectiveTip))
 
 	return &ExecutionResult{
 		UsedGas:    st.gasUsed(),
