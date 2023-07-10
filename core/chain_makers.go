@@ -110,9 +110,9 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	b.receipts = append(b.receipts, receipt)
 }
 
-// Number returns the block number of the block being generated.
-func (b *BlockGen) Number() *big.Int {
-	return new(big.Int).Set(b.header.Number)
+// GetBalance returns the balance of the given address at the generated block.
+func (b *BlockGen) GetBalance(addr common.Address) *big.Int {
+	return b.statedb.GetBalance(addr)
 }
 
 // AddUncheckedTx forcefully adds a transaction to the block without any
@@ -122,6 +122,16 @@ func (b *BlockGen) Number() *big.Int {
 // chain processing. This is best used in conjunction with raw block insertion.
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
+}
+
+// Number returns the block number of the block being generated.
+func (b *BlockGen) Number() *big.Int {
+	return new(big.Int).Set(b.header.Number)
+}
+
+// BaseFee returns the EIP-1559 base fee of the block being generated.
+func (b *BlockGen) BaseFee() *big.Int {
+	return new(big.Int).Set(b.header.BaseFee)
 }
 
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
