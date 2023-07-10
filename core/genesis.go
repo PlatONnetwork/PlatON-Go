@@ -496,7 +496,9 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-
+	if gov.Gte150Version(genesisVersion) {
+		head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+	}
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}

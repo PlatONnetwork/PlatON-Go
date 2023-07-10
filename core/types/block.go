@@ -124,6 +124,9 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
+	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
+	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+
 	// caches
 	sealHash  atomic.Value `json:"-" rlp:"-"`
 	hash      atomic.Value `json:"-" rlp:"-"`
@@ -145,6 +148,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 			GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 			Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 			Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+			BaseFee     *hexutil.Big   `json:"baseFeePerGas"    gencodec:"optional"`
 			Nonce       ETHBlockNonce  `json:"nonce"            gencodec:"required"`
 			Hash        common.Hash    `json:"hash"`
 
@@ -163,6 +167,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 		enc.GasUsed = hexutil.Uint64(h.GasUsed)
 		enc.Time = hexutil.Uint64(h.Time / 1000)
 		enc.Extra = h.Extra
+		enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 		enc.Nonce = h.Nonce.ETHBlockNonce()
 		enc.Hash = h.Hash()
 		enc.UncleHash = common.ZeroHash
@@ -181,6 +186,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 		GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
+		BaseFee     *hexutil.Big   `json:"baseFeePerGas"    gencodec:"optional"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 		Hash        common.Hash    `json:"hash"`
 	}
@@ -196,6 +202,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 	enc.GasUsed = hexutil.Uint64(h.GasUsed)
 	enc.Time = hexutil.Uint64(h.Time)
 	enc.Extra = h.Extra
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.Nonce = h.Nonce
 	enc.Hash = h.Hash()
 	return json2.Marshal(&enc)
@@ -208,6 +215,7 @@ type headerMarshaling struct {
 	GasUsed  hexutil.Uint64
 	Time     hexutil.Uint64
 	Extra    hexutil.Bytes
+	BaseFee  *hexutil.Big
 	Hash     common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
 
@@ -411,6 +419,9 @@ func CopyHeader(h *Header) *Header {
 	if cpy.Number = new(big.Int); h.Number != nil {
 		cpy.Number.Set(h.Number)
 	}
+	if h.BaseFee != nil {
+		cpy.BaseFee = new(big.Int).Set(h.BaseFee)
+	}
 	if len(h.Extra) > 0 {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
@@ -465,6 +476,13 @@ func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
 func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
+
+func (b *Block) BaseFee() *big.Int {
+	if b.header.BaseFee == nil {
+		return nil
+	}
+	return new(big.Int).Set(b.header.BaseFee)
+}
 
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
