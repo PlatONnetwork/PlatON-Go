@@ -20,10 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -202,8 +203,14 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	if have, want := st.state.GetBalance(st.msg.From()), mgval; have.Cmp(want) < 0 {
+	mgval := new(big.Int).SetUint64(st.msg.Gas())
+	mgval = mgval.Mul(mgval, st.gasPrice)
+	balanceCheck := mgval
+	if st.feeCap != nil {
+		balanceCheck = new(big.Int).SetUint64(st.msg.Gas())
+		balanceCheck = balanceCheck.Mul(balanceCheck, st.feeCap)
+	}
+	if have, want := st.state.GetBalance(st.msg.From()), balanceCheck; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
 	}
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
@@ -230,6 +237,18 @@ func (st *StateTransition) preCheck() error {
 	}
 	// Make sure that transaction feeCap is greater than the baseFee (post london)
 	if gov.Gte150VersionState(st.state) {
+		if l := st.feeCap.BitLen(); l > 256 {
+			return fmt.Errorf("%w: address %v, feeCap bit length: %d", ErrFeeCapVeryHigh,
+				st.msg.From().Hex(), l)
+		}
+		if l := st.tip.BitLen(); l > 256 {
+			return fmt.Errorf("%w: address %v, tip bit length: %d", ErrTipVeryHigh,
+				st.msg.From().Hex(), l)
+		}
+		if st.feeCap.Cmp(st.tip) < 0 {
+			return fmt.Errorf("%w: address %v, tip: %s, feeCap: %s", ErrTipAboveFeeCap,
+				st.msg.From().Hex(), st.feeCap, st.tip)
+		}
 		// This will panic if baseFee is nil, but basefee presence is verified
 		// as part of header validation.
 		if st.gasFeeCap.Cmp(st.evm.Context.BaseFee) < 0 {

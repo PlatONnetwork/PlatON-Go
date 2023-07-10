@@ -84,6 +84,7 @@ var (
 		NewtonBlock:     big.NewInt(28770011),
 		EinsteinBlock:   big.NewInt(45531841),
 		HubbleBlock:     big.NewInt(58421521),
+		CatalystBlock:   big.NewInt(116843041), //TODO: number to be confirmed
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
@@ -151,8 +152,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, FORKVERSION_1_5_0}
-
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, FORKVERSION_1_5_0, nil}
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
 
@@ -190,7 +190,8 @@ type ChainConfig struct {
 	// Various consensus engines
 	Cbft *CbftConfig `json:"cbft,omitempty"`
 
-	GenesisVersion uint32 `json:"genesisVersion"`
+	GenesisVersion uint32   `json:"genesisVersion"`
+	CatalystBlock  *big.Int `json:"catalystBlock,omitempty"` // Catalyst switch block (nil = no fork, 0 = already on catalyst)
 }
 
 // String implements the fmt.Stringer interface.
@@ -218,6 +219,11 @@ func (c *ChainConfig) String() string {
 func (c *ChainConfig) IsEIP155(num *big.Int) bool {
 	//	return isForked(c.EIP155Block, num)
 	return true
+}
+
+// IsCatalyst returns whether num is either equal to the Merge fork block or greater.
+func (c *ChainConfig) IsCatalyst(num *big.Int) bool {
+	return isForked(c.CatalystBlock, num)
 }
 
 // IsEWASM returns whether num represents a block number after the EWASM fork
@@ -398,7 +404,7 @@ func (err *ConfigCompatError) Error() string {
 // phases.
 type Rules struct {
 	ChainID                                                         *big.Int
-	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
+	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli, IsCatalyst bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -415,5 +421,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsEinstein:   c.IsEinstein(num),
 		IsHubble:     c.IsHubble(num),
 		IsPauli:      c.IsPauli(num),
+		IsCatalyst:   c.IsCatalyst(num),
 	}
 }
