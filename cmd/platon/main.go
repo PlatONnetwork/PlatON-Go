@@ -19,12 +19,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
@@ -116,6 +117,7 @@ var (
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
 		configFileFlag,
+		utils.CatalystFlag,
 	}
 
 	rpcFlags = []cli.Flag{
