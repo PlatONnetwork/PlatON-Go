@@ -202,7 +202,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Pauli: %v Engine: %v }",
 		c.ChainID,
 		c.PIP7ChainID,
 		c.EIP155Block,
@@ -210,6 +210,7 @@ func (c *ChainConfig) String() string {
 		c.NewtonBlock,
 		c.EinsteinBlock,
 		c.HubbleBlock,
+		c.PauliBlock,
 		engine,
 	)
 }
