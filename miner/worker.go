@@ -994,17 +994,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, snapshotdb.Instance()),
 		Time:       uint64(timestamp),
 	}
-	// Set baseFee and GasLimit if we are on an EIP-1559 chain
-	if w.chainConfig.IsLondon(header.Number) {
-		header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
-		parentGasLimit := parent.GasLimit()
-		if !w.chainConfig.IsLondon(parent.Number()) {
-			// Bump by 2x
-			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
-		}
-		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, w.config.GasCeil)
-	}
-
 	log.Info("Cbft begin to consensus for new block", "number", header.Number, "nonce", hexutil.Encode(header.Nonce[:]), "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	// Initialize the header extra in Prepare function of engine
 	if err := w.engine.Prepare(w.chain, header); err != nil {

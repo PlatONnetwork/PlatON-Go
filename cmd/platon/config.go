@@ -21,12 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/ethereum/go-ethereum/eth/catalyst"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 
@@ -183,7 +185,17 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
-	backend := utils.RegisterEthService(stack, &cfg.Eth)
+	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
+
+	// Configure catalyst.
+	if ctx.GlobalBool(utils.CatalystFlag.Name) {
+		if eth == nil {
+			utils.Fatalf("Catalyst does not work in light client mode.")
+		}
+		if err := catalyst.Register(stack, eth); err != nil {
+			utils.Fatalf("%v", err)
+		}
+	}
 
 	// Configure GraphQL if requested
 	if ctx.GlobalIsSet(utils.GraphQLEnabledFlag.Name) {
