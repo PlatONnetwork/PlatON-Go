@@ -19,6 +19,7 @@ package params
 import (
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -151,7 +152,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, FORKVERSION_1_5_0}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, FORKVERSION_1_5_0, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -191,6 +192,7 @@ type ChainConfig struct {
 	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	GenesisVersion uint32 `json:"genesisVersion"`
+	sync.RWMutex
 }
 
 // String implements the fmt.Stringer interface.
@@ -248,7 +250,21 @@ func (c *ChainConfig) IsHubble(num *big.Int) bool {
 
 // version 1.5.0
 func (c *ChainConfig) IsPauli(num *big.Int) bool {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
 	return isForked(c.PauliBlock, num)
+}
+
+func (c *ChainConfig) GetPauliBlock() *big.Int {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return c.PauliBlock
+}
+
+func (c *ChainConfig) SetPauliBlock(block *big.Int) {
+	c.RWMutex.Lock()
+	defer c.RWMutex.Unlock()
+	c.PauliBlock = block
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).

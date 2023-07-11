@@ -75,8 +75,10 @@ func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) err
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
-	if err := govPlugin.setPauliBlock(blockHash, state); err != nil {
-		return err
+	if govPlugin.chainConfig.PauliBlock == nil {
+		if err := govPlugin.setForkBlock(blockHash, state, params.FORKVERSION_1_5_0, govPlugin.chainConfig.SetPauliBlock); err != nil {
+			return err
+		}
 	}
 	if !xutil.IsBeginOfConsensus(blockNumber) {
 		return nil
@@ -206,8 +208,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				if err != nil {
 					return err
 				}
-				if govPlugin.chainConfig.PauliBlock == nil && tallyResult.Status == gov.PreActive && versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
-					govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(versionProposal.ActiveBlock)
+				if govPlugin.chainConfig.GetPauliBlock() == nil && tallyResult.Status == gov.PreActive && versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
+					govPlugin.chainConfig.SetPauliBlock(new(big.Int).SetUint64(versionProposal.ActiveBlock))
 				}
 
 			} else if votingProposal.GetProposalType() == gov.Cancel && isElection {
@@ -229,23 +231,18 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	return nil
 }
 
-func (govPlugin *GovPlugin) setPauliBlock(blockHash common.Hash, state xcom.StateDB) error {
-	if govPlugin.chainConfig.PauliBlock != nil {
-		return nil
-	}
-	// 如果当前版本是1.5.0
+func (govPlugin *GovPlugin) setForkBlock(blockHash common.Hash, state xcom.StateDB, version uint32, setBlock func(*big.Int)) error {
 	versionList, err := gov.GetCurrentActiveVersionList(state)
 	if err != nil {
 		return err
 	}
-	if len(versionList) > 0 && versionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
-		govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(versionList[0].ActiveBlock)
+	if len(versionList) > 0 && versionList[0].ActiveVersion == version {
+		setBlock(new(big.Int).SetUint64(versionList[0].ActiveBlock))
 		return nil
 	}
 
-	//  如果当前版本不是1.5.0
 	versionPreActive := gov.GetPreActiveVersion(blockHash)
-	if versionPreActive == params.FORKVERSION_1_5_0 {
+	if versionPreActive == version {
 		//check if there's a pre-active version proposal that can be activated
 		preActiveVersionProposalID, err := gov.GetPreActiveProposalID(blockHash)
 		if err != nil {
@@ -261,8 +258,8 @@ func (govPlugin *GovPlugin) setPauliBlock(blockHash common.Hash, state xcom.Stat
 			return err
 		}
 		versionProposal, isVersionProposal := preActiveVersionProposal.(*gov.VersionProposal)
-		if isVersionProposal && versionProposal.GetNewVersion() == params.FORKVERSION_1_5_0 {
-			govPlugin.chainConfig.PauliBlock = new(big.Int).SetUint64(versionProposal.ActiveBlock)
+		if isVersionProposal && versionProposal.GetNewVersion() == version {
+			setBlock(new(big.Int).SetUint64(versionProposal.ActiveBlock))
 		}
 	}
 	return nil
