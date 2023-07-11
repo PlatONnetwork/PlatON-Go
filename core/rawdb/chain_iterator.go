@@ -17,17 +17,15 @@
 package rawdb
 
 import (
-	"runtime"
-	"sync/atomic"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"golang.org/x/crypto/sha3"
+	"runtime"
+	"sync/atomic"
+	"time"
 )
 
 // InitDatabaseFromFreezer reinitializes an empty database from a previous batch
@@ -137,31 +135,15 @@ func iterateTransactions(db ethdb.Database, from uint64, to uint64, reverse bool
 			}
 		}()
 
-		var hasher = sha3.NewLegacyKeccak256()
 		for data := range rlpCh {
-			it, err := rlp.NewListIterator(data.rlp)
-			if err != nil {
-				log.Warn("tx iteration error", "error", err)
-				return
-			}
-			it.Next()
-			txs := it.Value()
-			txIt, err := rlp.NewListIterator(txs)
-			if err != nil {
-				log.Warn("tx iteration error", "error", err)
+			var body types.Body
+			if err := rlp.DecodeBytes(data.rlp, &body); err != nil {
+				log.Warn("Failed to decode block body", "block", data.number, "error", err)
 				return
 			}
 			var hashes []common.Hash
-			for txIt.Next() {
-				if err := txIt.Err(); err != nil {
-					log.Warn("tx iteration error", "error", err)
-					return
-				}
-				var txHash common.Hash
-				hasher.Reset()
-				hasher.Write(txIt.Value())
-				hasher.Sum(txHash[:0])
-				hashes = append(hashes, txHash)
+			for _, tx := range body.Transactions {
+				hashes = append(hashes, tx.Hash())
 			}
 			result := &blockTxHashes{
 				hashes: hashes,
@@ -245,13 +227,13 @@ func indexTransactions(db ethdb.Database, from uint64, to uint64, interrupt chan
 			}
 		}
 	}
-	// If there exists uncommitted data, flush them.
-	if batch.ValueSize() > 0 {
-		WriteTxIndexTail(batch, lastNum) // Also write the tail there
-		if err := batch.Write(); err != nil {
-			log.Crit("Failed writing batch to db", "error", err)
-			return
-		}
+	// Flush the new indexing tail and the last committed data. It can also happen
+	// that the last batch is empty because nothing to index, but the tail has to
+	// be flushed anyway.
+	WriteTxIndexTail(batch, lastNum)
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed writing batch to db", "error", err)
+		return
 	}
 	select {
 	case <-interrupt:
@@ -336,13 +318,13 @@ func unindexTransactions(db ethdb.Database, from uint64, to uint64, interrupt ch
 			}
 		}
 	}
-	// Commit the last batch if there exists uncommitted data
-	if batch.ValueSize() > 0 {
-		WriteTxIndexTail(batch, nextNum)
-		if err := batch.Write(); err != nil {
-			log.Crit("Failed writing batch to db", "error", err)
-			return
-		}
+	// Flush the new indexing tail and the last committed data. It can also happen
+	// that the last batch is empty because nothing to unindex, but the tail has to
+	// be flushed anyway.
+	WriteTxIndexTail(batch, nextNum)
+	if err := batch.Write(); err != nil {
+		log.Crit("Failed writing batch to db", "error", err)
+		return
 	}
 	select {
 	case <-interrupt:

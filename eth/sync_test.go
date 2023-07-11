@@ -23,44 +23,61 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
+
+// Tests that fast sync is disabled after a successful sync cycle.
+func TestFastSyncDisabling65(t *testing.T) { testFastSyncDisabling(t, eth.ETH65) }
+func TestFastSyncDisabling66(t *testing.T) { testFastSyncDisabling(t, eth.ETH66) }
 
 // Tests that fast sync gets disabled as soon as a real block is successfully
 // imported into the blockchain.
-func TestFastSyncDisabling(t *testing.T) {
+func testFastSyncDisabling(t *testing.T, protocol uint) {
 	t.Parallel()
 
-	// Create a pristine protocol manager, check that fast sync is left enabled
-	// TODO test
-	pmEmpty, _ := newTestProtocolManagerMust(t, downloader.FastSync, 0, nil, nil)
-	if atomic.LoadUint32(&pmEmpty.fastSync) == 0 {
+	// Create an empty handler and ensure it's in fast sync mode
+	empty := newTestHandler2()
+	if atomic.LoadUint32(&empty.handler.fastSync) == 0 {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
-	// Create a full protocol manager, check that fast sync gets disabled
-	pmFull, _ := newTestProtocolManagerMust(t, downloader.FastSync, 1024, nil, nil)
-	if atomic.LoadUint32(&pmFull.fastSync) == 1 {
+	defer empty.close()
+
+	// Create a full handler and ensure fast sync ends up disabled
+	full := newTestHandlerWithBlocks2(1024)
+	if atomic.LoadUint32(&full.handler.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled on non-empty blockchain")
 	}
-	// Sync up the two peers
-	io1, io2 := p2p.MsgPipe()
+	defer full.close()
 
-	go pmFull.handle(pmFull.newPeer(63, p2p.NewPeer(discover.NodeID{}, "empty", nil), io2, pmFull.txpool.Get))
-	go pmEmpty.handle(pmEmpty.newPeer(63, p2p.NewPeer(discover.NodeID{}, "full", nil), io1, pmFull.txpool.Get))
+	// Sync up the two handlers
+	emptyPipe, fullPipe := p2p.MsgPipe()
+	defer emptyPipe.Close()
+	defer fullPipe.Close()
 
+	emptyPeer := eth.NewPeer(protocol, p2p.NewPeer(enode.ID{1}, "", nil), emptyPipe, empty.txpool, nil)
+	fullPeer := eth.NewPeer(protocol, p2p.NewPeer(enode.ID{2}, "", nil), fullPipe, full.txpool, nil)
+	defer emptyPeer.Close()
+	defer fullPeer.Close()
+
+	go empty.handler.runEthPeer(emptyPeer, func(peer *eth.Peer) error {
+		return eth.Handle((*ethHandler)(empty.handler), peer)
+	})
+	go full.handler.runEthPeer(fullPeer, func(peer *eth.Peer) error {
+		return eth.Handle((*ethHandler)(full.handler), peer)
+	})
+	// Wait a bit for the above handlers to start
 	time.Sleep(250 * time.Millisecond)
-	bestPeer := pmEmpty.peers.BestPeer()
-	peerHead, pBn := bestPeer.Head()
-	currentBlock := pmEmpty.engine.CurrentBlock()
-
-	op := &chainSyncOp{mode: downloader.FastSync, peer: bestPeer, bn: pBn, head: peerHead, diff: new(big.Int).Sub(pBn, currentBlock.Number())}
-	if err := pmEmpty.doSync(op); err != nil {
-		t.Fatal("sync failed:", err)
-	}
 
 	// Check that fast sync was disabled
-	if atomic.LoadUint32(&pmEmpty.fastSync) == 1 {
+	p, _ := empty.handler.peers.peerWithHighestBlock()
+	head, bn := p.Head()
+	op := &chainSyncOp{mode: downloader.FastSync, peer: p, head: head, bn: bn, diff: new(big.Int).SetUint64(0)}
+	if err := empty.handler.doSync(op); err != nil {
+		t.Fatal("sync failed:", err)
+	}
+	if atomic.LoadUint32(&empty.handler.fastSync) == 1 {
 		t.Fatalf("fast sync not disabled after successful synchronisation")
 	}
 }

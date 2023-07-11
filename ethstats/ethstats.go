@@ -36,8 +36,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	ethproto "github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
@@ -92,19 +92,21 @@ type Service struct {
 
 	pongCh chan struct{} // Pong notifications are fed into this channel
 	histCh chan []uint64 // History request block numbers are fed into this channel
+
 }
 
 // connWrapper is a wrapper to prevent concurrent-write or concurrent-read on the
 // websocket.
 //
 // From Gorilla websocket docs:
-//   Connections support one concurrent reader and one concurrent writer.
-//   Applications are responsible for ensuring that no more than one goroutine calls the write methods
-//     - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
-//   concurrently and that no more than one goroutine calls the read methods
-//     - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
-//   concurrently.
-//   The Close and WriteControl methods can be called concurrently with all other methods.
+//
+//	Connections support one concurrent reader and one concurrent writer.
+//	Applications are responsible for ensuring that no more than one goroutine calls the write methods
+//	  - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
+//	concurrently and that no more than one goroutine calls the read methods
+//	  - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
+//	concurrently.
+//	The Close and WriteControl methods can be called concurrently with all other methods.
 type connWrapper struct {
 	conn *websocket.Conn
 
@@ -285,11 +287,11 @@ func (s *Service) loop() {
 			}
 			// Keep sending status updates until the connection breaks
 			fullReport := time.NewTicker(15 * time.Second)
-			defer fullReport.Stop()
 
 			for err == nil {
 				select {
 				case <-quitCh:
+					fullReport.Stop()
 					// Make sure the connection is closed
 					conn.Close()
 					return
@@ -315,6 +317,7 @@ func (s *Service) loop() {
 					}
 				}
 			}
+			fullReport.Stop()
 
 			// Close the current connection and establish a new one
 			conn.Close()
@@ -440,12 +443,16 @@ func (s *Service) login(conn *connWrapper) error {
 	// Construct and send the login authentication
 	infos := s.server.NodeInfo()
 
-	var network, protocol string
-	if info := infos.Protocols["platon"]; info != nil {
-		network = fmt.Sprintf("%d", info.(*eth.NodeInfo).Network)
-		protocol = fmt.Sprintf("platon/%d", eth.ProtocolVersions[0])
+	var protocols []string
+	for _, proto := range s.server.Protocols {
+		protocols = append(protocols, fmt.Sprintf("%s/%d", proto.Name, proto.Version))
+	}
+
+	var network string
+	if info := infos.Protocols["eth"]; info != nil {
+		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		return errors.New("not les")
+		network = "0"
 	}
 	auth := &authMsg{
 		ID: s.node,
@@ -454,7 +461,7 @@ func (s *Service) login(conn *connWrapper) error {
 			Node:     infos.Name,
 			Port:     infos.Ports.Listener,
 			Network:  network,
-			Protocol: protocol,
+			Protocol: strings.Join(protocols, ", "),
 			API:      "No",
 			Os:       runtime.GOOS,
 			OsVer:    runtime.GOARCH,
@@ -542,14 +549,28 @@ type blockStats struct {
 	Miner      common.Address `json:"miner"`
 	GasUsed    uint64         `json:"gasUsed"`
 	GasLimit   uint64         `json:"gasLimit"`
+	Diff       string         `json:"difficulty"`
+	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       common.Hash    `json:"stateRoot"`
+	Uncles     uncleStats     `json:"uncles"`
 }
 
 // txStats is the information to report about individual transactions.
 type txStats struct {
 	Hash common.Hash `json:"hash"`
+}
+
+// uncleStats is a custom wrapper around an uncle array to force serializing
+// empty arrays instead of returning null for them.
+type uncleStats []*types.Header
+
+func (s uncleStats) MarshalJSON() ([]byte, error) {
+	if uncles := ([]*types.Header)(s); len(uncles) > 0 {
+		return json.Marshal(uncles)
+	}
+	return []byte("[]"), nil
 }
 
 // reportBlock retrieves the current chain head and reports it to the stats server.
@@ -577,6 +598,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 	var (
 		header *types.Header
 		txs    []txStats
+		uncles []*types.Header
 	)
 
 	// check if backend is a full node
@@ -592,7 +614,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 			txs[i].Hash = tx.Hash()
 		}
 	} else {
-		// Light nodes would need on-demand lookups for transactions, skip
+		// Light nodes would need on-demand lookups for transactions/uncles, skip
 		if block != nil {
 			header = block.Header()
 		} else {
@@ -612,9 +634,12 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Miner:      author,
 		GasUsed:    header.GasUsed,
 		GasLimit:   header.GasLimit,
+		Diff:       "0",
+		TotalDiff:  "0",
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,
+		Uncles:     uncles,
 	}
 }
 
@@ -705,6 +730,7 @@ type nodeStats struct {
 	Active   bool `json:"active"`
 	Syncing  bool `json:"syncing"`
 	Mining   bool `json:"mining"`
+	Hashrate int  `json:"hashrate"`
 	Peers    int  `json:"peers"`
 	GasPrice int  `json:"gasPrice"`
 	Uptime   int  `json:"uptime"`
@@ -716,6 +742,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 	// Gather the syncing and mining infos from the local miner instance
 	var (
 		mining   bool
+		hashrate int
 		syncing  bool
 		gasprice int
 	)
@@ -741,6 +768,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 		"stats": &nodeStats{
 			Active:   true,
 			Mining:   mining,
+			Hashrate: hashrate,
 			Peers:    s.server.PeerCount(),
 			GasPrice: gasprice,
 			Syncing:  syncing,

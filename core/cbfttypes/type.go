@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbfttypes
 
 import (
@@ -23,10 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 	"math/big"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
@@ -35,7 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Block's Signature info
@@ -88,11 +88,11 @@ func (ps *ProducerState) Validate(period int) bool {
 }
 
 type AddValidatorEvent struct {
-	NodeID discover.NodeID
+	Node *enode.Node
 }
 
 type RemoveValidatorEvent struct {
-	NodeID discover.NodeID
+	Node *enode.Node
 }
 
 type UpdateValidatorEvent struct{}
@@ -101,11 +101,11 @@ type ValidateNode struct {
 	Index     uint32             `json:"index"`
 	Address   common.NodeAddress `json:"address"`
 	PubKey    *ecdsa.PublicKey   `json:"-"`
-	NodeID    discover.NodeID    `json:"nodeID"`
+	NodeID    enode.ID           `json:"nodeID"`
 	BlsPubKey *bls.PublicKey     `json:"blsPubKey"`
 }
 
-type ValidateNodeMap map[discover.NodeID]*ValidateNode
+type ValidateNodeMap map[enode.ID]*ValidateNode
 
 type SortedValidatorNode []*ValidateNode
 
@@ -151,8 +151,8 @@ func (vs *Validators) String() string {
 	return string(b)
 }
 
-func (vs *Validators) NodeList() []discover.NodeID {
-	nodeList := make([]discover.NodeID, 0)
+func (vs *Validators) NodeList() []enode.ID {
+	nodeList := make([]enode.ID, 0)
 	for id, _ := range vs.Nodes {
 		nodeList = append(nodeList, id)
 	}
@@ -190,7 +190,7 @@ func (vs *Validators) NodeListByBitArray(vSet *utils.BitArray) ([]*ValidateNode,
 	return l, nil
 }
 
-func (vs *Validators) FindNodeByID(id discover.NodeID) (*ValidateNode, error) {
+func (vs *Validators) FindNodeByID(id enode.ID) (*ValidateNode, error) {
 	node, ok := vs.Nodes[id]
 	if ok {
 		return node, nil
@@ -218,17 +218,17 @@ func (vs *Validators) FindNodeByAddress(addr common.NodeAddress) (*ValidateNode,
 	return nil, errors.New("invalid address")
 }
 
-func (vs *Validators) NodeID(idx int) discover.NodeID {
+func (vs *Validators) NodeID(idx int) enode.ID {
 	if len(vs.sortedNodes) == 0 {
 		vs.sort()
 	}
 	if idx >= vs.sortedNodes.Len() {
-		return discover.NodeID{}
+		return enode.ID{}
 	}
 	return vs.sortedNodes[idx].NodeID
 }
 
-func (vs *Validators) Index(nodeID discover.NodeID) (uint32, error) {
+func (vs *Validators) Index(nodeID enode.ID) (uint32, error) {
 	if node, ok := vs.Nodes[nodeID]; ok {
 		return node.Index, nil
 	}

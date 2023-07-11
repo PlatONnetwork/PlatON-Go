@@ -22,17 +22,17 @@ The ci command is called from Continuous Integration scripts.
 Usage: go run build/ci.go <command> <command flags/arguments>
 Available commands are:
 
-	install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
-	test       [ -coverage ] [ packages... ]                                                    -- runs the tests
-	lint                                                                                        -- runs certain pre-selected linters
-   	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -signify key-envvar ] [ -upload dest ] -- archives build artifacts
-	importkeys                                                                                  -- imports signing keys from env
-	debsrc     [ -signer key-id ] [ -upload dest ]                                              -- creates a debian source package
-	nsis                                                                                        -- creates a Windows NSIS installer
-	aar        [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an Android archive
-	xcode      [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an iOS XCode framework
-	xgo        [ -alltools ] [ options ]                                                        -- cross builds according to options
-	purge      [ -store blobstore ] [ -days threshold ]                                         -- purges old archives from the blobstore
+		install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
+		test       [ -coverage ] [ packages... ]                                                    -- runs the tests
+		lint                                                                                        -- runs certain pre-selected linters
+	   	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -signify key-envvar ] [ -upload dest ] -- archives build artifacts
+		importkeys                                                                                  -- imports signing keys from env
+		debsrc     [ -signer key-id ] [ -upload dest ]                                              -- creates a debian source package
+		nsis                                                                                        -- creates a Windows NSIS installer
+		aar        [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an Android archive
+		xcode      [ -local ] [ -sign key-id ] [-deploy repo] [ -upload dest ]                      -- creates an iOS XCode framework
+		xgo        [ -alltools ] [ options ]                                                        -- cross builds according to options
+		purge      [ -store blobstore ] [ -days threshold ]                                         -- purges old archives from the blobstore
 
 For all commands, -n prevents execution of external programs (dry run mode).
 */
@@ -115,7 +115,6 @@ var (
 
 	// Packages to be cross-compiled by the xgo command
 	allCrossCompiledArchiveFiles = append(allToolsArchiveFiles)
-
 	// Distros for which packages are created.
 	// Note: vivid is unsupported because there is no golang-1.6 package for it.
 	// Note: wily is unsupported because it was officially deprecated on Launchpad.
@@ -125,11 +124,12 @@ var (
 	// Note: cosmic is unsupported because it was officially deprecated on Launchpad.
 	// Note: disco is unsupported because it was officially deprecated on Launchpad.
 	debDistroGoBoots = map[string]string{
-		"trusty": "golang-1.11",
-		"xenial": "golang-go",
-		"bionic": "golang-go",
-		"disco":  "golang-go",
-		"focal":  "golang-go",
+		"trusty":  "golang-1.11",
+		"xenial":  "golang-go",
+		"bionic":  "golang-go",
+		"focal":   "golang-go",
+		"groovy":  "golang-go",
+		"hirsute": "golang-go",
 	}
 
 	debGoBootPaths = map[string]string{
@@ -390,7 +390,7 @@ func doLint(cmdline []string) {
 
 // downloadLinter downloads and unpacks golangci-lint.
 func downloadLinter(cachedir string) string {
-	const version = "1.24.0"
+	const version = "1.39.0"
 
 	csdb := build.MustLoadChecksums("build/checksums.txt")
 	base := fmt.Sprintf("golangci-lint-%s-%s-%s", version, runtime.GOOS, runtime.GOARCH)
@@ -574,16 +574,17 @@ func doDebianSource(cmdline []string) {
 			build.MustRun(debuild)
 
 			var (
-				basename = fmt.Sprintf("%s_%s", meta.Name(), meta.VersionString())
-				source   = filepath.Join(*workdir, basename+".tar.xz")
-				dsc      = filepath.Join(*workdir, basename+".dsc")
-				changes  = filepath.Join(*workdir, basename+"_source.changes")
+				basename  = fmt.Sprintf("%s_%s", meta.Name(), meta.VersionString())
+				source    = filepath.Join(*workdir, basename+".tar.xz")
+				dsc       = filepath.Join(*workdir, basename+".dsc")
+				changes   = filepath.Join(*workdir, basename+"_source.changes")
+				buildinfo = filepath.Join(*workdir, basename+"_source.buildinfo")
 			)
 			if *signer != "" {
 				build.MustRunCommand("debsign", changes)
 			}
 			if *upload != "" {
-				ppaUpload(*workdir, *upload, *sshUser, []string{source, dsc, changes})
+				ppaUpload(*workdir, *upload, *sshUser, []string{source, dsc, changes, buildinfo})
 			}
 		}
 	}
@@ -898,6 +899,9 @@ func doAndroidArchive(cmdline []string) {
 
 	// Sign and upload the archive to Azure
 	archive := "platon-" + archiveBasename("android", params.ArchiveVersion(env.Commit)) + ".aar"
+	if err := os.MkdirAll(archive, 0755); err != nil {
+		log.Fatal(err)
+	}
 	os.Rename("platon.aar", archive)
 
 	if err := archiveUpload(archive, *upload, *signer, *signify); err != nil {

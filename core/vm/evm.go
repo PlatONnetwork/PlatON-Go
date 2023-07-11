@@ -58,7 +58,9 @@ type (
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
+		if gov.Gte150VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin2
+		} else if evm.chainRules.IsHubble {
 			precompiles = PrecompiledContractsBerlin
 		}
 
@@ -68,7 +70,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := PlatONPrecompiledContracts120[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
 			case *vrf:
-				if gov.Gte120VersionState(evm.StateDB) {
+				if evm.chainRules.IsNewton {
 					return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
 				}
 			case *validatorInnerContract:
@@ -196,6 +198,10 @@ type EVM struct {
 
 	// chainConfig contains information about the current chain
 	chainConfig *params.ChainConfig
+
+	// chain rules contains the chain rules for the current epoch
+	chainRules params.Rules
+
 	// virtual machine configuration options used to initialise the
 	// evm.
 	vmConfig Config
@@ -222,23 +228,9 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		StateDB:      statedb,
 		vmConfig:     vmConfig,
 		chainConfig:  chainConfig,
+		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	//第3阶段EVM中CHAINID指令返回值使用新链ID
-
-	if statedb != nil && gov.Gte130VersionState(statedb) {
-		cpyChainCfg := &params.ChainConfig{
-			ChainID:        chainConfig.PIP7ChainID,
-			AddressHRP:     chainConfig.AddressHRP,
-			EmptyBlock:     chainConfig.EmptyBlock,
-			EIP155Block:    chainConfig.EIP155Block,
-			EWASMBlock:     chainConfig.EWASMBlock,
-			Cbft:           chainConfig.Cbft,
-			GenesisVersion: chainConfig.GenesisVersion,
-		}
-		evm.chainConfig = cpyChainCfg
-	}
-
 	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
 	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
@@ -309,14 +301,15 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		if gov.Gte140VersionState(evm.StateDB) {
+		if gov.Gte150VersionState(evm.StateDB) {
+			precompiles = PrecompiledContractsBerlin2
+		} else if evm.chainRules.IsHubble {
 			precompiles = PrecompiledContractsBerlin
 		}
-
-		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, gov.Gte120VersionState(evm.StateDB)) && value.Sign() == 0 {
+		if precompiles[addr] == nil && !IsPlatONPrecompiledContract(addr, evm.chainConfig.Rules(evm.Context.BlockNumber)) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
 			return nil, gas, nil
@@ -334,12 +327,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Even if the account has no code, we need to continue because it might be a precompile
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), addr, false, input, gas, value)
 		defer func(startGas uint64, startTime time.Time) { // Lazy evaluation of the parameters
 			evm.vmConfig.Tracer.CaptureEnd(ret, startGas-gas, time.Since(startTime), err)
 		}(gas, time.Now())
 	}
 	ret, err = run(evm, contract, input, false)
+	gas = contract.Gas
 
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -496,7 +490,11 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 	nonce := evm.StateDB.GetNonce(caller.Address())
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
-
+	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
+	// the access-list change should not be rolled back
+	if gov.Gte150VersionState(evm.StateDB) {
+		evm.StateDB.AddAddressToAccessList(address)
+	}
 	// Ensure there's no existing contract already at the designated address
 	contractHash := evm.StateDB.GetCodeHash(address)
 	if evm.StateDB.GetNonce(address) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
@@ -520,7 +518,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	}
 
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), address, true, codeAndHash.code, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(evm, caller.Address(), address, true, codeAndHash.code, gas, value)
 	}
 	start := time.Now()
 

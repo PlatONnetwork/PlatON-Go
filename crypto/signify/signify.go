@@ -50,7 +50,7 @@ func parsePrivateKey(key string) (ed25519.PrivateKey, []byte, []byte, error) {
 		return nil, nil, nil, errInvalidKeyHeader
 	}
 
-	return ed25519.PrivateKey(keydata[40:]), keydata[:2], keydata[32:40], nil
+	return keydata[40:], keydata[:2], keydata[32:40], nil
 }
 
 func commentHasManyLines(comment string) bool {

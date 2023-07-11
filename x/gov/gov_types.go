@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package gov
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 type TallyResult struct {
@@ -33,14 +32,14 @@ type TallyResult struct {
 }
 
 type VoteInfo struct {
-	ProposalID common.Hash     `json:"proposalID"`
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
+	ProposalID common.Hash `json:"proposalID"`
+	VoteNodeID enode.IDv0  `json:"voteNodeID"`
+	VoteOption VoteOption  `json:"voteOption"`
 }
 
 type VoteValue struct {
-	VoteNodeID discover.NodeID `json:"voteNodeID"`
-	VoteOption VoteOption      `json:"voteOption"`
+	VoteNodeID enode.IDv0 `json:"voteNodeID"`
+	VoteOption VoteOption `json:"voteOption"`
 }
 
 type ActiveVersionValue struct {

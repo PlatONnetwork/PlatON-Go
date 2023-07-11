@@ -18,6 +18,7 @@ package miner
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -37,7 +38,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 var (
@@ -67,15 +68,26 @@ func init() {
 	testTxPoolConfig = core.DefaultTxPoolConfig
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
-	chainConfig.Clique = &params.CliqueConfig{
-		Period: 10,
-		Epoch:  30000,
-	}
-	tx1, _ := types.SignTx(types.NewTransaction(0, testUserAddress, big.NewInt(1000), params.TxGas, nil, nil), types.NewEIP155Signer(chainConfig.ChainID), testBankKey)
+
+	signer := types.NewEIP2930Signer(chainConfig.PIP7ChainID)
+	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
+		ChainID: params.TestChainConfig.PIP7ChainID,
+		Nonce:   0,
+		To:      &testUserAddress,
+		Value:   big.NewInt(1000),
+		Gas:     params.TxGas,
+	})
 	pendingTxs = append(pendingTxs, tx1)
-	tx2, _ := types.SignTx(types.NewTransaction(1, testUserAddress, big.NewInt(1000), params.TxGas, nil, nil), types.NewEIP155Signer(chainConfig.ChainID), testBankKey)
+
+	tx2 := types.MustSignNewTx(testBankKey, signer, &types.LegacyTx{
+		Nonce: 1,
+		To:    &testUserAddress,
+		Value: big.NewInt(1000),
+		Gas:   params.TxGas,
+	})
 	newTxs = append(newTxs, tx2)
 
+	rand.Seed(time.Now().UnixNano())
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
@@ -112,7 +124,8 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	blockChainCache := core.NewBlockChainCache(chain)
 
-	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db))
+	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db), nil)
+	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, stateDB)
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 

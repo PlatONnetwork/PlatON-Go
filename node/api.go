@@ -19,7 +19,10 @@ package node
 import (
 	"context"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -27,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -71,7 +73,7 @@ func (api *privateAdminAPI) AddPeer(url string) (bool, error) {
 		return false, ErrNodeStopped
 	}
 	// Try to add the url as a static peer and return
-	node, err := discover.ParseNode(url)
+	node, err := enode.Parse(enode.ValidSchemes, url)
 	if err != nil {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}
@@ -87,7 +89,7 @@ func (api *privateAdminAPI) RemovePeer(url string) (bool, error) {
 		return false, ErrNodeStopped
 	}
 	// Try to remove the url as a static peer and return
-	node, err := discover.ParseNode(url)
+	node, err := enode.Parse(enode.ValidSchemes, url)
 	if err != nil {
 		return false, fmt.Errorf("invalid enode: %v", err)
 	}
@@ -133,8 +135,8 @@ func (api *privateAdminAPI) PeerEvents(ctx context.Context) (*rpc.Subscription, 
 	return rpcSub, nil
 }
 
-// StartRPC starts the HTTP RPC API server.
-func (api *privateAdminAPI) StartRPC(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
+// StartHTTP starts the HTTP RPC API server.
+func (api *privateAdminAPI) StartHTTP(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
 	api.node.lock.Lock()
 	defer api.node.lock.Unlock()
 
@@ -187,10 +189,24 @@ func (api *privateAdminAPI) StartRPC(host *string, port *int, cors *string, apis
 	return true, nil
 }
 
-// StopRPC shuts down the HTTP server.
-func (api *privateAdminAPI) StopRPC() (bool, error) {
+// StartRPC starts the HTTP RPC API server.
+// This method is deprecated. Use StartHTTP instead.
+func (api *privateAdminAPI) StartRPC(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
+	log.Warn("Deprecation warning", "method", "admin.StartRPC", "use-instead", "admin.StartHTTP")
+	return api.StartHTTP(host, port, cors, apis, vhosts)
+}
+
+// StopHTTP shuts down the HTTP server.
+func (api *privateAdminAPI) StopHTTP() (bool, error) {
 	api.node.http.stop()
 	return true, nil
+}
+
+// StopRPC shuts down the HTTP server.
+// This method is deprecated. Use StopHTTP instead.
+func (api *privateAdminAPI) StopRPC() (bool, error) {
+	log.Warn("Deprecation warning", "method", "admin.StopRPC", "use-instead", "admin.StopHTTP")
+	return api.StopHTTP()
 }
 
 // StartWS starts the websocket RPC API server.

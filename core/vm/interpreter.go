@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"hash"
 	"sync/atomic"
 
@@ -73,13 +74,13 @@ type Interpreter interface {
 	CanRun([]byte) bool
 }
 
-// callCtx contains the things that are per-call, such as stack and memory,
+// ScopeContext contains the things that are per-call, such as stack and memory,
 // but not transients like pc and gas
-type callCtx struct {
-	memory   *Memory
-	stack    *Stack
+type ScopeContext struct {
+	Memory   *Memory
+	Stack    *Stack
 	rstack   *ReturnStack
-	contract *Contract
+	Contract *Contract
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
@@ -108,7 +109,13 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
-		cfg.JumpTable = istanbulInstructionSet
+		if evm.StateDB == nil {
+			cfg.JumpTable = berlinInstructionSet
+		} else if gov.Gte150VersionState(evm.StateDB) {
+			cfg.JumpTable = berlinInstructionSet
+		} else {
+			cfg.JumpTable = istanbulInstructionSet
+		}
 	}
 
 	return &EVMInterpreter{
@@ -158,11 +165,11 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		mem         = NewMemory()      // bound memory
 		stack       = newstack()       // local stack
 		returns     = newReturnStack() // local returns stack
-		callContext = &callCtx{
-			memory:   mem,
-			stack:    stack,
+		callContext = &ScopeContext{
+			Memory:   mem,
+			Stack:    stack,
 			rstack:   returns,
-			contract: contract,
+			Contract: contract,
 		}
 		// For optimisation reason we're using uint64 as the program counter.
 		// It's theoretically possible to go above 2^64. The YP defines the PC
@@ -188,9 +195,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, mem, stack, returns, in.returnData, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, mem, stack, returns, contract, in.evm.depth, err)
+					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, callContext, in.evm.depth, err)
 				}
 			}
 		}()
@@ -272,7 +279,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, mem, stack, returns, in.returnData, contract, in.evm.depth, err)
+			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 			logged = true
 		}
 

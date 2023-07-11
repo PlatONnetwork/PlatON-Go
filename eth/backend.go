@@ -24,12 +24,21 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
@@ -38,8 +47,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
@@ -56,7 +63,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -65,12 +71,14 @@ import (
 
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
-	config *Config
+	config *ethconfig.Config
 
 	// Handlers
-	txPool          *core.TxPool
-	blockchain      *core.BlockChain
-	protocolManager *ProtocolManager
+	txPool             *core.TxPool
+	blockchain         *core.BlockChain
+	handler            *handler
+	ethDialCandidates  enode.Iterator
+	snapDialCandidates enode.Iterator
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -97,20 +105,32 @@ type Ethereum struct {
 
 // New creates a new Ethereum object (including the
 // initialisation of the common Ethereum object)
-func New(stack *node.Node, config *Config) (*Ethereum, error) {
+func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
+	}
+	if config.SyncMode == downloader.SnapSync {
+		return nil, errors.New("can't run PlatON in snap sync mode now")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
 	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
-		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
-		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
+		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", ethconfig.Defaults.Miner.GasPrice)
+		config.Miner.GasPrice = new(big.Int).Set(ethconfig.Defaults.Miner.GasPrice)
 	}
+	//if config.NoPruning && config.TrieDirtyCache > 0 {
+	//	if config.SnapshotCache > 0 {
+	//		config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
+	//		config.SnapshotCache += config.TrieDirtyCache * 2 / 5
+	//	} else {
+	//		config.TrieCleanCache += config.TrieDirtyCache
+	//	}
+	//	config.TrieDirtyCache = 0
+	//}
 	// Assemble the Ethereum object
-	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
+	chainDb, err := stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/", false)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +144,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	height := rawdb.ReadHeaderNumber(chainDb, rawdb.ReadHeadHeaderHash(chainDb))
 	log.Debug("read header number from chain db", "height", height)
 	if height != nil && *height > 0 {
-		//when last  fast syncing fail,we will clean chaindb,wal,snapshotdb
+		//when last fast syncing fail,we will clean chaindb,wal,snapshotdb
 		status, err := snapshotBaseDB.GetBaseDB([]byte(downloader.KeyFastSyncStatus))
 
 		// systemError
@@ -136,12 +156,11 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		}
 		//if find sync status,this means last syncing not finish,should clean all db to reinit
 		//if not find sync status,no need init chain
-		if err == nil {
-
+		if err == nil { // KeyFastSyncStatus == (FastSyncBegin || FastSyncFail)
 			// Just commit the new block if there is no stored genesis block.
 			stored := rawdb.ReadCanonicalHash(chainDb, 0)
 
-			log.Info("last fast sync is fail,init  db", "status", common.BytesToUint32(status), "prichain", config.Genesis == nil)
+			log.Info("last fast sync is fail,init db", "status", common.BytesToUint32(status), "prichain", config.Genesis == nil)
 			chainDb.Close()
 			if err := snapshotBaseDB.Close(); err != nil {
 				return nil, err
@@ -165,7 +184,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/")
+			chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", config.DatabaseCache, config.DatabaseHandles, config.DatabaseFreezer, "eth/db/chaindata/", false)
 			if err != nil {
 				return nil, err
 			}
@@ -175,7 +194,7 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			//only private net  need InitGenesisAndSetEconomicConfig
+			//only private net need InitGenesisAndSetEconomicConfig
 			if stored != params.MainnetGenesisHash && config.Genesis == nil {
 				// private net
 				config.Genesis = new(core.Genesis)
@@ -183,14 +202,22 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 					return nil, err
 				}
 			}
-			log.Info("last fast sync is fail,init  db finish")
+			log.Info("last fast sync is fail,init db finish")
+		} else { // err == snapshotdb.ErrNotFound
+			// Just commit the new block if there is no stored genesis block.
+			stored := rawdb.ReadCanonicalHash(chainDb, 0)
+			//todo 这是一个暂时的hack方法,针对我们的测试链使用,待测试链版本升级到1.5.0后此方法可以删除
+			if stored != params.MainnetGenesisHash && config.Genesis == nil {
+				// private net
+				config.Genesis = new(core.Genesis)
+				if err := config.Genesis.InitGenesisAndSetEconomicConfig(stack.GenesisPath()); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
-	chainConfig, _, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
-	if err := snapshotBaseDB.Close(); err != nil {
-		return nil, err
-	}
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
 
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -209,12 +236,12 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
+		engine:            ethconfig.CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
-		bloomIndexer:      NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
+		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
 	}
 
@@ -224,13 +251,15 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if bcVersion != nil {
 		dbVer = fmt.Sprintf("%d", *bcVersion)
 	}
-	log.Info("Initialising PlatON protocol", "versions", ProtocolVersions, "network", config.NetworkId, "dbversion", dbVer)
+	log.Info("Initialising PlatON protocol", "network", config.NetworkId, "dbversion", dbVer)
 
 	if !config.SkipBcVersionCheck {
 		if bcVersion != nil && *bcVersion > core.BlockChainVersion {
 			return nil, fmt.Errorf("database version is v%d, PlatON %s only supports v%d", *bcVersion, params.VersionWithMeta, core.BlockChainVersion)
 		} else if bcVersion == nil || *bcVersion < core.BlockChainVersion {
-			log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
+			if bcVersion != nil { // only print warning on upgrade, not on init
+				log.Warn("Upgrade blockchain database version", "from", dbVer, "to", core.BlockChainVersion)
+			}
 			rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
 		}
 	}
@@ -240,10 +269,11 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			ConsoleOutput: config.Debug,
 			WasmType:      vm.Str2WasmType(config.VMWasmType),
 		}
-		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieDirtyLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
+		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieDirtyLimit: config.TrieDirtyCache, TrieTimeLimit: config.TrieTimeout,
+			SnapshotLimit:  config.SnapshotCache,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
-			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
-			TriesInMemory: config.TriesInMemory, TrieCleanLimit: config.TrieDBCache, Preimages: config.Preimages,
+			MaxFutureBlocks: config.MaxFutureBlocks,
+			TriesInMemory:   config.TriesInMemory, TrieCleanLimit: config.TrieDBCache, Preimages: config.Preimages,
 			TrieCleanJournal:   stack.ResolvePath(config.TrieCleanCacheJournal),
 			TrieCleanRejournal: config.TrieCleanCacheRejournal,
 			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
@@ -270,10 +300,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
-		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
-		return nil, compat
+		log.Warn("upgrade configuration", "err", compat)
+		//return nil, compat
 		//eth.blockchain.SetHead(compat.RewindTo)
-		//rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
+		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
 	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
@@ -287,7 +317,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
 	currentHash := currentBlock.Hash()
-	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash)
+	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
+	if err := snapshotBaseDB.Close(); err != nil {
+		return nil, err
+	}
 	if nil != err {
 		log.Error("Failed to query gasCeil from snapshotdb", "err", err)
 		return nil, err
@@ -322,10 +355,10 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
-			reactor.SetVRFhandler(handler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+			reactor.SetVRFhandler(vrfhandler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, chainConfig, config.DBValidatorsHistory)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -341,11 +374,27 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
 		}
+	} else {
+		log.Crit("engin not good")
 	}
 
 	// Permit the downloader to use the trie cache allowance during fast sync
-	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit
-	if eth.protocolManager, err = NewProtocolManager(chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb, cacheLimit); err != nil {
+	cacheLimit := cacheConfig.TrieCleanLimit + cacheConfig.TrieDirtyLimit + cacheConfig.SnapshotLimit
+	checkpoint := config.Checkpoint
+	if checkpoint == nil {
+		checkpoint = params.TrustedCheckpoints[params.MainnetGenesisHash]
+	}
+	if eth.handler, err = newHandler(&handlerConfig{
+		Database:   chainDb,
+		Chain:      eth.blockchain,
+		TxPool:     eth.txPool,
+		Network:    config.NetworkId,
+		Sync:       config.SyncMode,
+		BloomCache: uint64(cacheLimit),
+		EventMux:   eth.eventMux,
+		Checkpoint: checkpoint,
+		Whitelist:  config.Whitelist,
+	}); err != nil {
 		return nil, err
 	}
 	eth.APIBackend = &EthAPIBackend{stack.Config().ExtRPCEnabled(), stack.Config().AllowUnprotectedTxs, eth, nil}
@@ -356,14 +405,39 @@ func New(stack *node.Node, config *Config) (*Ethereum, error) {
 	if gpoParams.Default == nil {
 		gpoParams.Default = config.Miner.GasPrice
 	}
+
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+	// Setup DNS discovery iterators.
+	dnsclient := dnsdisc.NewClient(dnsdisc.Config{})
+	eth.ethDialCandidates, err = dnsclient.NewIterator(eth.config.EthDiscoveryURLs...)
+	if err != nil {
+		return nil, err
+	}
+	eth.snapDialCandidates, err = dnsclient.NewIterator(eth.config.SnapDiscoveryURLs...)
+	if err != nil {
+		return nil, err
+	}
 	// Start the RPC service
-	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, eth.NetVersion())
+	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, config.NetworkId)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
 	stack.RegisterProtocols(eth.Protocols())
 	stack.RegisterLifecycle(eth)
+
+	// Check for unclean shutdown
+	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
+		log.Error("Could not update unclean-shutdown-marker list", "error", err)
+	} else {
+		if discards > 0 {
+			log.Warn("Old unclean shutdowns found", "count", discards)
+		}
+		for _, tstamp := range uncleanShutdowns {
+			t := time.Unix(int64(tstamp), 0)
+			log.Warn("Unclean shutdown detected", "booted", t,
+				"age", common.PrettyAge(t))
+		}
+	}
 	return eth, nil
 }
 
@@ -388,17 +462,6 @@ func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	return nil
 }
 
-// CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
-	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
-	// If proof-of-authority is requested, set it up
-	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
-	if engine == nil {
-		panic("create consensus engine fail")
-	}
-	return engine
-}
-
 // APIs return the collection of RPC services the ethereum package offers.
 // NOTE, some of these services probably need to be moved to somewhere else.
 func (s *Ethereum) APIs() []rpc.API {
@@ -412,7 +475,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		{
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
+			Service:   downloader.NewPublicDownloaderAPI(s.handler.downloader, s.eventMux),
 			Public:    true,
 		}, {
 			Namespace: "miner",
@@ -422,7 +485,7 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
+			Service:   filters.NewPublicFilterAPI(s.APIBackend, false, 5*time.Minute),
 			Public:    true,
 		}, {
 			Namespace: "admin",
@@ -523,7 +586,7 @@ func (s *Ethereum) StartMining() error {
 
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
-		atomic.StoreUint32(&s.protocolManager.acceptTxs, 1)
+		atomic.StoreUint32(&s.handler.acceptTxs, 1)
 
 		go s.miner.Start()
 	}
@@ -546,31 +609,33 @@ func (s *Ethereum) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Ethereum) Engine() consensus.Engine           { return s.engine }
 func (s *Ethereum) ChainDb() ethdb.Database            { return s.chainDb }
 func (s *Ethereum) IsListening() bool                  { return true } // Always listening
-func (s *Ethereum) EthVersion() int                    { return int(s.protocolManager.SubProtocols[0].Version) }
-func (s *Ethereum) NetVersion() uint64                 { return s.networkID }
-func (s *Ethereum) Downloader() *downloader.Downloader { return s.protocolManager.downloader }
+func (s *Ethereum) Downloader() *downloader.Downloader { return s.handler.downloader }
+func (s *Ethereum) Synced() bool                       { return atomic.LoadUint32(&s.handler.acceptTxs) == 1 }
 func (s *Ethereum) BloomIndexer() *core.ChainIndexer   { return s.bloomIndexer }
 
 // Protocols returns all the currently configured
 // network protocols to start.
 func (s *Ethereum) Protocols() []p2p.Protocol {
-	protocols := make([]p2p.Protocol, 0)
-	protocols = append(protocols, s.protocolManager.SubProtocols...)
-	protocols = append(protocols, s.engine.Protocols()...)
-
-	return protocols
+	protos := eth.MakeProtocols((*ethHandler)(s.handler), s.networkID, s.ethDialCandidates)
+	protos = append(protos, s.Engine().Protocols()...)
+	if s.config.SnapshotCache > 0 {
+		protos = append(protos, snap.MakeProtocols((*snapHandler)(s.handler), s.snapDialCandidates)...)
+	}
+	return protos
 }
 
 // Start implements node.Lifecycle, starting all internal goroutines needed by the
 // Ethereum protocol implementation.
 func (s *Ethereum) Start() error {
+	eth.StartENRUpdater(s.blockchain, s.p2pServer.LocalNode())
+
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := s.p2pServer.MaxPeers
 	// Start the networking layer and the light server if requested
-	s.protocolManager.Start(maxPeers)
+	s.handler.Start(maxPeers)
 
 	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
@@ -578,7 +643,7 @@ func (s *Ethereum) Start() error {
 			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
 				// todo: Mock point.
 				if !node.FakeNetEnable {
-					s.p2pServer.AddConsensusPeer(discover.NewNode(n.Node.ID, n.Node.IP, n.Node.UDP, n.Node.TCP))
+					s.p2pServer.AddConsensusPeer(n.Node)
 				}
 			}
 		}
@@ -592,7 +657,9 @@ func (s *Ethereum) Start() error {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Ethereum protocol.
 func (s *Ethereum) Stop() error {
-	s.protocolManager.Stop()
+	s.ethDialCandidates.Close()
+	s.snapDialCandidates.Close()
+	s.handler.Stop()
 
 	// Then stop everything else.
 	// Only the operations related to block execution are stopped here
@@ -605,13 +672,14 @@ func (s *Ethereum) Stop() error {
 	s.blockchain.Stop()
 	s.engine.Close()
 	core.GetReactorInstance().Close()
+	rawdb.PopUncleanShutdownMarker(s.chainDb)
 	s.chainDb.Close()
 	s.eventMux.Stop()
 	return nil
 }
 
 // RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isValidatorsHistory bool) {
+func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chainConfig *params.ChainConfig, isValidatorsHistory bool) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
@@ -625,6 +693,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, isVal
 	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
+	xplugin.StakingInstance().SetChainConfig(chainConfig)
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}

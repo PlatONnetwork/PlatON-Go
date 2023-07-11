@@ -46,6 +46,12 @@ const RecoveryIDOffset = 64
 // DigestLength sets the signature digest exact length
 const DigestLength = 32
 
+const PubkeyBytesBits = 512
+
+// PubkeyBytes is a unique identifier for each node.
+// The node identifier is a marshaled elliptic curve public key.
+type PubkeyBytes [PubkeyBytesBits / 8]byte
+
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 
@@ -114,7 +114,7 @@ func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]b
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *SlashingContract) checkDuplicateSign(dupType uint8, nodeId discover.NodeID, blockNumber uint64) ([]byte, error) {
+func (sc *SlashingContract) checkDuplicateSign(dupType uint8, nodeId enode.IDv0, blockNumber uint64) ([]byte, error) {
 	log.Info("checkDuplicateSign exist", "blockNumber", blockNumber, "nodeId", nodeId.TerminalString(), "dupType", dupType)
 	txHash, err := sc.Plugin.CheckDuplicateSign(nodeId, blockNumber, consensus.EvidenceType(dupType), sc.Evm.StateDB)
 	var data string

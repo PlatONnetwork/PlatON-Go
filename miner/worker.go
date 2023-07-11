@@ -463,7 +463,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						}
 					}
 					timer.Reset(50 * time.Millisecond)
-				} else if w.chainConfig.Clique == nil || w.chainConfig.Clique.Period > 0 {
+				} else {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
 						timer.Reset(recommit)
@@ -616,6 +616,7 @@ func (w *worker) taskLoop() {
 				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				w.blockChainCache.AddSealBlock(sealHash, task.block.NumberU64())
+				task.state.UpdateSnaps()
 				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh, w.prepareCompleteCh); err != nil {
 					log.Warn("Block sealing failed on bft engine", "err", err)
@@ -760,7 +761,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 	env := &environment{
-		signer:     types.MakeSigner(w.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state)),
+		signer:     types.MakeSigner(w.chainConfig, header.Number, gov.Gte150VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,
@@ -908,6 +909,11 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 			log.Warn("Skipping account with wasm vm exec undefined err", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 			txs.Pop()
 
+		case errors.Is(err, core.ErrTxTypeNotSupported):
+			// Pop the unsupported transaction without shifting in the next from the account
+			log.Trace("Skipping unsupported transaction type", "sender", from, "type", tx.Type())
+			txs.Pop()
+
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
@@ -964,19 +970,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		if parent.Time() >= uint64(timestamp) {
 			timestamp = int64(parent.Time() + 1)
 		}
-		// this will ensure we're not going off too far in the future
-		if now := time.Now().Unix(); timestamp > now+1 {
-			wait := time.Duration(timestamp-now) * time.Second
-			log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
-			time.Sleep(wait)
-		}
 	}
 
 	num := parent.Number()
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor),
+		GasLimit:   core.CalcGasLimit(parent, w.config.GasFloor, snapshotdb.Instance()),
 		Time:       uint64(timestamp),
 	}
 
@@ -1006,7 +1006,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
 		if b, ok := w.engine.(consensus.Bft); ok {
-			core.GetReactorInstance().SetWorkerCoinBase(header, b.NodeID())
+			core.GetReactorInstance().SetWorkerCoinBase(header, b.Node().IDv0())
 		}
 	}
 

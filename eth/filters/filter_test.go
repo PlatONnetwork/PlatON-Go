@@ -52,7 +52,7 @@ func BenchmarkFilters(b *testing.B) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "", false)
 		backend = &testBackend{db: db}
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr1   = crypto.PubkeyToAddress(key1.PublicKey)
@@ -65,7 +65,7 @@ func BenchmarkFilters(b *testing.B) {
 	genesis := core.GenesisBlockForTesting(db, addr1, big.NewInt(1000000))
 
 	ctx, _ := node.New(&node.Config{DataDir: ""})
-	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 100010, func(i int, gen *core.BlockGen) {
+	chain, receipts := core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.TestChainConfig.Cbft, nil, nil, ctx), db, 100010, func(i int, gen *core.BlockGen) {
 		switch i {
 		case 2403:
 			receipt := makeReceipt(addr1)
@@ -108,7 +108,7 @@ func TestFilters(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	var (
-		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "")
+		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "", false)
 		backend = &testBackend{db: db}
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		addr    = crypto.PubkeyToAddress(key1.PublicKey)
