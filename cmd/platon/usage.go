@@ -19,9 +19,10 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"gopkg.in/urfave/cli.v1"
 
@@ -212,6 +213,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 		Name: "MISC",
 		Flags: []cli.Flag{
 			cli.HelpFlag,
+			utils.CatalystFlag,
 		},
 	},
 }
