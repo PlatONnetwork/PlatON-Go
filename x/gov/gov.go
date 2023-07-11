@@ -133,6 +133,14 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	return version
 }
 
+func GetCurrentActiveVersionList(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avList, err := ListActiveVersion(state)
+	if err != nil {
+		return nil, err
+	}
+	return avList, nil
+}
+
 // submit a proposal
 func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)

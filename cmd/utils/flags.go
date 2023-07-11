@@ -680,6 +680,11 @@ var (
 		EnvVar: "",
 		Value:  ethconfig.Defaults.VmTimeoutDuration,
 	}
+
+	CatalystFlag = cli.BoolFlag{
+		Name:  "catalyst",
+		Usage: "Catalyst mode (eth2 integration testing)",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1053,7 +1058,14 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		}
 		cfg.NetRestrict = list
 	}
-
+	if ctx.GlobalBool(CatalystFlag.Name) {
+		// --dev mode can't use p2p networking.
+		cfg.MaxPeers = 0
+		cfg.ListenAddr = ""
+		cfg.NoDial = true
+		cfg.NoDiscovery = true
+		cfg.DiscoveryV5 = false
+	}
 }
 
 // SetNodeConfig applies node-related command line flags to the config.
@@ -1351,17 +1363,18 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) ethapi.Backend {
+// The second return value is the full node instance, which may be nil if the
+// node is running as a light client.
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
 	if cfg.SyncMode == downloader.LightSync {
 		Fatalf("Failed to register the Platon service: not les")
-		return nil
 	} else {
 		backend, err := eth.New(stack, cfg)
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}
 		stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
-		return backend.APIBackend
+		return backend.APIBackend, nil
 	}
 }
 

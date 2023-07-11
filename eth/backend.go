@@ -294,6 +294,25 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//todo this is a hard code for 1.5.0
+	if chainConfig.PauliBlock == nil {
+		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Header().Root)
+		if err != nil {
+			return nil, err
+		}
+		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
+		if err != nil {
+			return nil, err
+		}
+		if len(ActiveVersionList) > 0 {
+			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
+				chainConfig.SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
+				log.Info("Initialised chain configuration for 1.5.0", "config", chainConfig)
+			}
+		}
+	}
+
 	snapshotdb.SetDBBlockChain(eth.blockchain)
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
@@ -694,6 +713,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
 	xplugin.StakingInstance().SetChainConfig(chainConfig)
+	xplugin.GovPluginInstance().SetChainConfig(chainConfig)
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}
