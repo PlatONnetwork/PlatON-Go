@@ -171,7 +171,7 @@ func TestBlockSubscription(t *testing.T) {
 		db      = rawdb.NewMemoryDatabase()
 		backend = &testBackend{db: db}
 		api     = NewPublicFilterAPI(backend, false, deadline)
-		genesis = new(core.Genesis).MustCommit(db)
+		genesis = (&core.Genesis{BaseFee: big.NewInt(params.InitialBaseFee)}).MustCommit(db)
 
 		//ctx         = node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 		//chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 10, func(i int, gen *core.BlockGen) {})

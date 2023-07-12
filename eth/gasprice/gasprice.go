@@ -32,8 +32,10 @@ import (
 
 const sampleNumber = 3 // Number of transactions sampled in a block
 
-var DefaultMaxPrice = big.NewInt(500 * params.GVon)
-var DefaultIgnorePrice = big.NewInt(2 * params.Von)
+var (
+	DefaultMaxPrice    = big.NewInt(500 * params.GVon)
+	DefaultIgnorePrice = big.NewInt(2 * params.Von)
+)
 
 type Config struct {
 	Blocks      int
@@ -138,9 +140,8 @@ func (gpo *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 		quit      = make(chan struct{})
 		results   []*big.Int
 	)
-
 	for sent < gpo.checkBlocks && number > 0 {
-		go gpo.getBlockValues(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(number))), number, sampleNumber, gpo.ignorePrice, result, quit)
+		go gpo.getBlockValues(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(number)), false), number, sampleNumber, gpo.ignorePrice, result, quit)
 		sent++
 		exp++
 		number--
@@ -163,7 +164,7 @@ func (gpo *Oracle) SuggestTipCap(ctx context.Context) (*big.Int, error) {
 		// meaningful returned, try to query more blocks. But the maximum
 		// is 2*checkBlocks.
 		if len(res.values) == 1 && len(results)+1+exp < gpo.checkBlocks*2 && number > 0 {
-			go gpo.getBlockValues(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(number))), number, sampleNumber, gpo.ignorePrice, result, quit)
+			go gpo.getBlockValues(ctx, types.MakeSigner(gpo.backend.ChainConfig(), big.NewInt(int64(number)), false), number, sampleNumber, gpo.ignorePrice, result, quit)
 			sent++
 			exp++
 			number--

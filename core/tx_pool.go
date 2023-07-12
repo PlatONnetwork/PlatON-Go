@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"math"
 	"math/big"
 	"sort"
@@ -278,9 +279,8 @@ type TxPool struct {
 	signer types.Signer
 	mu     sync.RWMutex
 
-	istanbul bool // Fork indicator whether we are in the istanbul stage.
-	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
-	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
+	eip2718 bool // Fork indicator whether we are using EIP-2718 type transactions.
+	eip1559 bool // Fork indicator whether we are using EIP-1559 type transactions.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
@@ -579,7 +579,7 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 	pool.gasPrice = price
 	// if the min miner fee increased, remove transactions below the new threshold
 	if price.Cmp(old) > 0 {
-		// pool.priced is sorted by FeeCap, so we have to iterate through pool.all instead
+		// pool.priced is sorted by GasFeeCap, so we have to iterate through pool.all instead
 		drop := pool.all.RemotesBelowTip(price)
 		for _, tx := range drop {
 			pool.removeTx(tx.Hash(), false)
@@ -642,35 +642,38 @@ func (pool *TxPool) Content() (map[common.Address]types.Transactions, map[common
 // Pending retrieves all currently processable transactions, grouped by origin
 // account and sorted by nonce. The returned transaction set is a copy and can be
 // freely modified by calling code.
-func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	pending := make(map[common.Address]types.Transactions)
-	for addr, list := range pool.pending {
-		pending[addr] = list.Flatten()
-	}
-	return pending, nil
-}
-
-// PendingLimited retrieves `pool.config.GlobalTxCount` processable transactions,
-// grouped by origin account and stored by nonce. The returned transaction set
-// is a copy and can be freely modified by calling code.
-func (pool *TxPool) PendingLimited() (map[common.Address]types.Transactions, error) {
-	now := time.Now()
+//
+// The enforceTips parameter can be used to do an extra filtering on the pending
+// transactions and only return those whose **effective** tip is large enough in
+// the next pending execution environment.
+func (pool *TxPool) Pending(enforceTips, limited bool) (map[common.Address]types.Transactions, error) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	txCount := 0
 	pending := make(map[common.Address]types.Transactions)
 	for addr, list := range pool.pending {
-		pending[addr] = list.Flatten()
-		txCount += len(pending[addr])
-		if txCount >= int(pool.config.GlobalTxCount) {
-			break
+		txs := list.Flatten()
+
+		// If the miner requests tip enforcement, cap the lists now
+		if enforceTips && !pool.locals.contains(addr) {
+			for i, tx := range txs {
+				if tx.EffectiveGasTipIntCmp(pool.gasPrice, pool.priced.urgent.baseFee) < 0 {
+					txs = txs[:i]
+					break
+				}
+			}
+		}
+		if len(txs) > 0 {
+			pending[addr] = txs
+			if limited {
+				txCount += len(pending[addr])
+				if txCount >= int(pool.config.GlobalTxCount) {
+					break
+				}
+			}
 		}
 	}
-	log.Trace("Get pending", "duration", time.Since(now))
 	return pending, nil
 }
 
@@ -723,14 +726,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrGasLimit
 	}
 	// Sanity check for extremely large numbers
-	if tx.FeeCap().BitLen() > 256 {
+	if tx.GasFeeCap().BitLen() > 256 {
 		return ErrFeeCapVeryHigh
 	}
-	if tx.Tip().BitLen() > 256 {
+	if tx.GasTipCap().BitLen() > 256 {
 		return ErrTipVeryHigh
 	}
-	// Ensure feeCap is less than or equal to tip.
-	if tx.FeeCapIntCmp(tx.Tip()) < 0 {
+	// Ensure gasFeeCap is greater than or equal to gasTipCap.
+	if tx.GasFeeCapIntCmp(tx.GasTipCap()) < 0 {
 		return ErrTipAboveFeeCap
 	}
 	// Make sure the transaction is signed properly.
@@ -739,7 +742,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price or tip
-	if !local && tx.TipIntCmp(pool.gasPrice) < 0 {
+	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction adheres to nonce ordering
@@ -804,7 +807,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		// If the new transaction is underpriced, don't accept it
 		if !isLocal && pool.priced.Underpriced(tx) {
 			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding underpriced transaction", "hash", hash, "tip", tx.Tip(), "feeCap", tx.FeeCap())
+				log.Trace("Discarding underpriced transaction", "hash", hash, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			}
 			underpricedTxMeter.Mark(1)
 			return false, ErrUnderpriced
@@ -823,7 +826,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		// Kick out the underpriced remote transactions.
 		for _, tx := range drop {
 			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "tip", tx.Tip(), "feeCap", tx.FeeCap())
+				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			}
 			underpricedTxMeter.Mark(1)
 			pool.removeTx(tx.Hash(), false)
@@ -1331,8 +1334,9 @@ func (pool *TxPool) runReorg(done chan struct{}, reset *txpoolResetRequest, dirt
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
 		pool.demoteUnexecutables()
-		if reset.newHead != nil {
-			pool.priced.SetBaseFee(reset.newHead.BaseFee)
+		if reset.newHead != nil && pool.chainconfig.IsPauli(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
+			pendingBaseFee := misc.CalcBaseFee(pool.chainconfig, reset.newHead)
+			pool.priced.SetBaseFee(pendingBaseFee)
 		}
 	}
 	// Ensure pool.queue and pool.pending sizes stay within the configured limits.
@@ -1464,9 +1468,8 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 
 	// Update all fork indicator by next pending block number.
 	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
-	pool.istanbul = pool.chainconfig.IsIstanbul(next)
 	pool.eip2718 = pool.chainconfig.IsBerlin(next)
-	pool.eip1559 = pool.chainconfig.IsLondon(next)
+	pool.eip1559 = pool.chainconfig.IsPauli(next)
 }
 
 func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
@@ -2029,7 +2032,7 @@ func (t *txLookup) RemoteToLocals(locals *accountSet) int {
 func (t *txLookup) RemotesBelowTip(threshold *big.Int) types.Transactions {
 	found := make(types.Transactions, 0, 128)
 	t.Range(func(hash common.Hash, tx *types.Transaction, local bool) bool {
-		if tx.TipIntCmp(threshold) < 0 {
+		if tx.GasTipCapIntCmp(threshold) < 0 {
 			found = append(found, tx)
 		}
 		return true
