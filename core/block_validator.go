@@ -108,21 +108,7 @@ func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateD
 // ceil if the blocks are full. If the ceil is exceeded, it will always decrease
 // the gas allowance.
 func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64, db snapshotdb.DB) uint64 {
-
-	var gasCeil uint64
-
-	if db == nil {
-		gasCeil = uint64(params.DefaultMinerGasCeil)
-	} else {
-		govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash, db)
-		if nil != err {
-			log.Error("cannot find GasLimit from govern", "err", err)
-			gasCeil = uint64(params.DefaultMinerGasCeil)
-		} else {
-			gasCeil = uint64(govGasCeil)
-		}
-	}
-
+	var gasCeil = CalcGasCeil(parent, db)
 	if gasFloor > gasCeil {
 		gasFloor = gasCeil
 	}
@@ -154,6 +140,22 @@ func CalcGasLimit(parent *types.Block, gasFloor /*, gasCeil*/ uint64, db snapsho
 	}
 	log.Info("Call CalcGasLimit", "blockNumber", parent.Number().Uint64()+1, "gasFloor", gasFloor, "gasCeil", gasCeil, "parentLimit", parent.GasLimit(), "limit", limit)
 	return limit
+}
+
+func CalcGasCeil(parent *types.Block, db snapshotdb.DB) uint64 {
+	var gasCeil uint64
+	if db == nil {
+		gasCeil = params.DefaultMinerGasCeil
+	} else {
+		govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash, db)
+		if nil != err {
+			log.Error("cannot find GasLimit from govern", "err", err)
+			gasCeil = uint64(params.DefaultMinerGasCeil)
+		} else {
+			gasCeil = uint64(govGasCeil)
+		}
+	}
+	return gasCeil
 }
 
 // CalcGasLimit1559 calculates the next block gas limit under 1559 rules.

@@ -30,8 +30,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AlayaNetwork/Alaya-Go/les"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -475,7 +473,7 @@ func (s *Service) login(conn *connWrapper) error {
 	if info := infos.Protocols["eth"]; info != nil {
 		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		network = fmt.Sprintf("%d", infos.Protocols["les"].(*les.NodeInfo).Network)
+		return errors.New("les not supported")
 	}
 	auth := &authMsg{
 		ID: s.node,
@@ -577,7 +575,6 @@ type blockStats struct {
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       common.Hash    `json:"stateRoot"`
-	Uncles     uncleStats     `json:"uncles"`
 }
 
 // txStats is the information to report about individual transactions.
@@ -621,7 +618,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 	var (
 		header *types.Header
 		txs    []txStats
-		uncles []*types.Header
 	)
 
 	// check if backend is a full node
@@ -662,7 +658,6 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,
-		Uncles:     uncles,
 	}
 }
 

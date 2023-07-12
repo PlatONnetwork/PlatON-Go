@@ -79,7 +79,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 			signedTx,
 		},
 	}
-	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs)
+	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs, nil)
 
 	tempContractCache := make(map[common.Address]struct{})
 	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline, tempContractCache); ok {

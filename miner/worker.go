@@ -1016,7 +1016,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			// Bump by 2x
 			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
 		}
-		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, w.config.GasCeil)
+		gasCeil := core.CalcGasCeil(parent, snapshotdb.Instance())
+		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, gasCeil)
 	}
 
 	//make header extra after w.current and it's state initialized
