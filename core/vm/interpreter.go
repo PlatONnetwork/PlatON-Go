@@ -35,6 +35,7 @@ type Config struct {
 	// NoRecursion disabled interpreter call, callcode,
 	// delegate call and create
 	NoRecursion bool
+	NoBaseFee   bool // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
 
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default table.

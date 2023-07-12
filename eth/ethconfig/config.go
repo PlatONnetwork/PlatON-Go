@@ -101,7 +101,7 @@ var Defaults = Config{
 	BlockChainVersion: 3,
 
 	TxPool:      core.DefaultTxPoolConfig,
-	RPCGasCap:   25000000,
+	RPCGasCap:   50000000,
 	GPO:         FullNodeGPO,
 	RPCTxFeeCap: 1, // 1 lat
 }
