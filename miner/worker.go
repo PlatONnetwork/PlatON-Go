@@ -1010,21 +1010,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// Set baseFee and GasLimit if we are on an EIP-1559 chain
 	if gov.Gte150VersionState(w.current.state) {
-		//header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
-		//parentGasLimit := parent.GasLimit()
-		//if !w.chainConfig.IsLondon(parent.Number()) {
-		//	// Bump by 2x
-		//	parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
-		//}
-		//header.GasLimit = core.CalcGasLimit1559(parentGasLimit, w.config.GasCeil)
-		// TODO 替换上面的代码，但还未彻底修改完
 		header.BaseFee = misc.CalcBaseFee(w.chainConfig, parent.Header())
 		parentGasLimit := parent.GasLimit()
-		if parent.BaseFee == nil {
+		if !w.chainConfig.IsPauli(parent.Number()) {
 			// Bump by 2x
 			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
 		}
-		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, 0)
+		gasCeil := core.CalcGasCeil(parent, snapshotdb.Instance())
+		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, gasCeil)
 	}
 
 	//make header extra after w.current and it's state initialized

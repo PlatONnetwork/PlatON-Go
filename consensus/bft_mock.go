@@ -111,13 +111,11 @@ func (bm *BftMock) GetPrepareQC(number uint64) *ctypes.QuorumCert {
 
 // FastSyncCommitHead is a fake interface, no need to implement.
 func (bm *BftMock) FastSyncCommitHead(block *types.Block) error {
-	// todo implement me
 	return nil
 }
 
 // Start is a fake interface, no need to implement.
 func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error {
-	// todo implement me
 	return nil
 }
 
@@ -134,31 +132,26 @@ func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
 
 // CalcNextBlockTime is a fake interface, no need to implement.
 func (bm *BftMock) CalcNextBlockTime(timePoint time.Time) time.Time {
-	// todo implement me
 	return time.Now()
 }
 
 // GetBlockWithoutLock is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
-	// todo implement me
 	return nil
 }
 
 // IsSignedBySelf is a fake interface, no need to implement.
 func (bm *BftMock) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
-	// todo implement me
 	return true
 }
 
 // Evidences is a fake interface, no need to implement.
 func (bm *BftMock) Evidences() string {
-	// todo implement me
 	return ""
 }
 
 // UnmarshalEvidence is a fake interface, no need to implement.
 func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
-	// todo implement me
 	return nil, nil
 }
 

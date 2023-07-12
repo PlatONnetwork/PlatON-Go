@@ -348,7 +348,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		stateDB, err := chain.GetState(currentBlock.Header())
 		if err == nil && stateDB != nil {
 			if gte150 := gov.Gte150VersionState(stateDB); gte150 {
-				pool.eip2718 = true
+				pool.eip2718, pool.eip1559 = true, true
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
 			}
 		}
@@ -1465,19 +1465,14 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
-
-	// Update all fork indicator by next pending block number.
-	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
-	pool.eip2718 = pool.chainconfig.IsBerlin(next)
-	pool.eip1559 = pool.chainconfig.IsPauli(next)
 }
 
 func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	gte150 := gov.Gte150VersionState(statedb)
 	if gte150 {
-		pool.eip2718 = true
+		pool.eip2718, pool.eip1559 = true, true
 	} else {
-		pool.eip2718 = false
+		pool.eip2718, pool.eip1559 = false, false
 	}
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer

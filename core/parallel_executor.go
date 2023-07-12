@@ -1,6 +1,7 @@
 package core
 
 import (
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"math/big"
 	"runtime"
 	"sync"
@@ -171,7 +172,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
 	}
 
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
 	if fromObj.GetBalance().Cmp(mgval) < 0 {
 		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
 		return
@@ -185,14 +186,21 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	}
 
-	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
-	subTotal := new(big.Int).Add(msg.Value(), minerEarnings)
-	if fromObj.GetBalance().Cmp(subTotal) < 0 {
+	// miner tip
+	effectiveTip := msg.GasPrice()
+	if gov.Gte150VersionState(ctx.state) {
+		effectiveTip = cmath.BigMin(msg.GasTipCap(), new(big.Int).Sub(msg.GasFeeCap(), ctx.header.BaseFee))
+	}
+	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), effectiveTip)
+	// sender fee
+	fee := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
+	cost := new(big.Int).Add(msg.Value(), fee)
+	if fromObj.GetBalance().Cmp(cost) < 0 {
 		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
 		return
 	}
 
-	fromObj.SubBalance(subTotal)
+	fromObj.SubBalance(cost)
 	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
 	var toObj *state.ParallelStateObject

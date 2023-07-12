@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"sort"
 	"sync"
 	"time"
@@ -321,6 +322,20 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, block.Number(), gov.Gte150VersionState(state)), block)
 	if err != nil {
 		return errors.New("execute block error")
+	}
+
+	// Verify the block's gas usage and (if applicable) verify the base fee.
+	if !gov.Gte150VersionState(state) {
+		// Verify BaseFee not present before EIP-1559 fork.
+		if block.BaseFee() != nil {
+			return fmt.Errorf("invalid baseFee before fork: have %d, expected 'nil'", block.BaseFee())
+		}
+		if err := misc.VerifyGaslimit(parent.GasLimit(), block.GasLimit()); err != nil {
+			return err
+		}
+	} else if err := misc.VerifyEip1559Header(bcc.Config(), parent.Header(), block.Header()); err != nil {
+		// Verify the header's EIP-1559 attributes.
+		return err
 	}
 
 	start := time.Now()
