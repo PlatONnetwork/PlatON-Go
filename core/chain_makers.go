@@ -398,6 +398,11 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 
 	if gov.Gte150VersionState(state) {
 		header.BaseFee = misc.CalcBaseFee(chain.Config(), parent.Header())
+		parentGasLimit := parent.GasLimit()
+		if !chain.Config().IsPauli(parent.Number()) {
+			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		}
+		header.GasLimit = CalcGasLimit1559(parentGasLimit, parentGasLimit)
 	}
 
 	return header

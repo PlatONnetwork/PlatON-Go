@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"math/big"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
@@ -26,6 +27,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Number        math.HexOrDecimal64               `json:"number"`
 		GasUsed       math.HexOrDecimal64               `json:"gasUsed"`
 		ParentHash    common.Hash                       `json:"parentHash"`
+		BaseFee       *math.HexOrDecimal256             `json:"baseFeePerGas"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -39,6 +41,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
+	enc.BaseFee = (*math.HexOrDecimal256)(g.BaseFee)
 	return json.Marshal(&enc)
 }
 
@@ -56,6 +59,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Number        *math.HexOrDecimal64              `json:"number"`
 		GasUsed       *math.HexOrDecimal64              `json:"gasUsed"`
 		ParentHash    *common.Hash                      `json:"parentHash"`
+		BaseFee       *math.HexOrDecimal256             `json:"baseFeePerGas"`
 	}
 	var dec Genesis
 	dec.EconomicModel = g.EconomicModel
@@ -97,6 +101,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentHash != nil {
 		g.ParentHash = *dec.ParentHash
+	}
+	if dec.BaseFee != nil {
+		g.BaseFee = (*big.Int)(dec.BaseFee)
 	}
 	return nil
 }
