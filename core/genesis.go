@@ -67,6 +67,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	BaseFee    *big.Int    `json:"baseFee"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -89,6 +90,7 @@ type genesisSpecMarshaling struct {
 	GasLimit  math.HexOrDecimal64
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
+	BaseFee   *math.HexOrDecimal256
 	Alloc     map[common.Address]GenesisAccount
 }
 
@@ -497,7 +499,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		head.GasLimit = params.GenesisGasLimit
 	}
 	if gov.Gte150Version(genesisVersion) {
-		head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+		if g.BaseFee != nil {
+			head.BaseFee = g.BaseFee
+		} else {
+			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+		}
 	}
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
