@@ -278,9 +278,8 @@ type TxPool struct {
 	signer types.Signer
 	mu     sync.RWMutex
 
-	istanbul bool // Fork indicator whether we are in the istanbul stage.
-	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
-	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
+	eip2718 bool // Fork indicator whether we are using EIP-2718 type transactions.
+	eip1559 bool // Fork indicator whether we are using EIP-1559 type transactions.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
@@ -348,7 +347,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		stateDB, err := chain.GetState(currentBlock.Header())
 		if err == nil && stateDB != nil {
 			if gte150 := gov.Gte150VersionState(stateDB); gte150 {
-				pool.eip2718 = true
+				pool.eip2718, pool.eip1559 = true, true
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
 			}
 		}
@@ -723,14 +722,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrGasLimit
 	}
 	// Sanity check for extremely large numbers
-	if tx.FeeCap().BitLen() > 256 {
+	if tx.GasFeeCap().BitLen() > 256 {
 		return ErrFeeCapVeryHigh
 	}
-	if tx.Tip().BitLen() > 256 {
+	if tx.GasTipCap().BitLen() > 256 {
 		return ErrTipVeryHigh
 	}
-	// Ensure feeCap is less than or equal to tip.
-	if tx.FeeCapIntCmp(tx.Tip()) < 0 {
+	// Ensure gasFeeCap is greater than or equal to gasTipCap.
+	if tx.GasFeeCapIntCmp(tx.GasTipCap()) < 0 {
 		return ErrTipAboveFeeCap
 	}
 	// Make sure the transaction is signed properly.
@@ -739,7 +738,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price or tip
-	if !local && tx.TipIntCmp(pool.gasPrice) < 0 {
+	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction adheres to nonce ordering
@@ -804,7 +803,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		// If the new transaction is underpriced, don't accept it
 		if !isLocal && pool.priced.Underpriced(tx) {
 			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding underpriced transaction", "hash", hash, "tip", tx.Tip(), "feeCap", tx.FeeCap())
+				log.Trace("Discarding underpriced transaction", "hash", hash, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			}
 			underpricedTxMeter.Mark(1)
 			return false, ErrUnderpriced
@@ -823,7 +822,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		// Kick out the underpriced remote transactions.
 		for _, tx := range drop {
 			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "tip", tx.Tip(), "feeCap", tx.FeeCap())
+				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			}
 			underpricedTxMeter.Mark(1)
 			pool.removeTx(tx.Hash(), false)
@@ -1461,20 +1460,14 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	SenderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
 	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
-
-	// Update all fork indicator by next pending block number.
-	next := new(big.Int).Add(newHead.Number, big.NewInt(1))
-	pool.istanbul = pool.chainconfig.IsIstanbul(next)
-	pool.eip2718 = pool.chainconfig.IsBerlin(next)
-	pool.eip1559 = pool.chainconfig.IsLondon(next)
 }
 
 func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	gte150 := gov.Gte150VersionState(statedb)
 	if gte150 {
-		pool.eip2718 = true
+		pool.eip2718, pool.eip1559 = true, true
 	} else {
-		pool.eip2718 = false
+		pool.eip2718, pool.eip1559 = false, false
 	}
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer
@@ -2029,7 +2022,7 @@ func (t *txLookup) RemoteToLocals(locals *accountSet) int {
 func (t *txLookup) RemotesBelowTip(threshold *big.Int) types.Transactions {
 	found := make(types.Transactions, 0, 128)
 	t.Range(func(hash common.Hash, tx *types.Transaction, local bool) bool {
-		if tx.TipIntCmp(threshold) < 0 {
+		if tx.GasTipCapIntCmp(threshold) < 0 {
 			found = append(found, tx)
 		}
 		return true

@@ -32,11 +32,7 @@ import (
 func VerifyEip1559Header(config *params.ChainConfig, parent, header *types.Header) error {
 	// Verify that the gas limit remains within allowed bounds
 	parentGasLimit := parent.GasLimit
-	// TODO 通过parent.BaseFee == nil来判断是否是第一个 EIP-1559 区块
-	//if !config.IsLondon(parent.Number) {
-	//	parentGasLimit = parent.GasLimit * params.ElasticityMultiplier
-	//}
-	if parent.BaseFee == nil {
+	if !config.IsPauli(parent.Number) {
 		parentGasLimit = parent.GasLimit * params.ElasticityMultiplier
 	}
 	if err := VerifyGaslimit(parentGasLimit, header.GasLimit); err != nil {
@@ -58,11 +54,7 @@ func VerifyEip1559Header(config *params.ChainConfig, parent, header *types.Heade
 // CalcBaseFee calculates the basefee of the header.
 func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 	// If the current block is the first EIP-1559 block, return the InitialBaseFee.
-	// TODO 通过parent.BaseFee == nil来判断是否是第一个 EIP-1559 区块
-	//if !config.IsLondon(parent.Number) {
-	//	return new(big.Int).SetUint64(params.InitialBaseFee)
-	//}
-	if parent.BaseFee == nil {
+	if !config.IsPauli(parent.Number) {
 		return new(big.Int).SetUint64(params.InitialBaseFee)
 	}
 
@@ -82,7 +74,8 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 		y := x.Div(x, parentGasTargetBig)
 		baseFeeDelta := math.BigMax(
 			x.Div(y, baseFeeChangeDenominator),
-			common.Big1,
+			//common.Big1,
+			common.Big0, // Make sure the baseFee is 0
 		)
 
 		return x.Add(parent.BaseFee, baseFeeDelta)
