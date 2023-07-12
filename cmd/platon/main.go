@@ -117,7 +117,6 @@ var (
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
 		configFileFlag,
-		utils.CatalystFlag,
 	}
 
 	rpcFlags = []cli.Flag{

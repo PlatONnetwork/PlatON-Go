@@ -213,7 +213,6 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 		Name: "MISC",
 		Flags: []cli.Flag{
 			cli.HelpFlag,
-			utils.CatalystFlag,
 		},
 	},
 }
