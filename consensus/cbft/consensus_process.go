@@ -43,10 +43,6 @@ import (
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
-	if err := cbft.VerifyHeader(nil, msg.Block.Header(), false); err != nil {
-		cbft.log.Error("Verify header fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-		return err
-	}
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 
@@ -88,6 +84,11 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		}
+	}
+
+	if err := cbft.VerifyHeader(cbft.blockChain, msg.Block.Header(), false); err != nil {
+		cbft.log.Error("Verify header fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+		return err
 	}
 
 	if _, err := cbft.verifyConsensusMsg(msg); err != nil {

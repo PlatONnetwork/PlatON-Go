@@ -84,8 +84,6 @@ const (
 	commitInterruptNone int32 = iota
 	commitInterruptNewHead
 	commitInterruptResubmit
-	commitStatusIdle int32 = iota
-	commitStatusCommitting
 
 	// maxRecommitInterval is the maximum time interval to recreate the mining block with
 	// any newly arrived transactions.
@@ -98,6 +96,11 @@ const (
 	// intervalAdjustBias is applied during the new resubmit interval calculation in favor of
 	// increasing upper limit or decreasing lower limit so that the limit can be reachable.
 	intervalAdjustBias = 200 * 1000.0 * 1000.0
+)
+
+const (
+	commitStatusIdle int32 = iota
+	commitStatusCommitting
 )
 
 // newWorkReq represents a request for new sealing work submitting with relative interrupt notifier.
@@ -114,14 +117,6 @@ type intervalAdjust struct {
 	ratio float64
 	inc   bool
 }
-
-/*type commitWorkEnv struct {
-	baseLock            sync.RWMutex
-	currentBaseBlock     *types.Block
-	commitTime          int64
-	highestLock         sync.RWMutex
-	nextBaseBlock *types.Block
-}*/
 
 type commitWorkEnv struct {
 	currentBaseBlock atomic.Value
@@ -1071,10 +1066,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		//// No empty block
-		//if "off" == w.EmptyBlock {
-		//	return
-		//}
 		if _, ok := w.engine.(consensus.Bft); ok {
 			if err := w.commit(nil, true, tstart); nil != err {
 				log.Error("Failed to commitNewWork on worker: call commit is failed", "blockNumber", header.Number, "err", err)
@@ -1147,7 +1138,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := copyReceipts(w.current.receipts)
-
 	s := w.current.state.Copy()
 
 	// EndBlocker()
