@@ -150,7 +150,7 @@ func CalcGasCeil(parent *types.Block, db snapshotdb.DB) uint64 {
 		govGasCeil, err := gov.GovernMaxBlockGasLimit(parent.Number().Uint64()+1, common.ZeroHash, db)
 		if nil != err {
 			log.Error("cannot find GasLimit from govern", "err", err)
-			gasCeil = uint64(params.DefaultMinerGasCeil)
+			gasCeil = params.DefaultMinerGasCeil
 		} else {
 			gasCeil = uint64(govGasCeil)
 		}
