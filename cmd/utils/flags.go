@@ -260,9 +260,9 @@ var (
 		Usage: "Time interval to regenerate the trie cache journal",
 		Value: ethconfig.Defaults.TrieCleanCacheRejournal,
 	}
-	SnapshotFlag = cli.BoolTFlag{
+	SnapshotFlag = cli.BoolFlag{
 		Name:  "snapshot",
-		Usage: `Enables snapshot-database mode (default = enable)`,
+		Usage: `Enables snapshot-database mode`,
 	}
 	BloomFilterSizeFlag = cli.Uint64Flag{
 		Name:  "bloomfilter.size",
