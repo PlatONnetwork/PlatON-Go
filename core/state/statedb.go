@@ -83,10 +83,10 @@ type StateDB struct {
 	// The refund counter, also used by state transitioning.
 	refund uint64
 
-	thash, bhash common.Hash
-	txIndex      int
-	logs         map[common.Hash][]*types.Log
-	logSize      uint
+	thash   common.Hash
+	txIndex int
+	logs    map[common.Hash][]*types.Log
+	logSize uint
 
 	preimages map[common.Hash][]byte
 
@@ -197,11 +197,6 @@ func (s *StateDB) TxIndex() int {
 	return s.txIndex
 }
 
-// BlockHash returns the current block hash set by Prepare.
-func (s *StateDB) BlockHash() common.Hash {
-	return s.bhash
-}
-
 func (s *StateDB) HadParent() bool {
 	s.refLock.Lock()
 	defer s.refLock.Unlock()
@@ -232,7 +227,6 @@ func (s *StateDB) Reset(root common.Hash) error {
 	s.stateObjectsPending = make(map[common.Address]struct{})
 	s.stateObjectsDirty = make(map[common.Address]struct{})
 	s.thash = common.Hash{}
-	s.bhash = common.Hash{}
 	s.txIndex = 0
 	s.logs = make(map[common.Hash][]*types.Log)
 	s.logSize = 0
@@ -255,15 +249,18 @@ func (s *StateDB) AddLog(logInfo *types.Log) {
 	s.journal.append(addLogChange{txhash: s.thash})
 
 	logInfo.TxHash = s.thash
-	logInfo.BlockHash = s.bhash
 	logInfo.TxIndex = uint(s.txIndex)
 	logInfo.Index = s.logSize
 	s.logs[s.thash] = append(s.logs[s.thash], logInfo)
 	s.logSize++
 }
 
-func (s *StateDB) GetLogs(hash common.Hash) []*types.Log {
-	return s.logs[hash]
+func (s *StateDB) GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log {
+	logs := s.logs[hash]
+	for _, l := range logs {
+		l.BlockHash = blockHash
+	}
+	return logs
 }
 
 func (s *StateDB) Logs() []*types.Log {
@@ -1127,9 +1124,8 @@ func (s *StateDB) Root() common.Hash {
 
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
-func (s *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+func (s *StateDB) Prepare(thash common.Hash, ti int) {
 	s.thash = thash
-	s.bhash = bhash
 	s.txIndex = ti
 	s.accessList = newAccessList()
 }
