@@ -140,6 +140,10 @@ func (b *EthAPIBackend) BlockByNumberOrHash(ctx context.Context, blockNrOrHash r
 	return nil, errors.New("invalid arguments; neither block nor hash specified")
 }
 
+func (b *EthAPIBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
+	return b.eth.miner.PendingBlockAndReceipts()
+}
+
 func (b *EthAPIBackend) StateAndHeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*state.StateDB, *types.Header, error) {
 	// Pending state is only known by the miner
 	if blockNr == rpc.PendingBlockNumber {
@@ -276,6 +280,10 @@ func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.S
 
 func (b *EthAPIBackend) Downloader() *downloader.Downloader {
 	return b.eth.Downloader()
+}
+
+func (b *EthAPIBackend) FeeHistory(ctx context.Context, blockCount int, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (firstBlock rpc.BlockNumber, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, err error) {
+	return b.gpo.FeeHistory(ctx, blockCount, lastBlock, rewardPercentiles)
 }
 
 func (b *EthAPIBackend) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
