@@ -219,6 +219,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	for i := 0; i < n; i++ {
 		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, statedb)
 		if err != nil {
 			panic(err)
 		}
