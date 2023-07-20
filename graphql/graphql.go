@@ -30,7 +30,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
@@ -95,7 +94,11 @@ func (a *Account) Balance(ctx context.Context) (hexutil.Big, error) {
 	if err != nil {
 		return hexutil.Big{}, err
 	}
-	return hexutil.Big(*state.GetBalance(a.address)), nil
+	balance := state.GetBalance(a.address)
+	if balance == nil {
+		return hexutil.Big{}, fmt.Errorf("failed to load balance %x", a.address)
+	}
+	return hexutil.Big(*balance), nil
 }
 
 func (a *Account) TransactionCount(ctx context.Context) (hexutil.Uint64, error) {
@@ -180,8 +183,9 @@ type Transaction struct {
 // resolve returns the internal transaction object, fetching it if needed.
 func (t *Transaction) resolve(ctx context.Context) (*types.Transaction, error) {
 	if t.tx == nil {
-		tx, blockHash, _, index := rawdb.ReadTransaction(t.backend.ChainDb(), t.hash)
-		if tx != nil {
+		// Try to return an already finalized transaction
+		tx, blockHash, _, index, err := t.backend.GetTransaction(ctx, t.hash)
+		if err == nil && tx != nil {
 			t.tx = tx
 			blockNrOrHash := rpc.BlockNumberOrHashWithHash(blockHash, false)
 			t.block = &Block{
@@ -189,9 +193,10 @@ func (t *Transaction) resolve(ctx context.Context) (*types.Transaction, error) {
 				numberOrHash: &blockNrOrHash,
 			}
 			t.index = index
-		} else {
-			t.tx = t.backend.GetPoolTransaction(t.hash)
+			return t.tx, nil
 		}
+		// No finalized transaction, try to retrieve it from the pool
+		t.tx = t.backend.GetPoolTransaction(t.hash)
 	}
 	return t.tx, nil
 }
@@ -286,6 +291,9 @@ func (t *Transaction) Value(ctx context.Context) (hexutil.Big, error) {
 	tx, err := t.resolve(ctx)
 	if err != nil || tx == nil {
 		return hexutil.Big{}, err
+	}
+	if tx.Value() == nil {
+		return hexutil.Big{}, fmt.Errorf("invalid transaction value %x", t.hash)
 	}
 	return hexutil.Big(*tx.Value()), nil
 }
