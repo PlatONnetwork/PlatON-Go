@@ -75,10 +75,8 @@ func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) err
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
-	if govPlugin.chainConfig.PauliBlock == nil {
-		if err := govPlugin.setForkBlock(blockHash, state, params.FORKVERSION_1_5_0, govPlugin.chainConfig.SetPauliBlock); err != nil {
-			return err
-		}
+	if err := govPlugin.setForkBlock(blockHash, state, params.FORKVERSION_1_5_0, govPlugin.chainConfig.SetPauliBlock); err != nil {
+		return err
 	}
 	if !xutil.IsBeginOfConsensus(blockNumber) {
 		return nil
@@ -208,7 +206,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				if err != nil {
 					return err
 				}
-				if govPlugin.chainConfig.GetPauliBlock() == nil && tallyResult.Status == gov.PreActive && versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
+				if tallyResult.Status == gov.PreActive && versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
 					govPlugin.chainConfig.SetPauliBlock(new(big.Int).SetUint64(versionProposal.ActiveBlock))
 				}
 

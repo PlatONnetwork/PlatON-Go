@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 	"io"
 	"io/ioutil"
 	"math"
@@ -1358,6 +1359,7 @@ func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) ethapi.Backend 
 		if err != nil {
 			Fatalf("Failed to register the Ethereum service: %v", err)
 		}
+		stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
 		return backend.APIBackend
 	}
 }

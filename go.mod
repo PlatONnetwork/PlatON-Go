@@ -64,6 +64,8 @@ require (
 	gotest.tools/v3 v3.4.0 // indirect
 )
 
+require golang.org/x/net v0.9.0
+
 require (
 	github.com/AlayaNetwork/Alaya-Go v0.16.2 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
@@ -86,7 +88,6 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.0.0-20190126203739-365674df15fc // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -283,7 +283,7 @@ func (h *Header) _sealHash() (hash common.Hash) {
 	if len(h.Extra) > 32 {
 		extra = h.Extra[0:32]
 	}
-	rlp.Encode(hasher, []interface{}{
+	enc := []interface{}{
 		h.ParentHash,
 		h.Coinbase,
 		h.Root,
@@ -296,7 +296,11 @@ func (h *Header) _sealHash() (hash common.Hash) {
 		h.Time,
 		extra,
 		h.Nonce,
-	})
+	}
+	if h.BaseFee != nil {
+		enc = append(enc, h.BaseFee)
+	}
+	rlp.Encode(hasher, enc)
 
 	hasher.Sum(hash[:0])
 	return hash
