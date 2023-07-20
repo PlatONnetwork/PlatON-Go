@@ -18,7 +18,12 @@ package gasprice
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"testing"
@@ -29,42 +34,125 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+const testHead = 32
+
 type testBackend struct {
-	chain *mock.Chain
+	chain   *core.BlockChain
+	pending bool // pending block available
 }
 
 func (b *testBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
+	if number > testHead {
+		return nil, nil
+	}
 	if number == rpc.LatestBlockNumber {
-		return b.chain.CurrentHeader(), nil
+		number = testHead
+	}
+	if number == rpc.PendingBlockNumber {
+		if b.pending {
+			number = testHead + 1
+		} else {
+			return nil, nil
+		}
 	}
 	return b.chain.GetHeaderByNumber(uint64(number)), nil
 }
 
 func (b *testBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
+	if number > testHead {
+		return nil, nil
+	}
 	if number == rpc.LatestBlockNumber {
-		return b.chain.CurrentBlock(), nil
+		number = testHead
+	}
+	if number == rpc.PendingBlockNumber {
+		if b.pending {
+			number = testHead + 1
+		} else {
+			return nil, nil
+		}
 	}
 	return b.chain.GetBlockByNumber(uint64(number)), nil
 }
 
-func (b *testBackend) ChainConfig() *params.ChainConfig {
-	return params.TestChainConfig
+func (b *testBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
+	return b.chain.GetReceiptsByHash(hash), nil
 }
 
-func newTestBackend(t *testing.T) *testBackend {
-	chain := mock.NewChain()
-	signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	for i := 0; i <= 31; i++ {
-		tx, err := types.SignTx(types.NewTransaction(uint64(i), common.HexToAddress("deadbeef"), big.NewInt(100), 21000, big.NewInt(int64(i+1)*params.GVon), nil), signer, key)
+func (b *testBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
+	if b.pending {
+		block := b.chain.GetBlockByNumber(testHead + 1)
+		return block, b.chain.GetReceiptsByHash(block.Hash())
+	}
+	return nil, nil
+}
+
+func (b *testBackend) ChainConfig() *params.ChainConfig {
+	return b.chain.Config()
+}
+
+func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBackend {
+	var (
+		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		addr   = crypto.PubkeyToAddress(key.PublicKey)
+		gspec  = &core.Genesis{
+			Config: params.TestChainConfig,
+			Alloc:  core.GenesisAlloc{addr: {Balance: big.NewInt(math.MaxInt64)}},
+		}
+		signer = types.LatestSigner(gspec.Config, true)
+	)
+	if londonBlock != nil {
+		gspec.Config.PauliBlock = londonBlock
+		signer = types.LatestSigner(gspec.Config, true)
+	} else {
+		gspec.Config.PauliBlock = nil
+	}
+	engine := consensus.NewFaker()
+	db := rawdb.NewMemoryDatabase()
+	genesis, _ := gspec.Commit(db, snapshotdb.Instance())
+
+	// Generate testing blocks
+	blocks, _ := core.GenerateChain(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
+		b.SetCoinbase(common.Address{1})
+
+		var tx *types.Transaction
+		if londonBlock != nil && b.Number().Cmp(londonBlock) >= 0 {
+			txdata := &types.DynamicFeeTx{
+				ChainID:   gspec.Config.ChainID,
+				Nonce:     b.TxNonce(addr),
+				To:        &common.Address{},
+				Gas:       30000,
+				GasFeeCap: big.NewInt(100 * params.GVon),
+				GasTipCap: big.NewInt(int64(i+1) * params.GVon),
+				Data:      []byte{},
+			}
+			tx = types.NewTx(txdata)
+		} else {
+			txdata := &types.LegacyTx{
+				Nonce:    b.TxNonce(addr),
+				To:       &common.Address{},
+				Gas:      21000,
+				GasPrice: big.NewInt(int64(i+1) * params.GVon),
+				Value:    big.NewInt(100),
+				Data:     []byte{},
+			}
+			tx = types.NewTx(txdata)
+		}
+		tx, err := types.SignTx(tx, signer, key)
 		if err != nil {
 			t.Fatalf("failed to create tx: %v", err)
 		}
-		chain.AddBlockWithTx([]*types.Transaction{tx})
-
+		b.AddTx(tx)
+	})
+	// Construct testing chain
+	diskdb := rawdb.NewMemoryDatabase()
+	gspec.Commit(diskdb, snapshotdb.Instance())
+	chain, err := core.NewBlockChain(diskdb, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to create local chain, %v", err)
 	}
-
-	return &testBackend{chain: chain}
+	chain.InsertChain(blocks)
+	return &testBackend{chain: chain, pending: pending}
 }
 
 func (b *testBackend) CurrentHeader() *types.Header {
@@ -75,22 +163,33 @@ func (b *testBackend) GetBlockByNumber(number uint64) *types.Block {
 	return b.chain.GetBlockByNumber(number)
 }
 
-func TestSuggestPrice(t *testing.T) {
+func TestSuggestTipCap(t *testing.T) {
 	config := Config{
 		Blocks:     3,
 		Percentile: 60,
 		Default:    big.NewInt(params.GVon),
 	}
-	backend := newTestBackend(t)
-	oracle := NewOracle(backend, config)
-
-	// The gas price sampled is: 32G, 31G, 30G, 29G, 28G, 27G
-	got, err := oracle.SuggestPrice(context.Background())
-	if err != nil {
-		t.Fatalf("Failed to retrieve recommended gas price: %v", err)
+	var cases = []struct {
+		fork   *big.Int // London fork number
+		expect *big.Int // Expected gasprice suggestion
+	}{
+		{nil, big.NewInt(params.GVon * int64(30))},
+		{big.NewInt(0), big.NewInt(params.GVon * int64(30))},  // Fork point in genesis
+		{big.NewInt(1), big.NewInt(params.GVon * int64(30))},  // Fork point in first block
+		{big.NewInt(32), big.NewInt(params.GVon * int64(30))}, // Fork point in last block
+		{big.NewInt(33), big.NewInt(params.GVon * int64(30))}, // Fork point in the future
 	}
-	expect := big.NewInt(params.GVon * int64(30))
-	if got.Cmp(expect) != 0 {
-		t.Fatalf("Gas price mismatch, want %d, got %d", expect, got)
+	for _, c := range cases {
+		backend := newTestBackend(t, c.fork, false)
+		oracle := NewOracle(backend, config)
+
+		// The gas price sampled is: 32G, 31G, 30G, 29G, 28G, 27G
+		got, err := oracle.SuggestTipCap(context.Background())
+		if err != nil {
+			t.Fatalf("Failed to retrieve recommended gas price: %v", err)
+		}
+		if got.Cmp(c.expect) != 0 {
+			t.Fatalf("Gas price mismatch, want %d, got %d", c.expect, got)
+		}
 	}
 }
