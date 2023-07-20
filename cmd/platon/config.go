@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"os"
 	"reflect"
@@ -67,7 +68,12 @@ var tomlSettings = toml.Config{
 		return field
 	},
 	MissingField: func(rt reflect.Type, field string) error {
-		link := ""
+		id := fmt.Sprintf("%s.%s", rt.String(), field)
+		if deprecated(id) {
+			log.Warn("Config field is deprecated and won't have an effect", "name", id)
+			return nil
+		}
+		var link string
 		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
 			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
 		}
@@ -247,4 +253,8 @@ func applyMetricConfig(ctx *cli.Context, cfg *platonConfig) {
 	if ctx.GlobalIsSet(utils.MetricsInfluxDBTagsFlag.Name) {
 		cfg.Metrics.InfluxDBTags = ctx.GlobalString(utils.MetricsInfluxDBTagsFlag.Name)
 	}
+}
+
+func deprecated(field string) bool {
+	return false
 }
