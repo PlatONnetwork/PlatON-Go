@@ -180,7 +180,7 @@ type worker struct {
 	pendingMu    sync.RWMutex
 	pendingTasks map[common.Hash]*task
 
-	snapshotMu       sync.RWMutex // The lock used to protect the block snapshot and state snapshot
+	snapshotMu       sync.RWMutex // The lock used to protect the snapshots below
 	snapshotBlock    *types.Block
 	snapshotReceipts types.Receipts
 	snapshotState    *state.StateDB
@@ -803,7 +803,7 @@ func (w *worker) updateSnapshot() {
 		w.current.receipts,
 		new(trie.Trie),
 	)
-	w.snapshotReceipts = w.current.receipts
+	w.snapshotReceipts = copyReceipts(w.current.receipts)
 	w.snapshotState = w.current.state.Copy()
 }
 
