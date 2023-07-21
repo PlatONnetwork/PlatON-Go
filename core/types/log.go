@@ -17,13 +17,10 @@
 package types
 
 import (
-	"io"
-
 	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //go:generate gencodec -type Log -field-override logMarshaling -out gen_log_json.go
@@ -42,19 +39,19 @@ type Log struct {
 	// Derived fields. These fields are filled in by the node
 	// but not secured by consensus.
 	// block in which the transaction was included
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber uint64 `json:"blockNumber" rlp:"-"`
 	// hash of the transaction
-	TxHash common.Hash `json:"transactionHash" gencodec:"required"`
+	TxHash common.Hash `json:"transactionHash" gencodec:"required" rlp:"-"`
 	// index of the transaction in the block
-	TxIndex uint `json:"transactionIndex" gencodec:"required"`
+	TxIndex uint `json:"transactionIndex" rlp:"-"`
 	// hash of the block in which the transaction was included
-	BlockHash common.Hash `json:"blockHash"`
+	BlockHash common.Hash `json:"blockHash" rlp:"-"`
 	// index of the log in the block
-	Index uint `json:"logIndex" gencodec:"required"`
+	Index uint `json:"logIndex" rlp:"-"`
 
 	// The Removed field is true if this log was reverted due to a chain reorganisation.
 	// You must pay attention to this field if you receive logs through a filter query.
-	Removed bool `json:"removed"`
+	Removed bool `json:"removed" rlp:"-"`
 }
 
 // MarshalJSON2 marshals as JSON.
@@ -88,53 +85,4 @@ type logMarshaling struct {
 	BlockNumber hexutil.Uint64
 	TxIndex     hexutil.Uint
 	Index       hexutil.Uint
-}
-
-type rlpLog struct {
-	Address common.Address
-	Topics  []common.Hash
-	Data    []byte
-}
-
-// rlpStorageLog is the storage encoding of a log.
-type rlpStorageLog rlpLog
-
-// EncodeRLP implements rlp.Encoder.
-func (l *Log) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data})
-}
-
-// DecodeRLP implements rlp.Decoder.
-func (l *Log) DecodeRLP(s *rlp.Stream) error {
-	var dec rlpLog
-	err := s.Decode(&dec)
-	if err == nil {
-		l.Address, l.Topics, l.Data = dec.Address, dec.Topics, dec.Data
-	}
-	return err
-}
-
-// LogForStorage is a wrapper around a Log that flattens and parses the entire content of
-// a log including non-consensus fields.
-type LogForStorage Log
-
-// EncodeRLP implements rlp.Encoder.
-func (l *LogForStorage) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, rlpStorageLog{
-		Address: l.Address,
-		Topics:  l.Topics,
-		Data:    l.Data,
-	})
-}
-
-// DecodeRLP implements rlp.Decoder.
-//
-// Note some redundant fields(e.g. block number, tx hash etc) will be assembled later.
-func (l *LogForStorage) DecodeRLP(s *rlp.Stream) error {
-	var dec rlpStorageLog
-	if err := s.Decode(&dec); err != nil {
-		return err
-	}
-	*l = LogForStorage{Address: dec.Address, Topics: dec.Topics, Data: dec.Data}
-	return nil
 }

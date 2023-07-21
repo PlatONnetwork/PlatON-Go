@@ -101,7 +101,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	if b.gasPool == nil {
 		b.SetCoinbase(common.Address{})
 	}
-	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
+	b.statedb.Prepare(tx.Hash(), len(b.txs))
 	receipt, err := ApplyTransaction(b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
@@ -219,6 +219,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	for i := 0; i < n; i++ {
 		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, statedb)
 		if err != nil {
 			panic(err)
 		}

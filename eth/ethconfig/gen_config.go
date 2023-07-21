@@ -70,8 +70,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
-		RPCGasCap                uint64                    `toml:",omitempty"`
-		RPCTxFeeCap              float64                   `toml:",omitempty"`
+		RPCGasCap                uint64
+		RPCTxFeeCap              float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}
@@ -192,8 +192,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
-		RPCGasCap                *uint64                   `toml:",omitempty"`
-		RPCTxFeeCap              *float64                  `toml:",omitempty"`
+		RPCGasCap                *uint64
+		RPCTxFeeCap              *float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}

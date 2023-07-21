@@ -622,6 +622,11 @@ web3._extend({
 				return status;
 			}
 		}),
+		new web3._extend.Method({
+			name: 'contentFrom',
+			call: 'txpool_contentFrom',
+			params: 1,
+		}),
 	]
 });
 `

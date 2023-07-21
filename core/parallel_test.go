@@ -359,7 +359,7 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 	txs := types.Transactions{}
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
-		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
+		stateDb.Prepare(tx.Hash(), idx)
 		receipt, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
 
 		if err != nil {

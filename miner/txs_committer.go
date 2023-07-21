@@ -93,7 +93,7 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 			continue
 		}
 		// Start executing the transaction
-		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
+		w.current.state.Prepare(tx.Hash(), w.current.tcount)
 
 		logs, err := w.commitTransaction(tx)
 
