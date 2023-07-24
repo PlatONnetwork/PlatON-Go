@@ -182,7 +182,7 @@ func TestNewSimulatedBackend_AdjustTimeFail(t *testing.T) {
 
 func TestSimulatedBackend_BalanceAt(t *testing.T) {
 	testAddr := crypto.PubkeyToAddress(testKey.PublicKey)
-	expectedBal := big.NewInt(10000000000)
+	expectedBal := big.NewInt(10000000000000000)
 	sim := simTestBackend(testAddr)
 	defer sim.Close()
 	bgCtx := context.Background()
