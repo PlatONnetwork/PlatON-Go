@@ -23,7 +23,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"testing"
@@ -112,13 +111,13 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 	genesis, _ := gspec.Commit(db, snapshotdb.Instance())
 
 	// Generate testing blocks
-	blocks, _ := core.GenerateChain(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
+	chain := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		var tx *types.Transaction
 		if londonBlock != nil && b.Number().Cmp(londonBlock) >= 0 {
 			txdata := &types.DynamicFeeTx{
-				ChainID:   gspec.Config.ChainID,
+				ChainID:   gspec.Config.PIP7ChainID,
 				Nonce:     b.TxNonce(addr),
 				To:        &common.Address{},
 				Gas:       30000,
@@ -145,13 +144,13 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 		b.AddTx(tx)
 	})
 	// Construct testing chain
-	diskdb := rawdb.NewMemoryDatabase()
-	gspec.Commit(diskdb, snapshotdb.Instance())
+	//diskdb := rawdb.NewMemoryDatabase()
+	/*gspec.Commit(diskdb, snapshotdb.Instance())
 	chain, err := core.NewBlockChain(diskdb, nil, gspec.Config, engine, vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to create local chain, %v", err)
 	}
-	chain.InsertChain(blocks)
+	chain.InsertChain(blocks)*/
 	return &testBackend{chain: chain, pending: pending}
 }
 
