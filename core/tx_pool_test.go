@@ -54,8 +54,7 @@ func init() {
 
 	cpy := *params.TestChainConfig
 	eip1559Config = &cpy
-	eip1559Config.BerlinBlock = common.Big0
-	eip1559Config.LondonBlock = common.Big0
+	eip1559Config.PauliBlock = common.Big0
 }
 
 type testBlockChain struct {
@@ -1365,9 +1364,9 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 	// Generate and queue a batch of transactions, both pending and queued
 	txs := types.Transactions{}
 
-	txs = append(txs, pricedTransaction(0, 100000, big.NewInt(2), keys[0]))
-	txs = append(txs, pricedTransaction(1, 100000, big.NewInt(1), keys[0]))
-	txs = append(txs, pricedTransaction(2, 100000, big.NewInt(2), keys[0]))
+	txs = append(txs, pricedTransaction(0, 100000, big.NewInt(2), keys[0], eip1559Config.PIP7ChainID))
+	txs = append(txs, pricedTransaction(1, 100000, big.NewInt(1), keys[0], eip1559Config.PIP7ChainID))
+	txs = append(txs, pricedTransaction(2, 100000, big.NewInt(2), keys[0], eip1559Config.PIP7ChainID))
 
 	txs = append(txs, dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[1]))
 	txs = append(txs, dynamicFeeTx(1, 100000, big.NewInt(3), big.NewInt(2), keys[1]))
@@ -1413,7 +1412,7 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 	// Check that we can't add the old transactions back
-	tx := pricedTransaction(1, 100000, big.NewInt(1), keys[0])
+	tx := pricedTransaction(1, 100000, big.NewInt(1), keys[0], eip1559Config.PIP7ChainID)
 	if err := pool.AddRemote(tx); err != ErrUnderpriced {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
@@ -1446,7 +1445,7 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 	// And we can fill gaps with properly priced transactions
-	tx = pricedTransaction(1, 100000, big.NewInt(2), keys[0])
+	tx = pricedTransaction(1, 100000, big.NewInt(2), keys[0], eip1559Config.PIP7ChainID)
 	if err := pool.AddRemote(tx); err != nil {
 		t.Fatalf("failed to add pending transaction: %v", err)
 	}
@@ -1732,7 +1731,7 @@ func TestTransactionPoolUnderpricingDynamicFee(t *testing.T) {
 	txs := types.Transactions{}
 
 	txs = append(txs, dynamicFeeTx(0, 100000, big.NewInt(3), big.NewInt(2), keys[0]))
-	txs = append(txs, pricedTransaction(1, 100000, big.NewInt(2), keys[0]))
+	txs = append(txs, pricedTransaction(1, 100000, big.NewInt(2), keys[0], eip1559Config.PIP7ChainID))
 	txs = append(txs, dynamicFeeTx(1, 100000, big.NewInt(2), big.NewInt(1), keys[1]))
 
 	ltx := dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[2])
@@ -1762,12 +1761,12 @@ func TestTransactionPoolUnderpricingDynamicFee(t *testing.T) {
 	}
 
 	// Ensure that adding high priced transactions drops cheap ones, but not own
-	tx = pricedTransaction(0, 100000, big.NewInt(2), keys[1])
+	tx = pricedTransaction(0, 100000, big.NewInt(2), keys[1], eip1559Config.PIP7ChainID)
 	if err := pool.AddRemote(tx); err != nil { // +K1:0, -K1:1 => Pend K0:0, K0:1, K1:0, K2:0; Que -
 		t.Fatalf("failed to add well priced transaction: %v", err)
 	}
 
-	tx = pricedTransaction(2, 100000, big.NewInt(3), keys[1])
+	tx = pricedTransaction(2, 100000, big.NewInt(3), keys[1], eip1559Config.PIP7ChainID)
 	if err := pool.AddRemote(tx); err != nil { // +K1:2, -K0:1 => Pend K0:0 K1:0, K2:0; Que K1:2
 		t.Fatalf("failed to add well priced transaction: %v", err)
 	}
