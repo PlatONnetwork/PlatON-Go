@@ -17,6 +17,7 @@
 package tracers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -87,8 +88,11 @@ func TestTracer(t *testing.T) {
 			t.Fatal(err)
 		}
 		ret, err := runTrace(tracer, &vmContext{
-			blockCtx: vm.BlockContext{BlockNumber: big.NewInt(1)},
-			txCtx:    vm.TxContext{GasPrice: big.NewInt(100000)},
+			blockCtx: vm.BlockContext{
+				BlockNumber: big.NewInt(1),
+				Ctx:         context.Background(),
+			},
+			txCtx: vm.TxContext{GasPrice: big.NewInt(100000)},
 		}, params.TestChainConfig)
 		if err != nil {
 			return nil, err.Error() // Stringify to allow comparison without nil checks

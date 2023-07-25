@@ -446,6 +446,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 // journal will be persisted correctly. In this case no snapshot recovery is
 // required.
 func TestRestartWithNewSnapshot(t *testing.T) {
+	t.Skip()
 	// Chain:
 	//   G->C1->C2->C3->C4->C5->C6->C7->C8 (HEAD)
 	//

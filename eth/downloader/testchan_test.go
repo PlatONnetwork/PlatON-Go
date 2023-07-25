@@ -134,7 +134,7 @@ func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool)
 		}
 		// Include transactions to the miner to make blocks more interesting.
 		if parent == tc.genesis && i%22 == 0 {
-			signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
+			signer := types.NewLondonSigner(params.TestChainConfig.PIP7ChainID)
 			// evm contract generate more storage, convenient for fast sync
 			tx, err := types.SignTx(types.NewContractCreation(block.TxNonce(testAddress), big.NewInt(1000), params.TxGas*10, block.BaseFee(), evmContract), signer, testKey)
 			if err != nil {
