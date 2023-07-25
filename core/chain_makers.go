@@ -191,6 +191,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	if config == nil {
 		config = params.TestChainConfig
 	}
+	config.PauliBlock = big.NewInt(1)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
@@ -219,7 +220,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	for i := 0; i < n; i++ {
 		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
-		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, statedb)
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 1, statedb)
 		if err != nil {
 			panic(err)
 		}
