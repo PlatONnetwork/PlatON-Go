@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"math/rand"
 	"os"
@@ -82,6 +81,7 @@ func dynamicFeeTx(nonce uint64, gaslimit uint64, gasFee *big.Int, tip *big.Int, 
 func (bc *testBlockChain) CurrentBlock() *types.Block {
 	return types.NewBlock(&types.Header{
 		GasLimit: bc.gasLimit,
+		BaseFee:  new(big.Int),
 	}, nil, nil, trie.NewStackTrie(nil))
 }
 
@@ -293,12 +293,12 @@ func TestInvalidTransactions(t *testing.T) {
 
 	testSetNonce(pool, from, 1)
 	testAddBalance(pool, from, big.NewInt(0xffffffffffffff))
-	tx = transaction(1, 100000, key, pool.chainconfig.PIP7ChainID)
+	tx = transaction(0, 100000, key, pool.chainconfig.PIP7ChainID)
 	if err := pool.AddRemote(tx); !errors.Is(err, ErrNonceTooLow) {
-		t.Error("expected", ErrNonceTooLow)
+		t.Error("expected", ErrNonceTooLow, err)
 	}
 
-	tx = transaction(2, 100000, key, pool.chainconfig.PIP7ChainID)
+	tx = transaction(1, 100000, key, pool.chainconfig.PIP7ChainID)
 	pool.gasPrice = big.NewInt(1000)
 	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
 		t.Error("expected", ErrUnderpriced, "got", err)
@@ -369,21 +369,23 @@ func TestTransactionQueue2(t *testing.T) {
 	pool, key := setupTxPool()
 	defer pool.Stop()
 
-	tx1 := transaction(0, 21000, key, pool.chainconfig.PIP7ChainID)
-	tx2 := transaction(1, 21000, key, pool.chainconfig.PIP7ChainID)
-	tx3 := transaction(4, 21000, key, pool.chainconfig.PIP7ChainID)
+	tx1 := transaction(0, 100, key, pool.chainconfig.PIP7ChainID)
+	tx2 := transaction(10, 100, key, pool.chainconfig.PIP7ChainID)
+	tx3 := transaction(11, 100, key, pool.chainconfig.PIP7ChainID)
 	from, _ := deriveSender(tx1, pool.chainconfig.PIP7ChainID)
-	pool.currentState.AddBalance(from, big.NewInt(10000000000000))
+	testAddBalance(pool, from, big.NewInt(1000))
+	pool.reset(nil, nil)
 
-	pool.AddRemotes([]*types.Transaction{tx1, tx2, tx3})
-	/*pool.AddRemotes([]*types.Transaction{tx2})
-	pool.AddRemotes([]*types.Transaction{tx3})*/
-	time.Sleep(time.Second * 3)
-	for _, list := range pool.pending {
-		log.Println(list.Flatten().Len())
+	pool.enqueueTx(tx1.Hash(), tx1, false, true)
+	pool.enqueueTx(tx2.Hash(), tx2, false, true)
+	pool.enqueueTx(tx3.Hash(), tx3, false, true)
+
+	pool.promoteExecutables([]common.Address{from})
+	if len(pool.pending) != 1 {
+		t.Error("expected pending length to be 1, got", len(pool.pending))
 	}
-	for _, list := range pool.queue {
-		log.Println(list.Flatten().Len())
+	if pool.queue[from].Len() != 2 {
+		t.Error("expected len(queue) == 2, got", pool.queue[from].Len())
 	}
 
 }
@@ -642,6 +644,7 @@ func TestTransactionDropping(t *testing.T) {
 
 func newTestTxPool(config TxPoolConfig, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
 	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
 	evictionInterval = time.Minute * 20
 	return NewTxPool(config, chainconfig, blockchain)

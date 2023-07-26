@@ -189,7 +189,7 @@ func testReorgShort(t *testing.T, full bool) {
 	// Create a long easy chain vs. a short heavy one. Due to difficulty adjustment
 	// we need a fairly long chain of blocks with different difficulties for a short
 	// one to become heavyer than a long one. The 96 is an empirical value.
-	t.Skip()
+
 	easy := make([]int64, 96)
 	for i := 0; i < len(easy); i++ {
 		easy[i] = 60
@@ -207,7 +207,7 @@ func TestReorgLongHeaders(t *testing.T) { testReorgLong(t, false) }
 func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
 
 func testReorgLong(t *testing.T, full bool) {
-	t.Skip()
+
 	testReorg(t, []int64{0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)
 }
 
