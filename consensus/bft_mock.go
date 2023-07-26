@@ -63,13 +63,6 @@ func NewFailFaker(number uint64) *BftMock {
 	return c
 }
 
-//func NewFakeDelayer(delay time.Duration) *BftMock {
-//	c := new(BftMock)
-//	c.Blocks = make([]*types.Block, 0)
-//	c.fakeDelay = delay
-//	return c
-//}
-
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
 	EventMux    *event.TypeMux
@@ -80,7 +73,6 @@ type BftMock struct {
 	Base        *types.Block
 	fakeFail    uint64         // Block number which fails BFT check even in fake mode
 	database    ethdb.Database // In memory database to store our testing data
-	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
@@ -255,8 +247,6 @@ func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *t
 		//ExtraData:          extra,
 		//SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() {
-			// Do nothings
-			//fmt.Println("result the block", "Number", sealBlock.NumberU64(), "Hash", sealBlock.Hash().Hex())
 		},
 	})
 	return nil
