@@ -166,14 +166,20 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	}
 
-	start := time.Now()
+	//start := time.Now()
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
-	if start.Add(30 * time.Millisecond).Before(time.Now()) {
-		log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
-	}
+	//if start.Add(30 * time.Millisecond).Before(time.Now()) {
+	//	log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
+	//}
 
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
-	if fromObj.GetBalance().Cmp(mgval) < 0 {
+	balanceCheck := mgval
+	if msg.GasFeeCap() != nil {
+		balanceCheck = new(big.Int).SetUint64(msg.Gas())
+		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
+		balanceCheck.Add(balanceCheck, msg.Value())
+	}
+	if fromObj.GetBalance().Cmp(balanceCheck) < 0 {
 		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
 		return
 	}

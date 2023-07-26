@@ -18,9 +18,11 @@ package types
 
 import (
 	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	"io"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //go:generate gencodec -type Log -field-override logMarshaling -out gen_log_json.go
@@ -39,15 +41,15 @@ type Log struct {
 	// Derived fields. These fields are filled in by the node
 	// but not secured by consensus.
 	// block in which the transaction was included
-	BlockNumber uint64 `json:"blockNumber" rlp:"-"`
+	BlockNumber uint64 `json:"blockNumber"`
 	// hash of the transaction
-	TxHash common.Hash `json:"transactionHash" gencodec:"required" rlp:"-"`
+	TxHash common.Hash `json:"transactionHash" gencodec:"required"`
 	// index of the transaction in the block
-	TxIndex uint `json:"transactionIndex" rlp:"-"`
+	TxIndex uint `json:"transactionIndex"`
 	// hash of the block in which the transaction was included
-	BlockHash common.Hash `json:"blockHash" rlp:"-"`
+	BlockHash common.Hash `json:"blockHash"`
 	// index of the log in the block
-	Index uint `json:"logIndex" rlp:"-"`
+	Index uint `json:"logIndex"`
 
 	// The Removed field is true if this log was reverted due to a chain reorganisation.
 	// You must pay attention to this field if you receive logs through a filter query.
@@ -62,9 +64,9 @@ func (l Log) MarshalJSON2() ([]byte, error) {
 		Data        hexutil.Bytes  `json:"data" gencodec:"required"`
 		BlockNumber hexutil.Uint64 `json:"blockNumber"`
 		TxHash      common.Hash    `json:"transactionHash" gencodec:"required"`
-		TxIndex     hexutil.Uint   `json:"transactionIndex" gencodec:"required"`
+		TxIndex     hexutil.Uint   `json:"transactionIndex"`
 		BlockHash   common.Hash    `json:"blockHash"`
-		Index       hexutil.Uint   `json:"logIndex" gencodec:"required"`
+		Index       hexutil.Uint   `json:"logIndex"`
 		Removed     bool           `json:"removed"`
 	}
 	var enc Log
@@ -85,4 +87,84 @@ type logMarshaling struct {
 	BlockNumber hexutil.Uint64
 	TxIndex     hexutil.Uint
 	Index       hexutil.Uint
+}
+
+type rlpLog struct {
+	Address common.Address
+	Topics  []common.Hash
+	Data    []byte
+}
+
+// rlpStorageLog is the storage encoding of a log.
+type rlpStorageLog rlpLog
+
+// legacyRlpStorageLog is the previous storage encoding of a log including some redundant fields.
+type legacyRlpStorageLog struct {
+	Address     common.Address
+	Topics      []common.Hash
+	Data        []byte
+	BlockNumber uint64
+	TxHash      common.Hash
+	TxIndex     uint
+	BlockHash   common.Hash
+	Index       uint
+}
+
+// EncodeRLP implements rlp.Encoder.
+func (l *Log) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data})
+}
+
+// DecodeRLP implements rlp.Decoder.
+func (l *Log) DecodeRLP(s *rlp.Stream) error {
+	var dec rlpLog
+	err := s.Decode(&dec)
+	if err == nil {
+		l.Address, l.Topics, l.Data = dec.Address, dec.Topics, dec.Data
+	}
+	return err
+}
+
+// LogForStorage is a wrapper around a Log that flattens and parses the entire content of
+// a log including non-consensus fields.
+type LogForStorage Log
+
+// EncodeRLP implements rlp.Encoder.
+func (l *LogForStorage) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, rlpStorageLog{
+		Address: l.Address,
+		Topics:  l.Topics,
+		Data:    l.Data,
+	})
+}
+
+// DecodeRLP implements rlp.Decoder.
+//
+// Note some redundant fields(e.g. block number, tx hash etc) will be assembled later.
+func (l *LogForStorage) DecodeRLP(s *rlp.Stream) error {
+	blob, err := s.Raw()
+	if err != nil {
+		return err
+	}
+	var dec rlpStorageLog
+	err = rlp.DecodeBytes(blob, &dec)
+	if err == nil {
+		*l = LogForStorage{
+			Address: dec.Address,
+			Topics:  dec.Topics,
+			Data:    dec.Data,
+		}
+	} else {
+		// Try to decode log with previous definition.
+		var dec legacyRlpStorageLog
+		err = rlp.DecodeBytes(blob, &dec)
+		if err == nil {
+			*l = LogForStorage{
+				Address: dec.Address,
+				Topics:  dec.Topics,
+				Data:    dec.Data,
+			}
+		}
+	}
+	return err
 }

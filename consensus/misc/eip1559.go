@@ -18,6 +18,7 @@ package misc
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -62,10 +63,11 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 		parentGasTarget          = parent.GasLimit / params.ElasticityMultiplier
 		parentGasTargetBig       = new(big.Int).SetUint64(parentGasTarget)
 		baseFeeChangeDenominator = new(big.Int).SetUint64(params.BaseFeeChangeDenominator)
+		baseFee                  = new(big.Int).SetUint64(params.InitialBaseFee)
 	)
 	// If the parent gasUsed is the same as the target, the baseFee remains unchanged.
 	if parent.GasUsed == parentGasTarget {
-		return new(big.Int).Set(parent.BaseFee)
+		baseFee = new(big.Int).Set(parent.BaseFee)
 	}
 	if parent.GasUsed > parentGasTarget {
 		// If the parent block used more gas than its target, the baseFee should increase.
@@ -78,7 +80,7 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 			common.Big0, // Make sure the baseFee is 0
 		)
 
-		return x.Add(parent.BaseFee, baseFeeDelta)
+		baseFee = x.Add(parent.BaseFee, baseFeeDelta)
 	} else {
 		// Otherwise if the parent block used less gas than its target, the baseFee should decrease.
 		gasUsedDelta := new(big.Int).SetUint64(parentGasTarget - parent.GasUsed)
@@ -86,9 +88,13 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 		y := x.Div(x, parentGasTargetBig)
 		baseFeeDelta := x.Div(y, baseFeeChangeDenominator)
 
-		return math.BigMax(
+		baseFee = math.BigMax(
 			x.Sub(parent.BaseFee, baseFeeDelta),
 			common.Big0,
 		)
 	}
+	if baseFee.Cmp(new(big.Int).SetUint64(params.InitialBaseFee)) != 0 {
+		log.Error("CalcBaseFee error, the baseFee of the current version must be 0")
+	}
+	return baseFee
 }
