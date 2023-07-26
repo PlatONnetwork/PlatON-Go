@@ -756,6 +756,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Make sure the transaction is signed properly.
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
+		log.Debug("validateTx  fail", "tx", tx.Hash(), "err", err)
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price or tip
@@ -1089,7 +1090,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 	newErrs, dirtyAddrs := pool.addTxsLocked(news, local)
 	if !sync {
 		dirtyAddrs.merge(pool.cacheAccountNeedPromoted)
-		if dirtyAddrs.txLength > pool.config.TxCacheSize {
+		if dirtyAddrs.txLength >= pool.config.TxCacheSize {
 			pool.cacheAccountNeedPromoted = newAccountSet(pool.signer)
 		} else {
 			pool.cacheAccountNeedPromoted = dirtyAddrs
