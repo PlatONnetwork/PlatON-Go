@@ -583,6 +583,7 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 		drop := pool.all.RemotesBelowTip(price)
 		for _, tx := range drop {
 			pool.removeTx(tx.Hash(), false)
+			pool.knowns.Delete(tx.Hash())
 		}
 		pool.priced.Removed(len(drop))
 	}
