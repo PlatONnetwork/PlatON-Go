@@ -195,7 +195,7 @@ func (hc *HeaderChain) writeHeaders(headers []*types.Header) (result *headerWrit
 		status = SideStatTy
 	)
 	reorg := false
-	if lastNumber < head {
+	if lastNumber > head {
 		reorg = true
 	} else if lastNumber == head {
 		reorg = mrand.Float64() < 0.5
