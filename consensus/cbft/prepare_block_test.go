@@ -627,7 +627,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberRepeat()
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), prepareBlock1); err != nil {
 		suit.T().Fatal(err.Error())
 	}
-	block2 := NewBlockWithSign(suit.blockOne.Hash(), 1, suit.view.allNode[0])
+	block2 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareBlock2 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), prepareBlock2); err == nil {
