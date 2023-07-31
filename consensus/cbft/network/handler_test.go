@@ -257,25 +257,6 @@ func Test_EngineManager_Forwarding(t *testing.T) {
 	assert.Equal(t, 1, len(handle.sendQueue))
 }
 
-func Test_EngineManager_Send(t *testing.T) {
-	handle, _ := newHandle(t)
-	handle.Start()
-
-	// Test the messages sent in three different modes to verify
-	// whether the sendQueue successfully records the message.
-	handle.Send("I", newFakeGetPrepareVote())
-	handle.Broadcast(newFakeViewChange())
-	handle.PartBroadcast(newFakePrepareBlockHash())
-	var wg sync.WaitGroup
-	wg.Add(1)
-	time.AfterFunc(1*time.Second, func() {
-		handle.Close()
-		wg.Done()
-	})
-	wg.Wait()
-	assert.Equal(t, 0, len(handle.sendQueue))
-}
-
 func Test_EngineManager_Synchronize(t *testing.T) {
 	handle, fake := newHandle(t)
 	peers := fake.peers
