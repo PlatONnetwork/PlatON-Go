@@ -17,6 +17,7 @@ package rules
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
 	"math/big"
 	"strings"
 	"testing"
@@ -179,7 +180,7 @@ func TestSignTxRequest(t *testing.T) {
 	}
 	t.Logf("to %v", to.Address().String())
 	resp, err := r.ApproveTx(&core.SignTxRequest{
-		Transaction: core.SendTxArgs{
+		Transaction: abitypes.SendTxArgs{
 			From: *from,
 			To:   to},
 		Callinfo: nil,
@@ -431,7 +432,7 @@ func dummyTx(value hexutil.Big) *core.SignTxRequest {
 	gasPrice := hexutil.Big(*big.NewInt(2000000))
 
 	return &core.SignTxRequest{
-		Transaction: core.SendTxArgs{
+		Transaction: abitypes.SendTxArgs{
 			From:     *from,
 			To:       to,
 			Value:    value,
@@ -439,7 +440,7 @@ func dummyTx(value hexutil.Big) *core.SignTxRequest {
 			GasPrice: &gasPrice,
 			Gas:      gas,
 		},
-		Callinfo: []core.ValidationInfo{
+		Callinfo: []abitypes.ValidationInfo{
 			{Typ: "Warning", Message: "All your base are bellong to us"},
 		},
 		Meta: core.Metadata{Remote: "remoteip", Local: "localip", Scheme: "inproc"},

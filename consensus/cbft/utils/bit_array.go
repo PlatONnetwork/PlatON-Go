@@ -22,10 +22,12 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+	"sync"
 )
 
-// BitArray is a thread-unsafe implementation of a bit array.
+// BitArray is a thread-safe implementation of a bit array.
 type BitArray struct {
+	mtx   sync.Mutex
 	Bits  uint32   `json:"bits"`  // NOTE: persisted via reflect, must be exported
 	Elems []uint64 `json:"elems"` // NOTE: persisted via reflect, must be exported
 }
@@ -56,6 +58,8 @@ func (bA *BitArray) GetIndex(i uint32) bool {
 	if bA == nil {
 		return false
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	return bA.getIndex(i)
 }
 
@@ -72,6 +76,8 @@ func (bA *BitArray) SetIndex(i uint32, v bool) bool {
 	if bA == nil {
 		return false
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	return bA.setIndex(i, v)
 }
 
@@ -92,6 +98,8 @@ func (bA *BitArray) Copy() *BitArray {
 	if bA == nil {
 		return nil
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	return bA.copy()
 }
 
@@ -126,11 +134,15 @@ func (bA *BitArray) Or(o *BitArray) *BitArray {
 	if o == nil {
 		return bA.Copy()
 	}
+	bA.mtx.Lock()
+	o.mtx.Lock()
 	c := bA.copyBits(MaxUInt(bA.Bits, o.Bits))
 	smaller := MinInt(len(bA.Elems), len(o.Elems))
 	for i := 0; i < smaller; i++ {
 		c.Elems[i] |= o.Elems[i]
 	}
+	bA.mtx.Unlock()
+	o.mtx.Unlock()
 	return c
 }
 
@@ -141,6 +153,12 @@ func (bA *BitArray) And(o *BitArray) *BitArray {
 	if bA == nil || o == nil {
 		return nil
 	}
+	bA.mtx.Lock()
+	o.mtx.Lock()
+	defer func() {
+		bA.mtx.Unlock()
+		o.mtx.Unlock()
+	}()
 	return bA.and(o)
 }
 
@@ -157,6 +175,8 @@ func (bA *BitArray) Not() *BitArray {
 	if bA == nil {
 		return nil // Degenerate
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	return bA.not()
 }
 
@@ -177,6 +197,8 @@ func (bA *BitArray) Sub(o *BitArray) *BitArray {
 		// TODO: Decide if we should do 1's complement here?
 		return nil
 	}
+	bA.mtx.Lock()
+	o.mtx.Lock()
 	// output is the same size as bA
 	c := bA.copyBits(bA.Bits)
 	// Only iterate to the minimum size between the two.
@@ -188,6 +210,8 @@ func (bA *BitArray) Sub(o *BitArray) *BitArray {
 		// &^ is and not in golang
 		c.Elems[i] &^= o.Elems[i]
 	}
+	bA.mtx.Unlock()
+	o.mtx.Unlock()
 	return c
 }
 
@@ -196,6 +220,8 @@ func (bA *BitArray) IsEmpty() bool {
 	if bA == nil {
 		return true // should this be opposite?
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	for _, e := range bA.Elems {
 		if e > 0 {
 			return false
@@ -209,6 +235,8 @@ func (bA *BitArray) IsFull() bool {
 	if bA == nil {
 		return true
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 
 	// Check all elements except the last
 	for _, elem := range bA.Elems[:len(bA.Elems)-1] {
@@ -231,13 +259,15 @@ func (bA *BitArray) PickRandom() (uint32, bool) {
 		return 0, false
 	}
 
+	bA.mtx.Lock()
 	trueIndices := bA.getTrueIndices()
+	bA.mtx.Unlock()
 
 	if len(trueIndices) == 0 { // no bits set to true
 		return 0, false
 	}
 
-	return trueIndices[RandIntn(int(len(trueIndices)))], true
+	return trueIndices[RandIntn(len(trueIndices))], true
 }
 
 func (bA *BitArray) getTrueIndices() []uint32 {
@@ -286,6 +316,8 @@ func (bA *BitArray) StringIndented(indent string) string {
 	if bA == nil {
 		return "nil-BitArray"
 	}
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 	return bA.stringIndented(indent)
 }
 
@@ -317,6 +349,9 @@ func (bA *BitArray) stringIndented(indent string) string {
 
 // Bytes returns the byte representation of the bits within the bitarray.
 func (bA *BitArray) Bytes() []byte {
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
+
 	numBytes := (bA.Bits + 7) / 8
 	bytes := make([]byte, numBytes)
 	for i := 0; i < len(bA.Elems); i++ {
@@ -334,7 +369,11 @@ func (bA *BitArray) Update(o *BitArray) {
 		return
 	}
 
+	bA.mtx.Lock()
+	o.mtx.Lock()
 	copy(bA.Elems, o.Elems)
+	o.mtx.Unlock()
+	bA.mtx.Unlock()
 }
 
 // MarshalJSON implements json.Marshaler interface by marshaling bit array
@@ -343,6 +382,9 @@ func (bA *BitArray) MarshalJSON() ([]byte, error) {
 	if bA == nil {
 		return []byte("null"), nil
 	}
+
+	bA.mtx.Lock()
+	defer bA.mtx.Unlock()
 
 	bits := `"`
 	for i := uint32(0); i < bA.Bits; i++ {
@@ -373,7 +415,7 @@ func (bA *BitArray) UnmarshalJSON(bz []byte) error {
 	// Validate 'b'.
 	match := bitArrayJSONRegexp.FindStringSubmatch(b)
 	if match == nil {
-		return fmt.Errorf("BitArray in JSON should be a string of format %q but got %s", bitArrayJSONRegexp.String(), b)
+		return fmt.Errorf("bitArray in JSON should be a string of format %q but got %s", bitArrayJSONRegexp.String(), b)
 	}
 	bits := match[1]
 
@@ -385,7 +427,7 @@ func (bA *BitArray) UnmarshalJSON(bz []byte) error {
 			bA2.SetIndex(i, true)
 		}
 	}
-	*bA = *bA2
+	*bA = *bA2 //nolint:govet
 	return nil
 }
 
