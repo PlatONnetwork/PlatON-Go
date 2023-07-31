@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -76,9 +77,9 @@ func (tx *GnosisSafeTx) ToTypedData() TypedData {
 
 // ArgsForValidation returns a SendTxArgs struct, which can be used for the
 // common validations, e.g. look up 4byte destinations
-func (tx *GnosisSafeTx) ArgsForValidation() *SendTxArgs {
+func (tx *GnosisSafeTx) ArgsForValidation() *abitypes.SendTxArgs {
 	gp := hexutil.Big(tx.GasPrice)
-	args := &SendTxArgs{
+	args := &abitypes.SendTxArgs{
 		From:     tx.Safe,
 		To:       &tx.To,
 		Gas:      hexutil.Uint64(tx.SafeTxGas.Uint64()),

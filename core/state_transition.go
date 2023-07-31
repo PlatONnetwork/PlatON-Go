@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math"
 	"math/big"
 	"time"
@@ -37,6 +38,7 @@ import (
 
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
+	emptyCodeHash                = crypto.Keccak256Hash(nil)
 )
 
 /*
@@ -239,6 +241,13 @@ func (st *StateTransition) preCheck() error {
 				st.msg.From().Hex(), msgNonce, stNonce)
 		}
 	}
+
+	// Make sure the sender is an EOA
+	if codeHash := st.state.GetCodeHash(st.msg.From()); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
+		return fmt.Errorf("%w: address %v, codehash: %s", ErrSenderNoEOA,
+			st.msg.From().Hex(), codeHash)
+	}
+
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
 	if gov.Gte150VersionState(st.state) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
@@ -329,8 +338,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// set req context to vm context
 	st.evm.Context.Ctx = ctx
 
+	pauli := gov.Gte150VersionState(st.state)
 	// Set up the initial access list.
-	if gov.Gte150VersionState(st.state) {
+	if pauli {
 		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
 	}
 
@@ -363,7 +373,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		}
 	}
 
-	if gov.Gte150VersionState(st.state) {
+	if pauli {
 		// After EIP-3529: refunds are capped to gasUsed / 5
 		st.refundGas(params.RefundQuotientEIP3529)
 	} else {
@@ -372,7 +382,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	effectiveTip := st.gasPrice
-	if gov.Gte150VersionState(st.state) {
+	if pauli {
 		effectiveTip = cmath.BigMin(st.gasTipCap, new(big.Int).Sub(st.gasFeeCap, st.evm.Context.BaseFee))
 	}
 	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), effectiveTip))
