@@ -552,20 +552,43 @@ func TestSimulatedBackend_EstimateGasWithPrice(t *testing.T) {
 			Value:    big.NewInt(1000),
 			Data:     nil,
 		}, 21000, errors.New("gas required exceeds allowance (10999)")}, // 10999=(2.2ether-1000wei)/(2e14)
+
+		{"EstimateEIP1559WithHighFees", ethereum.CallMsg{
+			From:      addr,
+			To:        &addr,
+			Gas:       0,
+			GasFeeCap: big.NewInt(1e14), // maxgascost = 2.1ether
+			GasTipCap: big.NewInt(1),
+			Value:     big.NewInt(1e17), // the remaining balance for fee is 2.1ether
+			Data:      nil,
+		}, params.TxGas, nil},
+
+		{"EstimateEIP1559WithSuperHighFees", ethereum.CallMsg{
+			From:      addr,
+			To:        &addr,
+			Gas:       0,
+			GasFeeCap: big.NewInt(1e14), // maxgascost = 2.1ether
+			GasTipCap: big.NewInt(1),
+			Value:     big.NewInt(1e17 + 1), // the remaining balance for fee is 2.1ether
+			Data:      nil,
+		}, params.TxGas, errors.New("gas required exceeds allowance (20999)")}, // 20999=(2.2ether-0.1ether-1wei)/(1e14)
 	}
-	for _, c := range cases {
+	for i, c := range cases {
 		got, err := sim.EstimateGas(context.Background(), c.message)
 		if c.expectError != nil {
 			if err == nil {
-				t.Fatalf("Expect error, got nil")
+				t.Fatalf("test %d: expect error, got nil", i)
 			}
 			if c.expectError.Error() != err.Error() {
-				t.Fatalf("Expect error, want %v, got %v", c.expectError, err)
+				t.Fatalf("test %d: expect error, want %v, got %v", i, c.expectError, err)
 			}
 			continue
 		}
+		if c.expectError == nil && err != nil {
+			t.Fatalf("test %d: didn't expect error, got %v", i, err)
+		}
 		if got != c.expect {
-			t.Fatalf("Gas estimation mismatch, want %d, got %d", c.expect, got)
+			t.Fatalf("test %d: gas estimation mismatch, want %d, got %d", i, c.expect, got)
 		}
 	}
 }
