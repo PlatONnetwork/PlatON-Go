@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math"
 	"math/big"
 	"time"
@@ -37,6 +38,7 @@ import (
 
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
+	emptyCodeHash                = crypto.Keccak256Hash(nil)
 )
 
 /*
@@ -239,6 +241,13 @@ func (st *StateTransition) preCheck() error {
 				st.msg.From().Hex(), msgNonce, stNonce)
 		}
 	}
+
+	// Make sure the sender is an EOA
+	if codeHash := st.state.GetCodeHash(st.msg.From()); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
+		return fmt.Errorf("%w: address %v, codehash: %s", ErrSenderNoEOA,
+			st.msg.From().Hex(), codeHash)
+	}
+
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
 	if gov.Gte150VersionState(st.state) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
