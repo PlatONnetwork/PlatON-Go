@@ -20,17 +20,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 )
 
 // ValidateTransaction does a number of checks on the supplied transaction, and
 // returns either a list of warnings, or an error (indicating that the transaction
 // should be immediately rejected).
-func (db *Database) ValidateTransaction(selector *string, tx *core.SendTxArgs) (*core.ValidationMessages, error) {
-	messages := new(core.ValidationMessages)
+func (db *Database) ValidateTransaction(selector *string, tx *abitypes.SendTxArgs) (*abitypes.ValidationMessages, error) {
+	messages := new(abitypes.ValidationMessages)
 
 	// Prevent accidental erroneous usage of both 'input' and 'data' (show stopper)
 	if tx.Data != nil && tx.Input != nil && !bytes.Equal(*tx.Data, *tx.Input) {
@@ -90,7 +90,7 @@ func (db *Database) ValidateTransaction(selector *string, tx *core.SendTxArgs) (
 
 // ValidateCallData checks if the ABI call-data + method selector (if given) can
 // be parsed and seems to match.
-func (db *Database) ValidateCallData(selector *string, data []byte, messages *core.ValidationMessages) {
+func (db *Database) ValidateCallData(selector *string, data []byte, messages *abitypes.ValidationMessages) {
 	// If the data is empty, we have a plain value transfer, nothing more to do
 	if len(data) == 0 {
 		return
