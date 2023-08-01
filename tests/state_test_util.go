@@ -307,7 +307,7 @@ func (tx *stTransaction) toMessage(ps stPostState) (core.Message, error) {
 	if tx.AccessLists != nil && tx.AccessLists[ps.Indexes.Data] != nil {
 		accessList = *tx.AccessLists[ps.Indexes.Data]
 	}
-	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, tx.GasPrice, nil, nil, data, accessList, true)
+	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, tx.GasPrice, nil, nil, data, accessList, false)
 	return msg, nil
 }
 
