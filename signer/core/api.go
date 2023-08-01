@@ -29,7 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
 	"math/big"
 	"os"
@@ -52,7 +52,7 @@ type ExternalAPI interface {
 	// New request to create a new account
 	New(ctx context.Context) (common.Address, error)
 	// SignTransaction request to sign the specified transaction
-	SignTransaction(ctx context.Context, args abitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error)
+	SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error)
 	// SignData - request to sign the given data (plus prefix)
 	SignData(ctx context.Context, contentType string, addr common.MixedcaseAddress, data interface{}) (hexutil.Bytes, error)
 	// SignTypedData - request to sign the given structured data (plus prefix)
@@ -104,7 +104,7 @@ type Validator interface {
 	// ValidateTransaction does a number of checks on the supplied transaction, and
 	// returns either a list of warnings, or an error (indicating that the transaction
 	// should be immediately rejected).
-	ValidateTransaction(selector *string, tx *abitypes.SendTxArgs) (*abitypes.ValidationMessages, error)
+	ValidateTransaction(selector *string, tx *apitypes.SendTxArgs) (*apitypes.ValidationMessages, error)
 }
 
 // SignerAPI defines the actual implementation of ExternalAPI
@@ -220,14 +220,14 @@ func (m Metadata) String() string {
 type (
 	// SignTxRequest contains info about a Transaction to sign
 	SignTxRequest struct {
-		Transaction abitypes.SendTxArgs       `json:"transaction"`
-		Callinfo    []abitypes.ValidationInfo `json:"call_info"`
+		Transaction apitypes.SendTxArgs       `json:"transaction"`
+		Callinfo    []apitypes.ValidationInfo `json:"call_info"`
 		Meta        Metadata                  `json:"meta"`
 	}
 	// SignTxResponse result from SignTxRequest
 	SignTxResponse struct {
 		//The UI may make changes to the TX
-		Transaction abitypes.SendTxArgs `json:"transaction"`
+		Transaction apitypes.SendTxArgs `json:"transaction"`
 		Approved    bool                `json:"approved"`
 	}
 	SignDataRequest struct {
@@ -235,7 +235,7 @@ type (
 		Address     common.MixedcaseAddress   `json:"address"`
 		Rawdata     []byte                    `json:"raw_data"`
 		Messages    []*NameValueType          `json:"messages"`
-		Callinfo    []abitypes.ValidationInfo `json:"call_info"`
+		Callinfo    []apitypes.ValidationInfo `json:"call_info"`
 		Hash        hexutil.Bytes             `json:"hash"`
 		Meta        Metadata                  `json:"meta"`
 	}
@@ -534,7 +534,7 @@ func (api *SignerAPI) lookupOrQueryPassword(address common.Address, title, promp
 }
 
 // SignTransaction signs the given Transaction and returns it both as json and rlp-encoded form
-func (api *SignerAPI) SignTransaction(ctx context.Context, args abitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
+func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
 	var (
 		err    error
 		result SignTxResponse
