@@ -18,6 +18,7 @@ package gasprice
 
 import (
 	"context"
+	lru "github.com/hashicorp/golang-lru"
 	"math/big"
 	"sort"
 	"sync"
@@ -25,7 +26,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
@@ -54,6 +57,7 @@ type OracleBackend interface {
 	GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error)
 	PendingBlockAndReceipts() (*types.Block, types.Receipts)
 	ChainConfig() *params.ChainConfig
+	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 }
 
 // Oracle recommends gas prices based on the content of recent
@@ -69,6 +73,7 @@ type Oracle struct {
 
 	checkBlocks, percentile           int
 	maxHeaderHistory, maxBlockHistory int
+	historyCache                      *lru.Cache
 }
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
@@ -100,6 +105,20 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 	} else if ignorePrice.Int64() > 0 {
 		log.Info("Gasprice oracle is ignoring threshold set", "threshold", ignorePrice)
 	}
+
+	cache, _ := lru.New(2048)
+	headEvent := make(chan core.ChainHeadEvent, 1)
+	backend.SubscribeChainHeadEvent(headEvent)
+	go func() {
+		var lastHead common.Hash
+		for ev := range headEvent {
+			if ev.Block.ParentHash() != lastHead {
+				cache.Purge()
+			}
+			lastHead = ev.Block.Hash()
+		}
+	}()
+
 	return &Oracle{
 		backend:          backend,
 		lastPrice:        params.Default,
@@ -109,6 +128,7 @@ func NewOracle(backend OracleBackend, params Config) *Oracle {
 		percentile:       percent,
 		maxHeaderHistory: params.MaxHeaderHistory,
 		maxBlockHistory:  params.MaxBlockHistory,
+		historyCache:     cache,
 	}
 }
 
