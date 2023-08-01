@@ -129,10 +129,6 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
-	NoUSBFlag = cli.BoolFlag{
-		Name:  "nousb",
-		Usage: "Disables monitoring for and managing USB hardware wallets",
-	}
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Explicitly set network id (integer)",
@@ -611,6 +607,29 @@ var (
 		Value: metrics.DefaultConfig.InfluxDBTags,
 	}
 
+	MetricsEnableInfluxDBV2Flag = cli.BoolFlag{
+		Name:  "metrics.influxdbv2",
+		Usage: "Enable metrics export/push to an external InfluxDB v2 database",
+	}
+
+	MetricsInfluxDBTokenFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.token",
+		Usage: "Token to authorize access to the database (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBToken,
+	}
+
+	MetricsInfluxDBBucketFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.bucket",
+		Usage: "InfluxDB bucket name to push reported metrics to (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBBucket,
+	}
+
+	MetricsInfluxDBOrganizationFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.organization",
+		Usage: "InfluxDB organization name (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBOrganization,
+	}
+
 	CbftPeerMsgQueueSize = cli.Uint64Flag{
 		Name:  "cbft.msg_queue_size",
 		Usage: "Message queue size",
@@ -1077,9 +1096,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(LightKDFFlag.Name) {
 		cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
 	}
-	if ctx.GlobalIsSet(NoUSBFlag.Name) {
-		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
-	}
 	if ctx.GlobalIsSet(InsecureUnlockAllowedFlag.Name) {
 		cfg.InsecureUnlockAllowed = ctx.GlobalBool(InsecureUnlockAllowedFlag.Name)
 	}
@@ -1393,18 +1409,50 @@ func SetupMetrics(ctx *cli.Context) {
 		log.Info("Enabling metrics collection")
 
 		var (
-			enableExport = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)
-			endpoint     = ctx.GlobalString(MetricsInfluxDBEndpointFlag.Name)
-			database     = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
-			username     = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
-			password     = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
+			enableExport   = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)
+			enableExportV2 = ctx.GlobalBool(MetricsEnableInfluxDBV2Flag.Name)
+		)
+
+		if enableExport || enableExportV2 {
+			CheckExclusive(ctx, MetricsEnableInfluxDBFlag, MetricsEnableInfluxDBV2Flag)
+
+			v1FlagIsSet := ctx.GlobalIsSet(MetricsInfluxDBUsernameFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBPasswordFlag.Name)
+
+			v2FlagIsSet := ctx.GlobalIsSet(MetricsInfluxDBTokenFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBOrganizationFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBBucketFlag.Name)
+
+			if enableExport && v2FlagIsSet {
+				Fatalf("Flags --influxdb.metrics.organization, --influxdb.metrics.token, --influxdb.metrics.bucket are only available for influxdb-v2")
+			} else if enableExportV2 && v1FlagIsSet {
+				Fatalf("Flags --influxdb.metrics.username, --influxdb.metrics.password are only available for influxdb-v1")
+			}
+		}
+
+		var (
+			endpoint = ctx.GlobalString(MetricsInfluxDBEndpointFlag.Name)
+			database = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
+			username = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
+			password = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
+
+			token        = ctx.GlobalString(MetricsInfluxDBTokenFlag.Name)
+			bucket       = ctx.GlobalString(MetricsInfluxDBBucketFlag.Name)
+			organization = ctx.GlobalString(MetricsInfluxDBOrganizationFlag.Name)
 		)
 
 		if enableExport {
 			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
 
 			log.Info("Enabling metrics export to InfluxDB")
+
 			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "platon.", tagsMap)
+		} else if enableExportV2 {
+			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
+
+			log.Info("Enabling metrics export to InfluxDB (v2)")
+
+			go influxdb.InfluxDBV2WithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, token, bucket, organization, "platon.", tagsMap)
 		}
 
 		if ctx.GlobalIsSet(MetricsHTTPFlag.Name) {

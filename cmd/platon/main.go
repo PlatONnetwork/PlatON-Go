@@ -67,7 +67,6 @@ var (
 		utils.AncientFlag,
 		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
-		utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -166,6 +165,10 @@ var (
 		utils.MetricsInfluxDBUsernameFlag,
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
+		utils.MetricsEnableInfluxDBV2Flag,
+		utils.MetricsInfluxDBTokenFlag,
+		utils.MetricsInfluxDBBucketFlag,
+		utils.MetricsInfluxDBOrganizationFlag,
 	}
 
 	cbftFlags = []cli.Flag{

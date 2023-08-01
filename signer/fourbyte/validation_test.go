@@ -17,7 +17,7 @@
 package fourbyte
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"math/big"
 	"testing"
 
@@ -36,7 +36,7 @@ func toHexUint(h string) hexutil.Uint64 {
 	b := big.NewInt(0).SetBytes(common.FromHex(h))
 	return hexutil.Uint64(b.Uint64())
 }
-func dummyTxArgs(t txtestcase) *abitypes.SendTxArgs {
+func dummyTxArgs(t txtestcase) *apitypes.SendTxArgs {
 	to, _ := mixAddr(t.to)
 	from, _ := mixAddr(t.from)
 	n := toHexUint(t.n)
@@ -55,7 +55,7 @@ func dummyTxArgs(t txtestcase) *abitypes.SendTxArgs {
 		input = &a
 
 	}
-	return &abitypes.SendTxArgs{
+	return &apitypes.SendTxArgs{
 		From:     *from,
 		To:       to,
 		Value:    value,

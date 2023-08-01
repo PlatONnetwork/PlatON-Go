@@ -189,7 +189,6 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 			NoDiscovery: true,
 			MaxPeers:    25,
 		},
-		NoUSB:       true,
 		KeyStoreDir: "D:\\goprojects\\data\\keystore",
 	}
 	// Start the node and configure a full Ethereum node on it

@@ -19,7 +19,7 @@ package core
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -44,7 +44,7 @@ func (l *AuditLogger) New(ctx context.Context) (common.Address, error) {
 	return l.api.New(ctx)
 }
 
-func (l *AuditLogger) SignTransaction(ctx context.Context, args abitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
+func (l *AuditLogger) SignTransaction(ctx context.Context, args apitypes.SendTxArgs, methodSelector *string) (*ethapi.SignTransactionResult, error) {
 	sel := "<nil>"
 	if methodSelector != nil {
 		sel = *methodSelector

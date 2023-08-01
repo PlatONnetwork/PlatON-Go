@@ -307,7 +307,7 @@ func (tx *stTransaction) toMessage(ps stPostState) (core.Message, error) {
 	if tx.AccessLists != nil && tx.AccessLists[ps.Indexes.Data] != nil {
 		accessList = *tx.AccessLists[ps.Indexes.Data]
 	}
-	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, tx.GasPrice, nil, nil, data, accessList, true)
+	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, tx.GasPrice, nil, nil, data, accessList, false)
 	return msg, nil
 }
 
@@ -316,4 +316,8 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
+}
+
+func vmTestBlockHash(n uint64) common.Hash {
+	return common.BytesToHash(crypto.Keccak256([]byte(big.NewInt(int64(n)).String())))
 }

@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/abitypes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"os"
 	"strings"
 
@@ -41,7 +41,7 @@ func parse(data []byte) {
 	if err != nil {
 		die(err)
 	}
-	messages := abitypes.ValidationMessages{}
+	messages := apitypes.ValidationMessages{}
 	db.ValidateCallData(nil, data, &messages)
 	for _, m := range messages.Messages {
 		fmt.Printf("%v: %v\n", m.Typ, m.Message)

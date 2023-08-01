@@ -11,6 +11,7 @@ require (
 	github.com/cespare/cp v0.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.7.1
+	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/dop251/goja v0.0.0-20200721192441-a695b0cdd498
 	github.com/fatih/color v1.7.0
@@ -29,6 +30,8 @@ require (
 	github.com/holiman/uint256 v1.2.0
 	github.com/huin/goupnp v1.0.2
 	github.com/influxdata/influxdb v1.2.3-0.20180221223340-01288bdb0883
+	github.com/influxdata/influxdb-client-go/v2 v2.4.0
+	github.com/influxdata/line-protocol v0.0.0-20210311194329-9aa0e372d097 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2-0.20160603034137-1fa385a6f458
 	github.com/jedisct1/go-minisign v0.0.0-20211028175153-1c139d1cc84b
 	github.com/julienschmidt/httprouter v1.3.0
@@ -51,6 +54,7 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tealeg/xlsx v1.0.5
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/net v0.9.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.7.0
 	golang.org/x/text v0.9.0
@@ -60,6 +64,7 @@ require (
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
 	gopkg.in/urfave/cli.v1 v1.20.0
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools v2.2.0+incompatible
 	gotest.tools/v3 v3.4.0 // indirect
 )
@@ -89,6 +94,5 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.0.0-20190126203739-365674df15fc // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
