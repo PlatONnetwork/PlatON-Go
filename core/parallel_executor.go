@@ -148,6 +148,47 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	return nil
 }
 
+func (exe *Executor) preCheck(msg types.Message, fromObj *state.ParallelStateObject, baseFee *big.Int, gte150 bool) error {
+	// check nonce
+	if fromObj.GetNonce() < msg.Nonce() {
+		return ErrNonceTooHigh
+	} else if fromObj.GetNonce() > msg.Nonce() {
+		return ErrNonceTooLow
+	}
+	// check balance
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
+	balanceCheck := mgval
+	if msg.GasFeeCap() != nil {
+		balanceCheck = new(big.Int).SetUint64(msg.Gas())
+		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
+		balanceCheck.Add(balanceCheck, msg.Value())
+	}
+	if fromObj.GetBalance().Cmp(balanceCheck) < 0 {
+		return errInsufficientBalanceForGas
+	}
+	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
+	if gte150 {
+		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
+		if !exe.vmCfg.NoBaseFee || msg.GasFeeCap().BitLen() > 0 || msg.GasTipCap().BitLen() > 0 {
+			if msg.GasFeeCap().BitLen() > 256 {
+				return ErrFeeCapVeryHigh
+			}
+			if msg.GasTipCap().BitLen() > 256 {
+				return ErrTipVeryHigh
+			}
+			if msg.GasFeeCap().Cmp(msg.GasTipCap()) < 0 {
+				return ErrTipAboveFeeCap
+			}
+			// This will panic if baseFee is nil, but basefee presence is verified
+			// as part of header validation.
+			if msg.GasFeeCap().Cmp(baseFee) < 0 {
+				return ErrFeeCapTooLow
+			}
+		}
+	}
+	return nil
+}
+
 func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicGas uint64) {
 	if ctx.IsTimeout() {
 		return
@@ -166,35 +207,17 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	}
 
-	//start := time.Now()
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
-	//if start.Add(30 * time.Millisecond).Before(time.Now()) {
-	//	log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
-	//}
-
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
-	balanceCheck := mgval
-	if msg.GasFeeCap() != nil {
-		balanceCheck = new(big.Int).SetUint64(msg.Gas())
-		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
-		balanceCheck.Add(balanceCheck, msg.Value())
-	}
-	if fromObj.GetBalance().Cmp(balanceCheck) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
-		return
-	}
-
-	if fromObj.GetNonce() < msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooHigh, true)
-		return
-	} else if fromObj.GetNonce() > msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooLow, true)
+	// preCheck
+	pauli := gov.Gte150VersionState(ctx.state)
+	if err := exe.preCheck(msg, fromObj, ctx.header.BaseFee, pauli); err != nil {
+		ctx.buildTransferFailedResult(idx, err, true)
 		return
 	}
 
 	// miner tip
 	effectiveTip := msg.GasPrice()
-	if gov.Gte150VersionState(ctx.state) {
+	if pauli {
 		effectiveTip = cmath.BigMin(msg.GasTipCap(), new(big.Int).Sub(msg.GasFeeCap(), ctx.header.BaseFee))
 	}
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), effectiveTip)
