@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -851,16 +852,9 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 			root    = emptyRoot
 			code    = crypto.Keccak256(nil)
 		)
-		accounts[i], _ = rlp.EncodeToBytes(&account{nonce, balance, root, code})
+		accounts[i], _ = rlp.EncodeToBytes(&types.StateAccount{Nonce: nonce, Balance: balance, Root: root, CodeHash: code})
 	}
 	return addresses, accounts
-}
-
-type account struct {
-	Nonce   uint64
-	Balance *big.Int
-	Root    common.Hash
-	Code    []byte
 }
 
 type TriekvPair struct {

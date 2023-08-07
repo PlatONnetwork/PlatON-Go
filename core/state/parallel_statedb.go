@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"sync"
 	"time"
@@ -46,7 +47,7 @@ func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *state
 		self.setError(err)
 		return nil
 	}
-	var data Account
+	var data types.StateAccount
 	if err := rlp.DecodeBytes(enc, &data); err != nil {
 		log.Error("Failed to decode state object", "addr", addr, "err", err)
 		return nil
@@ -98,7 +99,7 @@ func (self *StateDB) justGetStateObjectCache(addr common.Address) (stateObject *
 
 func (self *StateDB) justCreateObject(addr common.Address) *ParallelStateObject {
 	//newobj := newObject(self, addr, Account{})
-	newobj := newObject(self, addr, Account{StorageKeyPrefix: addr.Bytes()})
+	newobj := newObject(self, addr, types.StateAccount{StorageKeyPrefix: addr.Bytes()})
 	//self.journal.append(createObjectChange{account: &addr})
 	newobj.setNonce(0)
 	return &ParallelStateObject{
