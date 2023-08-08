@@ -512,17 +512,17 @@ func (t *Trie) Hash() common.Hash {
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
 // and external (for account tries) references.
-func (t *Trie) Commit(onleaf LeafCallback) (common.Hash, error) {
+func (t *Trie) Commit(onleaf LeafCallback) (common.Hash, int, error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
 
-	hash, cached, err := t.commitRoot(t.db, onleaf)
+	hash, cached, committed, err := t.commitRoot(t.db, onleaf)
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}, 0, err
 	}
 	t.root = cached
-	return common.BytesToHash(hash.(hashNode)), nil
+	return common.BytesToHash(hash.(hashNode)), committed, nil
 }
 
 func (t *Trie) hashRoot() (node, node, error) {
@@ -539,9 +539,9 @@ func (t *Trie) Reset() {
 	t.root = nil
 }
 
-func (t *Trie) commitRoot(db *Database, onleaf LeafCallback) (node, node, error) {
+func (t *Trie) commitRoot(db *Database, onleaf LeafCallback) (node, node, int, error) {
 	if t.root == nil {
-		return hashNode(emptyRoot.Bytes()), nil, nil
+		return hashNode(emptyRoot.Bytes()), nil, 0, nil
 	}
 
 	c := newCommitter(onleaf)

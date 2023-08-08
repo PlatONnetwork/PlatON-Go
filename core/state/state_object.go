@@ -418,14 +418,16 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		var v []byte
 		if len(value) == 0 {
 			s.setError(tr.TryDelete([]byte(key)))
+			s.db.StorageDeleted += 1
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ = rlp.EncodeToBytes(value[:])
 			s.setError(tr.TryUpdate([]byte(key), v))
+			s.db.StorageUpdated += 1
 		}
 		// If state snapshotting is active, cache the data til commit
 		if storage != nil {
-			storage[crypto.Keccak256Hash([]byte(key))] = v // v will be nil if value is 0x00
+			storage[crypto.Keccak256Hash([]byte(key))] = v // v will be nil if it's deleted
 		}
 	}
 
@@ -453,25 +455,25 @@ func (s *stateObject) updateRoot(db Database) {
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
-func (s *stateObject) CommitTrie(db Database) error {
+func (s *stateObject) CommitTrie(db Database) (int, error) {
 	// If nothing changed, don't bother with hashing anything
 	if s.updateTrie(db) == nil {
-		return nil
+		return 0, nil
 	}
 	if s.dbErr != nil {
-		return s.dbErr
+		return 0, s.dbErr
 	}
 
 	// Track the amount of time wasted on committing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, err := s.trie.Commit(nil)
+	root, committed, err := s.trie.Commit(nil)
 
 	if err == nil {
 		s.data.Root = root
 	}
-	return err
+	return committed, err
 }
 
 // AddBalance adds amount to s's balance.

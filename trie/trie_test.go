@@ -95,7 +95,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	trie, _ := New(common.Hash{}, triedb)
 	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
-	root, _ := trie.Commit(nil)
+	root, _, _ := trie.Commit(nil)
 	if !memonly {
 		triedb.Commit(root, true, true)
 	}
@@ -177,7 +177,7 @@ func TestInsert(t *testing.T) {
 	updateString(trie, "A", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
 	exp = common.HexToHash("d23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab")
-	root, err := trie.Commit(nil)
+	root, _, err := trie.Commit(nil)
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
@@ -275,7 +275,7 @@ func TestReplication(t *testing.T) {
 	for _, val := range vals {
 		updateString(trie, val.k, val.v)
 	}
-	exp, err := trie.Commit(nil)
+	exp, _, err := trie.Commit(nil)
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestReplication(t *testing.T) {
 			t.Errorf("trie2 doesn't have %q => %q", kv.k, kv.v)
 		}
 	}
-	hash, err := trie2.Commit(nil)
+	hash, _, err := trie2.Commit(nil)
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
@@ -432,11 +432,11 @@ func runRandTest(rt randTest) bool {
 				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
 			}
 		case opCommit:
-			_, rt[i].err = tr.Commit(nil)
+			_, _, rt[i].err = tr.Commit(nil)
 		case opHash:
 			tr.Hash()
 		case opReset:
-			hash, err := tr.Commit(nil)
+			hash, _, err := tr.Commit(nil)
 			if err != nil {
 				rt[i].err = err
 				return false
@@ -630,7 +630,7 @@ func TestDeepCopy(t *testing.T) {
 			kv[common.BytesToHash(tr.hashKey(k))] = v
 		}
 
-		root, _ = tr.Commit(leafCB)
+		root, _, _ = tr.Commit(leafCB)
 		if codeWriter.ValueSize() > 0 {
 			if err := codeWriter.Write(); err != nil {
 				t.Fatal("Failed to commit dirty codes", "error", err)
@@ -688,7 +688,7 @@ func TestDeepCopy(t *testing.T) {
 		count++
 	}
 	assert.Equal(t, len(kv), keys)
-	root, _ = tr2.Commit(leafCB)
+	root, _, _ = tr2.Commit(leafCB)
 	if codeWriter.ValueSize() > 0 {
 		if err := codeWriter.Write(); err != nil {
 			t.Fatal("Failed to commit dirty codes", "error", err)
@@ -697,7 +697,7 @@ func TestDeepCopy(t *testing.T) {
 	triedb.Reference(root, common.Hash{})
 	assert.Nil(t, triedb.Commit(root, false, false))
 	triedb.DereferenceDB(parent)
-	cpyRoot, _ := cpy.Commit(leafCB)
+	cpyRoot, _, _ := cpy.Commit(leafCB)
 	if root != cpyRoot {
 		t.Fatal("cpyroot failed")
 	}
@@ -742,7 +742,7 @@ func TestOneTrieCollision(t *testing.T) {
 	for _, d := range trieData1 {
 		trie.Update(d.hash, d.value)
 	}
-	root, _ := trie.Commit(nil)
+	root, _, _ := trie.Commit(nil)
 	memdb.Commit(root, false, false)
 
 	assert.Nil(t, checkTrie(trie))
@@ -751,16 +751,16 @@ func TestOneTrieCollision(t *testing.T) {
 	reopenTrie, _ := New(root, reopenMemdb)
 	reopenTrie.Delete(trieData1[0].hash)
 
-	reopenRoot, _ := reopenTrie.Commit(nil)
+	reopenRoot, _, _ := reopenTrie.Commit(nil)
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenTrie.Update(trieData1[0].hash, trieData1[0].value)
-	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenRoot, _, _ = reopenTrie.Commit(nil)
 	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenMemdb.ReferenceVersion(root)
 
 	reopenTrie.Delete(trieData1[0].hash)
-	reopenRoot, _ = reopenTrie.Commit(nil)
+	reopenRoot, _, _ = reopenTrie.Commit(nil)
 	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenMemdb.ReferenceVersion(reopenRoot)
@@ -795,8 +795,8 @@ func TestTwoTrieCollision(t *testing.T) {
 		trie2.Update(d.hash, d.value)
 	}
 
-	root1, _ := trie1.Commit(nil)
-	root2, _ := trie2.Commit(nil)
+	root1, _, _ := trie1.Commit(nil)
+	root2, _, _ := trie2.Commit(nil)
 
 	memdb1.Commit(root1, false, false)
 	memdb2.Commit(root2, false, false)
@@ -827,7 +827,7 @@ func TestCommitAfterHash(t *testing.T) {
 	if exp != root {
 		t.Errorf("got %x, exp %x", root, exp)
 	}
-	root, _ = trie.Commit(nil)
+	root, _, _ = trie.Commit(nil)
 	if exp != root {
 		t.Errorf("got %x, exp %x", root, exp)
 	}

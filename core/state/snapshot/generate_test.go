@@ -60,7 +60,7 @@ func TestGeneration(t *testing.T) {
 	acc = &Account{Balance: big.NewInt(3), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
 	val, _ = rlp.EncodeToBytes(acc)
 	accTrie.Update([]byte("acc-3"), val) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
-	root, _ := accTrie.Commit(nil)       // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
+	root, _, _ := accTrie.Commit(nil)    // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 	triedb.Commit(root, false, true)
 
 	if have, want := root, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"); have != want {
@@ -128,7 +128,7 @@ func TestGenerateExistentState(t *testing.T) {
 	rawdb.WriteStorageSnapshot(diskdb, hashData([]byte("acc-3")), hashData([]byte("key-2")), []byte("val-2"))
 	rawdb.WriteStorageSnapshot(diskdb, hashData([]byte("acc-3")), hashData([]byte("key-3")), []byte("val-3"))
 
-	root, _ := accTrie.Commit(nil) // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
+	root, _, _ := accTrie.Commit(nil) // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 	triedb.Commit(root, false, true)
 
 	snap := generateSnapshot(diskdb, triedb, 16, root)
@@ -220,12 +220,12 @@ func (t *testHelper) makeStorageTrie(keys []string, vals []string) []byte {
 	for i, k := range keys {
 		stTrie.Update([]byte(k), []byte(vals[i]))
 	}
-	root, _ := stTrie.Commit(nil)
+	root, _, _ := stTrie.Commit(nil)
 	return root.Bytes()
 }
 
 func (t *testHelper) Generate() (common.Hash, *diskLayer) {
-	root, _ := t.accTrie.Commit(nil)
+	root, _, _ := t.accTrie.Commit(nil)
 	t.triedb.Commit(root, false, true)
 	snap := generateSnapshot(t.diskdb, t.triedb, 16, root)
 	return root, snap
@@ -582,7 +582,7 @@ func TestGenerateWithExtraAccounts(t *testing.T) {
 		rawdb.WriteStorageSnapshot(diskdb, key, hashData([]byte("b-key-2")), []byte("b-val-2"))
 		rawdb.WriteStorageSnapshot(diskdb, key, hashData([]byte("b-key-3")), []byte("b-val-3"))
 	}
-	root, _ := accTrie.Commit(nil)
+	root, _, _ := accTrie.Commit(nil)
 	t.Logf("root: %x", root)
 	triedb.Commit(root, false, true)
 	// To verify the test: If we now inspect the snap db, there should exist extraneous storage items
@@ -644,7 +644,7 @@ func TestGenerateWithManyExtraAccounts(t *testing.T) {
 			rawdb.WriteAccountSnapshot(diskdb, key, val)
 		}
 	}
-	root, _ := accTrie.Commit(nil)
+	root, _, _ := accTrie.Commit(nil)
 	t.Logf("root: %x", root)
 	triedb.Commit(root, false, true)
 
@@ -697,7 +697,7 @@ func TestGenerateWithExtraBeforeAndAfter(t *testing.T) {
 		rawdb.WriteAccountSnapshot(diskdb, common.HexToHash("0x07"), val)
 	}
 
-	root, _ := accTrie.Commit(nil)
+	root, _, _ := accTrie.Commit(nil)
 	t.Logf("root: %x", root)
 	triedb.Commit(root, false, true)
 
@@ -741,7 +741,7 @@ func TestGenerateWithMalformedSnapdata(t *testing.T) {
 		rawdb.WriteAccountSnapshot(diskdb, common.HexToHash("0x05"), junk)
 	}
 
-	root, _ := accTrie.Commit(nil)
+	root, _, _ := accTrie.Commit(nil)
 	t.Logf("root: %x", root)
 	triedb.Commit(root, false, true)
 
