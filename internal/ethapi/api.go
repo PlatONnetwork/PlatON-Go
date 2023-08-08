@@ -1273,6 +1273,9 @@ type RPCTransaction struct {
 // representation, with the given location metadata set (if available).
 func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber uint64, index uint64, baseFee *big.Int, config *params.ChainConfig) *RPCTransaction {
 	var signer = types.LatestSignerForChainID(tx.ChainId())
+	if config.IsPauli(new(big.Int).SetUint64(blockNumber)) {
+		signer = types.LatestSigner(config, true)
+	}
 	from, _ := types.Sender(signer, tx)
 	v, r, s := tx.RawSignatureValues()
 	result := &RPCTransaction{
