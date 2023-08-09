@@ -27,7 +27,6 @@ import (
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 )
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
@@ -194,19 +193,13 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 	{
 		Name: "ALIASED (deprecated)",
 		Flags: append([]cli.Flag{
-			utils.LegacyRPCEnabledFlag,
-			utils.LegacyRPCListenAddrFlag,
-			utils.LegacyRPCPortFlag,
-			utils.LegacyRPCCORSDomainFlag,
-			utils.LegacyRPCVirtualHostsFlag,
-			utils.LegacyRPCApiFlag,
 			utils.LegacyWSListenAddrFlag,
 			utils.LegacyWSPortFlag,
 			utils.LegacyWSAllowedOriginsFlag,
 			utils.LegacyWSApiFlag,
 			utils.LegacyGpoBlocksFlag,
 			utils.LegacyGpoPercentileFlag,
-		}, debug.DeprecatedFlags...),
+		}),
 	},
 	{
 		Name: "MISC",
