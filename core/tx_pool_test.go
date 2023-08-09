@@ -59,8 +59,8 @@ func init() {
 }
 
 type testBlockChain struct {
+	gasLimit      uint64 // must be first field for 64 bit alignment (atomic access)
 	statedb       *state.StateDB
-	gasLimit      uint64
 	chainHeadFeed *event.Feed
 }
 
@@ -95,7 +95,7 @@ func (bc *testBlockChain) GetState(header *types.Header) (*state.StateDB, error)
 }
 
 func newTestBlockChain(stateDB *state.StateDB) *testBlockChain {
-	testBlockChain := &testBlockChain{stateDB, 1000000, new(event.Feed)}
+	testBlockChain := &testBlockChain{1000000, stateDB, new(event.Feed)}
 	return testBlockChain
 }
 
@@ -114,7 +114,7 @@ func setupTxPool() (*TxPool, *ecdsa.PrivateKey) {
 
 func setupTxPoolWithConfig(config *params.ChainConfig) (*TxPool, *ecdsa.PrivateKey) {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := &testBlockChain{statedb, 10000000, new(event.Feed)}
+	blockchain := &testBlockChain{10000000, statedb, new(event.Feed)}
 
 	key, _ := crypto.GenerateKey()
 	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, blockchain.statedb)
@@ -225,7 +225,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	)
 
 	statedb.SetBalance(address, new(big.Int).SetUint64(params.LAT))
-	blockchain := &testChain{&testBlockChain{statedb, 1000000000, new(event.Feed)}, address, &trigger}
+	blockchain := &testChain{&testBlockChain{1000000000, statedb, new(event.Feed)}, address, &trigger}
 
 	// setup pool with 2 transaction in it
 	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
@@ -450,7 +450,7 @@ func TestTransactionDoubleNonce(t *testing.T) {
 		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		statedb.AddBalance(addr, big.NewInt(100000000000000))
 
-		pool.chain = &testBlockChain{statedb, 1000000, new(event.Feed)}
+		pool.chain = &testBlockChain{1000000, statedb, new(event.Feed)}
 		<-pool.requestReset(nil, pool.resetHead.Header())
 	}
 	resetState()
@@ -648,7 +648,7 @@ func TestTransactionDropping(t *testing.T) {
 func newTestTxPool(config TxPoolConfig, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
-	blockchain := &testBlockChain{statedb, 1000000, new(event.Feed)}
+	blockchain := &testBlockChain{1000000, statedb, new(event.Feed)}
 	evictionInterval = time.Minute * 20
 	return NewTxPool(config, chainconfig, blockchain)
 }
@@ -2186,7 +2186,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	pool.Stop()
 	pool.currentState.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
 
-	blockchain := &testBlockChain{pool.currentState, 1000000, new(event.Feed)}
+	blockchain := &testBlockChain{1000000, pool.currentState, new(event.Feed)}
 
 	pool = NewTxPool(config, params.TestChainConfig, blockchain)
 
@@ -2213,7 +2213,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	pool.Stop()
 
 	pool.currentState.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
-	blockchain = &testBlockChain{pool.currentState, 1000000, new(event.Feed)}
+	blockchain = &testBlockChain{1000000, pool.currentState, new(event.Feed)}
 	pool = NewTxPool(config, params.TestChainConfig, blockchain)
 
 	pending, queued = pool.Stats()
