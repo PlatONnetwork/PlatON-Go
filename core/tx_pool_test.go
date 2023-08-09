@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -80,7 +81,7 @@ func dynamicFeeTx(nonce uint64, gaslimit uint64, gasFee *big.Int, tip *big.Int, 
 
 func (bc *testBlockChain) CurrentBlock() *types.Block {
 	return types.NewBlock(&types.Header{
-		GasLimit: bc.gasLimit,
+		GasLimit: atomic.LoadUint64(&bc.gasLimit),
 		BaseFee:  new(big.Int),
 	}, nil, nil, trie.NewStackTrie(nil))
 }
@@ -119,6 +120,8 @@ func setupTxPoolWithConfig(config *params.ChainConfig) (*TxPool, *ecdsa.PrivateK
 	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, blockchain.statedb)
 	pool := NewTxPool(testTxPoolConfig, config, blockchain)
 	evictionInterval = time.Minute * 20
+	// wait for the pool to initialize
+	<-pool.initDoneCh
 	return pool, key
 }
 
@@ -622,7 +625,7 @@ func TestTransactionDropping(t *testing.T) {
 		t.Errorf("total transaction mismatch: have %d, want %d", pool.all.Count(), 4)
 	}
 	// Reduce the block gas limit, check that invalidated transactions are dropped
-	pool.chain.(*testBlockChain).gasLimit = 100
+	atomic.StoreUint64(&pool.chain.(*testBlockChain).gasLimit, 100)
 	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
 
 	if _, ok := pool.pending[account].txs.items[tx0.Nonce()]; !ok {

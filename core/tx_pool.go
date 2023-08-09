@@ -319,6 +319,8 @@ type TxPool struct {
 
 	cacheAccountNeedPromoted *accountSet
 
+	initDoneCh chan struct{} // is closed once the pool is initialized (for tests)
+
 	changesSinceReorg int // A counter for how many drops we've performed in-between reorg.
 }
 
@@ -353,6 +355,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		queueTxEventCh:  make(chan *types.Transaction),
 		reorgDoneCh:     make(chan chan struct{}),
 		reorgShutdownCh: make(chan struct{}),
+		initDoneCh:      make(chan struct{}),
 	}
 	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
 		stateDB, err := chain.GetState(currentBlock.Header())
@@ -415,6 +418,9 @@ func (pool *TxPool) loop() {
 	defer evict.Stop()
 	defer journal.Stop()
 
+	// Notify tests that the init phase is done
+	close(pool.initDoneCh)
+
 	// Track the previous head headers for transaction reorgs
 
 	// Keep waiting for and reacting to the various events
@@ -428,8 +434,8 @@ func (pool *TxPool) loop() {
 		case <-report.C:
 			pool.mu.RLock()
 			pending, queued := pool.stats()
-			stales := pool.priced.stales
 			pool.mu.RUnlock()
+			stales := int(atomic.LoadInt64(&pool.priced.stales))
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
 				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
