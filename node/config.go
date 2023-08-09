@@ -30,8 +30,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -464,15 +462,8 @@ func (c *Config) parsePersistentNodes(w *bool, path string) []*enode.Node {
 	return nodes
 }
 
-// AccountConfig determines the settings for scrypt and keydirectory
-func (c *Config) AccountConfig() (int, int, string, error) {
-	scryptN := keystore.StandardScryptN
-	scryptP := keystore.StandardScryptP
-	if c.UseLightweightKDF {
-		scryptN = keystore.LightScryptN
-		scryptP = keystore.LightScryptP
-	}
-
+// KeyDirConfig determines the settings for keydirectory
+func (c *Config) KeyDirConfig() (string, error) {
 	var (
 		keydir string
 		err    error
@@ -489,29 +480,31 @@ func (c *Config) AccountConfig() (int, int, string, error) {
 	case c.KeyStoreDir != "":
 		keydir, err = filepath.Abs(c.KeyStoreDir)
 	}
-	return scryptN, scryptP, keydir, err
+	return keydir, err
 }
 
-func makeAccountManager(conf *Config) (*accounts.Manager, string, error) {
-	scryptN, scryptP, keydir, err := conf.AccountConfig()
-	var ephemeral string
+// getKeyStoreDir retrieves the key directory and will create
+// and ephemeral one if necessary.
+func getKeyStoreDir(conf *Config) (string, bool, error) {
+	keydir, err := conf.KeyDirConfig()
+	if err != nil {
+		return "", false, err
+	}
+	isEphemeral := false
 	if keydir == "" {
 		// There is no datadir.
 		keydir, err = ioutil.TempDir("", "go-ethereum-keystore")
-		ephemeral = keydir
+		isEphemeral = true
 	}
 
 	if err != nil {
-		return nil, "", err
+		return "", false, err
 	}
 	if err := os.MkdirAll(keydir, 0700); err != nil {
-		return nil, "", err
+		return "", false, err
 	}
-	// Assemble the account manager and supported backends
-	backends := []accounts.Backend{
-		keystore.NewKeyStore(keydir, scryptN, scryptP),
-	}
-	return accounts.NewManager(&accounts.Config{InsecureUnlockAllowed: conf.InsecureUnlockAllowed}, backends...), ephemeral, nil
+
+	return keydir, isEphemeral, nil
 }
 
 var warnLock sync.Mutex
