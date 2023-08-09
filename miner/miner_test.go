@@ -27,6 +27,7 @@ func minerStart(t *testing.T) *Miner {
 		},
 	}
 
+	miner.wg.Add(1)
 	go miner.update()
 
 	go func() {
