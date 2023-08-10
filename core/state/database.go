@@ -19,6 +19,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -65,6 +66,10 @@ type Database interface {
 // Trie is a Ethereum Merkle Trie.
 type Trie interface {
 	TryGet(key []byte) ([]byte, error)
+
+	// TryUpdateAccount abstract an account write in the trie.
+	TryUpdateAccount(key []byte, account *types.StateAccount) error
+
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
 	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
@@ -96,7 +101,7 @@ type cachingDB struct {
 	codeCache     *fastcache.Cache
 }
 
-//OpenTrie opens the main account trie.
+// OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db)
 }
