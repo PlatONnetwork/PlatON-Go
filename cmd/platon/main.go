@@ -124,18 +124,12 @@ var (
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
 		utils.HTTPVirtualHostsFlag,
-		utils.LegacyRPCEnabledFlag,
-		utils.LegacyRPCListenAddrFlag,
-		utils.LegacyRPCPortFlag,
-		utils.LegacyRPCCORSDomainFlag,
-		utils.LegacyRPCVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
 		utils.GraphQLCORSDomainFlag,
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
 		utils.HTTPPathPrefixFlag,
 		utils.HTTPEnabledEthCompatibleFlag,
-		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
 		utils.LegacyWSListenAddrFlag,
@@ -232,7 +226,6 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, debug.DeprecatedFlags...)
 	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 

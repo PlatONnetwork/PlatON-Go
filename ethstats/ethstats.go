@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	PlatON "github.com/PlatONnetwork/PlatON-Go"
 	"math/big"
 	"net/http"
 	"runtime"
@@ -35,7 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	ethproto "github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -65,7 +65,7 @@ type backend interface {
 	CurrentHeader() *types.Header
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
 	Stats() (pending int, queued int)
-	Downloader() *downloader.Downloader
+	SyncProgress() PlatON.SyncProgress
 }
 
 // fullNodeBackend encompasses the functionality necessary for a full node
@@ -769,7 +769,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 	if ok {
 		mining = fullBackend.Miner().Mining()
 
-		sync := fullBackend.Downloader().Progress()
+		sync := fullBackend.SyncProgress()
 		syncing = fullBackend.CurrentHeader().Number.Uint64() >= sync.HighestBlock
 
 		price, _ := fullBackend.SuggestGasTipCap(context.Background())
@@ -778,7 +778,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 			gasprice += int(basefee.Uint64())
 		}
 	} else {
-		sync := s.backend.Downloader().Progress()
+		sync := s.backend.SyncProgress()
 		syncing = s.backend.CurrentHeader().Number.Uint64() >= sync.HighestBlock
 	}
 	// Assemble the node stats and send it to the server
