@@ -19,6 +19,7 @@ package miner
 
 import (
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -57,6 +58,8 @@ type Miner struct {
 
 	startCh chan struct{}
 	stopCh  chan struct{}
+
+	wg sync.WaitGroup
 }
 
 func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
@@ -70,6 +73,7 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningCon
 		stopCh:  make(chan struct{}),
 		worker:  newWorker(config, chainConfig, miningConfig, engine, eth, mux, isLocalBlock, blockChainCache, vmTimeout),
 	}
+	miner.wg.Add(1)
 	go miner.update()
 
 	return miner
@@ -80,6 +84,8 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningCon
 // the loop is exited. This to prevent a major security vuln where external parties can DOS you with blocks
 // and halt your mining operation for as long as the DOS continues.
 func (miner *Miner) update() {
+	defer miner.wg.Done()
+
 	events := miner.mux.Subscribe(downloader.StartEvent{}, downloader.DoneEvent{}, downloader.FailedEvent{})
 	defer func() {
 		if !events.Closed() {
@@ -161,6 +167,7 @@ func (miner *Miner) Stop() {
 
 func (miner *Miner) Close() {
 	close(miner.exitCh)
+	miner.wg.Wait()
 }
 
 func (miner *Miner) Mining() bool {

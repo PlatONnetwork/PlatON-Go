@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -823,7 +824,7 @@ func TestCommitAfterHash(t *testing.T) {
 	trie.Hash()
 	trie.Commit(nil)
 	root := trie.Hash()
-	exp := common.HexToHash("e5e9c29bb50446a4081e6d1d748d2892c6101c1e883a1f77cf21d4094b697822")
+	exp := common.HexToHash("1ad36b758576e29b9917ed99765036cb37732ac61956d96872b1bb278a4fe2b9")
 	if exp != root {
 		t.Errorf("got %x, exp %x", root, exp)
 	}
@@ -851,16 +852,9 @@ func makeAccounts(size int) (addresses [][20]byte, accounts [][]byte) {
 			root    = emptyRoot
 			code    = crypto.Keccak256(nil)
 		)
-		accounts[i], _ = rlp.EncodeToBytes(&account{nonce, balance, root, code})
+		accounts[i], _ = rlp.EncodeToBytes(&types.StateAccount{Nonce: nonce, Balance: balance, Root: root, CodeHash: code})
 	}
 	return addresses, accounts
-}
-
-type account struct {
-	Nonce   uint64
-	Balance *big.Int
-	Root    common.Hash
-	Code    []byte
 }
 
 type TriekvPair struct {
