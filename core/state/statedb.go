@@ -546,11 +546,9 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
 	addr := obj.Address()
-	data, err := rlp.EncodeToBytes(obj)
-	if err != nil {
-		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], err))
+	if err := s.trie.TryUpdateAccount(addr[:], &obj.data); err != nil {
+		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
-	s.setError(s.trie.TryUpdate(addr[:], data))
 
 	// If state snapshotting is active, cache the data til commit. Note, this
 	// update mechanism is not symmetric to the deletion, because whereas it is
@@ -744,7 +742,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	}
 	// If no live objects are available, attempt to use snapshots
 	var (
-		data Account
+		data types.StateAccount
 		err  error
 	)
 	if s.snap != nil {
@@ -756,11 +754,16 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 			if acc == nil {
 				return nil
 			}
-			data.Nonce, data.Balance, data.CodeHash, data.StorageKeyPrefix = acc.Nonce, acc.Balance, acc.CodeHash, acc.StorageKeyPrefix
+			data = types.StateAccount{
+				Nonce:            acc.Nonce,
+				Balance:          acc.Balance,
+				CodeHash:         acc.CodeHash,
+				Root:             common.BytesToHash(acc.Root),
+				StorageKeyPrefix: acc.StorageKeyPrefix,
+			}
 			if len(data.CodeHash) == 0 {
 				data.CodeHash = emptyCodeHash
 			}
-			data.Root = common.BytesToHash(acc.Root)
 			if data.Root == (common.Hash{}) {
 				data.Root = emptyRoot
 			}
@@ -782,7 +785,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		}
 	}
 	// [NOTE]: set the prefix for storage key
-	if data.empty() {
+	if data.Empty() {
 		data.StorageKeyPrefix = addr.Bytes()
 	}
 	// Insert into the live set.
@@ -819,12 +822,12 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 		}
 	}
 	if prev == nil {
-		newobj = newObject(s, addr, Account{StorageKeyPrefix: addr.Bytes()})
+		newobj = newObject(s, addr, types.StateAccount{StorageKeyPrefix: addr.Bytes()})
 		s.journal.append(createObjectChange{account: &addr})
 	} else {
 		prefix := make([]byte, len(prev.data.StorageKeyPrefix))
 		copy(prefix, prev.data.StorageKeyPrefix)
-		newobj = newObject(s, addr, Account{StorageKeyPrefix: prefix})
+		newobj = newObject(s, addr, types.StateAccount{StorageKeyPrefix: prefix})
 		s.journal.append(resetObjectChange{prev: prev, prevdestruct: prevdestruct})
 	}
 	s.setStateObject(newobj)
@@ -1265,7 +1268,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	}
 	// Write trie changes.
 	root, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash) error {
-		var account Account
+		var account types.StateAccount
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
 		}

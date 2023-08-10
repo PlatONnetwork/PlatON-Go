@@ -20,6 +20,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"io"
 	"math/big"
 	"time"
@@ -67,7 +68,7 @@ func (self ValueStorage) Copy() ValueStorage {
 type stateObject struct {
 	address  common.Address
 	addrHash common.Hash // hash of ethereum address of the account
-	data     Account
+	data     types.StateAccount
 	db       *StateDB
 
 	// DB error.
@@ -102,37 +103,8 @@ func (s *stateObject) empty() bool {
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
 }
 
-// Account is the Ethereum consensus representation of accounts.
-// These objects are stored in the main account trie.
-type Account struct {
-	Nonce            uint64
-	Balance          *big.Int
-	Root             common.Hash // merkle root of the storage trie
-	CodeHash         []byte
-	StorageKeyPrefix []byte // A prefix added to the `key` to ensure that data between different accounts are not shared
-}
-
-func (self *Account) empty() bool {
-	if self.Nonce != 0 {
-		return false
-	}
-	if self.Balance.Cmp(common.Big0) != 0 {
-		return false
-	}
-	if self.Root != common.ZeroHash {
-		return false
-	}
-	if len(self.CodeHash) != 0 {
-		return false
-	}
-	if len(self.StorageKeyPrefix) != 0 {
-		return false
-	}
-	return true
-}
-
 // newObject creates a state object.
-func newObject(db *StateDB, address common.Address, data Account) *stateObject {
+func newObject(db *StateDB, address common.Address, data types.StateAccount) *stateObject {
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -155,7 +127,7 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 
 // EncodeRLP implements rlp.Encoder.
 func (s *stateObject) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, s.data)
+	return rlp.Encode(w, &s.data)
 }
 
 // setError remembers the first non-nil error it is called with.

@@ -18,6 +18,8 @@ package trie
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -83,6 +85,21 @@ func (t *SecureTrie) TryGet(key []byte) ([]byte, error) {
 // possible to use keybyte-encoding as the path might contain odd nibbles.
 func (t *SecureTrie) TryGetNode(path []byte) ([]byte, int, error) {
 	return t.trie.TryGetNode(path)
+}
+
+// TryUpdate account will abstract the write of an account to the
+// secure trie.
+func (t *SecureTrie) TryUpdateAccount(key []byte, acc *types.StateAccount) error {
+	hk := t.hashKey(key)
+	data, err := rlp.EncodeToBytes(acc)
+	if err != nil {
+		return err
+	}
+	if err := t.trie.TryUpdate(hk, data); err != nil {
+		return err
+	}
+	t.getSecKeyCache()[string(hk)] = common.CopyBytes(key)
+	return nil
 }
 
 // Update associates key with value in the trie. Subsequent calls to
