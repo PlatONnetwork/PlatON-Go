@@ -127,6 +127,11 @@ type StateDB struct {
 	SnapshotAccountReads time.Duration
 	SnapshotStorageReads time.Duration
 	SnapshotCommits      time.Duration
+
+	AccountUpdated int
+	StorageUpdated int
+	AccountDeleted int
+	StorageDeleted int
 }
 
 // New creates a new state from a given trie.
@@ -546,11 +551,9 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
 	addr := obj.Address()
-	data, err := rlp.EncodeToBytes(obj)
-	if err != nil {
-		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], err))
+	if err := s.trie.TryUpdateAccount(addr[:], &obj.data); err != nil {
+		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
-	s.setError(s.trie.TryUpdate(addr[:], data))
 
 	// If state snapshotting is active, cache the data til commit. Note, this
 	// update mechanism is not symmetric to the deletion, because whereas it is
@@ -744,7 +747,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	}
 	// If no live objects are available, attempt to use snapshots
 	var (
-		data Account
+		data types.StateAccount
 		err  error
 	)
 	if s.snap != nil {
@@ -756,11 +759,16 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 			if acc == nil {
 				return nil
 			}
-			data.Nonce, data.Balance, data.CodeHash, data.StorageKeyPrefix = acc.Nonce, acc.Balance, acc.CodeHash, acc.StorageKeyPrefix
+			data = types.StateAccount{
+				Nonce:            acc.Nonce,
+				Balance:          acc.Balance,
+				CodeHash:         acc.CodeHash,
+				Root:             common.BytesToHash(acc.Root),
+				StorageKeyPrefix: acc.StorageKeyPrefix,
+			}
 			if len(data.CodeHash) == 0 {
 				data.CodeHash = emptyCodeHash
 			}
-			data.Root = common.BytesToHash(acc.Root)
 			if data.Root == (common.Hash{}) {
 				data.Root = emptyRoot
 			}
@@ -782,7 +790,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		}
 	}
 	// [NOTE]: set the prefix for storage key
-	if data.empty() {
+	if data.Empty() {
 		data.StorageKeyPrefix = addr.Bytes()
 	}
 	// Insert into the live set.
@@ -819,12 +827,12 @@ func (s *StateDB) createObject(addr common.Address) (newobj, prev *stateObject) 
 		}
 	}
 	if prev == nil {
-		newobj = newObject(s, addr, Account{StorageKeyPrefix: addr.Bytes()})
+		newobj = newObject(s, addr, types.StateAccount{StorageKeyPrefix: addr.Bytes()})
 		s.journal.append(createObjectChange{account: &addr})
 	} else {
 		prefix := make([]byte, len(prev.data.StorageKeyPrefix))
 		copy(prefix, prev.data.StorageKeyPrefix)
-		newobj = newObject(s, addr, Account{StorageKeyPrefix: prefix})
+		newobj = newObject(s, addr, types.StateAccount{StorageKeyPrefix: prefix})
 		s.journal.append(resetObjectChange{prev: prev, prevdestruct: prevdestruct})
 	}
 	s.setStateObject(newobj)
@@ -1103,9 +1111,11 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 		obj := s.stateObjects[addr]
 		if obj.deleted {
 			s.deleteStateObject(obj)
+			s.AccountDeleted += 1
 		} else {
 			obj.updateRoot(s.db)
 			s.updateStateObject(obj)
+			s.AccountUpdated += 1
 		}
 	}
 	if len(s.stateObjectsPending) > 0 {
@@ -1236,6 +1246,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	s.db.TrieDB().IncrVersion()
 
 	// Commit objects to the trie, measuring the elapsed time
+	var storageCommitted int
 	codeWriter := s.db.TrieDB().DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
 		if obj := s.stateObjects[addr]; !obj.deleted {
@@ -1245,9 +1256,11 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 				obj.dirtyCode = false
 			}
 			// Write any storage changes in the state object to its storage trie
-			if err := obj.CommitTrie(s.db); err != nil {
+			committed, err := obj.CommitTrie(s.db)
+			if err != nil {
 				return common.Hash{}, err
 			}
+			storageCommitted += committed
 		}
 	}
 	if len(s.stateObjectsDirty) > 0 {
@@ -1264,8 +1277,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		start = time.Now()
 	}
 	// Write trie changes.
-	root, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash) error {
-		var account Account
+	root, accountCommitted, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash) error {
+		var account types.StateAccount
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
 		}
@@ -1274,8 +1287,20 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		}
 		return nil
 	})
+	if err != nil {
+		return common.Hash{}, err
+	}
 	if metrics.EnabledExpensive {
 		s.AccountCommits += time.Since(start)
+
+		accountUpdatedMeter.Mark(int64(s.AccountUpdated))
+		storageUpdatedMeter.Mark(int64(s.StorageUpdated))
+		accountDeletedMeter.Mark(int64(s.AccountDeleted))
+		storageDeletedMeter.Mark(int64(s.StorageDeleted))
+		accountCommittedMeter.Mark(int64(accountCommitted))
+		storageCommittedMeter.Mark(int64(storageCommitted))
+		s.AccountUpdated, s.AccountDeleted = 0, 0
+		s.StorageUpdated, s.StorageDeleted = 0, 0
 	}
 	// If snapshotting is enabled, update the snapshot tree with this new version
 	if s.snap != nil {

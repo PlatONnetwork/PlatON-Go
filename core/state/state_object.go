@@ -20,6 +20,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"io"
 	"math/big"
 	"time"
@@ -67,7 +68,7 @@ func (self ValueStorage) Copy() ValueStorage {
 type stateObject struct {
 	address  common.Address
 	addrHash common.Hash // hash of ethereum address of the account
-	data     Account
+	data     types.StateAccount
 	db       *StateDB
 
 	// DB error.
@@ -102,37 +103,8 @@ func (s *stateObject) empty() bool {
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
 }
 
-// Account is the Ethereum consensus representation of accounts.
-// These objects are stored in the main account trie.
-type Account struct {
-	Nonce            uint64
-	Balance          *big.Int
-	Root             common.Hash // merkle root of the storage trie
-	CodeHash         []byte
-	StorageKeyPrefix []byte // A prefix added to the `key` to ensure that data between different accounts are not shared
-}
-
-func (self *Account) empty() bool {
-	if self.Nonce != 0 {
-		return false
-	}
-	if self.Balance.Cmp(common.Big0) != 0 {
-		return false
-	}
-	if self.Root != common.ZeroHash {
-		return false
-	}
-	if len(self.CodeHash) != 0 {
-		return false
-	}
-	if len(self.StorageKeyPrefix) != 0 {
-		return false
-	}
-	return true
-}
-
 // newObject creates a state object.
-func newObject(db *StateDB, address common.Address, data Account) *stateObject {
+func newObject(db *StateDB, address common.Address, data types.StateAccount) *stateObject {
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -155,7 +127,7 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 
 // EncodeRLP implements rlp.Encoder.
 func (s *stateObject) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, s.data)
+	return rlp.Encode(w, &s.data)
 }
 
 // setError remembers the first non-nil error it is called with.
@@ -418,14 +390,16 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		var v []byte
 		if len(value) == 0 {
 			s.setError(tr.TryDelete([]byte(key)))
+			s.db.StorageDeleted += 1
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ = rlp.EncodeToBytes(value[:])
 			s.setError(tr.TryUpdate([]byte(key), v))
+			s.db.StorageUpdated += 1
 		}
 		// If state snapshotting is active, cache the data til commit
 		if storage != nil {
-			storage[crypto.Keccak256Hash([]byte(key))] = v // v will be nil if value is 0x00
+			storage[crypto.Keccak256Hash([]byte(key))] = v // v will be nil if it's deleted
 		}
 	}
 
@@ -453,25 +427,25 @@ func (s *stateObject) updateRoot(db Database) {
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
-func (s *stateObject) CommitTrie(db Database) error {
+func (s *stateObject) CommitTrie(db Database) (int, error) {
 	// If nothing changed, don't bother with hashing anything
 	if s.updateTrie(db) == nil {
-		return nil
+		return 0, nil
 	}
 	if s.dbErr != nil {
-		return s.dbErr
+		return 0, s.dbErr
 	}
 
 	// Track the amount of time wasted on committing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, err := s.trie.Commit(nil)
+	root, committed, err := s.trie.Commit(nil)
 
 	if err == nil {
 		s.data.Root = root
 	}
-	return err
+	return committed, err
 }
 
 // AddBalance adds amount to s's balance.

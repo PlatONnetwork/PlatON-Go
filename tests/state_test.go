@@ -33,6 +33,7 @@ func TestState(t *testing.T) {
 	st.skipShortMode(`^stQuadraticComplexityTest/`)
 	// Very time consuming
 	st.skipLoad(`^stTimeConsuming/`)
+	st.skipLoad(`.*vmPerformance/loop.*`)
 	// Uses 1GB RAM per tested fork
 	st.skipLoad(`^stStaticCall/static_Call1MB`)
 	// Broken tests:
