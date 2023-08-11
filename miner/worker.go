@@ -1065,11 +1065,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	startTime := time.Now()
 	var pending map[common.Address]types.Transactions
 
-	pending, err = w.eth.TxPool().Pending(true, true)
-	if err != nil {
-		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
-		return err
-	}
+	pending = w.eth.TxPool().Pending(true, true)
 
 	log.Debug("Fetch pending transactions success", "number", header.Number, "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
