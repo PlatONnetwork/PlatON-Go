@@ -58,10 +58,10 @@
   "result": {
     "calls": [
       {
-        "error": "invalid opcode 0xfe",
+        "error": "invalid opcode: opcode 0xfe not defined",
         "from": "0x33056b5dcac09a9b4becad0e1dcf92c19bd0af76",
         "gas": "0x75fe3",
-        "gasUsed": "0x75fe3",
+        "gasUsed": "0x2e7",
         "input": "0xa9059cbb000000000000000000000000d4fcab9f0a6dc0493af47c864f6f17a8a5e2e82600000000000000000000000000000000000000000000000000000000000002f4",
         "to": "0xe819f024b41358d2c08e3a868a5c5dd0566078d4",
         "type": "CALL",

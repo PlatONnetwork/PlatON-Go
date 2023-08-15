@@ -372,11 +372,11 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		// Build a new CbftStatusData object as a handshake parameter
 		cbftStatus := &protocols.CbftStatusData{
 			ProtocolVersion: CbftProtocolVersion,
-			QCBn:            new(big.Int).SetUint64(uint64(qcBn)),
+			QCBn:            new(big.Int).SetUint64(qcBn),
 			QCBlock:         qcHash,
-			LockBn:          new(big.Int).SetUint64(uint64(lockedBn)),
+			LockBn:          new(big.Int).SetUint64(lockedBn),
 			LockBlock:       lockedHash,
-			CmtBn:           new(big.Int).SetUint64(uint64(commitBn)),
+			CmtBn:           new(big.Int).SetUint64(commitBn),
 			CmtBlock:        commitHash,
 		}
 		// do handshake

@@ -28,7 +28,7 @@
     "config": {
       "byzantiumBlock": 1700000,
       "chainId": 3,
-      "pip7ChainId": 1,
+      "pip7ChainId": 3,
       "daoForkSupport": true,
       "eip150Block": 0,
       "eip150Hash": "0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d",
@@ -53,8 +53,8 @@
   "result": {
     "error": "invalid jump destination",
     "from": "0x70c9217d814985faef62b124420f8dfbddd96433",
-    "gas": "0x37b38",
-    "gasUsed": "0x37b38",
+    "gas": "0x37d74",
+    "gasUsed": "0x536",
     "input": "0x51a34eb8000000000000000000000000000000000000000000000027fad02094277c0000",
     "to": "0xc212e03b9e060e36facad5fd8f4435412ca22e6b",
     "type": "CALL",

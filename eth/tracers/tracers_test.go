@@ -203,10 +203,9 @@ func TestPrestateTracerCreate2(t *testing.T) {
 
 // Iterates over all the input-output datasets in the tracer test harness and
 // runs the JavaScript tracers against them.
-// TODO
-//func TestCallTracerLegacy(t *testing.T) {
-//	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
-//}
+func TestCallTracerLegacy(t *testing.T) {
+	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
+}
 
 func testCallTracer(tracer string, dirPath string, t *testing.T) {
 	files, err := ioutil.ReadDir(filepath.Join("testdata", dirPath))
@@ -288,10 +287,9 @@ func testCallTracer(tracer string, dirPath string, t *testing.T) {
 	}
 }
 
-// TODO
-//func TestCallTracer(t *testing.T) {
-//	testCallTracer("callTracer", "call_tracer", t)
-//}
+func TestCallTracer(t *testing.T) {
+	testCallTracer("callTracer", "call_tracer", t)
+}
 
 // jsonEqual is similar to reflect.DeepEqual, but does a 'bounce' via json prior to
 // comparison
