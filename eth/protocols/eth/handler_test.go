@@ -419,7 +419,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
 	signer := types.LatestSigner(params.TestChainConfig, true)
-	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
+	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_makers_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
 		case 0:
@@ -452,7 +452,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	peer, _ := newTestPeer("peer", protocol, backend)
 	defer peer.close()
 
-	// Fetch for now the entire chain db
+	// Collect all state tree hashes.
 	var hashes []common.Hash
 
 	it := backend.db.NewIterator(nil, nil)
@@ -466,6 +466,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	if protocol <= ETH65 {
 		p2p.Send(peer.app, GetNodeDataMsg, hashes)
 	} else {
+		// Request all hashes.
 		p2p.Send(peer.app, GetNodeDataMsg, GetNodeDataPacket66{
 			RequestId:         123,
 			GetNodeDataPacket: hashes,

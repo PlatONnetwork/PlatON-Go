@@ -21,6 +21,7 @@ import (
 	"errors"
 	PlatON "github.com/PlatONnetwork/PlatON-Go"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
@@ -239,10 +240,7 @@ func (b *EthAPIBackend) SendTx(ctx context.Context, signedTx *types.Transaction)
 }
 
 func (b *EthAPIBackend) GetPoolTransactions() (types.Transactions, error) {
-	pending, err := b.eth.txPool.Pending(false, false)
-	if err != nil {
-		return nil, err
-	}
+	pending := b.eth.txPool.Pending(false, false)
 	var txs types.Transactions
 	for _, batch := range pending {
 		txs = append(txs, batch...)
@@ -317,6 +315,10 @@ func (b *EthAPIBackend) UnprotectedAllowed() bool {
 
 func (b *EthAPIBackend) RPCGasCap() uint64 {
 	return b.eth.config.RPCGasCap
+}
+
+func (b *EthAPIBackend) RPCEVMTimeout() time.Duration {
+	return b.eth.config.RPCEVMTimeout
 }
 
 func (b *EthAPIBackend) RPCTxFeeCap() float64 {

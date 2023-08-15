@@ -298,8 +298,10 @@ func buildFlags(env build.Environment) (flags []string) {
 	if runtime.GOOS == "darwin" {
 		ld = append(ld, "-s")
 	}
-	if runtime.GOOS == "windows" {
-		ld = append(ld, "-extldflags", "-static")
+	// Enforce the stacksize to 8M, which is the case on most platforms apart from
+	// alpine Linux.
+	if runtime.GOOS == "linux" {
+		ld = append(ld, "-extldflags", "-Wl,-z,stack-size=0x800000")
 	}
 
 	if len(ld) > 0 {
@@ -341,6 +343,7 @@ func doTest(cmdline []string) {
 	var (
 		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
 		verbose  = flag.Bool("v", false, "Whether to log verbosely")
+		race     = flag.Bool("race", false, "Execute the race detector")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -360,6 +363,9 @@ func doTest(cmdline []string) {
 	}
 	if *verbose {
 		gotest.Args = append(gotest.Args, "-v")
+	}
+	if *race {
+		gotest.Args = append(gotest.Args, "-race")
 	}
 	gotest.Args = append(gotest.Args, "-tags=test")
 	gotest.Args = append(gotest.Args, packages...)

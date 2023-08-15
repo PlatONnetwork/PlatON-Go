@@ -21,12 +21,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"math/big"
 	"strconv"
-	"time"
-
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -899,7 +897,7 @@ func (b *Block) Call(ctx context.Context, args struct {
 			return nil, err
 		}
 	}
-	result, err := ethapi.DoCall(ctx, b.backend, args.Data, *b.numberOrHash, nil, 5*time.Second, b.backend.RPCGasCap())
+	result, err := ethapi.DoCall(ctx, b.backend, args.Data, *b.numberOrHash, nil, b.backend.RPCEVMTimeout(), b.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -969,7 +967,7 @@ func (p *Pending) Call(ctx context.Context, args struct {
 	Data ethapi.TransactionArgs
 }) (*CallResult, error) {
 	pendingBlockNr := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
-	result, err := ethapi.DoCall(ctx, p.backend, args.Data, pendingBlockNr, nil, 5*time.Second, p.backend.RPCGasCap())
+	result, err := ethapi.DoCall(ctx, p.backend, args.Data, pendingBlockNr, nil, p.backend.RPCEVMTimeout(), p.backend.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
