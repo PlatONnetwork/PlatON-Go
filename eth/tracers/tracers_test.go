@@ -20,11 +20,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/json"
-	"io/ioutil"
 	"math/big"
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -32,12 +29,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 )
 
@@ -103,22 +98,6 @@ type callTrace struct {
 	Value   *hexutil.Big    `json:"value,omitempty"`
 	Error   string          `json:"error,omitempty"`
 	Calls   []callTrace     `json:"calls,omitempty"`
-}
-
-type callContext struct {
-	Number     math.HexOrDecimal64   `json:"number"`
-	Difficulty *math.HexOrDecimal256 `json:"difficulty"`
-	Time       math.HexOrDecimal64   `json:"timestamp"`
-	GasLimit   math.HexOrDecimal64   `json:"gasLimit"`
-	Miner      common.Address        `json:"miner"`
-}
-
-// callTracerTest defines a single test to check the call tracer against.
-type callTracerTest struct {
-	Genesis *core.Genesis `json:"genesis"`
-	Context *callContext  `json:"context"`
-	Input   string        `json:"input"`
-	Result  *callTrace    `json:"result"`
 }
 
 func TestPrestateTracerCreate2(t *testing.T) {
@@ -200,96 +179,6 @@ func TestPrestateTracerCreate2(t *testing.T) {
 	if _, has := ret["0x60f3f640a8508fc6a86d45df051962668e1e8ac7"]; !has {
 		t.Fatalf("Expected 0x60f3f640a8508fc6a86d45df051962668e1e8ac7 in result")
 	}
-}
-
-// Iterates over all the input-output datasets in the tracer test harness and
-// runs the JavaScript tracers against them.
-func TestCallTracerLegacy(t *testing.T) {
-	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
-}
-
-func testCallTracer(tracer string, dirPath string, t *testing.T) {
-	files, err := ioutil.ReadDir(filepath.Join("testdata", dirPath))
-	if err != nil {
-		t.Fatalf("failed to retrieve tracer test suite: %v", err)
-	}
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".json") {
-			continue
-		}
-		file := file // capture range variable
-		t.Run(camel(strings.TrimSuffix(file.Name(), ".json")), func(t *testing.T) {
-			t.Parallel()
-
-			// Call tracer test found, read if from disk
-			blob, err := ioutil.ReadFile(filepath.Join("testdata", dirPath, file.Name()))
-			if err != nil {
-				t.Fatalf("failed to read testcase: %v", err)
-			}
-			test := new(callTracerTest)
-			if err := json.Unmarshal(blob, test); err != nil {
-				t.Fatalf("failed to parse testcase: %v", err)
-			}
-			// Configure a blockchain with the given prestate
-			tx := new(types.Transaction)
-			if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
-				t.Fatalf("failed to parse testcase input: %v", err)
-			}
-			signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(1), true)
-			origin, _ := signer.Sender(tx)
-			txContext := vm.TxContext{
-				Origin:   origin,
-				GasPrice: tx.GasPrice(),
-			}
-			context := vm.BlockContext{
-				CanTransfer: core.CanTransfer,
-				Transfer:    core.Transfer,
-				Coinbase:    test.Context.Miner,
-				BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
-				Time:        new(big.Int).SetUint64(uint64(test.Context.Time)),
-				Difficulty:  (*big.Int)(test.Context.Difficulty),
-				GasLimit:    uint64(test.Context.GasLimit),
-			}
-			_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
-
-			// Create the tracer, the EVM environment and run it
-			tracer, err := New(tracer, new(Context))
-			if err != nil {
-				t.Fatalf("failed to create call tracer: %v", err)
-			}
-			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
-
-			msg, err := tx.AsMessage(signer, nil)
-			if err != nil {
-				t.Fatalf("failed to prepare transaction for tracing: %v", err)
-			}
-			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-			if _, err = st.TransitionDb(); err != nil {
-				t.Fatalf("failed to execute transaction: %v", err)
-			}
-			// Retrieve the trace result and compare against the etalon
-			res, err := tracer.GetResult()
-			if err != nil {
-				t.Fatalf("failed to retrieve trace result: %v", err)
-			}
-			ret := new(callTrace)
-			if err := json.Unmarshal(res, ret); err != nil {
-				t.Fatalf("failed to unmarshal trace result: %v", err)
-			}
-
-			if !jsonEqual(ret, test.Result) {
-				// uncomment this for easier debugging
-				//have, _ := json.MarshalIndent(ret, "", " ")
-				//want, _ := json.MarshalIndent(test.Result, "", " ")
-				//t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", string(have), string(want))
-				t.Fatalf("trace mismatch: \nhave %+v\nwant %+v", ret, test.Result)
-			}
-		})
-	}
-}
-
-func TestCallTracer(t *testing.T) {
-	testCallTracer("callTracer", "call_tracer", t)
 }
 
 // jsonEqual is similar to reflect.DeepEqual, but does a 'bounce' via json prior to
@@ -386,75 +275,5 @@ func BenchmarkTransactionTrace(b *testing.B) {
 			b.Fatalf("trace wrong, want %d steps, have %d", want, have)
 		}
 		tracer.Reset()
-	}
-}
-
-func BenchmarkTracers(b *testing.B) {
-	files, err := ioutil.ReadDir(filepath.Join("testdata", "call_tracer"))
-	if err != nil {
-		b.Fatalf("failed to retrieve tracer test suite: %v", err)
-	}
-	for _, file := range files {
-		if !strings.HasSuffix(file.Name(), ".json") {
-			continue
-		}
-		file := file // capture range variable
-		b.Run(camel(strings.TrimSuffix(file.Name(), ".json")), func(b *testing.B) {
-			blob, err := ioutil.ReadFile(filepath.Join("testdata", "call_tracer", file.Name()))
-			if err != nil {
-				b.Fatalf("failed to read testcase: %v", err)
-			}
-			test := new(callTracerTest)
-			if err := json.Unmarshal(blob, test); err != nil {
-				b.Fatalf("failed to parse testcase: %v", err)
-			}
-			benchTracer("callTracer", test, b)
-		})
-	}
-}
-
-func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
-	// Configure a blockchain with the given prestate
-	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
-		b.Fatalf("failed to parse testcase input: %v", err)
-	}
-	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(1), true)
-	msg, err := tx.AsMessage(signer, nil)
-	if err != nil {
-		b.Fatalf("failed to prepare transaction for tracing: %v", err)
-	}
-	origin, _ := signer.Sender(tx)
-	txContext := vm.TxContext{
-		Origin:   origin,
-		GasPrice: tx.GasPrice(),
-	}
-	context := vm.BlockContext{
-		CanTransfer: core.CanTransfer,
-		Transfer:    core.Transfer,
-		Coinbase:    test.Context.Miner,
-		BlockNumber: new(big.Int).SetUint64(uint64(test.Context.Number)),
-		Time:        new(big.Int).SetUint64(uint64(test.Context.Time)),
-		Difficulty:  (*big.Int)(test.Context.Difficulty),
-		GasLimit:    uint64(test.Context.GasLimit),
-	}
-	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
-
-	// Create the tracer, the EVM environment and run it
-	tracer, err := New(tracerName, new(Context))
-	if err != nil {
-		b.Fatalf("failed to create call tracer: %v", err)
-	}
-	evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		snap := statedb.Snapshot()
-		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-		if _, err = st.TransitionDb(); err != nil {
-			b.Fatalf("failed to execute transaction: %v", err)
-		}
-		statedb.RevertToSnapshot(snap)
 	}
 }
