@@ -62,11 +62,13 @@
         "input": "0x",
         "to": "0x0024f658a46fbb89d8ac105e98d7ac7cbbaf27c5",
         "type": "CALL",
-        "value": "0x6f05b59d3b20000"
+        "value": "0x6f05b59d3b20000",
+        "gas": "0x71b1",
+        "gasUsed": "0x0"
       }
     ],
     "from": "0xb436ba50d378d4bbc8660d312a13df6af6e89dfb",
-    "gas": "0x10738",
+    "gas": "0x10be4",
     "gasUsed": "0x3ef9",
     "input": "0x63e4bff40000000000000000000000000024f658a46fbb89d8ac105e98d7ac7cbbaf27c5",
     "output": "0x0000000000000000000000000000000000000000000000000000000000000001",

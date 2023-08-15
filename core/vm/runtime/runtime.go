@@ -142,6 +142,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
 	)
+	vmenv.Context.Ctx = context.TODO()
 	if gov.Gte150VersionState(cfg.State) {
 		cfg.State.PrepareAccessList(cfg.Origin, nil, vm.ActivePrecompiles(cfg.State), nil)
 	}
@@ -165,9 +166,11 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
+	vmenv.Context.Ctx = context.TODO()
 
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
 	statedb := cfg.State
+
 	if gov.Gte150VersionState(cfg.State) {
 		statedb.PrepareAccessList(cfg.Origin, &address, vm.ActivePrecompiles(statedb), nil)
 	}
