@@ -20,6 +20,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/json"
+	"io/ioutil"
+	"math/big"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -27,12 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -337,6 +338,7 @@ func BenchmarkTransactionTrace(b *testing.B) {
 		Time:        new(big.Int).SetUint64(uint64(5)),
 		Difficulty:  big.NewInt(0xffffffff),
 		GasLimit:    gas,
+		BaseFee:     big.NewInt(8),
 	}
 	alloc := core.GenesisAlloc{}
 	// The code pushes 'deadbeef' into memory, then the other params, and calls CREATE2, then returns
