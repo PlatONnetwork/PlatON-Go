@@ -119,9 +119,9 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 	chain := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
-		var tx *types.Transaction
+		var txdata types.TxData
 		if londonBlock != nil && b.Number().Cmp(londonBlock) >= 0 {
-			txdata := &types.DynamicFeeTx{
+			txdata = &types.DynamicFeeTx{
 				ChainID:   gspec.Config.PIP7ChainID,
 				Nonce:     b.TxNonce(addr),
 				To:        &common.Address{},
@@ -130,9 +130,8 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 				GasTipCap: big.NewInt(int64(i+1) * params.GVon),
 				Data:      []byte{},
 			}
-			tx = types.NewTx(txdata)
 		} else {
-			txdata := &types.LegacyTx{
+			txdata = &types.LegacyTx{
 				Nonce:    b.TxNonce(addr),
 				To:       &common.Address{},
 				Gas:      21000,
@@ -140,13 +139,8 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 				Value:    big.NewInt(100),
 				Data:     []byte{},
 			}
-			tx = types.NewTx(txdata)
 		}
-		tx, err := types.SignTx(tx, signer, key)
-		if err != nil {
-			t.Fatalf("failed to create tx: %v", err)
-		}
-		b.AddTx(tx)
+		b.AddTx(types.MustSignNewTx(key, signer, txdata))
 	})
 	// Construct testing chain
 	//diskdb := rawdb.NewMemoryDatabase()

@@ -13582,4 +13582,4 @@ var inputAddressFormatter = function (address) {
     module.exports = Web3;
 
   },{"./lib/web3":24}]},{},["web3"])
-//# sourceMappingURL=web3-light.js.map
+
