@@ -43,6 +43,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+
+	// Force-load the tracer engines to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 const (

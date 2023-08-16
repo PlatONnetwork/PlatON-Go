@@ -20,7 +20,6 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -28,6 +27,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -2420,5 +2421,26 @@ func BenchmarkInsertRemoteWithAllLocals(b *testing.B) {
 			pool.AddRemotes([]*types.Transaction{remotes[i]})
 		}
 		pool.Stop()
+	}
+}
+
+// Benchmarks the speed of batch transaction insertion in case of multiple accounts.
+func BenchmarkPoolMultiAccountBatchInsert(b *testing.B) {
+	// Generate a batch of transactions to enqueue into the pool
+	pool, _ := setupTxPool()
+	defer pool.Stop()
+	b.ReportAllocs()
+	batches := make(types.Transactions, b.N)
+	for i := 0; i < b.N; i++ {
+		key, _ := crypto.GenerateKey()
+		account := crypto.PubkeyToAddress(key.PublicKey)
+		pool.currentState.AddBalance(account, big.NewInt(1000000))
+		tx := transaction(uint64(0), 100000, key, pool.chainconfig.PIP7ChainID)
+		batches[i] = tx
+	}
+	// Benchmark importing the transactions into the queue
+	b.ResetTimer()
+	for _, tx := range batches {
+		pool.AddRemotesSync([]*types.Transaction{tx})
 	}
 }

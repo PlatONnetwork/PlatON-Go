@@ -20,13 +20,14 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/syncx"
 	"io"
 	mrand "math/rand"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/syncx"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 
@@ -465,7 +466,7 @@ func (bc *BlockChain) loadLastState() error {
 		if diskRoot != (common.Hash{}) {
 			log.Warn("Head state missing, repairing", "number", currentBlock.Number(), "hash", head, "snaproot", diskRoot)
 
-			snapDisk, err := bc.SetHeadBeyondRoot(currentBlock.Number().Uint64(), diskRoot)
+			snapDisk, err := bc.setHeadBeyondRoot(currentBlock.Number().Uint64(), diskRoot, true)
 			if err != nil {
 				return err
 			}
@@ -522,7 +523,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	return nil
 }
 
-// SetHeadBeyondRoot rewinds the local chain to a new head with the extra condition
+// setHeadBeyondRoot rewinds the local chain to a new head with the extra condition
 // that the rewind must pass the specified state root. This method is meant to be
 // used when rewiding with snapshots enabled to ensure that we go back further than
 // persistent disk layer. Depending on whether the node was fast synced or full, and
@@ -530,7 +531,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 // retaining chain consistency.
 //
 // The method returns the block number where the requested root cap was found.
-func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, error) {
+func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bool) (uint64, error) {
 	if !bc.chainmu.TryLock() {
 		return 0, errChainStopped
 	}
@@ -545,7 +546,7 @@ func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, 
 	frozen, _ := bc.db.Ancients()
 
 	updateFn := func(db ethdb.KeyValueWriter, header *types.Header) (uint64, bool) {
-		// Rewind the block chain, ensuring we don't end up with a stateless head
+		// Rewind the blockchain, ensuring we don't end up with a stateless head
 		// block. Note, depth equality is permitted to allow using SetHead as a
 		// chain reparation mechanism without deleting any data!
 		if currentBlock := bc.CurrentBlock(); currentBlock != nil && header.Number.Uint64() <= currentBlock.NumberU64() {
@@ -649,8 +650,10 @@ func (bc *BlockChain) SetHeadBeyondRoot(head uint64, root common.Hash) (uint64, 
 	hdnum := bc.CurrentBlock().Header().Number.Uint64()
 	log.Debug("hdnum", "head", hdnum)
 	if block := bc.CurrentBlock(); block.NumberU64() == head {
-		if target, force := updateFn(bc.db, block.Header()); force {
-			bc.hc.SetHead(target, updateFn, delFn)
+		if repair {
+			if target, force := updateFn(bc.db, bc.CurrentBlock().Header()); force {
+				bc.hc.SetHead(target, updateFn, delFn)
+			}
 		}
 	} else {
 		// Rewind the chain to the requested head and keep going backwards until a
@@ -1574,18 +1577,20 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	it := newInsertIterator(chain, results, bc.Validator())
 	block, err := it.next()
 	switch {
-	case err == ErrKnownBlock:
+	case bc.skipBlock(err, it):
 		// Skip all known blocks that behind us
 		current := bc.CurrentBlock().NumberU64()
 
-		for block != nil && err == ErrKnownBlock && current >= block.NumberU64() {
+		for block != nil && bc.skipBlock(err, it) && current >= block.NumberU64() {
 			stats.ignored++
 			block, err = it.next()
 		}
 		// Falls through to the block import
 
-	//Some other error occurred, abort
-	case err != nil:
+	// Some other error(except ErrKnownBlock) occurred, abort.
+	// ErrKnownBlock is allowed here since some known blocks
+	// still need re-execution to generate snapshots that are missing
+	case err != nil && !errors.Is(err, ErrKnownBlock):
 		bc.futureBlocks.Remove(block.Hash())
 		stats.ignored += len(it.chain)
 		bc.reportBlock(block, nil, err)
@@ -1826,6 +1831,47 @@ func (bc *BlockChain) futureBlocksLoop() {
 			return
 		}
 	}
+}
+
+// skipBlock returns 'true', if the block being imported can be skipped over, meaning
+// that the block does not need to be processed but can be considered already fully 'done'.
+func (bc *BlockChain) skipBlock(err error, it *insertIterator) bool {
+	// We can only ever bypass processing if the only error returned by the validator
+	// is ErrKnownBlock, which means all checks passed, but we already have the block
+	// and state.
+	if !errors.Is(err, ErrKnownBlock) {
+		return false
+	}
+	// If we're not using snapshots, we can skip this, since we have both block
+	// and (trie-) state
+	if bc.snaps == nil {
+		return true
+	}
+	var (
+		header     = it.current() // header can't be nil
+		parentRoot common.Hash
+	)
+	// If we also have the snapshot-state, we can skip the processing.
+	if bc.snaps.Snapshot(header.Root) != nil {
+		return true
+	}
+	// In this case, we have the trie-state but not snapshot-state. If the parent
+	// snapshot-state exists, we need to process this in order to not get a gap
+	// in the snapshot layers.
+	// Resolve parent block
+	if parent := it.previous(); parent != nil {
+		parentRoot = parent.Root
+	} else if parent = bc.GetHeaderByHash(header.ParentHash); parent != nil {
+		parentRoot = parent.Root
+	}
+	if parentRoot == (common.Hash{}) {
+		return false // Theoretically impossible case
+	}
+	// Parent is also missing snapshot: we can skip this. Otherwise process.
+	if bc.snaps.Snapshot(parentRoot) == nil {
+		return true
+	}
+	return false
 }
 
 // maintainTxIndex is responsible for the construction and deletion of the

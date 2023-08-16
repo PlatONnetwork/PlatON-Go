@@ -21,12 +21,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -84,7 +85,7 @@ func (api *PrivateAdminAPI) ExportChain(file string, first *uint64, last *uint64
 		last = &head
 	}
 	if _, err := os.Stat(file); err == nil {
-		// File already exists. Allowing overwrite could be a DoS vecotor,
+		// File already exists. Allowing overwrite could be a DoS vector,
 		// since the 'file' may point to arbitrary paths on the drive
 		return false, errors.New("location would overwrite an existing file")
 	}

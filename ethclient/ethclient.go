@@ -62,7 +62,7 @@ func (ec *Client) Close() {
 
 // Blockchain Access
 
-// ChainId retrieves the current chain ID for transaction replay protection.
+// ChainID retrieves the current chain ID for transaction replay protection.
 func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 	var result hexutil.Big
 	err := ec.c.CallContext(ctx, &result, "platon_chainId")
@@ -204,6 +204,7 @@ func (ec *Client) TransactionSender(ctx context.Context, tx *types.Transaction, 
 	if err == nil {
 		return sender, nil
 	}
+	// It was not found in cache, ask the server.
 	var meta struct {
 		Hash common.Hash
 		From common.Address
