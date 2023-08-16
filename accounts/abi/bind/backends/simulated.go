@@ -435,6 +435,8 @@ func (b *SimulatedBackend) PendingNonceAt(_ context.Context, account common.Addr
 // SuggestGasPrice implements ContractTransactor.SuggestGasPrice. Since the simulated
 // chain doesn't have miners, we just return a gas price of 1 for any call.
 func (b *SimulatedBackend) SuggestGasPrice(_ context.Context) (*big.Int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	if b.pendingBlock.Header().BaseFee != nil {
 		return b.pendingBlock.Header().BaseFee, nil
 	}
