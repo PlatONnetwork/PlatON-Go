@@ -44,7 +44,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	// Force-load the native, to trigger registration
+	// Force-load the tracer engines to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
 	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
