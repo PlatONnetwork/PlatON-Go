@@ -650,6 +650,9 @@ func (w *worker) taskLoop() {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh, w.prepareCompleteCh); err != nil {
 					log.Warn("Block sealing failed on bft engine", "err", err)
 					w.commitWorkEnv.setCommitStatusIdle()
+					w.pendingMu.Lock()
+					delete(w.pendingTasks, sealHash)
+					w.pendingMu.Unlock()
 				}
 				continue
 			}

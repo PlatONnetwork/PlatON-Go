@@ -80,8 +80,7 @@ type freezer struct {
 
 	// This lock synchronizes writers and the truncate operation, as well as
 	// the "atomic" (batched) read operations.
-	writeLock  sync.RWMutex
-	writeBatch *freezerBatch
+	writeLock sync.RWMutex
 
 	readonly     bool
 	tables       map[string]*freezerTable // Data tables for storing everything
