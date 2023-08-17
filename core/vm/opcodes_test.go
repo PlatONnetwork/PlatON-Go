@@ -59,7 +59,6 @@ func TestOpCode_IsPush(t *testing.T) {
 		{opCode: CALLDATALOAD, want: false},
 		{opCode: MLOAD, want: false},
 		{opCode: SUB, want: false},
-		{opCode: PUSH, want: false},
 		{opCode: PUSH1, want: true},
 	}
 	for _, v := range testCases {
