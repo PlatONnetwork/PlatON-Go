@@ -50,7 +50,9 @@ type dummyStatedb struct {
 	mock.MockStateDB
 }
 
-func (*dummyStatedb) GetRefund() uint64 { return 1337 }
+func (*dummyStatedb) GetRefund() uint64                             { return 1337 }
+func (*dummyStatedb) GetState(_ common.Address, _ []byte) []byte    { return nil }
+func (*dummyStatedb) SetState(_ common.Address, _ []byte, _ []byte) {}
 
 func TestStoreCapture(t *testing.T) {
 	var (
