@@ -36,7 +36,7 @@ type Config struct {
 
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default table.
-	JumpTable [256]*operation
+	JumpTable JumpTable
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 
