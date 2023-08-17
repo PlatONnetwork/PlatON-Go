@@ -19,6 +19,7 @@ package tests
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"reflect"
 	"testing"
 
@@ -86,13 +87,13 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 		t.Log("gas limit too high for EVM trace")
 		return
 	}
-	tracer := vm.NewStructLogger(nil)
+	tracer := logger.NewStructLogger(nil)
 	err2 := test(vm.Config{Debug: true, Tracer: tracer})
 	if !reflect.DeepEqual(err, err2) {
 		t.Errorf("different error for second run: %v", err2)
 	}
 	buf := new(bytes.Buffer)
-	vm.WriteTrace(buf, tracer.StructLogs())
+	logger.WriteTrace(buf, tracer.StructLogs())
 	if buf.Len() == 0 {
 		t.Log("no EVM operation logs generated")
 	} else {

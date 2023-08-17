@@ -14,17 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package vm
+package logger
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math/big"
 	"strings"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/holiman/uint256"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -55,21 +54,17 @@ func (*dummyStatedb) GetRefund() uint64 { return 1337 }
 
 func TestStoreCapture(t *testing.T) {
 	var (
-		env      = NewEVM(BlockContext{}, TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, Config{})
 		logger   = NewStructLogger(nil)
-		contract = NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 0)
-		scope    = &ScopeContext{
-			Memory:   NewMemory(),
-			Stack:    newstack(),
-			rstack:   newReturnStack(),
-			Contract: contract,
-		}
+		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: logger})
+		contract = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
-	scope.Stack.push(uint256.NewInt(1))
-	scope.Stack.push(new(uint256.Int))
+	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}
 	var index common.Hash
 	logger.CaptureStart(env, common.Address{}, contract.Address(), false, nil, 0, nil)
-	logger.CaptureState(0, SSTORE, 0, 0, scope, nil, 0, nil)
+	_, err := env.Interpreter().Run(contract, []byte{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(logger.storage[contract.Address()]) == 0 {
 		t.Fatalf("expected exactly 1 changed value on address %x, got %d", contract.Address(),
 			len(logger.storage[contract.Address()]))
@@ -89,7 +84,7 @@ func TestNewWasmLogger(t *testing.T) {
 		return []byte(r.Msg)
 	}))))
 
-	wasmLog := NewWasmLogger(Config{Debug: true}, logger)
+	wasmLog := vm.NewWasmLogger(vm.Config{Debug: true}, logger)
 
 	wasmLog.Info("hello")
 	wasmLog.Flush()

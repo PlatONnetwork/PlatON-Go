@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"math/big"
 	"os"
 	"strings"
@@ -343,7 +344,7 @@ func TestEip2929Cases(t *testing.T) {
 		Execute(code, nil, &Config{
 			EVMConfig: vm.Config{
 				Debug:     true,
-				Tracer:    vm.NewJSONLogger(nil, os.Stdout),
+				Tracer:    logger.NewJSONLogger(nil, os.Stdout),
 				ExtraEips: []int{2929},
 			},
 		})
@@ -494,7 +495,7 @@ func TestColdAccountAccessCost(t *testing.T) {
 			want: 7600,
 		},
 	} {
-		tracer := vm.NewStructLogger(nil)
+		tracer := logger.NewStructLogger(nil)
 		Execute(tc.code, nil, &Config{
 			EVMConfig: vm.Config{
 				Debug:  true,
@@ -512,7 +513,7 @@ func TestColdAccountAccessCost(t *testing.T) {
 }
 
 type stepCounter struct {
-	inner *vm.JSONLogger
+	inner *logger.JSONLogger
 	steps int
 }
 
