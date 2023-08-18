@@ -79,6 +79,8 @@ var (
 	fsHeaderSafetyNet      = 0               // PlatON use PoS and safe distance is 0
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
+	fsMinFullBlocks        = 128             // Number of blocks to retrieve fully even in fast sync
+
 )
 
 var (
@@ -154,10 +156,8 @@ type Downloader struct {
 	pivotHeader *types.Header // Pivot block header to dynamically push the syncing state root
 	pivotLock   sync.RWMutex  // Lock protecting pivot header reads from updates
 
-	snapSync   bool         // Whether to run state sync over the snap protocol
-	SnapSyncer *snap.Syncer // TODO(karalabe): make private! hack for now
-
-	// for stateFetcher
+	snapSync       bool         // Whether to run state sync over the snap protocol
+	SnapSyncer     *snap.Syncer // TODO(karalabe): make private! hack for now
 	stateSyncStart chan *stateSync
 	trackStateReq  chan *stateReq
 	stateCh        chan dataPack // Channel receiving inbound node state data
@@ -484,7 +484,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "head", hash, "bn", bn, "mode", mode)
 	defer func(start time.Time) {
-		log.Debug("Synchronisation terminated", "elapsed", common.PrettyDuration(time.Since(start)))
+		log.Debug("Synchronisation terminated", "elapsed", common.PrettyDuration(time.Since(start)), "err", err)
 	}(time.Now())
 
 	var (
@@ -595,10 +595,10 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	}
 
 	fetchers := []func() error{
-		func() error { return d.fetchHeaders(p, origin+1, pivoth.Number.Uint64()) }, // Headers are always retrieved
-		func() error { return d.fetchBodies(origin + 1) },                           // Bodies are retrieved during normal and fast sync
-		func() error { return d.fetchReceipts(origin + 1) },                         // Receipts are retrieved during fast sync
-		func() error { return d.processHeaders(origin+1, pivoth.Number.Uint64(), bn) },
+		func() error { return d.fetchHeaders(p, origin+1) }, // Headers are always retrieved
+		func() error { return d.fetchBodies(origin + 1) },   // Bodies are retrieved during normal and fast sync
+		func() error { return d.fetchReceipts(origin + 1) }, // Receipts are retrieved during fast sync
+		func() error { return d.processHeaders(origin+1, bn) },
 	}
 	if mode == FastSync {
 		if err := d.snapshotDB.SetEmpty(); err != nil {
@@ -609,8 +609,13 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 			p.log.Error("set snapshotdb current fail", "err", err)
 			return errors.New("set current fail")
 		}
-		fetchers = append(fetchers, func() error { return d.processFastSyncContent(latest, pivoth.Number.Uint64()) })
-		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p, pivoth) })
+
+		d.pivotLock.Lock()
+		d.pivotHeader = pivoth
+		d.pivotLock.Unlock()
+
+		fetchers = append(fetchers, func() error { return d.processFastSyncContent() })
+		fetchers = append(fetchers, func() error { return d.fetchPPOSStorage(p) })
 	} else if mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
@@ -693,7 +698,7 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	go p.peer.RequestPPOSStorage()
+	go p.peer.RequestPPOSStorage(0)
 
 	var ttl time.Duration
 	ttl = d.requestTTL()
@@ -764,8 +769,11 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 	return nil
 }
 
-func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (err error) {
-	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", pivot.Number)
+func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
+	d.pivotLock.RLock()
+	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", d.pivotHeader.Number)
+	d.pivotLock.RUnlock()
+
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
@@ -819,6 +827,76 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection, pivot *types.Header) (e
 		case <-d.originAndPivotCh:
 		case <-d.pposInfoCh:
 
+		}
+	}
+}
+
+func (d *Downloader) fetchPPOSStorageV2(pivot *types.Header) (err error) {
+	peers, _ := d.peers.PPOSIdlePeers()
+	if len(peers) == 0 {
+		return errors.New("no idle peers to fetch PPOSStorageV2")
+	}
+	p := peers[0]
+
+	p.log.Info("begin  fetchPPOSStorageV2  from remote peer", "pivot number", pivot.Number)
+
+	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
+	<-timeout.C                 // timeout channel should be initially empty
+	defer timeout.Stop()
+	var ttl time.Duration
+	ttl = d.requestTTL()
+	timeout.Reset(ttl)
+
+	go p.peer.RequestPPOSStorage(pivot.Number.Uint64())
+
+	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
+		return err
+	}
+
+	var (
+		count  int64
+		blocks []snapshotdb.BlockData
+	)
+	for {
+		select {
+		case <-d.cancelCh:
+			return errCanceled
+		case <-timeout.C:
+			return fmt.Errorf("waiting for ppos storage V2 timed out,elapsed %s", ttl.String())
+		case packet := <-d.pposStorageCh:
+			// Discard anything not from the origin peer
+			if packet.PeerId() != p.id {
+				return fmt.Errorf("received ppos storage V2 from incorrect peer,%s", packet.PeerId())
+			}
+			pposDada := packet.(*pposStoragePack)
+			if len(pposDada.blocks) == 0 {
+				count += int64(len(pposDada.kvs))
+				if uint64(count) != pposDada.kvNum {
+					return fmt.Errorf("received ppos storage v2 from incorrect kvNum %v,count %v", pposDada.kvNum, count)
+				}
+
+				if err := d.snapshotDB.WriteBaseDB(pposDada.KVs()); err != nil {
+					return fmt.Errorf("write to base db fail,%v", err)
+				}
+				if pposDada.last {
+					p.log.Info("fetch PPOSStorageV2 base db part has finish")
+				}
+			} else {
+				blocks = append(blocks, pposDada.blocks...)
+				if pposDada.blocks[len(pposDada.blocks)-1].Number.Uint64() == pivot.Number.Uint64() {
+					if pivot.Number.Uint64()-pposDada.baseBlock != uint64(len(blocks)) {
+						return fmt.Errorf("pposDada is less than get,pivot %v,baseBlock %v,get %v", pivot.Number, pposDada.baseBlock, len(blocks))
+					}
+					p.log.Info("fetch PPOSStorageV2 block   has finish", "pivot", pivot.Number, "baseBlock", pposDada.baseBlock, "receive", len(blocks))
+					if err := d.snapshotDB.WriteBaseDBWithBlock(pivot, pposDada.blocks); err != nil {
+						return fmt.Errorf("updataBaseDBWithBlock fail, %v", err)
+					}
+					p.log.Info("fetch PPOSStorageV2 block  write success", "pivot", pivot.Number, "baseBlock", pposDada.baseBlock, "receive", len(blocks))
+					return nil
+				}
+			}
+			ttl = d.requestTTL()
+			timeout.Reset(ttl)
 		}
 	}
 }
@@ -975,12 +1053,13 @@ func (d *Downloader) fetchHeight(p *peerConnection) (*types.Header, error) {
 // other peers are only accepted if they map cleanly to the skeleton. If no one
 // can fill in the skeleton - not even the origin peer - it's assumed invalid and
 // the origin is dropped.
-func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) error {
-	p.log.Debug("Directing header downloads", "origin", from, "pivot", pivot)
+func (d *Downloader) fetchHeaders(p *peerConnection, from uint64) error {
+	p.log.Debug("Directing header downloads", "origin", from)
 	defer p.log.Debug("Header download terminated")
 
 	// Create a timeout timer, and the associated header fetcher
 	skeleton := true            // Skeleton assembly phase or finishing up
+	pivoting := false           // Whether the next request is pivot verification
 	request := time.Now()       // time of the last skeleton fetch request
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
@@ -1001,6 +1080,20 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			go p.peer.RequestHeadersByNumber(from, MaxHeaderFetch, 0, false)
 		}
 	}
+	getNextPivot := func() {
+		pivoting = true
+		request = time.Now()
+
+		ttl = d.requestTTL()
+		timeout.Reset(ttl)
+
+		d.pivotLock.RLock()
+		pivot := d.pivotHeader.Number.Uint64()
+		d.pivotLock.RUnlock()
+
+		p.log.Trace("Fetching next pivot header", "number", pivot+uint64(fsMinFullBlocks))
+		go p.peer.RequestHeadersByNumber(pivot+uint64(fsMinFullBlocks), 2, fsMinFullBlocks-9, false) // move +64 when it's 2x64-8 deep
+	}
 	// Start pulling the header chain skeleton until all is done
 	getHeaders(from)
 
@@ -1018,8 +1111,46 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			headerReqTimer.UpdateSince(request)
 			timeout.Stop()
 
+			// If the pivot is being checked, move if it became stale and run the real retrieval
+			var pivot uint64
+
+			d.pivotLock.RLock()
+			if d.pivotHeader != nil {
+				pivot = d.pivotHeader.Number.Uint64()
+			}
+			d.pivotLock.RUnlock()
+
+			if pivoting {
+				if packet.Items() == 2 {
+					// Retrieve the headers and do some sanity checks, just in case
+					headers := packet.(*headerPack).headers
+
+					if have, want := headers[0].Number.Uint64(), pivot+uint64(fsMinFullBlocks); have != want {
+						log.Warn("Peer sent invalid next pivot", "have", have, "want", want)
+						return fmt.Errorf("%w: next pivot number %d != requested %d", errInvalidChain, have, want)
+					}
+					if have, want := headers[1].Number.Uint64(), pivot+2*uint64(fsMinFullBlocks)-8; have != want {
+						log.Warn("Peer sent invalid pivot confirmer", "have", have, "want", want)
+						return fmt.Errorf("%w: next pivot confirmer number %d != requested %d", errInvalidChain, have, want)
+					}
+					log.Warn("Pivot seemingly stale, moving", "old", pivot, "new", headers[0].Number)
+					pivot = headers[0].Number.Uint64()
+
+					d.pivotLock.Lock()
+					d.pivotHeader = headers[0]
+					d.pivotLock.Unlock()
+
+					// Write out the pivot into the database so a rollback beyond
+					// it will reenable fast sync and update the state root that
+					// the state syncer will be downloading.
+					rawdb.WriteLastPivotNumber(d.stateDB, pivot)
+				}
+				pivoting = false
+				getHeaders(from)
+				continue
+			}
 			// If the skeleton's finished, pull any remaining head headers directly from the origin
-			if packet.Items() == 0 && skeleton {
+			if skeleton && packet.Items() == 0 {
 				log.Trace("skeleton's finished", "from", from)
 				skeleton = false
 				getHeaders(from)
@@ -1073,7 +1204,14 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 					p.log.Warn("headers not compare, continue fetchHeaders", "count", len(headers), "from", from, "first header", headers[0].Number)
 				}
 			}
-			getHeaders(from)
+
+			// If we're still skeleton filling fast sync, check pivot staleness
+			// before continuing to the next skeleton filling
+			if skeleton && pivot > 0 {
+				getNextPivot()
+			} else {
+				getHeaders(from)
+			}
 
 		case <-timeout.C:
 			if d.dropPeer == nil {
@@ -1391,7 +1529,7 @@ func (d *Downloader) fetchParts(deliveryCh chan dataPack, deliver func(dataPack)
 // processHeaders takes batches of retrieved headers from an input channel and
 // keeps processing and scheduling them into the header chain and downloader's
 // queue until the stream ends or a failure occurs.
-func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) error {
+func (d *Downloader) processHeaders(origin uint64, bn *big.Int) error {
 	// Keep a count of uncertain headers to roll back
 	var (
 		rollback    uint64 // Zero means no rollback (fine as you can't unroll the genesis)
@@ -1495,6 +1633,14 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 				// In case of header only syncing, validate the chunk immediately
 				if mode == FastSync || mode == LightSync {
 					// If we're importing pure headers, verify based on their recentness
+					var pivot uint64
+
+					d.pivotLock.RLock()
+					if d.pivotHeader != nil {
+						pivot = d.pivotHeader.Number.Uint64()
+					}
+					d.pivotLock.RUnlock()
+
 					frequency := fsHeaderCheckFrequency
 					if chunk[len(chunk)-1].Number.Uint64()+uint64(fsHeaderForceVerify) > pivot {
 						frequency = 1
@@ -1606,10 +1752,12 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 
 // processFastSyncContent takes fetch results from the queue and writes them to the
 // database. It also controls the synchronisation of state nodes of the pivot block.
-func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) error {
+func (d *Downloader) processFastSyncContent() error {
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
-	sync := d.syncState(latest.Root)
+	d.pivotLock.RLock()
+	sync := d.syncState(d.pivotHeader.Root)
+	d.pivotLock.RUnlock()
 	defer func() {
 		// The `sync` object is replaced every time the pivot moves. We need to
 		// defer close the very last active one, hence the lazy evaluation vs.
@@ -1649,11 +1797,48 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 		if d.chainInsertHook != nil {
 			d.chainInsertHook(results)
 		}
-		if oldPivot != nil {
+
+		// If we haven't downloaded the pivot block yet, check pivot staleness
+		// notifications from the header downloader
+		d.pivotLock.RLock()
+		pivot := d.pivotHeader
+		d.pivotLock.RUnlock()
+
+		if oldPivot == nil {
+			if pivot.Root != sync.root {
+				sync.Cancel()
+				sync = d.syncState(pivot.Root)
+
+				go closeOnErr(sync)
+			}
+		} else {
 			results = append(append([]*fetchResult{oldPivot}, oldTail...), results...)
 		}
 
-		P, beforeP, afterP := splitAroundPivot(pivot, results)
+		if atomic.LoadInt32(&d.committed) == 0 {
+			latest := results[len(results)-1].Header
+			// If the height is above the pivot block by 2 sets, it means the pivot
+			// become stale in the network and it was garbage collected, move to a
+			// new pivot.
+			//
+			// Note, we have `reorgProtHeaderDelay` number of blocks withheld, Those
+			// need to be taken into account, otherwise we're detecting the pivot move
+			// late and will drop peers due to unavailable state!!!
+			if height := latest.Number.Uint64(); height >= pivot.Number.Uint64()+2*uint64(fsMinFullBlocks)-uint64(reorgProtHeaderDelay) {
+				log.Warn("Pivot became stale, moving", "old", pivot.Number.Uint64(), "new", height-uint64(fsMinFullBlocks)+uint64(reorgProtHeaderDelay))
+				pivot = results[len(results)-1-fsMinFullBlocks+reorgProtHeaderDelay].Header // must exist as lower old pivot is uncommitted
+
+				d.pivotLock.Lock()
+				d.pivotHeader = pivot
+				d.pivotLock.Unlock()
+
+				// Write out the pivot into the database so a rollback beyond it will
+				// reenable fast sync
+				rawdb.WriteLastPivotNumber(d.stateDB, pivot.Number.Uint64())
+			}
+		}
+
+		P, beforeP, afterP := splitAroundPivot(pivot.Number.Uint64(), results)
 		if err := d.commitFastSyncData(beforeP, sync); err != nil {
 			return err
 		}
@@ -1679,6 +1864,10 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 			case <-sync.done:
 				if sync.err != nil {
 					return sync.err
+				}
+				if err := d.fetchPPOSStorageV2(P.Header); err != nil {
+					log.Error("failed to fetch PPOSStorageV2", "err", err)
+					return fmt.Errorf("faild to fetch PPOSStorageV2, err: %v", err)
 				}
 				if err := d.commitPivotBlock(P); err != nil {
 					return err
@@ -1778,8 +1967,8 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64) (err error) {
-	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum}, pposStorageInMeter, pposStorageDropMeter)
+func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64, blocks []snapshotdb.BlockData, baseBlock uint64) (err error) {
+	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum, blocks, baseBlock}, pposStorageInMeter, pposStorageDropMeter)
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.

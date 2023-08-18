@@ -75,7 +75,7 @@ func TestRecover(t *testing.T) {
 	high = ch.db.current.highest.Num.Int64()
 	commitLength := len(ch.db.committed)
 
-	oldarr := []blockData{
+	oldarr := []BlockData{
 		*ch.db.committed[0],
 		*ch.db.committed[1],
 	}
@@ -122,7 +122,7 @@ func TestRecover(t *testing.T) {
 		t.Error("should recover commit ", len(ch.db.committed))
 		return
 	}
-	newarr := []blockData{
+	newarr := []BlockData{
 		*ch.db.committed[0],
 		*ch.db.committed[1],
 	}

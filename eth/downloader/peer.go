@@ -90,7 +90,7 @@ type Peer interface {
 	RequestBodies([]common.Hash) error
 	RequestReceipts([]common.Hash) error
 	RequestNodeData([]common.Hash) error
-	RequestPPOSStorage() error
+	RequestPPOSStorage(num uint64) error
 	RequestOriginAndPivotByCurrent(uint64) error
 }
 
@@ -116,7 +116,7 @@ func (w *lightPeerWrapper) RequestNodeData([]common.Hash) error {
 	panic("RequestNodeData not supported in light client mode sync")
 }
 
-func (w *lightPeerWrapper) RequestPPOSStorage() error {
+func (w *lightPeerWrapper) RequestPPOSStorage(num uint64) error {
 	panic("RequestPPOSStorage not supported in light client mode sync")
 }
 
@@ -521,6 +521,18 @@ func (ps *peerSet) NodeDataIdlePeers() ([]*peerConnection, int) {
 		return p.stateThroughput
 	}
 	return ps.idlePeers(eth.ETH65, eth.ETH66, idle, throughput)
+}
+
+func (ps *peerSet) PPOSIdlePeers() ([]*peerConnection, int) {
+	idle := func(p *peerConnection) bool {
+		return atomic.LoadInt32(&p.blockIdle) == 0
+	}
+	throughput := func(p *peerConnection) float64 {
+		p.lock.RLock()
+		defer p.lock.RUnlock()
+		return p.blockThroughput
+	}
+	return ps.idlePeers(eth.ETH66, eth.ETH66, idle, throughput)
 }
 
 // idlePeers retrieves a flat list of all currently idle peers satisfying the

@@ -19,6 +19,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"io"
 	"math/big"
 
@@ -74,6 +75,7 @@ const (
 	NewPooledTransactionHashesMsg = 0x16
 	GetPooledTransactionsMsg      = 0x17
 	PooledTransactionsMsg         = 0x18
+	PPOSStorageV2Msg              = 0x19
 )
 
 var (
@@ -366,12 +368,6 @@ func (*GetPooledTransactionsPacket) Kind() byte   { return GetPooledTransactions
 func (*PooledTransactionsPacket) Name() string { return "PooledTransactions" }
 func (*PooledTransactionsPacket) Kind() byte   { return PooledTransactionsMsg }
 
-type PposStoragePack struct {
-	KVs   [][2][]byte
-	KVNum uint64
-	Last  bool
-}
-
 type PposInfoPack struct {
 	Latest *types.Header
 	Pivot  *types.Header
@@ -380,8 +376,29 @@ type PposInfoPack struct {
 func (*PposInfoPack) Name() string { return "PposInfo" }
 func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
 
+type PposStoragePack struct {
+	KVs   [][2][]byte
+	KVNum uint64
+	Last  bool
+}
+
 func (*PposStoragePack) Name() string { return "PposStorage" }
 func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
+
+type PposStorageV2Pack struct {
+	RequestId    uint64
+	BaseBlock    uint64
+	BlockStorage []snapshotdb.BlockData
+}
+
+func (*PposStorageV2Pack) Name() string { return "PposStorageV2" }
+func (*PposStorageV2Pack) Kind() byte   { return PPOSStorageV2Msg }
+
+type PposStorageV2RLPPack66 struct {
+	RequestId    uint64
+	BaseBlock    uint64
+	BlockStorage []rlp.RawValue
+}
 
 type OriginAndPivotPack []*types.Header
 

@@ -18,6 +18,7 @@ package downloader
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
@@ -78,16 +79,18 @@ func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
 // pposStoragePack is a batch of ppos storage returned by a peer.
 type pposStoragePack struct {
 	peerID string
-	kvs    [][2][]byte
-	last   bool
-	kvNum  uint64
+
+	kvs   [][2][]byte
+	last  bool
+	kvNum uint64
+
+	blocks    []snapshotdb.BlockData
+	baseBlock uint64
 }
 
-type PPOSStorageKV [2][]byte
-
 func (p *pposStoragePack) PeerId() string { return p.peerID }
-func (p *pposStoragePack) Items() int     { return len(p.kvs) }
-func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)) }
+func (p *pposStoragePack) Items() int     { return len(p.kvs) + len(p.blocks) }
+func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)+len(p.blocks)) }
 func (p *pposStoragePack) KVs() [][2][]byte {
 	var kv [][2][]byte
 	for _, value := range p.kvs {
