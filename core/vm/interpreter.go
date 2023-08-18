@@ -109,7 +109,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	if cfg.JumpTable[STOP] == nil {
 		if evm.StateDB == nil {
 			cfg.JumpTable = londonInstructionSet
-		} else if gov.Gte150VersionState(evm.StateDB) {
+		} else if evm.chainRules.IsPauli || gov.Gte150VersionState(evm.StateDB) {
 			cfg.JumpTable = londonInstructionSet
 		} else {
 			cfg.JumpTable = istanbulInstructionSet
