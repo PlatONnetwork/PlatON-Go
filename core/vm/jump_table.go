@@ -43,8 +43,6 @@ type operation struct {
 
 	// memorySize returns the memory size required for the operation
 	memorySize memorySizeFunc
-
-	writes bool // determines whether this a state modifying operation
 }
 
 var (
@@ -127,7 +125,6 @@ func newConstantinopleInstructionSet() JumpTable {
 		minStack:    minStack(4, 1),
 		maxStack:    maxStack(4, 1),
 		memorySize:  memoryCreate2,
-		writes:      true,
 	}
 	return instructionSet
 }
@@ -515,7 +512,6 @@ func newFrontierInstructionSet() JumpTable {
 			dynamicGas: gasSStore,
 			minStack:   minStack(2, 0),
 			maxStack:   maxStack(2, 0),
-			writes:     true,
 		},
 		JUMP: {
 			execute:     opJump,
@@ -943,7 +939,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:   minStack(2, 0),
 			maxStack:   maxStack(2, 0),
 			memorySize: memoryLog,
-			writes:     true,
 		},
 		LOG1: {
 			execute:    makeLog(1),
@@ -951,7 +946,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:   minStack(3, 0),
 			maxStack:   maxStack(3, 0),
 			memorySize: memoryLog,
-			writes:     true,
 		},
 		LOG2: {
 			execute:    makeLog(2),
@@ -959,7 +953,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:   minStack(4, 0),
 			maxStack:   maxStack(4, 0),
 			memorySize: memoryLog,
-			writes:     true,
 		},
 		LOG3: {
 			execute:    makeLog(3),
@@ -967,7 +960,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:   minStack(5, 0),
 			maxStack:   maxStack(5, 0),
 			memorySize: memoryLog,
-			writes:     true,
 		},
 		LOG4: {
 			execute:    makeLog(4),
@@ -975,7 +967,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:   minStack(6, 0),
 			maxStack:   maxStack(6, 0),
 			memorySize: memoryLog,
-			writes:     true,
 		},
 		CREATE: {
 			execute:     opCreate,
@@ -984,7 +975,6 @@ func newFrontierInstructionSet() JumpTable {
 			minStack:    minStack(3, 1),
 			maxStack:    maxStack(3, 1),
 			memorySize:  memoryCreate,
-			writes:      true,
 		},
 		CALL: {
 			execute:     opCall,
@@ -1014,7 +1004,6 @@ func newFrontierInstructionSet() JumpTable {
 			dynamicGas: gasSelfdestruct,
 			minStack:   minStack(1, 0),
 			maxStack:   maxStack(1, 0),
-			writes:     true,
 		},
 	}
 }
