@@ -1134,7 +1134,7 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 }
 
 // RPCMarshalHeader converts the given header to the RPC output .
-func RPCMarshalHeader(head *types.Header) map[string]interface{} {
+func RPCMarshalHeader(head *types.Header, ethCompatible bool) map[string]interface{} {
 	result := map[string]interface{}{
 		"number":     (*hexutil.Big)(head.Number),
 		"hash":       head.Hash(),
@@ -1154,7 +1154,8 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
 	}
-	if types.HttpEthCompatible {
+	if ethCompatible {
+		result["mixHash"] = common.ZeroHash
 		result["nonce"] = hexutil.Bytes(head.Nonce[0:8])
 		result["timestamp"] = hexutil.Uint64(head.Time / 1000)
 		result["sha3Uncles"] = common.ZeroHash
@@ -1172,7 +1173,8 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 // returned. When fullTx is true the returned block contains full transaction details, otherwise it will only contain
 // transaction hashes.
 func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *params.ChainConfig) (map[string]interface{}, error) {
-	fields := RPCMarshalHeader(block.Header())
+	ethCompatible := types.HttpEthCompatible
+	fields := RPCMarshalHeader(block.Header(), ethCompatible)
 	fields["size"] = hexutil.Uint64(block.Size())
 
 	if inclTx {
@@ -1194,12 +1196,9 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 		}
 		fields["transactions"] = transactions
 	}
-	/*uncles := block.Uncles()
-	uncleHashes := make([]common.Hash, len(uncles))
-	for i, uncle := range uncles {
-		uncleHashes[i] = uncle.Hash()
+	if ethCompatible {
+		fields["uncles"] = make([]common.Hash, 0)
 	}
-	fields["uncles"] = uncleHashes*/
 
 	return fields, nil
 }
@@ -1207,9 +1206,11 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 // rpcMarshalHeader uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
 func (s *PublicBlockChainAPI) rpcMarshalHeader(header *types.Header) map[string]interface{} {
-	fields := RPCMarshalHeader(header)
-	//fields["totalDifficulty"] = (*hexutil.Big)(s.b.GetTd(header.Hash()))
-	fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+	ethCompatible := types.HttpEthCompatible
+	fields := RPCMarshalHeader(header, ethCompatible)
+	if ethCompatible {
+		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+	}
 	return fields
 }
 
@@ -1220,8 +1221,7 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullT
 	if err != nil {
 		return nil, err
 	}
-	//fields["totalDifficulty"] = (*hexutil.Big)(s.b.GetTd(b.Hash()))
-	if inclTx {
+	if inclTx && types.HttpEthCompatible {
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
 	}
 	return fields, err
