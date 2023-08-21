@@ -100,6 +100,7 @@ const (
 	TIMESTAMP   OpCode = 0x42
 	NUMBER      OpCode = 0x43
 	DIFFICULTY  OpCode = 0x44
+	RANDOM      OpCode = 0x44 // Same as DIFFICULTY
 	GASLIMIT    OpCode = 0x45
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
@@ -108,18 +109,18 @@ const (
 
 // 0x50 range - 'storage' and execution.
 const (
-	POP      OpCode = 0x50
-	MLOAD    OpCode = 0x51
-	MSTORE   OpCode = 0x52
-	MSTORE8  OpCode = 0x53
-	SLOAD    OpCode = 0x54
-	SSTORE   OpCode = 0x55
-	JUMP     OpCode = 0x56
-	JUMPI    OpCode = 0x57
-	PC       OpCode = 0x58
-	MSIZE    OpCode = 0x59
-	GAS      OpCode = 0x5a
-	JUMPDEST OpCode = 0x5b
+	POP       OpCode = 0x50
+	MLOAD     OpCode = 0x51
+	MSTORE    OpCode = 0x52
+	MSTORE8   OpCode = 0x53
+	SLOAD     OpCode = 0x54
+	SSTORE    OpCode = 0x55
+	JUMP      OpCode = 0x56
+	JUMPI     OpCode = 0x57
+	PC        OpCode = 0x58
+	MSIZE     OpCode = 0x59
+	GAS       OpCode = 0x5a
+	JUMPDEST  OpCode = 0x5b
 	BEGINSUB  OpCode = 0x5c
 	RETURNSUB OpCode = 0x5d
 	JUMPSUB   OpCode = 0x5e
@@ -289,7 +290,7 @@ var opCodeToString = map[OpCode]string{
 	COINBASE:    "COINBASE",
 	TIMESTAMP:   "TIMESTAMP",
 	NUMBER:      "NUMBER",
-	DIFFICULTY:  "DIFFICULTY",
+	DIFFICULTY:  "DIFFICULTY", // TODO (MariusVanDerWijden) rename to RANDOM post merge
 	GASLIMIT:    "GASLIMIT",
 	CHAINID:     "CHAINID",
 	SELFBALANCE: "SELFBALANCE",
