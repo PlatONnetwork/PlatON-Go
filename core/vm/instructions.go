@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
+	"sync/atomic"
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -532,6 +533,9 @@ func opSstore(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]b
 }
 
 func opJump(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	if atomic.LoadInt32(&interpreter.evm.abort) != 0 {
+		return nil, errStopToken
+	}
 	pos := scope.Stack.pop()
 	if !scope.Contract.validJumpdest(&pos) {
 		return nil, ErrInvalidJump
@@ -541,6 +545,9 @@ func opJump(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 }
 
 func opJumpi(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
+	if atomic.LoadInt32(&interpreter.evm.abort) != 0 {
+		return nil, errStopToken
+	}
 	pos, cond := scope.Stack.pop(), scope.Stack.pop()
 	if !cond.IsZero() {
 		if !scope.Contract.validJumpdest(&pos) {
