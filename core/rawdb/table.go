@@ -62,10 +62,10 @@ func (t *table) Ancient(kind string, number uint64) ([]byte, error) {
 	return t.db.Ancient(kind, number)
 }
 
-// AncientRange is a noop passthrough that just forwards the request to the underlying
+// ReadAncients is a noop passthrough that just forwards the request to the underlying
 // database.
-func (t *table) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
-	return t.db.AncientRange(kind, start, count, maxBytes)
+func (t *table) ReadAncients(kind string, start, count, maxBytes uint64) ([][]byte, error) {
+	return t.db.ReadAncients(kind, start, count, maxBytes)
 }
 
 // Ancients is a noop passthrough that just forwards the request to the underlying
@@ -80,14 +80,9 @@ func (t *table) AncientSize(kind string) (uint64, error) {
 	return t.db.AncientSize(kind)
 }
 
-// AppendAncient is a noop passthrough that just forwards the request to the underlying
-// database.
-func (t *table) AppendAncient(number uint64, hash, header, body, receipts []byte) error {
-	return t.db.AppendAncient(number, hash, header, body, receipts)
-}
-
-func (t *table) ReadAncients(fn func(reader ethdb.AncientReader) error) (err error) {
-	return t.db.ReadAncients(fn)
+// ModifyAncients runs an ancient write operation on the underlying database.
+func (t *table) ModifyAncients(fn func(ethdb.AncientWriteOp) error) (int64, error) {
+	return t.db.ModifyAncients(fn)
 }
 
 // TruncateAncients is a noop passthrough that just forwards the request to the underlying

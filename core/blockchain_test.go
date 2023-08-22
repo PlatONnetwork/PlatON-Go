@@ -1009,6 +1009,7 @@ func benchmarkLargeNumberOfValueToNonexisting(b *testing.B, numTxs, numBlocks in
 		}
 	}*/
 }
+
 func BenchmarkBlockChain_1x1000ValueTransferToNonexisting(b *testing.B) {
 	var (
 		numTxs    = 1000
