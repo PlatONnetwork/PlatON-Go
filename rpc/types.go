@@ -41,8 +41,10 @@ type API struct {
 // a RPC session. Implementations must be go-routine safe since the codec can be called in
 // multiple go-routines concurrently.
 type ServerCodec interface {
+	peerInfo() PeerInfo
 	readBatch() (msgs []*jsonrpcMessage, isBatch bool, err error)
 	close()
+
 	jsonWriter
 }
 
@@ -185,6 +187,16 @@ func (bnh *BlockNumberOrHash) Number() (BlockNumber, bool) {
 		return *bnh.BlockNumber, true
 	}
 	return BlockNumber(0), false
+}
+
+func (bnh *BlockNumberOrHash) String() string {
+	if bnh.BlockNumber != nil {
+		return strconv.Itoa(int(*bnh.BlockNumber))
+	}
+	if bnh.BlockHash != nil {
+		return bnh.BlockHash.String()
+	}
+	return "nil"
 }
 
 func (bnh *BlockNumberOrHash) Hash() (common.Hash, bool) {
