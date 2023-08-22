@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"context"
 	"hash"
 	"sync/atomic"
 
@@ -129,14 +128,6 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
-	go func(ctx context.Context) {
-		<-ctx.Done()
-		if err := ctx.Err(); err != nil && context.DeadlineExceeded == err {
-			// shutdown vm, change th vm.abort mark
-			in.evm.Cancel()
-		}
-	}(in.evm.Context.Ctx)
 
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
@@ -286,7 +277,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// if the operation clears the return data (e.g. it has returning data)
 		// set the last return to the result of the operation.
 		if operation.returns {
-			in.returnData = common.CopyBytes(res)
+			in.returnData = res
 		}
 
 		switch {
@@ -299,9 +290,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case !operation.jumps:
 			pc++
 		}
-	}
-	if atomic.LoadInt32(&in.evm.abort) == 1 {
-		return nil, ErrAbort
 	}
 	return nil, nil
 }

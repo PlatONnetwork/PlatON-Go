@@ -197,7 +197,7 @@ func TestNoStepExec(t *testing.T) {
 }
 
 func TestIsPrecompile(t *testing.T) {
-	chaincfg := &params.ChainConfig{ChainID: big.NewInt(1), NewtonBlock: big.NewInt(0), EinsteinBlock: big.NewInt(10), HubbleBlock: big.NewInt(0), PauliBlock: big.NewInt(0)}
+	chaincfg := &params.ChainConfig{ChainID: big.NewInt(1), NewtonBlock: big.NewInt(0), EinsteinBlock: big.NewInt(10), HubbleBlock: big.NewInt(10), PauliBlock: big.NewInt(10)}
 	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
 	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil)
 	if err != nil {
@@ -209,8 +209,8 @@ func TestIsPrecompile(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if string(res) != "false" {
-		t.Errorf("Tracer should not consider blake2f as precompile in byzantium")
+	if string(res) != "true" {
+		t.Errorf("Tracer should consider blake2f as precompile in byzantium")
 	}
 
 	tracer, _ = newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil)
