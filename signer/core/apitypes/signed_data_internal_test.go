@@ -14,10 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package apitypes
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 	"math/big"
 	"testing"
 
@@ -63,7 +64,7 @@ func TestBytesPadding(t *testing.T) {
 		},
 	}
 
-	d := TypedData{}
+	d := core.TypedData{}
 	for i, test := range tests {
 		val, err := d.EncodePrimitiveValue(test.Type, test.Input, 1)
 		if test.Output == nil {
