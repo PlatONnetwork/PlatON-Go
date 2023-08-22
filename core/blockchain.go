@@ -1503,10 +1503,6 @@ func (bc *BlockChain) InsertChain(chain types.Blocks) (int, error) {
 		}
 	}
 	// Pre-check passed, start the full block imports.
-	if !bc.chainmu.TryLock() {
-		return 0, errChainStopped
-	}
-	defer bc.chainmu.Unlock()
 	return bc.insertChain(chain, true)
 }
 
