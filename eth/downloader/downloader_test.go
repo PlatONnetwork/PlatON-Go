@@ -101,7 +101,7 @@ func newTester() *downloadTester {
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(testGenesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(tester.stateDb, sdb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, nil, tester.dropPeer, nil)
+	tester.downloader = New(tester.stateDb, sdb, new(event.TypeMux), tester, nil, tester.dropPeer, nil)
 	return tester
 }
 
