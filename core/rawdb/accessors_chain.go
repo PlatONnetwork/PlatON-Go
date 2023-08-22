@@ -38,20 +38,15 @@ import (
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
 func ReadCanonicalHash(db ethdb.Reader, number uint64) common.Hash {
-	data, _ := db.Ancient(freezerHashTable, number)
-	if len(data) == 0 {
-		data, _ = db.Get(headerHashKey(number))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReader) error {
+		data, _ = reader.Ancient(freezerHashTable, number)
 		if len(data) == 0 {
-			data, _ = db.Ancient(freezerHashTable, number)
+			// Get it by hash from leveldb
+			data, _ = db.Get(headerHashKey(number))
 		}
-	}
-	if len(data) == 0 {
-		return common.Hash{}
-	}
+		return nil
+	})
 	return common.BytesToHash(data)
 }
 
@@ -307,27 +302,20 @@ func WriteFastTxLookupLimit(db ethdb.KeyValueWriter, number uint64) {
 
 // ReadHeaderRLP retrieves a block header in its raw RLP database encoding.
 func ReadHeaderRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
-	// First try to look up the data in ancient database. Extra hash
-	// comparison is necessary since ancient database only maintains
-	// the canonical data.
-	data, _ := db.Ancient(freezerHeaderTable, number)
-	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
-		return data
-	}
-	// Then try to look up the data in leveldb.
-	data, _ = db.Get(headerKey(number, hash))
-	if len(data) > 0 {
-		return data
-	}
-	// In the background freezer is moving data from leveldb to flatten files.
-	// So during the first check for ancient db, the data is not yet in there,
-	// but when we reach into leveldb, the data was already moved. That would
-	// result in a not found error.
-	data, _ = db.Ancient(freezerHeaderTable, number)
-	if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
-		return data
-	}
-	return nil // Can't find the data anywhere.
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReader) error {
+		// First try to look up the data in ancient database. Extra hash
+		// comparison is necessary since ancient database only maintains
+		// the canonical data.
+		data, _ = reader.Ancient(freezerHeaderTable, number)
+		if len(data) > 0 && crypto.Keccak256Hash(data) == hash {
+			return nil
+		}
+		// If not, try reading from leveldb
+		data, _ = db.Get(headerKey(number, hash))
+		return nil
+	})
+	return data
 }
 
 // HasHeader verifies the existence of a block header corresponding to the hash.
@@ -407,48 +395,36 @@ func ReadBodyRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue 
 	// First try to look up the data in ancient database. Extra hash
 	// comparison is necessary since ancient database only maintains
 	// the canonical data.
-	data, _ := db.Ancient(freezerBodiesTable, number)
-	if len(data) > 0 {
-		h, _ := db.Ancient(freezerHashTable, number)
-		if common.BytesToHash(h) == hash {
-			return data
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReader) error {
+		// Check if the data is in ancients
+		if isCanon(reader, number, hash) {
+			data, _ = reader.Ancient(freezerBodiesTable, number)
+			return nil
 		}
-	}
-	// Then try to look up the data in leveldb.
-	data, _ = db.Get(blockBodyKey(number, hash))
-	if len(data) > 0 {
-		return data
-	}
-	// In the background freezer is moving data from leveldb to flatten files.
-	// So during the first check for ancient db, the data is not yet in there,
-	// but when we reach into leveldb, the data was already moved. That would
-	// result in a not found error.
-	data, _ = db.Ancient(freezerBodiesTable, number)
-	if len(data) > 0 {
-		h, _ := db.Ancient(freezerHashTable, number)
-		if common.BytesToHash(h) == hash {
-			return data
-		}
-	}
-	return nil // Can't find the data anywhere.
+		// If not, try reading from leveldb
+		data, _ = db.Get(blockBodyKey(number, hash))
+		return nil
+	})
+	return data
 }
 
 // ReadCanonicalBodyRLP retrieves the block body (transactions and uncles) for the canonical
 // block at number, in RLP encoding.
 func ReadCanonicalBodyRLP(db ethdb.Reader, number uint64) rlp.RawValue {
-	// If it's an ancient one, we don't need the canonical hash
-	data, _ := db.Ancient(freezerBodiesTable, number)
-	if len(data) == 0 {
-		// Need to get the hash
-		data, _ = db.Get(blockBodyKey(number, ReadCanonicalHash(db, number)))
-		// In the background freezer is moving data from leveldb to flatten files.
-		// So during the first check for ancient db, the data is not yet in there,
-		// but when we reach into leveldb, the data was already moved. That would
-		// result in a not found error.
-		if len(data) == 0 {
-			data, _ = db.Ancient(freezerBodiesTable, number)
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReader) error {
+		data, _ = reader.Ancient(freezerBodiesTable, number)
+		if len(data) > 0 {
+			return nil
 		}
-	}
+		// Block is not in ancients, read from leveldb by hash and number.
+		// Note: ReadCanonicalHash cannot be used here because it also
+		// calls ReadAncients internally.
+		hash, _ := db.Get(headerHashKey(number))
+		data, _ = db.Get(blockBodyKey(number, common.BytesToHash(hash)))
+		return nil
+	})
 	return data
 }
 
@@ -514,33 +490,18 @@ func HasReceipts(db ethdb.Reader, hash common.Hash, number uint64) bool {
 
 // ReadReceiptsRLP retrieves all the transaction receipts belonging to a block in RLP encoding.
 func ReadReceiptsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawValue {
-	// First try to look up the data in ancient database. Extra hash
-	// comparison is necessary since ancient database only maintains
-	// the canonical data.
-	data, _ := db.Ancient(freezerReceiptTable, number)
-	if len(data) > 0 {
-		h, _ := db.Ancient(freezerHashTable, number)
-		if common.BytesToHash(h) == hash {
-			return data
+	var data []byte
+	db.ReadAncients(func(reader ethdb.AncientReader) error {
+		// Check if the data is in ancients
+		if isCanon(reader, number, hash) {
+			data, _ = reader.Ancient(freezerReceiptTable, number)
+			return nil
 		}
-	}
-	// Then try to look up the data in leveldb.
-	data, _ = db.Get(blockReceiptsKey(number, hash))
-	if len(data) > 0 {
-		return data
-	}
-	// In the background freezer is moving data from leveldb to flatten files.
-	// So during the first check for ancient db, the data is not yet in there,
-	// but when we reach into leveldb, the data was already moved. That would
-	// result in a not found error.
-	data, _ = db.Ancient(freezerReceiptTable, number)
-	if len(data) > 0 {
-		h, _ := db.Ancient(freezerHashTable, number)
-		if common.BytesToHash(h) == hash {
-			return data
-		}
-	}
-	return nil // Can't find the data anywhere.
+		// If not, try reading from leveldb
+		data, _ = db.Get(blockReceiptsKey(number, hash))
+		return nil
+	})
+	return data
 }
 
 // ReadRawReceipts retrieves all the transaction receipts belonging to a block.
@@ -679,7 +640,7 @@ func ReadLogs(db ethdb.Reader, hash common.Hash, number uint64, config *params.C
 		if logs := readLegacyLogs(db, hash, number, config); logs != nil {
 			return logs
 		}
-		log.Error("Invalid receipt array RLP", "hash", "err", err)
+		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
 
