@@ -20,8 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"io"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"os"
 	"strconv"
@@ -83,7 +84,9 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-	The import-preimages command imports hash preimages from an RLP encoded stream.`,
+	The import-preimages command imports hash preimages from an RLP encoded stream.
+It's deprecated, please use "geth db import" instead.
+`,
 	}
 	exportPreimagesCommand = cli.Command{
 		Action:    utils.MigrateFlags(exportPreimages),
@@ -97,7 +100,9 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The export-preimages command export hash preimages to an RLP encoded stream`,
+The export-preimages command exports hash preimages to an RLP encoded stream.
+It's deprecated, please use "geth db export" instead.
+`,
 	}
 	dumpCommand = cli.Command{
 		Action:    utils.MigrateFlags(dump),

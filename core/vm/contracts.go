@@ -21,10 +21,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
@@ -196,6 +197,16 @@ func ActivePrecompiles(state xcom.StateDB) []common.Address {
 		return PrecompiledAddressesBerlin2
 	}
 	return PrecompiledAddressesBerlin
+}
+
+// ActivePrecompiles returns the precompiles enabled with the current configuration.
+func ActivePrecompilesByRules(rules params.Rules) []common.Address {
+	switch {
+	case rules.IsPauli:
+		return PrecompiledAddressesBerlin2
+	default:
+		return PrecompiledAddressesBerlin
+	}
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

@@ -138,40 +138,41 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 	if HttpEthCompatible {
 		type Header struct {
 			ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-			Coinbase    common.Address `json:"miner"            gencodec:"required"`
+			UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+			Coinbase    common.Address `json:"miner"`
 			Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 			TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 			ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 			Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+			Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 			Number      *hexutil.Big   `json:"number"           gencodec:"required"`
 			GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
 			GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 			Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 			Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-			BaseFee     *hexutil.Big   `json:"baseFeePerGas"    gencodec:"optional"`
-			Nonce       ETHBlockNonce  `json:"nonce"            gencodec:"required"`
+			MixDigest   common.Hash    `json:"mixHash"`
+			Nonce       ETHBlockNonce  `json:"nonce"`
+			BaseFee     *hexutil.Big   `json:"baseFeePerGas" rlp:"optional"`
 			Hash        common.Hash    `json:"hash"`
-
-			UncleHash  common.Hash  `json:"sha3Uncles"       gencodec:"required"`
-			Difficulty *hexutil.Big `json:"difficulty"       gencodec:"required"`
 		}
 		var enc Header
 		enc.ParentHash = h.ParentHash
+		enc.UncleHash = common.ZeroHash
 		enc.Coinbase = h.Coinbase
 		enc.Root = h.Root
 		enc.TxHash = h.TxHash
 		enc.ReceiptHash = h.ReceiptHash
 		enc.Bloom = h.Bloom
+		enc.Difficulty = (*hexutil.Big)(h.Number)
 		enc.Number = (*hexutil.Big)(h.Number)
 		enc.GasLimit = hexutil.Uint64(h.GasLimit)
 		enc.GasUsed = hexutil.Uint64(h.GasUsed)
 		enc.Time = hexutil.Uint64(h.Time / 1000)
 		enc.Extra = h.Extra
-		enc.BaseFee = (*hexutil.Big)(h.BaseFee)
+		enc.MixDigest = common.ZeroHash
 		enc.Nonce = h.Nonce.ETHBlockNonce()
+		enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 		enc.Hash = h.Hash()
-		enc.UncleHash = common.ZeroHash
-		enc.Difficulty = (*hexutil.Big)(h.Number)
 		return json2.Marshal(&enc)
 	}
 	type Header struct {
@@ -186,8 +187,8 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 		GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-		BaseFee     *hexutil.Big   `json:"baseFeePerGas"    gencodec:"optional"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+		BaseFee     *hexutil.Big   `json:"baseFeePerGas" rlp:"optional"`
 		Hash        common.Hash    `json:"hash"`
 	}
 	var enc Header
@@ -202,8 +203,8 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 	enc.GasUsed = hexutil.Uint64(h.GasUsed)
 	enc.Time = hexutil.Uint64(h.Time)
 	enc.Extra = h.Extra
-	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.Nonce = h.Nonce
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.Hash = h.Hash()
 	return json2.Marshal(&enc)
 }

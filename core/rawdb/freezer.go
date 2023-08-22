@@ -67,16 +67,20 @@ const (
 // freezer is an memory mapped append-only database to store immutable chain data
 // into flat files:
 //
-// - The append only nature ensures that disk writes are minimized.
-// - The memory mapping ensures we can max out system memory for caching without
-//   reserving it for go-ethereum. This would also reduce the memory requirements
-//   of Geth, and thus also GC overhead.
+//   - The append only nature ensures that disk writes are minimized.
+//   - The memory mapping ensures we can max out system memory for caching without
+//     reserving it for go-ethereum. This would also reduce the memory requirements
+//     of Geth, and thus also GC overhead.
 type freezer struct {
 	// WARNING: The `frozen` field is accessed atomically. On 32 bit platforms, only
 	// 64-bit aligned fields can be atomic. The struct is guaranteed to be so aligned,
 	// so take advantage of that (https://golang.org/pkg/sync/atomic/#pkg-note-BUG).
 	frozen    uint64 // Number of blocks already frozen
 	threshold uint64 // Number of recent blocks not to freeze (params.FullImmutabilityThreshold apart from tests)
+
+	// This lock synchronizes writers and the truncate operation, as well as
+	// the "atomic" (batched) read operations.
+	writeLock sync.RWMutex
 
 	readonly     bool
 	tables       map[string]*freezerTable // Data tables for storing everything
@@ -181,12 +185,12 @@ func (f *freezer) Ancient(kind string, number uint64) ([]byte, error) {
 	return nil, errUnknownTable
 }
 
-// ReadAncients retrieves multiple items in sequence, starting from the index 'start'.
+// AncientRange retrieves multiple items in sequence, starting from the index 'start'.
 // It will return
-//  - at most 'max' items,
-//  - at least 1 item (even if exceeding the maxByteSize), but will otherwise
-//   return as many items as fit into maxByteSize.
-func (f *freezer) ReadAncients(kind string, start, count, maxBytes uint64) ([][]byte, error) {
+//   - at most 'max' items,
+//   - at least 1 item (even if exceeding the maxByteSize), but will otherwise
+//     return as many items as fit into maxByteSize.
+func (f *freezer) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
 	if table := f.tables[kind]; table != nil {
 		return table.RetrieveItems(start, count, maxBytes)
 	}
@@ -200,10 +204,22 @@ func (f *freezer) Ancients() (uint64, error) {
 
 // AncientSize returns the ancient size of the specified category.
 func (f *freezer) AncientSize(kind string) (uint64, error) {
+	// This needs the write lock to avoid data races on table fields.
+	// Speed doesn't matter here, AncientSize is for debugging.
+	f.writeLock.RLock()
+	defer f.writeLock.RUnlock()
 	if table := f.tables[kind]; table != nil {
 		return table.size()
 	}
 	return 0, errUnknownTable
+}
+
+// ReadAncients runs the given read operation while ensuring that no writes take place
+// on the underlying freezer.
+func (f *freezer) ReadAncients(fn func(ethdb.AncientReader) error) (err error) {
+	f.writeLock.RLock()
+	defer f.writeLock.RUnlock()
+	return fn(f)
 }
 
 // AppendAncient injects all binary blobs belong to block at the end of the

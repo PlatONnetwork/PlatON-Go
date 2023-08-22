@@ -17,10 +17,10 @@
 package vm
 
 import (
-	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"hash"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -28,14 +28,10 @@ import (
 
 // Config are the configuration options for the Interpreter
 type Config struct {
-	// Debug enable debugging Interpreter options
-	Debug bool
-	// Tracer is the op code logger
-	Tracer Tracer
-	// NoRecursion disabled interpreter call, callcode,
-	// delegate call and create
-	NoRecursion bool
-	NoBaseFee   bool // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
+	Debug       bool      // Enables debugging
+	Tracer      EVMLogger // Opcode logger
+	NoRecursion bool      // Disables call, callcode, delegate call and create
+	NoBaseFee   bool      // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
 
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default table.
@@ -112,7 +108,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	if cfg.JumpTable[STOP] == nil {
 		if evm.StateDB == nil {
 			cfg.JumpTable = londonInstructionSet
-		} else if gov.Gte150VersionState(evm.StateDB) {
+		} else if evm.chainRules.IsPauli || gov.Gte150VersionState(evm.StateDB) {
 			cfg.JumpTable = londonInstructionSet
 		} else {
 			cfg.JumpTable = istanbulInstructionSet
@@ -132,14 +128,6 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
-	go func(ctx context.Context) {
-		<-ctx.Done()
-		if err := ctx.Err(); err != nil && context.DeadlineExceeded == err {
-			// shutdown vm, change th vm.abort mark
-			in.evm.Cancel()
-		}
-	}(in.evm.Context.Ctx)
 
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++
@@ -178,9 +166,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		pc   = uint64(0) // program counter
 		cost uint64
 		// copies used by tracer
-		pcCopy  uint64 // needed for the deferred Tracer
-		gasCopy uint64 // for Tracer to log gas remaining before execution
-		logged  bool   // deferred Tracer should ignore already logged steps
+		pcCopy  uint64 // needed for the deferred EVMLogger
+		gasCopy uint64 // for EVMLogger to log gas remaining before execution
+		logged  bool   // deferred EVMLogger should ignore already logged steps
 		res     []byte // result of the opcode execution function
 	)
 	// Don't move this deferrred function, it's placed before the capturestate-deferred method,
@@ -196,9 +184,9 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(in.evm, pcCopy, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
+					in.cfg.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(in.evm, pcCopy, op, gasCopy, cost, callContext, in.evm.depth, err)
+					in.cfg.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.evm.depth, err)
 				}
 			}
 		}()
@@ -280,7 +268,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		}
 
 		if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(in.evm, pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
+			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 			logged = true
 		}
 
@@ -289,7 +277,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		// if the operation clears the return data (e.g. it has returning data)
 		// set the last return to the result of the operation.
 		if operation.returns {
-			in.returnData = common.CopyBytes(res)
+			in.returnData = res
 		}
 
 		switch {
@@ -302,9 +290,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		case !operation.jumps:
 			pc++
 		}
-	}
-	if atomic.LoadInt32(&in.evm.abort) == 1 {
-		return nil, ErrAbort
 	}
 	return nil, nil
 }
