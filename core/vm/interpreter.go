@@ -108,7 +108,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	if cfg.JumpTable[STOP] == nil {
 		if evm.StateDB == nil {
 			cfg.JumpTable = londonInstructionSet
-		} else if gov.Gte150VersionState(evm.StateDB) {
+		} else if evm.chainRules.IsPauli || gov.Gte150VersionState(evm.StateDB) {
 			cfg.JumpTable = londonInstructionSet
 		} else {
 			cfg.JumpTable = istanbulInstructionSet
@@ -128,14 +128,6 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 // considered a revert-and-consume-all-gas operation except for
 // ErrExecutionReverted which means revert-and-keep-gas-left.
 func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
-	go func(ctx context.Context) {
-		<-ctx.Done()
-		if err := ctx.Err(); err != nil && context.DeadlineExceeded == err {
-			// shutdown vm, change th vm.abort mark
-			in.evm.Cancel()
-		}
-	}(in.evm.Context.Ctx)
 
 	// Increment the call depth which is restricted to 1024
 	in.evm.depth++

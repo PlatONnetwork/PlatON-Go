@@ -735,7 +735,7 @@ func (w *worker) resultLoop() {
 				receipts = make([]*types.Receipt, len(_receipts))
 				logs     []*types.Log
 			)
-			for i, taskReceipt := range task.receipts {
+			for i, taskReceipt := range _receipts {
 				receipt := new(types.Receipt)
 				receipts[i] = receipt
 				*receipt = *taskReceipt
