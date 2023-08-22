@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"reflect"
 	"testing"
 
 	"golang.org/x/crypto/sha3"
@@ -32,6 +33,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -411,7 +413,7 @@ func TestAncientStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
-	defer os.Remove(frdir)
+	defer os.RemoveAll(frdir)
 
 	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
 	if err != nil {
@@ -437,7 +439,7 @@ func TestAncientStorage(t *testing.T) {
 		t.Fatalf("non existent receipts returned")
 	}
 	// Write and verify the header in the database
-	WriteAncientBlock(db, block, nil)
+	WriteAncientBlocks(db, []*types.Block{block}, []types.Receipts{nil})
 	if blob := ReadHeaderRLP(db, hash, number); len(blob) == 0 {
 		t.Fatalf("no header returned")
 	}
@@ -645,4 +647,171 @@ func TestDeriveLogFields(t *testing.T) {
 			logIndex++
 		}
 	}
+}
+
+func TestCanonicalHashIteration(t *testing.T) {
+	var cases = []struct {
+		from, to uint64
+		limit    int
+		expect   []uint64
+	}{
+		{1, 8, 0, nil},
+		{1, 8, 1, []uint64{1}},
+		{1, 8, 10, []uint64{1, 2, 3, 4, 5, 6, 7}},
+		{1, 9, 10, []uint64{1, 2, 3, 4, 5, 6, 7, 8}},
+		{2, 9, 10, []uint64{2, 3, 4, 5, 6, 7, 8}},
+		{9, 10, 10, nil},
+	}
+	// Test empty db iteration
+	db := NewMemoryDatabase()
+	numbers, _ := ReadAllCanonicalHashes(db, 0, 10, 10)
+	if len(numbers) != 0 {
+		t.Fatalf("No entry should be returned to iterate an empty db")
+	}
+	// Fill database with testing data.
+	for i := uint64(1); i <= 8; i++ {
+		WriteCanonicalHash(db, common.Hash{}, i)
+	}
+	for i, c := range cases {
+		numbers, _ := ReadAllCanonicalHashes(db, c.from, c.to, c.limit)
+		if !reflect.DeepEqual(numbers, c.expect) {
+			t.Fatalf("Case %d failed, want %v, got %v", i, c.expect, numbers)
+		}
+	}
+}
+
+func TestHashesInRange(t *testing.T) {
+	mkHeader := func(number, seq int) *types.Header {
+		h := types.Header{
+			Number:   big.NewInt(int64(number)),
+			GasLimit: uint64(seq),
+		}
+		return &h
+	}
+	db := NewMemoryDatabase()
+	// For each number, write N versions of that particular number
+	total := 0
+	for i := 0; i < 15; i++ {
+		for ii := 0; ii < i; ii++ {
+			WriteHeader(db, mkHeader(i, ii))
+			total++
+		}
+	}
+	if have, want := len(ReadAllHashesInRange(db, 10, 10)), 10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 10, 9)), 0; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 0, 100)), total; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashesInRange(db, 9, 10)), 9+10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 10)), 10; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 16)), 0; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+	if have, want := len(ReadAllHashes(db, 1)), 1; have != want {
+		t.Fatalf("Wrong number of hashes read, want %d, got %d", want, have)
+	}
+}
+
+// This measures the write speed of the WriteAncientBlocks operation.
+func BenchmarkWriteAncientBlocks(b *testing.B) {
+	// Open freezer database.
+	frdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		b.Fatalf("failed to create temp freezer dir: %v", err)
+	}
+	defer os.RemoveAll(frdir)
+	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
+	if err != nil {
+		b.Fatalf("failed to create database with ancient backend")
+	}
+
+	// Create the data to insert. The blocks must have consecutive numbers, so we create
+	// all of them ahead of time. However, there is no need to create receipts
+	// individually for each block, just make one batch here and reuse it for all writes.
+	const batchSize = 128
+	const blockTxs = 20
+	allBlocks := makeTestBlocks(b.N, blockTxs)
+	batchReceipts := makeTestReceipts(batchSize, blockTxs)
+	b.ResetTimer()
+
+	// The benchmark loop writes batches of blocks, but note that the total block count is
+	// b.N. This means the resulting ns/op measurement is the time it takes to write a
+	// single block and its associated data.
+	var totalSize int64
+	for i := 0; i < b.N; i += batchSize {
+		length := batchSize
+		if i+batchSize > b.N {
+			length = b.N - i
+		}
+
+		blocks := allBlocks[i : i+length]
+		receipts := batchReceipts[:length]
+		writeSize, err := WriteAncientBlocks(db, blocks, receipts)
+		if err != nil {
+			b.Fatal(err)
+		}
+		totalSize += writeSize
+	}
+
+	// Enable MB/s reporting.
+	b.SetBytes(totalSize / int64(b.N))
+}
+
+// makeTestBlocks creates fake blocks for the ancient write benchmark.
+func makeTestBlocks(nblock int, txsPerBlock int) []*types.Block {
+	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	signer := types.LatestSignerForChainID(big.NewInt(8))
+
+	// Create transactions.
+	txs := make([]*types.Transaction, txsPerBlock)
+	for i := 0; i < len(txs); i++ {
+		var err error
+		to := common.Address{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+		txs[i], err = types.SignNewTx(key, signer, &types.LegacyTx{
+			Nonce:    2,
+			GasPrice: big.NewInt(30000),
+			Gas:      0x45454545,
+			To:       &to,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Create the blocks.
+	blocks := make([]*types.Block, nblock)
+	for i := 0; i < nblock; i++ {
+		header := &types.Header{
+			Number: big.NewInt(int64(i)),
+			Extra:  []byte("test block"),
+		}
+		blocks[i] = types.NewBlockWithHeader(header).WithBody(txs, nil)
+		blocks[i].Hash() // pre-cache the block hash
+	}
+	return blocks
+}
+
+// makeTestReceipts creates fake receipts for the ancient write benchmark.
+func makeTestReceipts(n int, nPerBlock int) []types.Receipts {
+	receipts := make([]*types.Receipt, nPerBlock)
+	for i := 0; i < len(receipts); i++ {
+		receipts[i] = &types.Receipt{
+			Status:            types.ReceiptStatusSuccessful,
+			CumulativeGasUsed: 0x888888888,
+			Logs:              make([]*types.Log, 5),
+		}
+	}
+	allReceipts := make([]types.Receipts, n)
+	for i := 0; i < n; i++ {
+		allReceipts[i] = receipts
+	}
+	return allReceipts
 }

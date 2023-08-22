@@ -221,10 +221,9 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 	if len(blocks) != len(qcs) {
 		return fmt.Errorf("block qc is inconsistent")
 	}
-	//todo insert tree, update view
+
 	for i := 0; i < len(blocks); i++ {
 		block, qc := blocks[i], qcs[i]
-		//todo verify qc
 
 		if err := cbft.safetyRules.QCBlockRules(block, qc); err != nil {
 			if err.NewView() {
