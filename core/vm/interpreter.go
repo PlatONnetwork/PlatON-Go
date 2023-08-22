@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"context"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"hash"
 	"sync/atomic"
