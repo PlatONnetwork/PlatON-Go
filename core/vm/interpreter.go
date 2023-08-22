@@ -29,10 +29,9 @@ import (
 
 // Config are the configuration options for the Interpreter
 type Config struct {
-	Debug       bool      // Enables debugging
-	Tracer      EVMLogger // Opcode logger
-	NoRecursion bool      // Disables call, callcode, delegate call and create
-	NoBaseFee   bool      // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
+	Debug     bool      // Enables debugging
+	Tracer    EVMLogger // Opcode logger
+	NoBaseFee bool      // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
 
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default table.
