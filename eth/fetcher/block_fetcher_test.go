@@ -286,6 +286,7 @@ func testSequentialAnnouncements(t *testing.T, protocol int) {
 	hashes, blocks := makeChain(targetBlocks, 0, genesis)
 
 	tester := newTester()
+	defer tester.fetcher.Stop()
 	headerFetcher := tester.makeHeaderFetcher("valid", blocks, -gatherSlack)
 	bodyFetcher := tester.makeBodyFetcher("valid", blocks, 0)
 
@@ -642,6 +643,7 @@ func testEmptyBlockShortCircuit(t *testing.T, protocol int) {
 	hashes, blocks := makeChain(32, 0, genesis)
 
 	tester := newTester()
+	defer tester.fetcher.Stop()
 	headerFetcher := tester.makeHeaderFetcher("valid", blocks, -gatherSlack)
 	bodyFetcher := tester.makeBodyFetcher("valid", blocks, 0)
 

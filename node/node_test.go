@@ -392,6 +392,7 @@ func TestLifecycleTerminationGuarantee(t *testing.T) {
 // on the given prefix
 func TestRegisterHandler_Successful(t *testing.T) {
 	node := createNode(t, 7878, 7979)
+	defer node.Close()
 
 	// create and mount handler
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
