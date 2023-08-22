@@ -79,7 +79,7 @@ var (
 	fsHeaderSafetyNet      = 0               // PlatON use PoS and safe distance is 0
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
-	fsMinFullBlocks        = 128             // Number of blocks to retrieve fully even in fast sync
+	fsMinFullBlocks        = 64              // Number of blocks to retrieve fully even in fast sync
 
 )
 

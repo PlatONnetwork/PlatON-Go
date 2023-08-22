@@ -567,20 +567,20 @@ func (p *Peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	return nil
 }
 
-func (p *Peer) SendPPOSStorage(data PposStoragePack) error {
+func (p *Peer) SendPPOSStorage(data PposStoragePacket) error {
 	return p2p.Send(p.rw, PPOSStorageMsg, data)
 }
 
 // ReplyPPOSStorage is the eth/66 response to PPOSStorage.
 func (p *Peer) ReplyPPOSStorageV2(id uint64, baseBlock uint64, blockStorages []rlp.RawValue) error {
-	return p2p.Send(p.rw, PPOSStorageV2Msg, PposStorageV2RLPPack66{
+	return p2p.Send(p.rw, PPOSStorageV2Msg, PposStorageV2RLPPacket66{
 		RequestId:    id,
 		BaseBlock:    baseBlock,
 		BlockStorage: blockStorages,
 	})
 }
 
-func (p *Peer) SendPPOSInfo(data PposInfoPack) error {
+func (p *Peer) SendPPOSInfo(data PposInfoPacket) error {
 	return p2p.Send(p.rw, PPOSInfoMsg, data)
 }
 

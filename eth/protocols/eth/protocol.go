@@ -368,39 +368,39 @@ func (*GetPooledTransactionsPacket) Kind() byte   { return GetPooledTransactions
 func (*PooledTransactionsPacket) Name() string { return "PooledTransactions" }
 func (*PooledTransactionsPacket) Kind() byte   { return PooledTransactionsMsg }
 
-type PposInfoPack struct {
+type PposInfoPacket struct {
 	Latest *types.Header
 	Pivot  *types.Header
 }
 
-func (*PposInfoPack) Name() string { return "PposInfo" }
-func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
+func (*PposInfoPacket) Name() string { return "PposInfo" }
+func (*PposInfoPacket) Kind() byte   { return PPOSInfoMsg }
 
-type PposStoragePack struct {
+type PposStoragePacket struct {
 	KVs   [][2][]byte
 	KVNum uint64
 	Last  bool
 }
 
-func (*PposStoragePack) Name() string { return "PposStorage" }
-func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
+func (*PposStoragePacket) Name() string { return "PposStorage" }
+func (*PposStoragePacket) Kind() byte   { return PPOSStorageMsg }
 
-type PposStorageV2Pack struct {
+type PposStorageV2Packet struct {
 	RequestId    uint64
 	BaseBlock    uint64
 	BlockStorage []snapshotdb.BlockData
 }
 
-func (*PposStorageV2Pack) Name() string { return "PposStorageV2" }
-func (*PposStorageV2Pack) Kind() byte   { return PPOSStorageV2Msg }
+func (*PposStorageV2Packet) Name() string { return "PposStorageV2" }
+func (*PposStorageV2Packet) Kind() byte   { return PPOSStorageV2Msg }
 
-type PposStorageV2RLPPack66 struct {
+type PposStorageV2RLPPacket66 struct {
 	RequestId    uint64
 	BaseBlock    uint64
 	BlockStorage []rlp.RawValue
 }
 
-type OriginAndPivotPack []*types.Header
+type OriginAndPivotPacket []*types.Header
 
-func (*OriginAndPivotPack) Name() string { return "OriginAndPivot" }
-func (*OriginAndPivotPack) Kind() byte   { return OriginAndPivotMsg }
+func (*OriginAndPivotPacket) Name() string { return "OriginAndPivot" }
+func (*OriginAndPivotPacket) Kind() byte   { return OriginAndPivotMsg }

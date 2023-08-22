@@ -529,8 +529,8 @@ func handleGetPPOSStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 	if len(query) == 0 {
 		return answerGetPPOSStorageMsgQuery(backend, peer)
 	} else {
-		if head, ok := query[0].(uint64); ok {
-			return answerGetPPOSStorageMsgQueryV2(backend, head, peer)
+		if a, ok := query[0].([]byte); ok {
+			return answerGetPPOSStorageMsgQueryV2(backend, common.BytesToUint64(a), peer)
 		}
 	}
 	log.Warn("handleGetPPOSStorageMsg seems not good,the query is wrong", "length", len(query), "val", query)
@@ -539,7 +539,7 @@ func handleGetPPOSStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) error {
 	f := func(num *big.Int, iter iterator.Iterator) error {
-		var psInfo PposInfoPack
+		var psInfo PposInfoPacket
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
@@ -551,7 +551,7 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) error {
 		}
 		var (
 			byteSize int
-			ps       PposStoragePack
+			ps       PposStoragePacket
 			count    int
 		)
 		ps.KVs = make([][2][]byte, 0)
@@ -602,7 +602,7 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 	f := func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error {
 		var (
 			byteSize int
-			ps       PposStoragePack
+			ps       PposStoragePacket
 			count    int
 		)
 		ps.KVs = make([][2][]byte, 0)
@@ -671,7 +671,7 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 	peer.Log().Debug("Received a broadcast message[PposStorageMsg]")
-	var data PposStoragePack
+	var data PposStoragePacket
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
@@ -683,7 +683,7 @@ func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 func handlePPosStorageV2Msg(backend Backend, msg Decoder, peer *Peer) error {
 
 	peer.Log().Debug("Received a broadcast message[PposStorageV2Msg]")
-	var data PposStorageV2Pack
+	var data PposStorageV2Packet
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
@@ -721,7 +721,7 @@ func handleGetOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error 
 
 func handleOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
 	peer.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
-	var data OriginAndPivotPack
+	var data OriginAndPivotPacket
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
@@ -731,7 +731,7 @@ func handleOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 func handlePPOSInfoMsg(backend Backend, msg Decoder, peer *Peer) error {
 	peer.Log().Debug("Received a broadcast message[PPOSInfoMsg]")
-	var data PposInfoPack
+	var data PposInfoPacket
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
