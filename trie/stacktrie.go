@@ -251,7 +251,7 @@ func (st *StackTrie) insert(key, value []byte) {
 		if diffidx == len(st.key) {
 			// Ext key and key segment are identical, recurse into
 			// the child node.
-			st.children[0].insert(key, value)
+			st.children[0].insert(key[diffidx:], value)
 			return
 		}
 		// Save the original part. Depending if the break is
