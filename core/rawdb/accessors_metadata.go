@@ -203,3 +203,25 @@ func PopUncleanShutdownMarker(db ethdb.KeyValueStore) {
 		log.Warn("Failed to clear unclean-shutdown marker", "err", err)
 	}
 }
+
+// UpdateUncleanShutdownMarker updates the last marker's timestamp to now.
+func UpdateUncleanShutdownMarker(db ethdb.KeyValueStore) {
+	var uncleanShutdowns crashList
+	// Read old data
+	if data, err := db.Get(uncleanShutdownKey); err != nil {
+		log.Warn("Error reading unclean shutdown markers", "error", err)
+	} else if err := rlp.DecodeBytes(data, &uncleanShutdowns); err != nil {
+		log.Warn("Error decoding unclean shutdown markers", "error", err)
+	}
+	// This shouldn't happen because we push a marker on Backend instantiation
+	count := len(uncleanShutdowns.Recent)
+	if count == 0 {
+		log.Warn("No unclean shutdown marker to update")
+		return
+	}
+	uncleanShutdowns.Recent[count-1] = uint64(time.Now().Unix())
+	data, _ := rlp.EncodeToBytes(uncleanShutdowns)
+	if err := db.Put(uncleanShutdownKey, data); err != nil {
+		log.Warn("Failed to write unclean-shutdown marker", "err", err)
+	}
+}

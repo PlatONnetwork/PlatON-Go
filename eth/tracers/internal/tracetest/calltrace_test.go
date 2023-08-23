@@ -18,6 +18,7 @@ package tracetest
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -35,7 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
 
