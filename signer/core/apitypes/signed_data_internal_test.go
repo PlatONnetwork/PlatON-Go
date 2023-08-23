@@ -18,7 +18,6 @@ package apitypes
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 	"math/big"
 	"testing"
 
@@ -64,7 +63,7 @@ func TestBytesPadding(t *testing.T) {
 		},
 	}
 
-	d := core.TypedData{}
+	d := TypedData{}
 	for i, test := range tests {
 		val, err := d.EncodePrimitiveValue(test.Type, test.Input, 1)
 		if test.Output == nil {
