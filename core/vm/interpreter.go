@@ -18,10 +18,8 @@ package vm
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"hash"
-	"sync/atomic"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"hash"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -254,10 +252,6 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			break
 		}
 		pc++
-	}
-
-	if atomic.LoadInt32(&in.evm.abort) == 1 {
-		return nil, ErrAbort
 	}
 
 	if err == errStopToken {
