@@ -53,7 +53,7 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 450
-	MaxCommitBlock            = 140
+	MaxCommitBlock            = 192
 )
 
 // DB the main snapshotdb interface
@@ -920,9 +920,10 @@ func (s *snapshotDB) WalkDB(num uint64, f func(baseBlock uint64, iter iterator.I
 	s.commitLock.Lock()
 
 	baseBlock := s.current.GetBase(false).Num.Uint64()
-	if num > s.current.GetHighest(false).Num.Uint64() || num < baseBlock {
+	highestBlock := s.current.GetHighest(false).Num.Uint64()
+	if num > highestBlock || num < baseBlock {
 		s.commitLock.Unlock()
-		return fmt.Errorf("the pivot block %v request seems not in commit block,highest %d,base %d", num)
+		return fmt.Errorf("the pivot block %v request seems not in commit block,highest %d,base %d", num, highestBlock, baseBlock)
 	}
 
 	blocks := make([]rlp.RawValue, 0)
@@ -930,7 +931,7 @@ func (s *snapshotDB) WalkDB(num uint64, f func(baseBlock uint64, iter iterator.I
 		if s.committed[i].Number.Uint64() > num {
 			break
 		}
-		tmp, err := rlp.EncodeToBytes(s.committed[i].data)
+		tmp, err := rlp.EncodeToBytes(s.committed[i])
 		if err != nil {
 			s.commitLock.Unlock()
 			return fmt.Errorf("WalkDB fail , encode to bytes error,%v", err)

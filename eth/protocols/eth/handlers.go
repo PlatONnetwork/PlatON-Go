@@ -600,6 +600,7 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 	}
 
 	f := func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error {
+		peer.Log().Debug("begin answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
 		var (
 			byteSize int
 			ps       PposStoragePacket
@@ -657,6 +658,7 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 				return fmt.Errorf("reply last ppos storage v2 message  fail,%v", err)
 			}
 		}
+		peer.Log().Debug("end answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
 		return nil
 	}
 	go func() {
