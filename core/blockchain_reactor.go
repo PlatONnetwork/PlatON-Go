@@ -227,6 +227,61 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId eno
 
 }
 
+func (bcr *BlockChainReactor) PrepareHeader(header *types.Header) error {
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
+	// store the sign in  header.Extra[32:97]
+	if xutil.IsWorker(header.Extra) {
+		// Generate vrf proof
+		if value, err := bcr.vh.GenerateNonce(header.Number, header.ParentHash); nil != err {
+			return err
+		} else {
+			header.Nonce = types.EncodeNonce(value)
+		}
+	}
+	return nil
+}
+
+func (bcr *BlockChainReactor) NewBlock(header *types.Header, state xcom.StateDB) error {
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
+	blockHash := common.ZeroHash
+
+	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
+		"hash", blockHash, "parentHash", header.ParentHash)
+	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
+		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
+			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
+			hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		return err
+	}
+
+	for _, pluginRule := range bcr.beginRule {
+		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
+			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
+				return err
+			}
+		}
+	}
+
+	// This must not be deleted
+	root := state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
+
+	return nil
+}
+
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
@@ -258,30 +313,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			return err
 		}
 	}
-
-	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
-		"hash", blockHash, "parentHash", header.ParentHash)
-	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
-			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
-			hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
-		return err
-	}
-
-	for _, pluginRule := range bcr.beginRule {
-		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
-			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
-				return err
-			}
-		}
-	}
-
-	// This must not be deleted
-	root := state.IntermediateRoot(true)
-	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
-		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
-
-	return nil
+	return bcr.NewBlock(header, state)
 }
 
 // Called after every block had executed all txs
