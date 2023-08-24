@@ -522,7 +522,7 @@ func TestDistantPropagationDiscarding(t *testing.T) {
 	hashes, blocks := makeChain(3*maxQueueDist, 0, genesis)
 	head := hashes[len(hashes)/2]
 
-	low, high := len(hashes)/2+maxUncleDist+1, len(hashes)/2-maxQueueDist-1
+	low, high := len(hashes)/2+minQueueDist+1, len(hashes)/2-maxQueueDist-1
 
 	// Create a tester and simulate a head block being the middle of the above chain
 	tester := newTester()
@@ -556,7 +556,7 @@ func testDistantAnnouncementDiscarding(t *testing.T, protocol int) {
 	hashes, blocks := makeChain(3*maxQueueDist, 0, genesis)
 	head := hashes[len(hashes)/2]
 
-	low, high := len(hashes)/2+maxUncleDist+1, len(hashes)/2-maxQueueDist-1
+	low, high := len(hashes)/2+minQueueDist+1, len(hashes)/2-maxQueueDist-1
 
 	// Create a tester and simulate a head block being the middle of the above chain
 	tester := newTester()
