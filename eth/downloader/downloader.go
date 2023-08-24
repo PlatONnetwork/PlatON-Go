@@ -610,7 +610,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		}*/
 
 		d.pivotLock.Lock()
-		d.pivotHeader = pivoth
+		d.pivotHeader = latest
 		d.pivotLock.Unlock()
 
 		fetchers = append(fetchers, func() error { return d.processFastSyncContent() })
