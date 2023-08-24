@@ -18,6 +18,7 @@ package tracetest
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -129,10 +130,6 @@ func TestCallTracerLegacy(t *testing.T) {
 	testCallTracer("callTracerLegacy", "call_tracer_legacy", t)
 }
 
-func TestCallTracerJs(t *testing.T) {
-	testCallTracer("callTracerJs", "call_tracer", t)
-}
-
 func TestCallTracerNative(t *testing.T) {
 	testCallTracer("callTracer", "call_tracer", t)
 }
@@ -165,7 +162,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			}
 			// Configure a blockchain with the given prestate
 			var (
-				signer    = types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)))
+				signer    = types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), false)
 				origin, _ = signer.Sender(tx)
 				txContext = vm.TxContext{
 					Origin:   origin,
@@ -186,7 +183,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 			msg, err := tx.AsMessage(signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -272,7 +269,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 	if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
 		b.Fatalf("failed to parse testcase input: %v", err)
 	}
-	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)))
+	signer := types.MakeSigner(test.Genesis.Config, new(big.Int).SetUint64(uint64(test.Context.Number)), false)
 	msg, err := tx.AsMessage(signer, nil)
 	if err != nil {
 		b.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -300,7 +297,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to create call tracer: %v", err)
 		}
-		evm := vm.NewEVM(context, txContext, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+		evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
 		snap := statedb.Snapshot()
 		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
 		if _, err = st.TransitionDb(); err != nil {
@@ -366,7 +363,7 @@ func TestZeroValueToNotExitCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create call tracer: %v", err)
 	}
-	evm := vm.NewEVM(context, txContext, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
 	msg, err := tx.AsMessage(signer, nil)
 	if err != nil {
 		t.Fatalf("failed to prepare transaction for tracing: %v", err)
