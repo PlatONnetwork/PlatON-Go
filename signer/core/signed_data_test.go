@@ -23,6 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/signer/core"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -33,7 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
-var typesStandard = core.Types{
+var typesStandard = apitypes.Types{
 	"EIP712Domain": {
 		{
 			Name: "name",
@@ -152,7 +153,7 @@ var jsonTypedData = `
 
 const primaryType = "Mail"
 
-var domainStandard = core.TypedDataDomain{
+var domainStandard = apitypes.TypedDataDomain{
 	"Ether Mail",
 	"1",
 	math.NewHexOrDecimal256(1),
@@ -172,7 +173,7 @@ var messageStandard = map[string]interface{}{
 	"contents": "Hello, Bob!",
 }
 
-var typedData = core.TypedData{
+var typedData = apitypes.TypedData{
 	Types:       typesStandard,
 	PrimaryType: primaryType,
 	Domain:      domainStandard,
@@ -193,7 +194,7 @@ func TestSignData(t *testing.T) {
 
 	control.approveCh <- "Y"
 	control.inputCh <- "wrongpassword"
-	signature, err := api.SignData(context.Background(), core.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
+	signature, err := api.SignData(context.Background(), apitypes.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
 	if signature != nil {
 		t.Errorf("Expected nil-data, got %x", signature)
 	}
@@ -201,7 +202,7 @@ func TestSignData(t *testing.T) {
 		t.Errorf("Expected ErrLocked! '%v'", err)
 	}
 	control.approveCh <- "No way"
-	signature, err = api.SignData(context.Background(), core.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
+	signature, err = api.SignData(context.Background(), apitypes.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
 	if signature != nil {
 		t.Errorf("Expected nil-data, got %x", signature)
 	}
@@ -211,7 +212,7 @@ func TestSignData(t *testing.T) {
 	// text/plain
 	control.approveCh <- "Y"
 	control.inputCh <- "a_long_password"
-	signature, err = api.SignData(context.Background(), core.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
+	signature, err = api.SignData(context.Background(), apitypes.TextPlain.Mime, a, hexutil.Encode([]byte("EHLO world")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,13 +232,13 @@ func TestSignData(t *testing.T) {
 }
 
 func TestDomainChainId(t *testing.T) {
-	withoutChainID := core.TypedData{
-		Types: core.Types{
-			"EIP712Domain": []core.Type{
+	withoutChainID := apitypes.TypedData{
+		Types: apitypes.Types{
+			"EIP712Domain": []apitypes.Type{
 				{Name: "name", Type: "string"},
 			},
 		},
-		Domain: core.TypedDataDomain{
+		Domain: apitypes.TypedDataDomain{
 			Name: "test",
 		},
 	}
@@ -249,14 +250,14 @@ func TestDomainChainId(t *testing.T) {
 	if _, err := withoutChainID.HashStruct("EIP712Domain", withoutChainID.Domain.Map()); err != nil {
 		t.Errorf("Expected the typedData to encode the domain successfully, got %v", err)
 	}
-	withChainID := core.TypedData{
-		Types: core.Types{
-			"EIP712Domain": []core.Type{
+	withChainID := apitypes.TypedData{
+		Types: apitypes.Types{
+			"EIP712Domain": []apitypes.Type{
 				{Name: "name", Type: "string"},
 				{Name: "chainId", Type: "uint256"},
 			},
 		},
-		Domain: core.TypedDataDomain{
+		Domain: apitypes.TypedDataDomain{
 			Name:    "test",
 			ChainId: math.NewHexOrDecimal256(1),
 		},
@@ -322,7 +323,7 @@ func TestEncodeData(t *testing.T) {
 }
 
 func TestFormatter(t *testing.T) {
-	var d core.TypedData
+	var d apitypes.TypedData
 	err := json.Unmarshal([]byte(jsonTypedData), &d)
 	if err != nil {
 		t.Fatalf("unmarshalling failed '%v'", err)
@@ -336,7 +337,7 @@ func TestFormatter(t *testing.T) {
 	t.Logf("'%v'\n", string(j))
 }
 
-func sign(typedData core.TypedData) ([]byte, []byte, error) {
+func sign(typedData apitypes.TypedData) ([]byte, []byte, error) {
 	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
 	if err != nil {
 		return nil, nil, err
@@ -365,7 +366,7 @@ func TestJsonFiles(t *testing.T) {
 			t.Errorf("Failed to read file %v: %v", fInfo.Name(), err)
 			continue
 		}
-		var typedData core.TypedData
+		var typedData apitypes.TypedData
 		err = json.Unmarshal(data, &typedData)
 		if err != nil {
 			t.Errorf("Test %d, file %v, json unmarshalling failed: %v", i, fInfo.Name(), err)
@@ -397,7 +398,7 @@ func TestFuzzerFiles(t *testing.T) {
 			t.Errorf("Failed to read file %v: %v", fInfo.Name(), err)
 			continue
 		}
-		var typedData core.TypedData
+		var typedData apitypes.TypedData
 		err = json.Unmarshal(data, &typedData)
 		if err != nil {
 			t.Errorf("Test %d, file %v, json unmarshalling failed: %v", i, fInfo.Name(), err)
@@ -497,7 +498,7 @@ var gnosisTx = `
 // TestGnosisTypedData tests the scenario where a user submits a full EIP-712
 // struct without using the gnosis-specific endpoint
 func TestGnosisTypedData(t *testing.T) {
-	var td core.TypedData
+	var td apitypes.TypedData
 	err := json.Unmarshal([]byte(gnosisTypedData), &td)
 	if err != nil {
 		t.Fatalf("unmarshalling failed '%v'", err)

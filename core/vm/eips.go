@@ -128,7 +128,6 @@ func enable2315(jt *JumpTable) {
 		constantGas: GasSlowStep,
 		minStack:    minStack(1, 0),
 		maxStack:    maxStack(1, 0),
-		jumps:       true,
 	}
 	// New opcode
 	jt[RETURNSUB] = &operation{
@@ -136,7 +135,6 @@ func enable2315(jt *JumpTable) {
 		constantGas: GasFastStep,
 		minStack:    minStack(0, 0),
 		maxStack:    maxStack(0, 0),
-		jumps:       true,
 	}
 }
 
