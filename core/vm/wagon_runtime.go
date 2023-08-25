@@ -963,10 +963,10 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 		overflow bool
 	)
 
-	if wordGas, overflow = imath.SafeMul(toWordSize(uint64(srcLen)), params.Sha3WordGas); overflow {
+	if wordGas, overflow = imath.SafeMul(toWordSize(uint64(srcLen)), params.Keccak256WordGas); overflow {
 		panic(errGasUintOverflow)
 	}
-	if gas, overflow = imath.SafeAdd(wordGas, params.Sha3Gas); overflow {
+	if gas, overflow = imath.SafeAdd(wordGas, params.Keccak256Gas); overflow {
 		panic(errGasUintOverflow)
 	}
 

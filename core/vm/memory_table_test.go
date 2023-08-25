@@ -25,7 +25,7 @@ func TestMemorySha3(t *testing.T) {
 	stack := newstack()
 	stack.push(new(uint256.Int).SetBytes([]byte{0x01}))
 	stack.push(new(uint256.Int).SetBytes([]byte{0x02}))
-	r, _ := memorySha3(stack)
+	r, _ := memoryKeccak256(stack)
 	if r != 3 {
 		t.Errorf("Expected: 3, got %d", r)
 	}

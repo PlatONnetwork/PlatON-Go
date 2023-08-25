@@ -26,8 +26,7 @@ var (
 	// ErrKnownBlock is returned when a block to import is already known locally.
 	ErrKnownBlock = errors.New("block already known")
 
-	// ErrBlacklistedHash is returned if a block to import is on the blacklist.
-	ErrBlacklistedHash = errors.New("blacklisted hash")
+	errSideChainReceipts = errors.New("side blocks can't be accepted as ancient chain data")
 )
 
 // List of evm-call-message pre-checking errors. All state transition messages will

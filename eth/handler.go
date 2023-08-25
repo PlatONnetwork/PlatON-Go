@@ -40,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 const (
@@ -112,7 +111,6 @@ type handler struct {
 	maxPeers    int
 
 	downloader   *downloader.Downloader
-	stateBloom   *trie.SyncBloom
 	blockFetcher *fetcher.BlockFetcher
 	txFetcher    *fetcher.TxFetcher
 	peers        *peerSet
@@ -189,14 +187,7 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	// Construct the downloader (long sync) and its backing state bloom if fast
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
-	// Note: we don't enable it if snap-sync is performed, since it's very heavy
-	// and the heal-portion of the snap sync is much lighter than fast. What we particularly
-	// want to avoid, is a 90%-finished (but restarted) snap-sync to begin
-	// indexing the entire trie
-	if atomic.LoadUint32(&h.fastSync) == 1 && atomic.LoadUint32(&h.snapSync) == 0 {
-		h.stateBloom = trie.NewSyncBloom(config.BloomCache, config.Database)
-	}
-	h.downloader = downloader.New(config.Database, snapshotdb.Instance(), h.stateBloom, h.eventMux, h.chain, nil, h.removePeer, decodeExtra)
+	h.downloader = downloader.New(config.Database, snapshotdb.Instance(), h.eventMux, h.chain, nil, h.removePeer, decodeExtra)
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
