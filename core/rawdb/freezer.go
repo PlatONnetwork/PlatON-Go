@@ -70,10 +70,10 @@ const (
 // freezer is an memory mapped append-only database to store immutable chain data
 // into flat files:
 //
-// - The append only nature ensures that disk writes are minimized.
-// - The memory mapping ensures we can max out system memory for caching without
-//   reserving it for go-ethereum. This would also reduce the memory requirements
-//   of Geth, and thus also GC overhead.
+//   - The append only nature ensures that disk writes are minimized.
+//   - The memory mapping ensures we can max out system memory for caching without
+//     reserving it for go-ethereum. This would also reduce the memory requirements
+//     of Geth, and thus also GC overhead.
 type freezer struct {
 	// WARNING: The `frozen` field is accessed atomically. On 32 bit platforms, only
 	// 64-bit aligned fields can be atomic. The struct is guaranteed to be so aligned,
@@ -134,7 +134,7 @@ func newFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 
 	// Create the tables.
 	for name, disableSnappy := range tables {
-		table, err := newTable(datadir, name, readMeter, writeMeter, sizeGauge, maxTableSize, disableSnappy)
+		table, err := newTable(datadir, name, readMeter, writeMeter, sizeGauge, maxTableSize, disableSnappy, readonly)
 		if err != nil {
 			for _, table := range freezer.tables {
 				table.Close()
@@ -145,8 +145,15 @@ func newFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 		freezer.tables[name] = table
 	}
 
-	// Truncate all tables to common length.
-	if err := freezer.repair(); err != nil {
+	if freezer.readonly {
+		// In readonly mode only validate, don't truncate.
+		// validate also sets `freezer.frozen`.
+		err = freezer.validate()
+	} else {
+		// Truncate all tables to common length.
+		err = freezer.repair()
+	}
+	if err != nil {
 		for _, table := range freezer.tables {
 			table.Close()
 		}
@@ -205,9 +212,9 @@ func (f *freezer) Ancient(kind string, number uint64) ([]byte, error) {
 
 // AncientRange retrieves multiple items in sequence, starting from the index 'start'.
 // It will return
-//  - at most 'max' items,
-//  - at least 1 item (even if exceeding the maxByteSize), but will otherwise
-//   return as many items as fit into maxByteSize.
+//   - at most 'max' items,
+//   - at least 1 item (even if exceeding the maxByteSize), but will otherwise
+//     return as many items as fit into maxByteSize.
 func (f *freezer) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
 	if table := f.tables[kind]; table != nil {
 		return table.RetrieveItems(start, count, maxBytes)
@@ -306,6 +313,33 @@ func (f *freezer) Sync() error {
 	if errs != nil {
 		return fmt.Errorf("%v", errs)
 	}
+	return nil
+}
+
+// validate checks that every table has the same length.
+// Used instead of `repair` in readonly mode.
+func (f *freezer) validate() error {
+	if len(f.tables) == 0 {
+		return nil
+	}
+	var (
+		length uint64
+		name   string
+	)
+	// Hack to get length of any table
+	for kind, table := range f.tables {
+		length = atomic.LoadUint64(&table.items)
+		name = kind
+		break
+	}
+	// Now check every table against that length
+	for kind, table := range f.tables {
+		items := atomic.LoadUint64(&table.items)
+		if length != items {
+			return fmt.Errorf("freezer tables %s and %s have differing lengths: %d != %d", kind, name, items, length)
+		}
+	}
+	atomic.StoreUint64(&f.frozen, length)
 	return nil
 }
 
