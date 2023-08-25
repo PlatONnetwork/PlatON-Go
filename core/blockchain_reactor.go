@@ -227,7 +227,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId eno
 
 }
 
-func (bcr *BlockChainReactor) PrepareHeader(header *types.Header) error {
+func (bcr *BlockChainReactor) PrepareHeaderNonce(header *types.Header) error {
 	/**
 	this things about ppos
 	*/

@@ -835,7 +835,7 @@ func (w *worker) resultLoop() {
 }
 
 // makeEnv creates a new environment for the sealing block.
-func (w *worker) makeEnv(parent *types.Block, header *types.Header) (*environment, error) {
+func (w *worker) makeEnv(parent *types.Block, header *types.Header, generateExtra func(*state.StateDB) []byte) (*environment, error) {
 	var (
 		state *state.StateDB
 		err   error
@@ -848,6 +848,11 @@ func (w *worker) makeEnv(parent *types.Block, header *types.Header) (*environmen
 	if err != nil {
 		return nil, err
 	}
+
+	extra := generateExtra(state)
+	copy(header.Extra[:len(extra)], extra)
+	log.Debug("Prepare header extra", "data", hex.EncodeToString(extra), "num", header.Number)
+
 	env := &environment{
 		signer:     types.MakeSigner(w.chainConfig, header.Number, gov.Gte150VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
@@ -858,7 +863,6 @@ func (w *worker) makeEnv(parent *types.Block, header *types.Header) (*environmen
 
 	// Keep track of transactions which return errors so they can be removed
 	env.tcount = 0
-	w.current = env
 	return env, nil
 }
 
@@ -886,7 +890,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 		env.header, tx, &env.header.GasUsed, vmCfg)
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", env.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
-		w.current.RevertToDBSnapshot(snapForSnap, snapForState)
+		env.RevertToDBSnapshot(snapForSnap, snapForState)
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
@@ -951,17 +955,8 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, gasCeil)
 	}
 
-	//make header extra after w.current and it's state initialized
-	extraData := w.makeExtraData()
-	copy(header.Extra[:len(extraData)], extraData)
-
 	// BeginBlocker()
 	reactor := core.GetReactorInstance()
-
-	if err := reactor.PrepareHeader(header); err != nil {
-		log.Error("Failed to GetReactorInstance PrepareHeader on worker", "blockNumber", header.Number, "err", err)
-		return nil, err
-	}
 
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
@@ -970,14 +965,28 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		}
 	}
 
-	env, err := w.makeEnv(parent, header)
-	if err != nil {
-		log.Error("Failed to create sealing context", "err", err)
+	if err := reactor.PrepareHeaderNonce(header); err != nil {
 		return nil, err
 	}
 
-	if err := reactor.NewBlock(header, w.current.state); err != nil {
-		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", header.Number, "err", err)
+	env, err := w.makeEnv(parent, header, func(state *state.StateDB) []byte {
+		// create default extradata
+		extra, _ := rlp.EncodeToBytes([]interface{}{
+			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
+			gov.GetCurrentActiveVersion(state),
+			"platon",
+			runtime.Version(),
+			runtime.GOOS,
+		})
+		if uint64(len(extra)) > params.MaximumExtraDataSize {
+			log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
+			extra = nil
+		}
+
+		return extra
+	})
+	if err != nil {
+		log.Error("Failed to create sealing context", "err", err)
 		return nil, err
 	}
 
@@ -1044,6 +1053,10 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, com
 	if err != nil {
 		return err
 	}
+	if err := core.GetReactorInstance().NewBlock(work.header, work.state); err != nil {
+		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", work.header.Number, "err", err)
+		return err
+	}
 
 	// Create an empty block based on temporary copied state for
 	// sealing in advance without waiting block execution finished.
@@ -1061,7 +1074,7 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, com
 		// Check if need to switch validators.
 		// If needed, make a inner contract transaction
 		// and pack into pending block.
-		if w.shouldSwitch() && w.commitInnerTransaction(work, timestamp, blockDeadline) != nil {
+		if w.shouldSwitch(work) && w.commitInnerTransaction(work, timestamp, blockDeadline) != nil {
 			return fmt.Errorf("commit inner transaction error")
 		}
 	}
@@ -1092,11 +1105,11 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(env.header, env.state); nil != err {
 		log.Error("Failed to GetReactorInstance EndBlocker on worker", "blockNumber",
-			w.current.header.Number.Uint64(), "err", err)
+			env.header.Number.Uint64(), "err", err)
 		return err
 	}
 
-	block, err := w.engine.Finalize(w.chain, w.current.header, env.state, w.current.txs, w.current.receipts)
+	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts)
 
 	if err != nil {
 		return err
@@ -1112,7 +1125,7 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		case w.taskCh <- &task{receipts: env.receipts, state: env.state, block: block, createdAt: time.Now()}:
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
-				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", totalFees(block, env.receipts), "elapsed", common.PrettyDuration(time.Since(start)))
+				"txs", env.tcount, "gas", block.GasUsed(), "fees", totalFees(block, env.receipts), "elapsed", common.PrettyDuration(time.Since(start)))
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}
@@ -1211,23 +1224,4 @@ func (w *worker) shouldCommit(timestamp time.Time) (bool, *types.Block) {
 		}
 	}
 	return shouldCommit, nextBaseBlock
-}
-
-// make default extra data when preparing new block
-func (w *worker) makeExtraData() []byte {
-	// create default extradata
-	extra, _ := rlp.EncodeToBytes([]interface{}{
-		//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-		gov.GetCurrentActiveVersion(w.current.state),
-		"platon",
-		runtime.Version(),
-		runtime.GOOS,
-	})
-	if uint64(len(extra)) > params.MaximumExtraDataSize {
-		log.Warn("Miner extra data exceed limit", "extra", hexutil.Bytes(extra), "limit", params.MaximumExtraDataSize)
-		extra = nil
-	}
-
-	log.Debug("Prepare header extra", "data", hex.EncodeToString(extra))
-	return extra
 }

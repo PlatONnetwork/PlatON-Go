@@ -121,7 +121,7 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
-			w.current.tcount++
+			env.tcount++
 			txs.Shift()
 
 		case vm.ErrAbort:
