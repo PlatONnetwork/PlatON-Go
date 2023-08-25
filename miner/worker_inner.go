@@ -38,7 +38,7 @@ func (w *worker) shouldSwitch() bool {
 	return commitCfgNum == header.Number.Uint64()
 }
 
-func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time) error {
+func (w *worker) commitInnerTransaction(env *environment, timestamp int64, blockDeadline time.Time) error {
 	Uint64ToBytes := func(val uint64) []byte {
 		buf := make([]byte, 8)
 		binary.BigEndian.PutUint64(buf, val)
@@ -82,7 +82,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs, nil)
 
 	tempContractCache := make(map[common.Address]struct{})
-	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
+	if ok, _ := w.committer.CommitTransactions(env, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
 		log.Error("Commit inner contract transaction fail")
 		return errors.New("commit transaction fail")
 	}

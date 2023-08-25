@@ -1061,7 +1061,7 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, com
 		// Check if need to switch validators.
 		// If needed, make a inner contract transaction
 		// and pack into pending block.
-		if w.shouldSwitch() && w.commitInnerTransaction(timestamp, blockDeadline) != nil {
+		if w.shouldSwitch() && w.commitInnerTransaction(work, timestamp, blockDeadline) != nil {
 			return fmt.Errorf("commit inner transaction error")
 		}
 	}
