@@ -708,8 +708,10 @@ func WriteAncientBlocks(db ethdb.AncientWriter, blocks []*types.Block, receipts 
 		for i, block := range blocks {
 			// Convert receipts to storage format and sum up total difficulty.
 			stReceipts = stReceipts[:0]
-			for _, receipt := range receipts[i] {
-				stReceipts = append(stReceipts, (*types.ReceiptForStorage)(receipt))
+			if receipts != nil && len(receipts) > i {
+				for _, receipt := range receipts[i] {
+					stReceipts = append(stReceipts, (*types.ReceiptForStorage)(receipt))
+				}
 			}
 			header := block.Header()
 
