@@ -197,7 +197,7 @@ func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,

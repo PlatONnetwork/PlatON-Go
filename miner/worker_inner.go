@@ -20,8 +20,7 @@ const (
 	innerAccountPrivateKey = "394602483ea4d76f380ae4022f22b76519d884654a27ce52df0ceb77f3989d2c"
 )
 
-func (w *worker) shouldSwitch() bool {
-	header := w.current.header
+func (w *worker) shouldSwitch(env *environment) bool {
 	blocksPerNode := int(w.chainConfig.Cbft.Amount)
 	offset := blocksPerNode * 2
 	agency := validator.NewInnerAgency(
@@ -29,16 +28,16 @@ func (w *worker) shouldSwitch() bool {
 		w.chain,
 		blocksPerNode,
 		offset)
-	commitCfgNum := agency.GetLastNumber(header.Number.Uint64()) - uint64(offset)
+	commitCfgNum := agency.GetLastNumber(env.header.Number.Uint64()) - uint64(offset)
 	if commitCfgNum <= 0 {
 		log.Warn("Calculate commit validator's config block number fail")
 		return false
 	}
-	log.Trace("Should switch", "commitCfgNum", commitCfgNum, "number", header.Number)
-	return commitCfgNum == header.Number.Uint64()
+	log.Trace("Should switch", "commitCfgNum", commitCfgNum, "number", env.header.Number)
+	return commitCfgNum == env.header.Number.Uint64()
 }
 
-func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time) error {
+func (w *worker) commitInnerTransaction(env *environment, timestamp int64, blockDeadline time.Time) error {
 	Uint64ToBytes := func(val uint64) []byte {
 		buf := make([]byte, 8)
 		binary.BigEndian.PutUint64(buf, val)
@@ -46,9 +45,9 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	}
 
 	offset := uint64(w.chainConfig.Cbft.Amount) * 2
-	validBlockNumber := w.current.header.Number.Uint64() + offset + 1
+	validBlockNumber := env.header.Number.Uint64() + offset + 1
 	address := common.HexToAddress(innerAccountAddr)
-	nonce := w.current.state.GetNonce(address)
+	nonce := env.state.GetNonce(address)
 	param := [][]byte{
 		common.Int64ToBytes(2003),
 		[]byte("SwitchValidators"),
@@ -68,7 +67,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 		3000*3000,
 		big.NewInt(3000),
 		data)
-	signedTx, err := types.SignTx(tx, w.current.signer, privateKy)
+	signedTx, err := types.SignTx(tx, env.signer, privateKy)
 	if err != nil {
 		log.Error("Sign transaction fail", "error", err)
 		return nil
@@ -79,13 +78,13 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 			signedTx,
 		},
 	}
-	txs := types.NewTransactionsByPriceAndNonce(w.current.signer, signedTxs, nil)
+	txs := types.NewTransactionsByPriceAndNonce(env.signer, signedTxs, nil)
 
 	tempContractCache := make(map[common.Address]struct{})
-	if ok, _ := w.committer.CommitTransactions(w.current.header, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
+	if ok, _ := w.committer.CommitTransactions(env, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
 		log.Error("Commit inner contract transaction fail")
 		return errors.New("commit transaction fail")
 	}
-	log.Debug("Commit inner contract transaction success", "number", w.current.header.Number, "validBlockNumber", validBlockNumber)
+	log.Debug("Commit inner contract transaction success", "number", env.header.Number, "validBlockNumber", validBlockNumber)
 	return nil
 }

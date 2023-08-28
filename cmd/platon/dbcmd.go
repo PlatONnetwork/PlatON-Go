@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
+	"github.com/olekukonko/tablewriter"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -70,6 +72,7 @@ Remove blockchain and state databases`,
 			dbDumpFreezerIndex,
 			dbImportCmd,
 			dbExportCmd,
+			dbMetadataCmd,
 		},
 	}
 	dbInspectCmd = cli.Command{
@@ -202,6 +205,18 @@ WARNING: This is a low-level operation which may cause database corruption!`,
 		},
 		Description: "Exports the specified chain data to an RLP encoded stream, optionally gzip-compressed.",
 	}
+	dbMetadataCmd = cli.Command{
+		Action: utils.MigrateFlags(showMetaData),
+		Name:   "metadata",
+		Usage:  "Shows metadata about the chain status.",
+		Flags: []cli.Flag{
+			utils.DataDirFlag,
+			utils.SyncModeFlag,
+			utils.MainFlag,
+			utils.TestnetFlag,
+		},
+		Description: "Shows metadata about the chain status.",
+	}
 )
 
 func removeDB(ctx *cli.Context) error {
@@ -269,7 +284,7 @@ func freezerInspect(ctx *cli.Context) error {
 	defer stack.Close()
 	path := filepath.Join(stack.ResolvePath("chaindata"), "ancient")
 	log.Info("Opening freezer", "location", path, "name", kind)
-	if f, err := rawdb.NewFreezerTable(path, kind, disableSnappy); err != nil {
+	if f, err := rawdb.NewFreezerTable(path, kind, disableSnappy, true); err != nil {
 		return err
 	} else {
 		f.DumpIndex(start, end)
@@ -651,4 +666,51 @@ func exportChaindata(ctx *cli.Context) error {
 	}()
 	db := utils.MakeChainDatabase(ctx, stack, true)
 	return utils.ExportChaindata(ctx.Args().Get(1), kind, exporter(db), stop)
+}
+
+func showMetaData(ctx *cli.Context) error {
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+	db := utils.MakeChainDatabase(ctx, stack, true)
+	ancients, err := db.Ancients()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error accessing ancients: %v", err)
+	}
+	pp := func(val *uint64) string {
+		if val == nil {
+			return "<nil>"
+		}
+		return fmt.Sprintf("%d (0x%x)", *val, *val)
+	}
+	data := [][]string{
+		{"databaseVersion", pp(rawdb.ReadDatabaseVersion(db))},
+		{"headBlockHash", fmt.Sprintf("%v", rawdb.ReadHeadBlockHash(db))},
+		{"headFastBlockHash", fmt.Sprintf("%v", rawdb.ReadHeadFastBlockHash(db))},
+		{"headHeaderHash", fmt.Sprintf("%v", rawdb.ReadHeadHeaderHash(db))}}
+	if b := rawdb.ReadHeadBlock(db); b != nil {
+		data = append(data, []string{"headBlock.Hash", fmt.Sprintf("%v", b.Hash())})
+		data = append(data, []string{"headBlock.Root", fmt.Sprintf("%v", b.Root())})
+		data = append(data, []string{"headBlock.Number", fmt.Sprintf("%d (0x%x)", b.Number(), b.Number())})
+	}
+	if h := rawdb.ReadHeadHeader(db); h != nil {
+		data = append(data, []string{"headHeader.Hash", fmt.Sprintf("%v", h.Hash())})
+		data = append(data, []string{"headHeader.Root", fmt.Sprintf("%v", h.Root)})
+		data = append(data, []string{"headHeader.Number", fmt.Sprintf("%d (0x%x)", h.Number, h.Number)})
+	}
+	data = append(data, [][]string{{"frozen", fmt.Sprintf("%d items", ancients)},
+		{"lastPivotNumber", pp(rawdb.ReadLastPivotNumber(db))},
+		{"len(snapshotSyncStatus)", fmt.Sprintf("%d bytes", len(rawdb.ReadSnapshotSyncStatus(db)))},
+		{"snapshotGenerator", snapshot.ParseGeneratorStatus(rawdb.ReadSnapshotGenerator(db))},
+		{"snapshotDisabled", fmt.Sprintf("%v", rawdb.ReadSnapshotDisabled(db))},
+		{"snapshotJournal", fmt.Sprintf("%d bytes", len(rawdb.ReadSnapshotJournal(db)))},
+		{"snapshotRecoveryNumber", pp(rawdb.ReadSnapshotRecoveryNumber(db))},
+		{"snapshotRoot", fmt.Sprintf("%v", rawdb.ReadSnapshotRoot(db))},
+		{"txIndexTail", pp(rawdb.ReadTxIndexTail(db))},
+		{"fastTxLookupLimit", pp(rawdb.ReadFastTxLookupLimit(db))},
+	}...)
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Field", "Value"})
+	table.AppendBulk(data)
+	table.Render()
+	return nil
 }

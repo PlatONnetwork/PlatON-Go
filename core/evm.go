@@ -63,6 +63,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		GasLimit:    header.GasLimit,
 		BlockHash:   blockHash,
 		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
+		Random:      &common.ZeroHash,
 		Nonce:       header.Nonce,
 		ParentHash:  header.ParentHash,
 	}

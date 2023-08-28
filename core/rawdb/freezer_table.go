@@ -95,7 +95,8 @@ type freezerTable struct {
 	// so take advantage of that (https://golang.org/pkg/sync/atomic/#pkg-note-BUG).
 	items uint64 // Number of items stored in the table (including items removed from tail)
 
-	noCompression bool   // if true, disables snappy compression. Note: does not work retroactively
+	noCompression bool // if true, disables snappy compression. Note: does not work retroactively
+	readonly      bool
 	maxFileSize   uint32 // Max file size for data-files
 	name          string
 	path          string
@@ -120,8 +121,8 @@ type freezerTable struct {
 }
 
 // NewFreezerTable opens the given path as a freezer table.
-func NewFreezerTable(path, name string, disableSnappy bool) (*freezerTable, error) {
-	return newTable(path, name, metrics.NilMeter{}, metrics.NilMeter{}, metrics.NilGauge{}, freezerTableSize, disableSnappy)
+func NewFreezerTable(path, name string, disableSnappy, readonly bool) (*freezerTable, error) {
+	return newTable(path, name, metrics.NilMeter{}, metrics.NilMeter{}, metrics.NilGauge{}, freezerTableSize, disableSnappy, readonly)
 }
 
 // openFreezerFileForAppend opens a freezer table file and seeks to the end
@@ -165,7 +166,7 @@ func truncateFreezerFile(file *os.File, size int64) error {
 // newTable opens a freezer table, creating the data and index files if they are
 // non existent. Both files are truncated to the shortest common length to ensure
 // they don't go out of sync.
-func newTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Gauge, maxFilesize uint32, noCompression bool) (*freezerTable, error) {
+func newTable(path string, name string, readMeter metrics.Meter, writeMeter metrics.Meter, sizeGauge metrics.Gauge, maxFilesize uint32, noCompression, readonly bool) (*freezerTable, error) {
 	// Ensure the containing directory exists and open the indexEntry file
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return nil, err
@@ -178,7 +179,16 @@ func newTable(path string, name string, readMeter metrics.Meter, writeMeter metr
 		// Compressed idx
 		idxName = fmt.Sprintf("%s.cidx", name)
 	}
-	offsets, err := openFreezerFileForAppend(filepath.Join(path, idxName))
+	var (
+		err     error
+		offsets *os.File
+	)
+	if readonly {
+		// Will fail if table doesn't exist
+		offsets, err = openFreezerFileForReadOnly(filepath.Join(path, idxName))
+	} else {
+		offsets, err = openFreezerFileForAppend(filepath.Join(path, idxName))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -193,6 +203,7 @@ func newTable(path string, name string, readMeter metrics.Meter, writeMeter metr
 		path:          path,
 		logger:        log.New("database", path, "table", name),
 		noCompression: noCompression,
+		readonly:      readonly,
 		maxFileSize:   maxFilesize,
 	}
 	if err := tab.repair(); err != nil {
@@ -253,7 +264,11 @@ func (t *freezerTable) repair() error {
 
 	t.index.ReadAt(buffer, offsetsSize-indexEntrySize)
 	lastIndex.unmarshalBinary(buffer)
-	t.head, err = t.openFile(lastIndex.filenum, openFreezerFileForAppend)
+	if t.readonly {
+		t.head, err = t.openFile(lastIndex.filenum, openFreezerFileForReadOnly)
+	} else {
+		t.head, err = t.openFile(lastIndex.filenum, openFreezerFileForAppend)
+	}
 	if err != nil {
 		return err
 	}
@@ -302,12 +317,15 @@ func (t *freezerTable) repair() error {
 			contentExp = int64(lastIndex.offset)
 		}
 	}
-	// Ensure all reparation changes have been written to disk
-	if err := t.index.Sync(); err != nil {
-		return err
-	}
-	if err := t.head.Sync(); err != nil {
-		return err
+	// Sync() fails for read-only files on windows.
+	if !t.readonly {
+		// Ensure all reparation changes have been written to disk
+		if err := t.index.Sync(); err != nil {
+			return err
+		}
+		if err := t.head.Sync(); err != nil {
+			return err
+		}
 	}
 	// Update the item and byte counters and return
 	t.items = uint64(t.itemOffset) + uint64(offsetsSize/indexEntrySize-1) // last indexEntry points to the end of the data file
@@ -335,8 +353,12 @@ func (t *freezerTable) preopen() (err error) {
 			return err
 		}
 	}
-	// Open head in read/write
-	t.head, err = t.openFile(t.headId, openFreezerFileForAppend)
+	if t.readonly {
+		t.head, err = t.openFile(t.headId, openFreezerFileForReadOnly)
+	} else {
+		// Open head in read/write
+		t.head, err = t.openFile(t.headId, openFreezerFileForAppend)
+	}
 	return err
 }
 
