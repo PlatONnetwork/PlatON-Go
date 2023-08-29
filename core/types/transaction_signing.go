@@ -566,6 +566,5 @@ func deriveChainId(v *big.Int) *big.Int {
 		return new(big.Int).SetUint64((v - 35) / 2)
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
-	cid := v.Div(v, big.NewInt(2))
-	return cid
+	return v.Div(v, big.NewInt(2))
 }
