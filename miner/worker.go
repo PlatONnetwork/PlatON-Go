@@ -1053,7 +1053,7 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, com
 	if err != nil {
 		return err
 	}
-	if err := core.GetReactorInstance().NewBlock(work.header, work.state); err != nil {
+	if err := core.GetReactorInstance().NewBlock(work.header, work.state, common.ZeroHash); err != nil {
 		log.Error("Failed to GetReactorInstance BeginBlocker on worker", "blockNumber", work.header.Number, "err", err)
 		return err
 	}
