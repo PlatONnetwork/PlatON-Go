@@ -247,15 +247,13 @@ func (bcr *BlockChainReactor) PrepareHeaderNonce(header *types.Header) error {
 	return nil
 }
 
-func (bcr *BlockChainReactor) NewBlock(header *types.Header, state xcom.StateDB) error {
+func (bcr *BlockChainReactor) NewBlock(header *types.Header, state xcom.StateDB, blockHash common.Hash) error {
 	/**
 	this things about ppos
 	*/
 	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
 		return nil
 	}
-
-	blockHash := common.ZeroHash
 
 	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
 		"hash", blockHash, "parentHash", header.ParentHash)
@@ -313,7 +311,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			return err
 		}
 	}
-	return bcr.NewBlock(header, state)
+	return bcr.NewBlock(header, state, blockHash)
 }
 
 // Called after every block had executed all txs
