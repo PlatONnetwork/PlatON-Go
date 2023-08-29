@@ -549,9 +549,10 @@ func (f *freezer) freezeRange(nfdb *nofreezedb, number, limit uint64) (hashes []
 				return fmt.Errorf("block body missing, can't freeze block %d", number)
 			}
 			receipts := ReadReceiptsRLP(nfdb, hash, number)
-			if len(receipts) == 0 {
-				return fmt.Errorf("block receipts missing, can't freeze block %d", number)
-			}
+			// 由于默认会清除回执，因此此处有可能读不到回执
+			//if len(receipts) == 0 {
+			//	return fmt.Errorf("block receipts missing, can't freeze block %d", number)
+			//}
 
 			// Write to the batch.
 			if err := op.AppendRaw(freezerHashTable, number, hash[:]); err != nil {
