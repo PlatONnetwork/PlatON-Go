@@ -167,7 +167,7 @@ func (args *TransactionArgs) setDefaults(ctx context.Context, b Backend) error {
 		log.Trace("Estimate gas usage automatically", "gas", args.Gas)
 	}
 	if args.ChainID == nil {
-		id := (*hexutil.Big)(b.ChainConfig().ChainID)
+		id := (*hexutil.Big)(b.ChainConfig().PIP7ChainID)
 		args.ChainID = id
 	}
 	return nil
