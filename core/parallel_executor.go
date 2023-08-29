@@ -81,6 +81,8 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 
 		start = time.Now()
 		batchNo := 0
+		chainidForStatistic := big.NewInt(0)
+		blockNumber := ctx.GetHeader().Number
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 
@@ -90,9 +92,17 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 
 			if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
 				exe.executeContractTransaction(ctx, parallelTxIdxs[0])
+				if blockNumber.Cmp(big.NewInt(58421521)) > 0 {
+					chainidForStatistic = ctx.GetTx(parallelTxIdxs[0]).ChainId()
+					log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber)
+				}
 			} else {
 				for _, originIdx := range parallelTxIdxs {
 					tx := ctx.GetTx(originIdx)
+					if blockNumber.Cmp(big.NewInt(58421521)) > 0 {
+						chainidForStatistic = tx.ChainId()
+						log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber)
+					}
 					if ctx.packNewBlock {
 						if ctx.IsTimeout() {
 							log.Warn("Parallel executor is timeout,interrupt current tx-executing")
