@@ -20,7 +20,6 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -568,8 +567,5 @@ func deriveChainId(v *big.Int) *big.Int {
 	}
 	v = new(big.Int).Sub(v, big.NewInt(35))
 	cid := v.Div(v, big.NewInt(2))
-	if cid.Cmp(params.MainnetChainConfig.PIP7ChainID) != 0 {
-		log.Error(" STATISTIC different chainid", "cid", cid)
-	}
 	return cid
 }
