@@ -161,9 +161,9 @@ var (
 	}
 	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
-		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("fast", "full")`,
-		//Usage: `Blockchain sync mode ("fast", "full", "snap")`,
+		Name: "syncmode",
+		//Usage: `Blockchain sync mode ("fast", "full")`,
+		Usage: `Blockchain sync mode ("fast", "full", "snap")`,
 		Value: &defaultSyncMode,
 	}
 	TxLookupLimitFlag = cli.Uint64Flag{
@@ -262,7 +262,7 @@ var (
 	}
 	SnapshotFlag = cli.BoolFlag{
 		Name:  "snapshot",
-		Usage: `Enables snapshot-database mode`,
+		Usage: `Enables snapshot-database mode (default = enable)`,
 	}
 	BloomFilterSizeFlag = cli.Uint64Flag{
 		Name:  "bloomfilter.size",
