@@ -233,6 +233,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), effectiveTip)
 	// sender fee
 	fee := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
+	log.Trace("Execute parallel tx", "baseFee", ctx.header.BaseFee, "gasTipCap", msg.GasTipCap(), "gasFeeCap", msg.GasFeeCap(), "gasPrice", msg.GasPrice(), "effectiveTip", effectiveTip)
 	cost := new(big.Int).Add(msg.Value(), fee)
 	if fromObj.GetBalance().Cmp(cost) < 0 {
 		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)

@@ -128,7 +128,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	}
 	state.ClearReference()
 
-	singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
+	signer := types.LatestSignerForChainID(txg.eth.blockchain.Config().PIP7ChainID)
 
 	txsCh := make(chan []*types.Transaction, 2)
 
@@ -148,7 +148,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				case <-txg.txGenExitCh:
 					return
 				case ntx := <-signTxCh:
-					newTx, err := types.SignTx(ntx.tx, singine, ntx.pri)
+					newTx, err := types.SignTx(ntx.tx, signer, ntx.pri)
 					if err != nil {
 						log.Error(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}
@@ -187,7 +187,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case res := <-blockExcuteCh:
 				txm.blockProduceTime = time.Now()
 				for _, receipt := range res.Transactions() {
-					readd, err := types.Sender(singine, receipt)
+					readd, err := types.Sender(signer, receipt)
 					if err != nil {
 						log.Error("get tx from fail", "err", err)
 					}
@@ -208,7 +208,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 				if block, ok := txm.blockCache[res.Hash()]; ok {
 					for _, receipt := range block.Transactions() {
-						readd, err := types.Sender(singine, receipt)
+						readd, err := types.Sender(signer, receipt)
 						if err != nil {
 							log.Error("get tx from fail", "err", err)
 						}
@@ -223,7 +223,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					delete(txm.blockCache, res.Hash())
 				} else {
 					for _, receipt := range res.Transactions() {
-						readd, err := types.Sender(singine, receipt)
+						readd, err := types.Sender(signer, receipt)
 						if err != nil {
 							log.Error("get tx from fail", "err", err)
 						}
@@ -270,7 +270,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
 					signTxCh <- needSignTx{tx, account.Priv}
-					/*newTx, err := types.SignTx(tx, singine, account.Priv)
+					/*newTx, err := types.SignTx(tx, signer, account.Priv)
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}*/
@@ -339,7 +339,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		defer currentState.ClearReference()
 		account := crypto.PubkeyToAddress(pri.PublicKey)
 		nonce := currentState.GetNonce(account)
-		singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
+		signer := types.LatestSignerForChainID(txg.eth.blockchain.Config().PIP7ChainID)
 		gasPrice := txg.eth.txPool.GasPrice()
 
 		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
@@ -348,7 +348,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 					continue
 				}
 				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
-				newTx, err := types.SignTx(tx, singine, pri)
+				newTx, err := types.SignTx(tx, signer, pri)
 				if err != nil {
 					return err
 				}
