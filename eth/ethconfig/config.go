@@ -67,7 +67,7 @@ var Defaults = Config{
 	DBGCInterval:            86400,
 	DBGCTimeout:             time.Minute,
 	DBGCMpt:                 true,
-	DBGCBlock:               512,
+	DBGCBlock:               256,
 	VMWasmType:              "wagon",
 	VmTimeoutDuration:       0, // default 0 ms for vm exec timeout
 	TrieCleanCache:          154,
