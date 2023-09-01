@@ -768,74 +768,7 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 	return nil
 }
 
-func (d *Downloader) fetchPPOSStorage(p *peerConnection) (err error) {
-	d.pivotLock.RLock()
-	log.Debug("Retrieving latest ppos storage cache from remote peer", "pivot number", d.pivotHeader.Number)
-	d.pivotLock.RUnlock()
-
-	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
-	<-timeout.C                 // timeout channel should be initially empty
-	defer timeout.Stop()
-	var ttl time.Duration
-	ttl = d.requestTTL()
-	timeout.Reset(ttl)
-	defer func() {
-		close(d.pposStorageDoneCh)
-	}()
-	d.pposStorageDoneCh = make(chan struct{})
-
-	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
-		return err
-	}
-
-	var count int64
-	for {
-		select {
-		case <-d.cancelCh:
-			return errCanceled
-		case <-timeout.C:
-			log.Error("Waiting for ppos storage timed out", "elapsed", ttl)
-			return errTimeout
-		case packet := <-d.pposStorageCh:
-			// Discard anything not from the origin peer
-			if packet.PeerId() != p.id {
-				log.Error("Received ppos storage from incorrect peer", "peer", packet.PeerId())
-				return errors.New("received ppos storage from incorrect peer")
-			}
-			pposDada := packet.(*pposStoragePack)
-
-			count += int64(len(pposDada.kvs))
-			if uint64(count) != pposDada.kvNum {
-				p.log.Error("received ppos storage from incorrect kvNum", "kvNum", pposDada.kvNum, "count", count)
-				return errors.New("received ppos storage from incorrect kvNum")
-			}
-
-			if err := d.snapshotDB.WriteBaseDB(pposDada.KVs()); err != nil {
-				p.log.Error("write to base db fail", "err", err)
-				return errors.New("write to base db fail")
-			}
-			if pposDada.last {
-				log.Info("fetchPPOSStorage has finish")
-				return nil
-			}
-			ttl = d.requestTTL()
-			timeout.Reset(ttl)
-		//case <-d.bodyCh:
-		//case <-d.receiptCh:
-		// Out of bounds delivery, ignore
-		case <-d.originAndPivotCh:
-		case <-d.pposInfoCh:
-
-		}
-	}
-}
-
-func (d *Downloader) fetchPPOSStorageV2(pivot *types.Header) (err error) {
-	peers, _ := d.peers.PPOSIdlePeers()
-	if len(peers) == 0 {
-		return errors.New("no idle peers to fetch PPOSStorageV2")
-	}
-	p := peers[0]
+func (d *Downloader) fetchPPOSStorageV2(p *peerConnection, pivot *types.Header) (err error) {
 
 	p.log.Info("begin  fetchPPOSStorageV2  from remote peer", "pivot number", pivot.Number)
 
@@ -848,15 +781,6 @@ func (d *Downloader) fetchPPOSStorageV2(pivot *types.Header) (err error) {
 
 	go p.peer.RequestPPOSStorage(pivot.Number.Uint64())
 
-	if err := d.snapshotDB.SetEmpty(); err != nil {
-		p.log.Error("set snapshotDB empty fail")
-		return errors.New("set snapshotDB empty fail:" + err.Error())
-	}
-
-	if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
-		return err
-	}
-
 	var (
 		count  int64
 		blocks []snapshotdb.BlockData
@@ -866,7 +790,8 @@ func (d *Downloader) fetchPPOSStorageV2(pivot *types.Header) (err error) {
 		case <-d.cancelCh:
 			return errCanceled
 		case <-timeout.C:
-			return fmt.Errorf("waiting for ppos storage V2 timed out,elapsed %s", ttl.String())
+			p.log.Error("failed to fetch PPOSStorageV2,waiting for ppos storage V2 timed out,elapsed", "ttl", ttl.String())
+			return errTimeout
 		case packet := <-d.pposStorageCh:
 			// Discard anything not from the origin peer
 			if packet.PeerId() != p.id {
@@ -1870,10 +1795,33 @@ func (d *Downloader) processFastSyncContent() error {
 				if sync.err != nil {
 					return sync.err
 				}
-				if err := d.fetchPPOSStorageV2(P.Header); err != nil {
-					log.Error("failed to fetch PPOSStorageV2", "err", err)
-					return fmt.Errorf("faild to fetch PPOSStorageV2, err: %v", err)
+
+				// sync PPOS
+				peers, _ := d.peers.PPOSIdlePeers()
+				if len(peers) == 0 {
+					return errors.New("no idle peers to fetch PPOSStorageV2")
 				}
+				//try at most 3 times
+				for i := 0; i < 3 && i < len(peers); i++ {
+					if err := d.snapshotDB.SetEmpty(); err != nil {
+						return errors.New("set snapshotDB empty fail:" + err.Error())
+					}
+					if err := d.setFastSyncStatus(FastSyncBegin); err != nil {
+						return err
+					}
+					if err := d.fetchPPOSStorageV2(peers[i], P.Header); err != nil {
+						log.Error("failed to fetch PPOSStorageV2", "err", err)
+						if errors.Is(err, errCanceled) {
+							return err
+						}
+						if i == 2 || i == len(peers) {
+							return fmt.Errorf("faild to fetch PPOSStorageV2, err: %v", err)
+						}
+					} else {
+						break
+					}
+				}
+
 				if err := d.commitPivotBlock(P); err != nil {
 					return err
 				}
