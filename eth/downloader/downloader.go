@@ -67,6 +67,7 @@ var (
 	fsHeaderSafetyNet      = 0               // PlatON use PoS and safe distance is 0
 	fsHeaderForceVerify    = 24              // Number of headers to verify before and after the pivot to accept it
 	fsHeaderContCheck      = 3 * time.Second // Time interval to check for header continuations during state download
+	fsMinFullBlocks        = 64              // Number of blocks to retrieve fully even in fast sync
 )
 
 var (
@@ -134,10 +135,8 @@ type Downloader struct {
 	pivotHeader *types.Header // Pivot block header to dynamically push the syncing state root
 	pivotLock   sync.RWMutex  // Lock protecting pivot header reads from updates
 
-	snapSync   bool         // Whether to run state sync over the snap protocol
-	SnapSyncer *snap.Syncer // TODO(karalabe): make private! hack for now
-
-	// for stateFetcher
+	snapSync       bool         // Whether to run state sync over the snap protocol
+	SnapSyncer     *snap.Syncer // TODO(karalabe): make private! hack for now
 	stateSyncStart chan *stateSync
 	trackStateReq  chan *stateReq
 	stateCh        chan dataPack // Channel receiving inbound node state data
@@ -452,7 +451,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "head", hash, "bn", bn, "mode", mode)
 	defer func(start time.Time) {
-		log.Debug("Synchronisation terminated", "elapsed", common.PrettyDuration(time.Since(start)))
+		log.Debug("Synchronisation terminated", "elapsed", common.PrettyDuration(time.Since(start)), "err", err)
 	}(time.Now())
 
 	var (
@@ -503,11 +502,6 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	}
 	height := latest.Number.Uint64()
-
-	//origin, err := d.findAncestor(p, height)
-	//if err != nil {
-	//	return err
-	//}
 
 	d.syncStatsLock.Lock()
 	if d.syncStatsChainHeight <= origin || d.syncStatsChainOrigin > origin {
@@ -661,7 +655,7 @@ func (d *Downloader) fetchPPOSInfo(p *peerConnection) (latest *types.Header, piv
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-	go p.peer.RequestPPOSStorage()
+	go p.peer.RequestPPOSStorage(0)
 
 	var ttl time.Duration
 	ttl = d.peers.rates.TargetTimeout()
@@ -1734,8 +1728,8 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64) (err error) {
-	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum}, pposStorageInMeter, pposStorageDropMeter)
+func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64, blocks []snapshotdb.BlockData, baseBlock uint64) (err error) {
+	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum, blocks, baseBlock}, pposStorageInMeter, pposStorageDropMeter)
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.

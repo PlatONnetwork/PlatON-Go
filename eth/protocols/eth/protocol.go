@@ -19,6 +19,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"io"
 	"math/big"
 
@@ -74,6 +75,7 @@ const (
 	NewPooledTransactionHashesMsg = 0x16
 	GetPooledTransactionsMsg      = 0x17
 	PooledTransactionsMsg         = 0x18
+	PPOSStorageV2Msg              = 0x19
 )
 
 var (
@@ -366,24 +368,39 @@ func (*GetPooledTransactionsPacket) Kind() byte   { return GetPooledTransactions
 func (*PooledTransactionsPacket) Name() string { return "PooledTransactions" }
 func (*PooledTransactionsPacket) Kind() byte   { return PooledTransactionsMsg }
 
-type PposStoragePack struct {
+type PposInfoPacket struct {
+	Latest *types.Header
+	Pivot  *types.Header
+}
+
+func (*PposInfoPacket) Name() string { return "PposInfo" }
+func (*PposInfoPacket) Kind() byte   { return PPOSInfoMsg }
+
+type PposStoragePacket struct {
 	KVs   [][2][]byte
 	KVNum uint64
 	Last  bool
 }
 
-type PposInfoPack struct {
-	Latest *types.Header
-	Pivot  *types.Header
+func (*PposStoragePacket) Name() string { return "PposStorage" }
+func (*PposStoragePacket) Kind() byte   { return PPOSStorageMsg }
+
+type PposStorageV2Packet struct {
+	RequestId    uint64
+	BaseBlock    uint64
+	BlockStorage []snapshotdb.BlockData
 }
 
-func (*PposInfoPack) Name() string { return "PposInfo" }
-func (*PposInfoPack) Kind() byte   { return PPOSInfoMsg }
+func (*PposStorageV2Packet) Name() string { return "PposStorageV2" }
+func (*PposStorageV2Packet) Kind() byte   { return PPOSStorageV2Msg }
 
-func (*PposStoragePack) Name() string { return "PposStorage" }
-func (*PposStoragePack) Kind() byte   { return PPOSStorageMsg }
+type PposStorageV2RLPPacket66 struct {
+	RequestId    uint64
+	BaseBlock    uint64
+	BlockStorage []rlp.RawValue
+}
 
-type OriginAndPivotPack []*types.Header
+type OriginAndPivotPacket []*types.Header
 
-func (*OriginAndPivotPack) Name() string { return "OriginAndPivot" }
-func (*OriginAndPivotPack) Kind() byte   { return OriginAndPivotMsg }
+func (*OriginAndPivotPacket) Name() string { return "OriginAndPivot" }
+func (*OriginAndPivotPacket) Kind() byte   { return OriginAndPivotMsg }
