@@ -107,7 +107,7 @@ func TestRecover(t *testing.T) {
 		return
 	}
 	for _, value := range baseDBArr {
-		v, err := ch.db.baseDB.Get(value.key, nil)
+		v, err := ch.db.Get(ch.db.current.highest.Hash, value.key)
 		if err != nil {
 			t.Error("should be nil", err)
 			return
