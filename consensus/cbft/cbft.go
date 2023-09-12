@@ -325,7 +325,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	cMsg := msg.Msg.(ctypes.ConsensusMsg)
 	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
-		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
+		cbft.log.Trace("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
 		return nil
 	}
 
