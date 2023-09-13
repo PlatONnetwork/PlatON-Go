@@ -109,13 +109,14 @@ func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 	case *eth.PooledTransactionsPacket:
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
-	case *eth.PposStoragePack:
-		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum)
-
-	case *eth.OriginAndPivotPack:
+	case *eth.PposStoragePacket:
+		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum, nil, 0)
+	case *eth.PposStorageV2Packet:
+		return h.downloader.DeliverPposStorage(peer.ID(), nil, false, 0, packet.BlockStorage, packet.BaseBlock)
+	case *eth.OriginAndPivotPacket:
 		return h.downloader.DeliverOriginAndPivot(peer.ID(), *packet)
 
-	case *eth.PposInfoPack:
+	case *eth.PposInfoPacket:
 		return h.downloader.DeliverPposInfo(peer.ID(), packet.Latest, packet.Pivot)
 
 	default:
@@ -193,7 +194,7 @@ func (h *ethHandler) handleBlockAnnounces(peer *eth.Peer, hashes []common.Hash, 
 		unknownNumbers = make([]uint64, 0, len(numbers))
 	)
 	for i := 0; i < len(hashes); i++ {
-		if !h.chain.HasBlock(hashes[i], numbers[i]) {
+		if !h.chain.HasBlock(hashes[i], numbers[i]) && !h.engine.HasBlock(hashes[i], numbers[i]) {
 			unknownHashes = append(unknownHashes, hashes[i])
 			unknownNumbers = append(unknownNumbers, numbers[i])
 		}
@@ -207,6 +208,10 @@ func (h *ethHandler) handleBlockAnnounces(peer *eth.Peer, hashes []common.Hash, 
 // handleBlockBroadcast is invoked from a peer's message handler when it transmits a
 // block broadcast for the local node to process.
 func (h *ethHandler) handleBlockBroadcast(peer *eth.Peer, block *types.Block) error {
+	if h.engine.HasBlock(block.Hash(), block.NumberU64()) {
+		return nil
+	}
+
 	// Schedule the block for import
 	h.blockFetcher.Enqueue(peer.ID(), block)
 

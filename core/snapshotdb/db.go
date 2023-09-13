@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -36,8 +35,8 @@ func getBaseDBPath(dbpath string) string {
 	return path.Join(dbpath, DBBasePath)
 }
 
-func (s *snapshotDB) getBlockFromWal(block []byte) (*blockData, error) {
-	bk := new(blockData)
+func (s *snapshotDB) getBlockFromWal(block []byte) (*BlockData, error) {
+	bk := new(BlockData)
 	if err := rlp.DecodeBytes(block, bk); err != nil {
 		return nil, err
 	}
