@@ -194,7 +194,7 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		return h.chain.Engine().VerifyHeader(h.chain, header, true)
 	}
 	heighter := func() uint64 {
-		return h.chain.CurrentBlock().NumberU64()
+		return h.chain.Engine().CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks. This is a problematic
