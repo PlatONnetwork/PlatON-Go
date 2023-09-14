@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -113,7 +112,7 @@ func (c *current) Valid() error {
 	return nil
 }
 
-//the current highest  must not  greater than block chain current
+// the current highest  must not  greater than block chain current
 func (c *current) resetHighestByChainCurrentHeader(currentHead *types.Header, baseDB *leveldb.DB) error {
 	if c.base.Num.Cmp(currentHead.Number) > 0 {
 		return fmt.Errorf("base num %v can't be greater than currentHead Number %v", c.base.Num, currentHead.Number)
@@ -204,6 +203,10 @@ func (c *current) EncodeBase() []byte {
 		panic(err)
 	}
 	return base
+}
+
+func (c *current) String() string {
+	return fmt.Sprintf("base:%d,hight:%d,%s,", c.base.Num, c.highest.Num, c.highest.Hash)
 }
 
 type CurrentHighest struct {

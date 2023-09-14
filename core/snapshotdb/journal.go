@@ -69,11 +69,11 @@ func (s *snapshotDB) loopWriteWal() {
 	}
 }
 
-func (s *snapshotDB) writeBlockToWalAsynchronous(block *blockData) {
+func (s *snapshotDB) writeBlockToWalAsynchronous(block *BlockData) {
 	s.walSync.Add(1)
 	s.walCh <- block
 }
 
-func (s *snapshotDB) writeWal(block *blockData) error {
+func (s *snapshotDB) writeWal(block *BlockData) error {
 	return s.baseDB.Put(block.BlockKey(), block.BlockVal(), nil)
 }

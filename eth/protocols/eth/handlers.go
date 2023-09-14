@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 
@@ -520,14 +521,20 @@ func handleGetPPOSStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(&query); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
-
-	_ = answerGetPPOSStorageMsgQuery(backend, peer)
+	if len(query) == 0 {
+		return answerGetPPOSStorageMsgQuery(backend, peer)
+	} else {
+		if a, ok := query[0].([]byte); ok {
+			return answerGetPPOSStorageMsgQueryV2(backend, common.BytesToUint64(a), peer)
+		}
+	}
+	log.Warn("handleGetPPOSStorageMsg seems not good,the query is wrong", "length", len(query), "val", query)
 	return nil
 }
 
-func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
+func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) error {
 	f := func(num *big.Int, iter iterator.Iterator) error {
-		var psInfo PposInfoPack
+		var psInfo PposInfoPacket
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
@@ -539,7 +546,7 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 		}
 		var (
 			byteSize int
-			ps       PposStoragePack
+			ps       PposStoragePacket
 			count    int
 		)
 		ps.KVs = make([][2][]byte, 0)
@@ -573,10 +580,85 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 		}
 		return nil
 	}
-	var err error
 	go func() {
-		if err = snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
+		if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
 			peer.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		}
+	}()
+	return nil
+}
+
+func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) error {
+	currentHeader := backend.Chain().CurrentHeader()
+	if currentHeader.Number.Uint64() < head {
+		return fmt.Errorf("faild to answerGetPPOSStorageMsgQueryV2 , the current header %v is less than the request header %v", currentHeader.Number.Uint64(), head)
+	}
+
+	f := func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error {
+		peer.Log().Debug("begin answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
+		var (
+			byteSize int
+			ps       PposStoragePacket
+			count    int
+		)
+		ps.KVs = make([][2][]byte, 0)
+		for iter.Next() {
+			if bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentHighestBlock)) || bytes.Equal(iter.Key(), []byte(snapshotdb.CurrentBaseNum)) || bytes.HasPrefix(iter.Key(), []byte(snapshotdb.WalKeyPrefix)) {
+				continue
+			}
+			byteSize = byteSize + len(iter.Key()) + len(iter.Value())
+			if count >= PPOSStorageKVSizeFetch || byteSize > softResponseLimit {
+				if err := peer.SendPPOSStorage(ps); err != nil {
+					return fmt.Errorf("send ppos storage message fail,%v", err)
+				}
+				count = 0
+				ps.KVs = make([][2][]byte, 0)
+				byteSize = 0
+			}
+			k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+			copy(k, iter.Key())
+			copy(v, iter.Value())
+			ps.KVs = append(ps.KVs, [2][]byte{
+				k, v,
+			})
+			ps.KVNum++
+			count++
+		}
+		ps.Last = true
+		if err := peer.SendPPOSStorage(ps); err != nil {
+			return fmt.Errorf("send last ppos storage message fail,%v", err)
+		}
+
+		var (
+			pposStorageRlps []rlp.RawValue
+		)
+		byteSize = 0
+
+		for _, encoded := range blocks {
+			if byteSize >= softResponseLimit {
+				id := rand.Uint64()
+				if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
+					return fmt.Errorf("reply ppos storage v2 message  fail,%v", err)
+				}
+				pposStorageRlps = []rlp.RawValue{}
+				byteSize = 0
+			} else {
+				pposStorageRlps = append(pposStorageRlps, encoded)
+				byteSize += len(encoded)
+			}
+		}
+		if len(pposStorageRlps) > 0 {
+			id := rand.Uint64()
+			if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
+				return fmt.Errorf("reply last ppos storage v2 message  fail,%v", err)
+			}
+		}
+		peer.Log().Debug("end answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
+		return nil
+	}
+	go func() {
+		if err := snapshotdb.Instance().WalkDB(head, f); err != nil {
+			peer.Log().Error("answer GetPPOSStorageMsgQueryV2  fail", "error", err)
 		}
 	}()
 	return nil
@@ -586,7 +668,19 @@ func answerGetPPOSStorageMsgQuery(backend Backend, peer *Peer) []rlp.RawValue {
 func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 	peer.Log().Debug("Received a broadcast message[PposStorageMsg]")
-	var data PposStoragePack
+	var data PposStoragePacket
+	if err := msg.Decode(&data); err != nil {
+		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
+	}
+	// Deliver all to the downloader
+	return backend.Handle(peer, &data)
+}
+
+// handlePPosStorageMsg handles PPOS msg, collect the requested info and reply
+func handlePPosStorageV2Msg(backend Backend, msg Decoder, peer *Peer) error {
+
+	peer.Log().Debug("Received a broadcast message[PposStorageV2Msg]")
+	var data PposStorageV2Packet
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
@@ -624,7 +718,7 @@ func handleGetOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error 
 
 func handleOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
 	peer.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
-	var data OriginAndPivotPack
+	var data OriginAndPivotPacket
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
@@ -634,7 +728,7 @@ func handleOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 func handlePPOSInfoMsg(backend Backend, msg Decoder, peer *Peer) error {
 	peer.Log().Debug("Received a broadcast message[PPOSInfoMsg]")
-	var data PposInfoPack
+	var data PposInfoPacket
 	if err := msg.Decode(&data); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}

@@ -20,10 +20,12 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"golang.org/x/net/context"
 	"math/big"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -51,24 +53,25 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 200
+	MaxCommitBlock            = 100
 )
 
 // DB the main snapshotdb interface
 //
 //	example
-//	new a recognized blockData(sync from other peer)
+//	new a recognized BlockData(sync from other peer)
 //	dbInstance.NewBlock(blockNumber, parentHash, hash)
 //	dbInstance.Put(hash, kv.key, kv.value)
 //	dbInstance.Commit(hash)
 //
-//	new a unrecognized blockData(a block produce by self)
+//	new a unrecognized BlockData(a block produce by self)
 //	dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
 //	dbInstance.Put(hash, kv.key, kv.value)
 //	dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
 //	dbInstance.Commit(hash)
-//	get a  blockData with hash
+//	get a  BlockData with hash
 //	dbInstance.Get(hash, key)
-//	get a  blockData without hash
+//	get a  BlockData without hash
 //	dbInstance.Get(common.zerohash, key)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
@@ -88,6 +91,8 @@ type DB interface {
 	// }
 	//
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
+	WalkDB(num uint64, f func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error) error
+
 	Commit(hash common.Hash) error
 
 	// Clear close db , remove all db file
@@ -112,6 +117,7 @@ type BaseDB interface {
 	DelBaseDB(key []byte) error
 	// WriteBaseDB apply the given [][2][]byte to the baseDB.
 	WriteBaseDB(kvs [][2][]byte) error
+	WriteBaseDBWithBlock(current *types.Header, blocks []BlockData) error
 	//SetCurrent use for fast sync
 	SetCurrent(highestHash common.Hash, base, height big.Int) error
 	GetCurrent() *current
@@ -148,10 +154,10 @@ type snapshotDB struct {
 
 	unCommit *unCommitBlocks
 
-	committed  []*blockData
+	committed  []*BlockData
 	commitLock sync.RWMutex
 
-	walCh         chan *blockData
+	walCh         chan *BlockData
 	walLoopCtx    context.Context
 	walLoopCancel context.CancelFunc
 	walSync       sync.WaitGroup
@@ -243,14 +249,14 @@ func open(path string, cache int, handles int, baseOnly bool) (*snapshotDB, erro
 	}
 
 	unCommitBlock := new(unCommitBlocks)
-	unCommitBlock.blocks = make(map[common.Hash]*blockData)
+	unCommitBlock.blocks = make(map[common.Hash]*BlockData)
 	db := &snapshotDB{
 		path:          path,
 		unCommit:      unCommitBlock,
-		committed:     make([]*blockData, 0),
+		committed:     make([]*BlockData, 0),
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
-		walCh:         make(chan *blockData, 2),
+		walCh:         make(chan *BlockData, 2),
 	}
 	if baseOnly {
 		return db, nil
@@ -312,11 +318,11 @@ func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) 
 	}
 
 	unCommitBlock := new(unCommitBlocks)
-	unCommitBlock.blocks = make(map[common.Hash]*blockData)
+	unCommitBlock.blocks = make(map[common.Hash]*BlockData)
 	db := &snapshotDB{
 		path:          "",
 		unCommit:      unCommitBlock,
-		committed:     make([]*blockData, 0),
+		committed:     make([]*BlockData, 0),
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
 	}
@@ -422,6 +428,31 @@ func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *snapshotDB) WriteBaseDBWithBlock(current *types.Header, blocks []BlockData) error {
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].Number.Uint64() < blocks[j].Number.Uint64()
+	})
+	batch := new(leveldb.Batch)
+	for _, block := range blocks {
+		itr := block.data.NewIterator(nil)
+		for itr.Next() {
+			if itr.Value() == nil || len(itr.Value()) == 0 {
+				batch.Delete(itr.Key())
+			} else {
+				batch.Put(itr.Key(), itr.Value())
+			}
+		}
+		itr.Release()
+	}
+	if err := s.baseDB.Write(batch, nil); err != nil {
+		return fmt.Errorf("write to baseDB fail,%v", err)
+	}
+	if err := s.SetCurrent(current.Hash(), *current.Number, *current.Number); err != nil {
+		return fmt.Errorf("SetCurrent fail, %v", err)
 	}
 	return nil
 }
@@ -629,7 +660,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		logger.Error("the block is less than commit highest", "commit", s.current.GetHighest(false).Num, "new", blockNumber)
 		return ErrBlockTooLow
 	}
-	block := new(blockData)
+	block := new(BlockData)
 	block.Number = new(big.Int).Set(blockNumber)
 	block.ParentHash = parentHash
 	block.BlockHash = hash
@@ -795,7 +826,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blockNumber *big.Int) error {
 	return nil
 }
 
-func (s *snapshotDB) theBlockIsCommit(block *blockData) bool {
+func (s *snapshotDB) theBlockIsCommit(block *BlockData) bool {
 	if block.Number.Cmp(s.current.GetHighest(false).Num) != 0 {
 		return false
 	}
@@ -868,7 +899,7 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // content of snapshot are guaranteed to be consistent.
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
-	logger.Debug("begin walkbase db")
+	logger.Debug("begin walk base db")
 	snapshot, err := s.baseDB.GetSnapshot()
 	if err != nil {
 		return errors.New("[snapshotdb] get snapshot fail:" + err.Error())
@@ -897,6 +928,46 @@ func (s *snapshotDB) Clear() error {
 		}
 	}
 	return nil
+}
+
+// 根据块高来迭代数据库
+func (s *snapshotDB) WalkDB(num uint64, f func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error) error {
+	logger.Debug("begin walk db", "pivot", num)
+
+	s.commitLock.Lock()
+
+	baseBlock := s.current.GetBase(false).Num.Uint64()
+	highestBlock := s.current.GetHighest(false).Num.Uint64()
+	if num > highestBlock || num < baseBlock {
+		s.commitLock.Unlock()
+		return fmt.Errorf("the pivot block %v request seems not in commit block,highest %d,base %d", num, highestBlock, baseBlock)
+	}
+
+	blocks := make([]rlp.RawValue, 0)
+	for i := 0; i < len(s.committed); i++ {
+		if s.committed[i].Number.Uint64() > num {
+			break
+		}
+		tmp, err := rlp.EncodeToBytes(s.committed[i])
+		if err != nil {
+			s.commitLock.Unlock()
+			return fmt.Errorf("WalkDB fail , encode to bytes error,%v", err)
+		}
+		blocks = append(blocks, tmp)
+	}
+	snapshot, err := s.baseDB.GetSnapshot()
+	if err != nil {
+		s.commitLock.Unlock()
+		return fmt.Errorf("get snapshot fail,%v", err)
+	}
+	s.commitLock.Unlock()
+	defer snapshot.Release()
+	t := snapshot.NewIterator(nil, nil)
+	defer func() {
+		logger.Debug("walk DB release")
+		t.Release()
+	}()
+	return f(baseBlock, t, blocks)
 }
 
 // Ranking return iterates  of the DB.

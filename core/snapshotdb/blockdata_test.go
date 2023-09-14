@@ -24,7 +24,7 @@ import (
 )
 
 func TestBlockData_RevertToSnapshot(t *testing.T) {
-	block := new(blockData)
+	block := new(BlockData)
 	block.data = memdb.New(DefaultComparer, 10)
 	keyA, keyB := []byte("a"), []byte("b")
 

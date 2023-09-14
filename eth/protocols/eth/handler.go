@@ -220,6 +220,7 @@ var eth66 = map[uint64]msgHandler{
 	// PPOS messages
 	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
 	PPOSStorageMsg:       handlePPosStorageMsg,
+	PPOSStorageV2Msg:     handlePPosStorageV2Msg,
 	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
 	OriginAndPivotMsg:    handleOriginAndPivotMsg,
 	PPOSInfoMsg:          handlePPOSInfoMsg,

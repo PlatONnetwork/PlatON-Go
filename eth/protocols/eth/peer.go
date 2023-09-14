@@ -497,11 +497,18 @@ func (p *Peer) RequestTxs(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetPooledTransactionsMsg, GetPooledTransactionsPacket(hashes))
 }
 
-func (p *Peer) RequestPPOSStorage() error {
-	p.Log().Debug("Fetching latest ppos storage")
-	if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{}); err != nil {
-		p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
-		return err
+func (p *Peer) RequestPPOSStorage(num uint64) error {
+	p.Log().Debug("Fetching latest ppos storage", "num", num)
+	if num != 0 {
+		if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{num}); err != nil {
+			p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
+			return err
+		}
+	} else {
+		if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{}); err != nil {
+			p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
+			return err
+		}
 	}
 	return nil
 }
@@ -515,11 +522,20 @@ func (p *Peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	return nil
 }
 
-func (p *Peer) SendPPOSStorage(data PposStoragePack) error {
+func (p *Peer) SendPPOSStorage(data PposStoragePacket) error {
 	return p2p.Send(p.rw, PPOSStorageMsg, data)
 }
 
-func (p *Peer) SendPPOSInfo(data PposInfoPack) error {
+// ReplyPPOSStorage is the eth/66 response to PPOSStorage.
+func (p *Peer) ReplyPPOSStorageV2(id uint64, baseBlock uint64, blockStorages []rlp.RawValue) error {
+	return p2p.Send(p.rw, PPOSStorageV2Msg, PposStorageV2RLPPacket66{
+		RequestId:    id,
+		BaseBlock:    baseBlock,
+		BlockStorage: blockStorages,
+	})
+}
+
+func (p *Peer) SendPPOSInfo(data PposInfoPacket) error {
 	return p2p.Send(p.rw, PPOSInfoMsg, data)
 }
 
