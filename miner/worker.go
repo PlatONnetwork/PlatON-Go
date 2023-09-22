@@ -695,7 +695,7 @@ func (w *worker) taskLoop() {
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				w.blockChainCache.AddSealBlock(sealHash, task.block.NumberU64())
 				task.state.UpdateSnaps()
-				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64())
+				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64(), "stateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh, w.prepareCompleteCh); err != nil {
 					log.Warn("Block sealing failed on bft engine", "err", err)
 					w.commitWorkEnv.setCommitStatusIdle()
@@ -809,8 +809,7 @@ func (w *worker) resultLoop() {
 			block.SetExtraData(cbftResult.ExtraData)
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
-			cbftResult.ChainStateUpdateCB()
-			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true)
+			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true, cbftResult.ChainStateUpdateCB)
 			if err != nil {
 				if cbftResult.SyncState != nil {
 					cbftResult.SyncState <- err

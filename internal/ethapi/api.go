@@ -1159,7 +1159,7 @@ func RPCMarshalHeader(head *types.Header, ethCompatible bool) map[string]interfa
 		result["mixHash"] = common.ZeroHash
 		result["nonce"] = hexutil.Bytes(head.Nonce[0:8])
 		result["timestamp"] = hexutil.Uint64(head.Time / 1000)
-		result["sha3Uncles"] = common.ZeroHash
+		result["sha3Uncles"] = types.EmptyUncleHash
 		result["difficulty"] = (*hexutil.Big)(head.Number)
 	}
 

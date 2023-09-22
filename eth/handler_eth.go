@@ -19,6 +19,7 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -219,7 +220,7 @@ func (h *ethHandler) handleBlockBroadcast(peer *eth.Peer, block *types.Block) er
 	// calculate the head hash and TD that the peer truly must have.
 	var (
 		trueHead = block.ParentHash()
-		trueBN   = block.Number()
+		trueBN   = new(big.Int).Sub(block.Number(), big.NewInt(1))
 	)
 	// Update the peer's total difficulty if better than the previous
 	if _, bn := peer.Head(); trueBN.Cmp(bn) > 0 {
