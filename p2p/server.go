@@ -511,6 +511,8 @@ func (srv *Server) Start() (err error) {
 	srv.removetrusted = make(chan *enode.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
+	srv.addconsensus = make(chan *enode.Node)
+	srv.removeconsensus = make(chan *enode.Node)
 
 	if err := srv.setupLocalNode(); err != nil {
 		return err
