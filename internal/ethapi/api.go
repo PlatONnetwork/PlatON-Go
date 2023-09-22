@@ -1118,7 +1118,7 @@ func RPCMarshalHeader(head *types.Header) map[string]interface{} {
 	if types.HttpEthCompatible {
 		m["nonce"] = hexutil.Bytes(head.Nonce[0:8])
 		m["timestamp"] = hexutil.Uint64(head.Time / 1000)
-		m["sha3Uncles"] = common.ZeroHash
+		m["sha3Uncles"] = types.EmptyUncleHash
 		m["difficulty"] = (*hexutil.Big)(head.Number)
 	}
 
