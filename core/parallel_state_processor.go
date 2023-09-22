@@ -65,7 +65,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 					txHaveCal = txHaveCal + txs
 					tasks--
 				case <-timeout.C:
-					log.Warn("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
+					log.Warn("Parallel cal tx from timeout", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
 					tasks = 0
 				}
 			}
