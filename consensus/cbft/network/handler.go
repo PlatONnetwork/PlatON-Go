@@ -392,11 +392,10 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
 		}
 
-		// If blockNumber in the local is better than the remote
-		// then determine if there is a fork.
-		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-			err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
-		}
+		// QCBn fork allowed and does not require check
+		//if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
+		//	err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
+		//}
 		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
 			err = h.engine.BlockExists(remoteStatus.LockBn.Uint64(), remoteStatus.LockBlock)
 		}
