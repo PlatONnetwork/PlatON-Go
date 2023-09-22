@@ -758,7 +758,6 @@ func (w *worker) resultLoop() {
 			log.Debug("Pending task", "exist", exist)
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
-			//todo remove extra magic number
 			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Header()) {
 				_receipts = task.receipts
 				_state = task.state
