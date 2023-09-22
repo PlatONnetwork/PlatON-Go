@@ -190,7 +190,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 				}
 
 				// block write to real chain
-				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
+				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false)
 				if nil != err {
 					panic(err)
 				}

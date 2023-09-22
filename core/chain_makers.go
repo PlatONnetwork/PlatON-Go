@@ -249,7 +249,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
 			if err != nil {
 				panic(err)
 			}
@@ -291,7 +291,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
 			if err != nil {
 				panic(err)
 			}
@@ -346,7 +346,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
 			if err != nil {
 				panic(err)
 			}

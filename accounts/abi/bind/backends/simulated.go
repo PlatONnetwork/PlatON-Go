@@ -117,7 +117,7 @@ func (b *SimulatedBackend) Commit() {
 		panic(err) // This cannot happen unless the simulator is wrong, fail in that case
 	}
 	stateDB, _ := b.blockchain.State()
-	b.blockchain.WriteBlockWithState(b.pendingBlock, b.pendingReceipts, nil, stateDB, true, nil)
+	b.blockchain.WriteBlockWithState(b.pendingBlock, b.pendingReceipts, nil, stateDB, true)
 	b.rollback()
 }
 
