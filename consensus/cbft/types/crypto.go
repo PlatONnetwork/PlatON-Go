@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
@@ -46,6 +46,11 @@ func (sig *Signature) Bytes() []byte {
 	target := make([]byte, len(sig))
 	copy(target[:], sig[:])
 	return target
+}
+
+func (sig *Signature) NotEmpty() bool {
+	var a Signature
+	return bytes.Compare(sig.Bytes(), a.Bytes()) != 0
 }
 
 // MarshalText returns the hex representation of a.
