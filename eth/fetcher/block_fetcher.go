@@ -38,7 +38,7 @@ const (
 )
 
 const (
-	maxUncleDist = 7   // Maximum allowed backward distance from the chain head
+	minQueueDist = 0   // minimum allowed distance from the chain head to queue
 	maxQueueDist = 32  // Maximum allowed distance from the chain head to queue
 	hashLimit    = 256 // Maximum number of unique blocks a peer may have announced
 	blockLimit   = 64  // Maximum number of unique blocks a peer may have delivered
@@ -342,7 +342,7 @@ func (f *BlockFetcher) loop() {
 				break
 			}
 			// Otherwise if fresh and still unknown, try and import
-			if number+maxUncleDist < height || f.getBlock(hash) != nil {
+			if number+minQueueDist <= height || f.getBlock(hash) != nil {
 				f.forgetBlock(hash)
 				continue
 			}
@@ -366,7 +366,7 @@ func (f *BlockFetcher) loop() {
 			}
 			// If we have a valid block number, check that it's potentially useful
 			if notification.number > 0 {
-				if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+				if dist := int64(notification.number) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
 					log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
 					blockAnnounceDropMeter.Mark(1)
 					break
@@ -661,7 +661,7 @@ func (f *BlockFetcher) enqueue(peer string, block *types.Block) {
 		return
 	}
 	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
 		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
 		blockBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
