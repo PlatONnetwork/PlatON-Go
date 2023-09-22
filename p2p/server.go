@@ -381,33 +381,17 @@ func (srv *Server) RemovePeer(node *enode.Node) {
 // server is shut down. If the connection fails for any reason, the server will
 // attempt to reconnect the peer.
 func (srv *Server) AddConsensusPeer(node *enode.Node) {
-	srv.dialsched.addConsensus(node)
+	select {
+	case srv.addconsensus <- node:
+	case <-srv.quit:
+	}
 }
 
 // RemoveConsensusPeer disconnects from the given consensus node
 func (srv *Server) RemoveConsensusPeer(node *enode.Node) {
-	var (
-		ch  chan *PeerEvent
-		sub event.Subscription
-	)
-	// Disconnect the peer on the main loop.
-	srv.doPeerOp(func(peers map[enode.ID]*Peer) {
-		srv.dialsched.removeConsensus(node)
-		if peer := peers[node.ID()]; peer != nil {
-			ch = make(chan *PeerEvent, 1)
-			sub = srv.peerFeed.Subscribe(ch)
-			peer.Disconnect(DiscRequested)
-		}
-	})
-	srv.log.Trace("Removing consensus node from dialstate", "node", node)
-	// Wait for the peer connection to end.
-	if ch != nil {
-		defer sub.Unsubscribe()
-		for ev := range ch {
-			if ev.Peer == node.ID() && ev.Type == PeerEventTypeDrop {
-				return
-			}
-		}
+	select {
+	case srv.removeconsensus <- node:
+	case <-srv.quit:
 	}
 }
 

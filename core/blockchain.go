@@ -1472,9 +1472,14 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block) (err error) {
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
-func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB,
+	emitHeadEvent bool, cbftBridgeUpdateChainState func()) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
+
+	if cbftBridgeUpdateChainState != nil {
+		cbftBridgeUpdateChainState()
+	}
 
 	// Make sure no inconsistent state is leaked during insertion
 	currentBlock := bc.CurrentBlock()
