@@ -381,33 +381,17 @@ func (srv *Server) RemovePeer(node *enode.Node) {
 // server is shut down. If the connection fails for any reason, the server will
 // attempt to reconnect the peer.
 func (srv *Server) AddConsensusPeer(node *enode.Node) {
-	srv.dialsched.addConsensus(node)
+	select {
+	case srv.addconsensus <- node:
+	case <-srv.quit:
+	}
 }
 
 // RemoveConsensusPeer disconnects from the given consensus node
 func (srv *Server) RemoveConsensusPeer(node *enode.Node) {
-	var (
-		ch  chan *PeerEvent
-		sub event.Subscription
-	)
-	// Disconnect the peer on the main loop.
-	srv.doPeerOp(func(peers map[enode.ID]*Peer) {
-		srv.dialsched.removeConsensus(node)
-		if peer := peers[node.ID()]; peer != nil {
-			ch = make(chan *PeerEvent, 1)
-			sub = srv.peerFeed.Subscribe(ch)
-			peer.Disconnect(DiscRequested)
-		}
-	})
-	srv.log.Trace("Removing consensus node from dialstate", "node", node)
-	// Wait for the peer connection to end.
-	if ch != nil {
-		defer sub.Unsubscribe()
-		for ev := range ch {
-			if ev.Peer == node.ID() && ev.Type == PeerEventTypeDrop {
-				return
-			}
-		}
+	select {
+	case srv.removeconsensus <- node:
+	case <-srv.quit:
 	}
 }
 
@@ -527,6 +511,8 @@ func (srv *Server) Start() (err error) {
 	srv.removetrusted = make(chan *enode.Node)
 	srv.peerOp = make(chan peerOpFunc)
 	srv.peerOpDone = make(chan struct{})
+	srv.addconsensus = make(chan *enode.Node)
+	srv.removeconsensus = make(chan *enode.Node)
 
 	if err := srv.setupLocalNode(); err != nil {
 		return err
@@ -861,7 +847,7 @@ running:
 			}
 
 			if consensusNodes[c.node.ID()] {
-				c.flags |= consensusDialedConn
+				c.set(consensusDialedConn, true)
 			}
 
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
@@ -920,7 +906,8 @@ running:
 
 func (srv *Server) postHandshakeChecks(peers map[enode.ID]*Peer, inboundCount int, c *conn) error {
 	// Disconnect over limit non-consensus node.
-	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && srv.numConsensusPeer(peers) < srv.MaxConsensusPeers {
+	numConsensusPeer := srv.numConsensusPeer(peers)
+	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && numConsensusPeer < srv.MaxConsensusPeers {
 		for _, p := range peers {
 			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
 				srv.log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
@@ -931,7 +918,7 @@ func (srv *Server) postHandshakeChecks(peers map[enode.ID]*Peer, inboundCount in
 	}
 
 	switch {
-	case c.is(consensusDialedConn) && srv.numConsensusPeer(peers) >= srv.MaxConsensusPeers:
+	case c.is(consensusDialedConn) && numConsensusPeer >= srv.MaxConsensusPeers:
 		return DiscTooManyConsensusPeers
 	case !srv.consensus && c.is(consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
