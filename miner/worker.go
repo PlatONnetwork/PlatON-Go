@@ -695,7 +695,7 @@ func (w *worker) taskLoop() {
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				w.blockChainCache.AddSealBlock(sealHash, task.block.NumberU64())
 				task.state.UpdateSnaps()
-				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64())
+				log.Debug("Add seal block to blockchain cache", "sealHash", sealHash, "number", task.block.NumberU64(), "stateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh, w.prepareCompleteCh); err != nil {
 					log.Warn("Block sealing failed on bft engine", "err", err)
 					w.commitWorkEnv.setCommitStatusIdle()
@@ -758,7 +758,6 @@ func (w *worker) resultLoop() {
 			log.Debug("Pending task", "exist", exist)
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
-			//todo remove extra magic number
 			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Header()) {
 				_receipts = task.receipts
 				_state = task.state
