@@ -1778,8 +1778,8 @@ func (d *Downloader) processFastSyncContent() error {
 						if errors.Is(err, errCanceled) {
 							return err
 						}
-						if i == 2 || i == len(peers) {
-							return fmt.Errorf("faild to fetch PPOSStorageV2, err: %v", err)
+						if i == 2 || i == len(peers)-1 {
+							return fmt.Errorf("faild to fetch PPOSStorageV2,try: %d, err: %v", i+1, err)
 						}
 					} else {
 						break
