@@ -49,10 +49,10 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tealeg/xlsx v1.0.5
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.14.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.7.0
-	golang.org/x/text v0.9.0
+	golang.org/x/sys v0.13.0
+	golang.org/x/text v0.13.0
 	golang.org/x/time v0.3.0
 	golang.org/x/tools v0.8.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
@@ -64,8 +64,9 @@ require (
 )
 
 require (
+	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c
 	github.com/herumi/bls v1.37.0
-	golang.org/x/net v0.9.0
+	golang.org/x/net v0.17.0
 )
 
 require (
