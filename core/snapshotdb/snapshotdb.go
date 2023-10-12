@@ -588,7 +588,7 @@ func (s *snapshotDB) findToWrite() int {
 
 	var length = commitNum
 	for i := 0; i < length; i++ {
-		if s.committed[i].Number.Cmp(minimumHeight) > 0 {
+		if s.committed[i].Number.Cmp(minimumHeight) >= 0 {
 			commitNum--
 		}
 	}
