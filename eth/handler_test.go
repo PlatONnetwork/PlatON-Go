@@ -207,4 +207,5 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 func (b *testHandler) close() {
 	b.handler.Stop()
 	b.chain.Stop()
+	b.db.Close()
 }
