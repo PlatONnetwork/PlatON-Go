@@ -289,7 +289,7 @@ loop:
 			d.doneSinceLastLog++
 
 		case c := <-d.addPeerCh:
-			if c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn) {
+			if !c.is(inboundConn) && (c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn)) {
 				d.dialPeers++
 			}
 			id := c.node.ID()
@@ -302,7 +302,7 @@ loop:
 			// TODO: cancel dials to connected peers
 
 		case c := <-d.remPeerCh:
-			if c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn) {
+			if !c.is(inboundConn) && (c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn)) {
 				d.dialPeers--
 			}
 			delete(d.peers, c.node.ID())
