@@ -168,7 +168,7 @@ func (exe *Executor) preCheck(msg types.Message, fromObj *state.ParallelStateObj
 	// check balance
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
 	balanceCheck := mgval
-	if msg.GasFeeCap() != nil {
+	if gte150 {
 		balanceCheck = new(big.Int).SetUint64(msg.Gas())
 		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
 		balanceCheck.Add(balanceCheck, msg.Value())
@@ -233,7 +233,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), effectiveTip)
 	// sender fee
 	fee := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
-	log.Trace("Execute parallel tx", "baseFee", ctx.header.BaseFee, "gasTipCap", msg.GasTipCap(), "gasFeeCap", msg.GasFeeCap(), "gasPrice", msg.GasPrice(), "effectiveTip", effectiveTip)
+	log.Trace("Execute parallel tx", "baseFee", ctx.header.BaseFee, "gasTipCap", msg.GasTipCap(), "gasFeeCap", msg.GasFeeCap(), "gasPrice", msg.GasPrice(), "effectiveTip", effectiveTip, "intrinsicGas", intrinsicGas)
 	cost := new(big.Int).Add(msg.Value(), fee)
 	if fromObj.GetBalance().Cmp(cost) < 0 {
 		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
