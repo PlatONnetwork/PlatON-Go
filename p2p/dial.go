@@ -484,9 +484,9 @@ func (d *dialScheduler) startConsensusDials(n int) (started int) {
 	// 如果没有多余得slot，但是共识连接数量不够，那么每次额外拿出最多3个slot来执行，使得旧的连接可以被踢掉
 	if n <= 0 && d.MaxConsensusPeers > d.consensusPeers {
 		n = d.MaxConsensusPeers - d.consensusPeers
-	}
-	if n > 3 {
-		n = 3
+		if n > 3 {
+			n = 3
+		}
 	}
 
 	// Create dials for consensus nodes if they are not connected.
