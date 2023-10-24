@@ -38,7 +38,7 @@ func testFastSyncDisabling(t *testing.T, protocol uint) {
 	t.Parallel()
 
 	// Create an empty handler and ensure it's in fast sync mode
-	empty := newTestHandler2()
+	empty := newTestHandler()
 	if atomic.LoadUint32(&empty.handler.fastSync) == 0 {
 		t.Fatalf("fast sync disabled on pristine blockchain")
 	}
