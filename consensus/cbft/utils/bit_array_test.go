@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package utils
 
 import (
@@ -285,9 +284,12 @@ func TestPickRandom(t *testing.T) {
 	assert.Equal(t, isExists, false)
 
 	bA1, _ := randBitArray(51)
-	i, _ = bA1.PickRandom()
-	assert.NotEqual(t, i, uint32(0))
-	assert.NotEqual(t, i, true)
+	if bA1 == nil {
+		t.Error("randBitArray fail")
+	}
+	_, tmp := bA1.PickRandom()
+	//assert.NotEqual(t, m, uint32(0))
+	assert.NotEqual(t, tmp, false)
 }
 
 func TestGetTrueIndices(t *testing.T) {

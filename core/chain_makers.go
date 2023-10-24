@@ -18,12 +18,14 @@ package core
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -99,7 +101,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	if b.gasPool == nil {
 		b.SetCoinbase(common.Address{})
 	}
-	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
+	b.statedb.Prepare(tx.Hash(), len(b.txs))
 	receipt, err := ApplyTransaction(b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
@@ -108,9 +110,9 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	b.receipts = append(b.receipts, receipt)
 }
 
-// Number returns the block number of the block being generated.
-func (b *BlockGen) Number() *big.Int {
-	return new(big.Int).Set(b.header.Number)
+// GetBalance returns the balance of the given address at the generated block.
+func (b *BlockGen) GetBalance(addr common.Address) *big.Int {
+	return b.statedb.GetBalance(addr)
 }
 
 // AddUncheckedTx forcefully adds a transaction to the block without any
@@ -120,6 +122,16 @@ func (b *BlockGen) Number() *big.Int {
 // chain processing. This is best used in conjunction with raw block insertion.
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
+}
+
+// Number returns the block number of the block being generated.
+func (b *BlockGen) Number() *big.Int {
+	return new(big.Int).Set(b.header.Number)
+}
+
+// BaseFee returns the EIP-1559 base fee of the block being generated.
+func (b *BlockGen) BaseFee() *big.Int {
+	return new(big.Int).Set(b.header.BaseFee)
 }
 
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
@@ -179,6 +191,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	if config == nil {
 		config = params.TestChainConfig
 	}
+	config.PauliBlock = big.NewInt(1)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
@@ -207,6 +220,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	for i := 0; i < n; i++ {
 		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 1, statedb)
 		if err != nil {
 			panic(err)
 		}
@@ -249,7 +263,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -291,7 +305,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -346,7 +360,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -374,15 +388,26 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = parent.Time() + 10 // block time is fixed at 10 seconds
 	}
 
-	return &types.Header{
+	header := &types.Header{
 		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		GasLimit:   CalcGasLimit(parent, parent.GasLimit() /*, parent.GasLimit()*/, nil),
+		GasLimit:   parent.GasLimit(),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
 		Extra:      make([]byte, 65),
 	}
+
+	if chain.Config().IsPauli(header.Number) {
+		header.BaseFee = misc.CalcBaseFee(chain.Config(), parent.Header())
+		parentGasLimit := parent.GasLimit()
+		if !chain.Config().IsPauli(parent.Number()) {
+			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		}
+		header.GasLimit = CalcGasLimit1559(parentGasLimit, parentGasLimit)
+	}
+
+	return header
 }
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.

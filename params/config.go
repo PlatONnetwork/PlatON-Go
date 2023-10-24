@@ -19,6 +19,7 @@ package params
 import (
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
@@ -113,6 +114,7 @@ var (
 		NewtonBlock:     big.NewInt(1),
 		EinsteinBlock:   big.NewInt(1),
 		HubbleBlock:     big.NewInt(1),
+		PauliBlock:      big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
@@ -141,6 +143,7 @@ var (
 		NewtonBlock:     big.NewInt(0),
 		EinsteinBlock:   big.NewInt(0),
 		HubbleBlock:     big.NewInt(0),
+		PauliBlock:      big.NewInt(0),
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
@@ -151,7 +154,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, FORKVERSION_1_5_0}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -185,11 +188,13 @@ type ChainConfig struct {
 	NewtonBlock     *big.Int `json:"newtonBlock,omitempty"`
 	EinsteinBlock   *big.Int `json:"einsteinBlock,omitempty"`
 	HubbleBlock     *big.Int `json:"hubbleBlock,omitempty"`
+	PauliBlock      *big.Int `json:"pauliBlock,omitempty"`
 
 	// Various consensus engines
 	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	GenesisVersion uint32 `json:"genesisVersion"`
+	sync.RWMutex
 }
 
 // String implements the fmt.Stringer interface.
@@ -201,7 +206,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Pauli: %v Engine: %v }",
 		c.ChainID,
 		c.PIP7ChainID,
 		c.EIP155Block,
@@ -209,6 +214,7 @@ func (c *ChainConfig) String() string {
 		c.NewtonBlock,
 		c.EinsteinBlock,
 		c.HubbleBlock,
+		c.PauliBlock,
 		engine,
 	)
 }
@@ -242,6 +248,25 @@ func (c *ChainConfig) IsEinstein(num *big.Int) bool {
 // version 1.4.0
 func (c *ChainConfig) IsHubble(num *big.Int) bool {
 	return isForked(c.HubbleBlock, num)
+}
+
+// version 1.5.0
+func (c *ChainConfig) IsPauli(num *big.Int) bool {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return isForked(c.PauliBlock, num)
+}
+
+func (c *ChainConfig) GetPauliBlock() *big.Int {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return c.PauliBlock
+}
+
+func (c *ChainConfig) SetPauliBlock(block *big.Int) {
+	c.RWMutex.Lock()
+	defer c.RWMutex.Unlock()
+	c.PauliBlock = block
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
@@ -391,8 +416,8 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                                *big.Int
-	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble bool
+	ChainID                                                         *big.Int
+	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -408,5 +433,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsNewton:     c.IsNewton(num),
 		IsEinstein:   c.IsEinstein(num),
 		IsHubble:     c.IsHubble(num),
+		IsPauli:      c.IsPauli(num),
 	}
 }

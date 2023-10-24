@@ -39,8 +39,8 @@ const (
 	LogDataGas              uint64 = 8     // Per byte in a LOG* operation's data.
 	CallStipend             uint64 = 2300  // Free gas given at beginning of call.
 
-	Sha3Gas     uint64 = 30 // Once per SHA3 operation.
-	Sha3WordGas uint64 = 6  // Once per word of the SHA3 operation's data.
+	Keccak256Gas     uint64 = 30 // Once per KECCAK256 operation.
+	Keccak256WordGas uint64 = 6  // Once per word of the KECCAK256 operation's data.
 
 	SstoreSetGas    uint64 = 20000 // Once per SLOAD operation.
 	SstoreResetGas  uint64 = 5000  // Once per SSTORE operation if the zeroness changes from zero.
@@ -76,7 +76,7 @@ const (
 	// In EIP-2929: SstoreResetGas was changed to '5000 - COLD_SLOAD_COST'.
 	// In EIP-3529: SSTORE_CLEARS_SCHEDULE is defined as SSTORE_RESET_GAS + ACCESS_LIST_STORAGE_KEY_COST
 	// Which becomes: 5000 - 2100 + 1900 = 4800
-	SstoreClearsScheduleRefundEIP3529 uint64 = SstoreResetGasEIP2200 - ColdSloadCostEIP2929 + TxAccessListStorageKeyGas
+	SstoreClearsScheduleRefundEIP3529        = SstoreResetGasEIP2200 - ColdSloadCostEIP2929 + TxAccessListStorageKeyGas
 	JumpdestGas                       uint64 = 1     // Once per JUMPDEST operation.
 	EpochDuration                     uint64 = 30000 // Duration between proof-of-work epochs.
 
@@ -129,6 +129,10 @@ const (
 	// Introduced in Tangerine Whistle (Eip 150)
 	CreateBySelfdestructGas uint64 = 25000
 
+	BaseFeeChangeDenominator = 8 // Bounds the amount the base fee can change between blocks.
+	ElasticityMultiplier     = 2 // Bounds the maximum gas limit an EIP-1559 block may have.
+	InitialBaseFee           = 0 // Initial base fee for EIP-1559 blocks.
+
 	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
@@ -152,6 +156,13 @@ const (
 	Bls12381PairingPerPairGas uint64 = 23000  // Per-point pair gas price for BLS12-381 elliptic curve pairing check
 	Bls12381MapG1Gas          uint64 = 5500   // Gas price for BLS12-381 mapping field element to G1 operation
 	Bls12381MapG2Gas          uint64 = 110000 // Gas price for BLS12-381 mapping field element to G2 operation
+
+	BlsVerifyGas uint64 = 21000 // Gas price for BLS12-381 mapping field element to G2 operation
+
+	// The Refund Quotient is the cap on how much of the used gas can be refunded. Before EIP-3529,
+	// up to half the consumed gas could be refunded. Redefined as 1/5th in EIP-3529
+	RefundQuotient        uint64 = 2
+	RefundQuotientEIP3529 uint64 = 5
 
 	// PlatONPrecompiled contract gas
 	StakingGas            uint64 = 6000  // Gas needed for precompiled contract: stakingContract

@@ -13,6 +13,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
+type Committer interface {
+	CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool)
+}
+
 type TxsCommitter struct {
 	worker *worker
 }
@@ -23,18 +27,19 @@ func NewTxsCommitter(w *worker) *TxsCommitter {
 	}
 }
 
-func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
+func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
 	w := c.worker
 
 	// Short circuit if current is nil
 	timeout := false
 
-	if w.current == nil {
+	if env == nil {
 		return true, timeout
 	}
 
-	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+	gasLimit := env.header.GasLimit
+	if env.gasPool == nil {
+		env.gasPool = new(core.GasPool).AddGas(gasLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -58,7 +63,7 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
-				ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				ratio := float64(env.header.GasLimit-env.gasPool.Gas()) / float64(env.header.GasLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
@@ -70,8 +75,8 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 			return atomic.LoadInt32(interrupt) == commitInterruptNewHead, timeout
 		}
 		// If we don't have enough gas for any further transactions then we're done
-		if w.current.gasPool.Gas() < params.TxGas {
-			log.Trace("Not enough gas for further transactions", "have", w.current.gasPool, "want", params.TxGas)
+		if env.gasPool.Gas() < params.TxGas {
+			log.Trace("Not enough gas for further transactions", "have", env.gasPool, "want", params.TxGas)
 			break
 		}
 		// Retrieve the next transaction and abort if all done
@@ -83,24 +88,24 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 		// during transaction acceptance is the transaction pool.
 		//
 		// We use the eip155 signer regardless of the current hf.
-		from, _ := types.Sender(w.current.signer, tx)
+		from, _ := types.Sender(env.signer, tx)
 		// Check whether the tx is replay protected. If we're not in the EIP155 hf
 		// phase, start ignoring the sender until we do.
-		if !w.chainConfig.IsEIP155(w.current.header.Number) {
+		if !w.chainConfig.IsEIP155(env.header.Number) {
 			log.Trace("Ignoring reply protected transaction", "hash", tx.Hash(), "eip155", w.chainConfig.EIP155Block)
 
 			txs.Pop()
 			continue
 		}
 		// Start executing the transaction
-		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
+		env.state.Prepare(tx.Hash(), env.tcount)
 
-		logs, err := w.commitTransaction(tx)
+		logs, err := w.commitTransaction(env, tx)
 
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "state", w.current.state)
+			log.Warn("Gas limit exceeded for current block", "blockNumber", env.header.Number, "blockParentHash", env.header.ParentHash, "tx.hash", tx.Hash(), "sender", from)
 			txs.Pop()
 
 		case core.ErrNonceTooLow:
@@ -110,23 +115,23 @@ func (c *TxsCommitter) CommitTransactions(header *types.Header, txs *types.Trans
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Warn("Skipping account with high nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
+			log.Warn("Skipping account with high nonce", "blockNumber", env.header.Number, "blockParentHash", env.header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", env.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Pop()
 
 		case nil:
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
-			w.current.tcount++
+			env.tcount++
 			txs.Shift()
 
 		case vm.ErrAbort:
-			log.Warn("Skipping account with exec timeout tx", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
+			log.Warn("Skipping account with exec timeout tx", "blockNumber", env.header.Number, "blockParentHash", env.header.ParentHash, "hash", tx.Hash(), "sender", from, "senderCurNonce", env.state.GetNonce(from), "txNonce", tx.Nonce())
 			txs.Pop()
 
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
-			log.Warn("Transaction failed, account skipped", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "hash", tx.Hash(), "err", err)
+			log.Warn("Transaction failed, account skipped", "blockNumber", env.header.Number, "blockParentHash", env.header.ParentHash, "hash", tx.Hash(), "hash", tx.Hash(), "err", err)
 			txs.Shift()
 		}
 	}

@@ -169,6 +169,7 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 
 	var db = rawdb.NewMemoryDatabase()
+	chainConfig.SetPauliBlock(nil)
 	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)

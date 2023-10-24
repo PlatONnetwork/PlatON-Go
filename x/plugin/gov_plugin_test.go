@@ -332,7 +332,7 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -356,7 +356,7 @@ func TestGovPlugin_SubmitText_invalidType(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -380,7 +380,7 @@ func TestGovPlugin_SubmitText_Proposer_empty(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //empty proposal
 	if err != nil {
@@ -468,7 +468,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -493,7 +493,7 @@ func TestGovPlugin_SubmitVersion_ZeroEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -509,7 +509,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	defer setup(t)()
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	version := uint32(1<<16 | 2<<8 | 0)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
@@ -625,7 +625,7 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 		TobeCanceled:    txHashArr[0],
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -1104,7 +1104,7 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}

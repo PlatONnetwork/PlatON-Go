@@ -63,13 +63,6 @@ func NewFailFaker(number uint64) *BftMock {
 	return c
 }
 
-//func NewFakeDelayer(delay time.Duration) *BftMock {
-//	c := new(BftMock)
-//	c.Blocks = make([]*types.Block, 0)
-//	c.fakeDelay = delay
-//	return c
-//}
-
 // BftMock represents a simulated consensus structure.
 type BftMock struct {
 	EventMux    *event.TypeMux
@@ -80,7 +73,6 @@ type BftMock struct {
 	Base        *types.Block
 	fakeFail    uint64         // Block number which fails BFT check even in fake mode
 	database    ethdb.Database // In memory database to store our testing data
-	//fakeDelay time.Duration // Time delay to sleep for before returning from verify
 }
 
 // InsertChain is a fake interface, no need to implement.
@@ -111,13 +103,11 @@ func (bm *BftMock) GetPrepareQC(number uint64) *ctypes.QuorumCert {
 
 // FastSyncCommitHead is a fake interface, no need to implement.
 func (bm *BftMock) FastSyncCommitHead(block *types.Block) error {
-	// todo implement me
 	return nil
 }
 
 // Start is a fake interface, no need to implement.
 func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error {
-	// todo implement me
 	return nil
 }
 
@@ -134,31 +124,26 @@ func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
 
 // CalcNextBlockTime is a fake interface, no need to implement.
 func (bm *BftMock) CalcNextBlockTime(timePoint time.Time) time.Time {
-	// todo implement me
 	return time.Now()
 }
 
 // GetBlockWithoutLock is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
-	// todo implement me
 	return nil
 }
 
 // IsSignedBySelf is a fake interface, no need to implement.
 func (bm *BftMock) IsSignedBySelf(sealHash common.Hash, header *types.Header) bool {
-	// todo implement me
 	return true
 }
 
 // Evidences is a fake interface, no need to implement.
 func (bm *BftMock) Evidences() string {
-	// todo implement me
 	return ""
 }
 
 // UnmarshalEvidence is a fake interface, no need to implement.
 func (bm *BftMock) UnmarshalEvidence(data []byte) (consensus.Evidences, error) {
-	// todo implement me
 	return nil, nil
 }
 
@@ -262,8 +247,6 @@ func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *t
 		//ExtraData:          extra,
 		//SyncState:          cbft.commitErrCh,
 		ChainStateUpdateCB: func() {
-			// Do nothings
-			//fmt.Println("result the block", "Number", sealBlock.NumberU64(), "Hash", sealBlock.Hash().Hex())
 		},
 	})
 	return nil
@@ -309,46 +292,9 @@ func (bm *BftMock) ShouldSeal(curTime time.Time) (bool, error) {
 	return true, nil
 }
 
-// OnBlockSignature received a new block signature
-// Need to verify if the signature is signed by nodeID
-func (bm *BftMock) OnBlockSignature(chain ChainReader, nodeID enode.IDv0, sig *cbfttypes.BlockSignature) error {
-	return nil
-}
-
-// OnNewBlock processes the BFT signatures
-func (bm *BftMock) OnNewBlock(chain ChainReader, block *types.Block) error {
-	return nil
-}
-
-// OnPong processes the BFT signatures
-func (bm *BftMock) OnPong(nodeID enode.IDv0, netLatency int64) error {
-	return nil
-
-}
-
-// OnBlockSynced sends a signal if a block synced from other peer.
-func (bm *BftMock) OnBlockSynced() {
-
-}
-
-// CheckConsensusNode is a fake interface, no need to implement.
-func (bm *BftMock) CheckConsensusNode(nodeID enode.IDv0) (bool, error) {
-	return true, nil
-}
-
 // IsConsensusNode is a fake interface, no need to implement.
 func (bm *BftMock) IsConsensusNode() bool {
 	return true
-}
-
-// HighestLogicalBlock is a fake interface, no need to implement.
-func (bm *BftMock) HighestLogicalBlock() *types.Block {
-	return nil
-}
-
-// HighestConfirmedBlock is a fake interface, no need to implement.
-func (bm *BftMock) HighestConfirmedBlock() *types.Block {
-	return nil
 }
 
 // GetBlock is a fake interface, no need to implement.
@@ -381,32 +327,17 @@ func (bm *BftMock) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.
 	return nil
 }
 
-// Status is a fake interface, no need to implement.
-func (bm *BftMock) Status() string {
-	return ""
-}
-
 // CurrentBlock is a fake interface, no need to implement.
 func (bm *BftMock) CurrentBlock() *types.Block {
-	//if len(bm.Blocks) == 0 {
-	//	h := types.Header{Number: big.NewInt(0)}
-	//	return types.NewBlockWithHeader(&h)
-	//}
-	//return bm.Blocks[len(bm.Blocks)-1]
 	return bm.Current
 }
 
 // TracingSwitch is a fake interface, no need to implement.
-func (bm *BftMock) TracingSwitch(flag int8) {
+func (bm *BftMock) TracingSwitch(flag int8) {}
 
-}
+func (bm *BftMock) Pause() {}
 
-func (bm *BftMock) Pause() {
-
-}
-func (bm *BftMock) Resume() {
-
-}
+func (bm *BftMock) Resume() {}
 
 func (bm *BftMock) Syncing() bool {
 	return false

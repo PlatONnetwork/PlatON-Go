@@ -93,7 +93,7 @@ func (p *testTxPool) AddRemotes(txs []*types.Transaction) []error {
 }
 
 // Pending returns all the transactions known to the pool
-func (p *testTxPool) Pending() (map[common.Address]types.Transactions, error) {
+func (p *testTxPool) Pending(enforceTips, limited bool) map[common.Address]types.Transactions {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -105,7 +105,7 @@ func (p *testTxPool) Pending() (map[common.Address]types.Transactions, error) {
 	for _, batch := range batches {
 		sort.Sort(types.TxByNonce(batch))
 	}
-	return batches, nil
+	return batches
 }
 
 // SubscribeNewTxsEvent should return an event subscription of NewTxsEvent and
@@ -182,7 +182,15 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	})
 	parent := genesis.MustCommit(db)
-	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, consensus.NewFakerWithDataBase(db), db, blocks, nil)
+
+	errCh := make(chan error, 1)
+
+	engine := consensus.NewFakerWithDataBase(db)
+
+	errCh <- engine.InsertChain(parent)
+	<-errCh
+
+	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
 	txpool := newTestTxPool()
 
 	handler, _ := newHandler(&handlerConfig{

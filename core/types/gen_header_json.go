@@ -28,6 +28,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+		BaseFee     *hexutil.Big   `json:"baseFeePerGas" rlp:"optional"`
 		Hash        common.Hash    `json:"hash"`
 	}
 	var enc Header
@@ -43,6 +44,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Time = hexutil.Uint64(h.Time)
 	enc.Extra = h.Extra
 	enc.Nonce = h.Nonce
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.Hash = h.Hash()
 	return json.Marshal(&enc)
 }
@@ -62,6 +64,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Time        *hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       *hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		Nonce       *BlockNonce     `json:"nonce"            gencodec:"required"`
+		BaseFee     *hexutil.Big    `json:"baseFeePerGas" rlp:"optional"`
 	}
 	var dec Header
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -115,5 +118,8 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'nonce' for Header")
 	}
 	h.Nonce = *dec.Nonce
+	if dec.BaseFee != nil {
+		h.BaseFee = (*big.Int)(dec.BaseFee)
+	}
 	return nil
 }

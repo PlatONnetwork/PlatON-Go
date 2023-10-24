@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enr"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 const (
@@ -71,9 +70,6 @@ type Handler func(peer *Peer) error
 type Backend interface {
 	// Chain retrieves the blockchain object to serve data.
 	Chain() *core.BlockChain
-
-	// StateBloom retrieves the bloom filter - if any - for state trie nodes.
-	StateBloom() *trie.SyncBloom
 
 	// TxPool retrieves the transaction pool object to serve data.
 	TxPool() TxPool
@@ -224,6 +220,7 @@ var eth66 = map[uint64]msgHandler{
 	// PPOS messages
 	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
 	PPOSStorageMsg:       handlePPosStorageMsg,
+	PPOSStorageV2Msg:     handlePPosStorageV2Msg,
 	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
 	OriginAndPivotMsg:    handleOriginAndPivotMsg,
 	PPOSInfoMsg:          handlePPOSInfoMsg,

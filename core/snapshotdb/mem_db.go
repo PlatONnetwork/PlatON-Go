@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"sync"
 )
@@ -69,7 +69,11 @@ func (db *MemDatabase) WriteBaseDB(kvs [][2][]byte) error {
 	return nil
 }
 
-//SetCurrent use for fast sync
+func (db *MemDatabase) WriteBaseDBWithBlock(current *types.Header, blocks []BlockData) error {
+	return nil
+}
+
+// SetCurrent use for fast sync
 func (db *MemDatabase) SetCurrent(highestHash common.Hash, base, height big.Int) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()

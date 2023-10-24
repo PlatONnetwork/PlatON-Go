@@ -368,7 +368,7 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, root common.Hash, pref
 		for i, key := range result.keys {
 			snapTrie.Update(key, result.vals[i])
 		}
-		root, _ := snapTrie.Commit(nil)
+		root, _, _ := snapTrie.Commit(nil)
 		snapTrieDb.Commit(root, false, false)
 	}
 	// Construct the trie for state iteration, reuse the trie

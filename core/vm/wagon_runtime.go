@@ -963,10 +963,10 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 		overflow bool
 	)
 
-	if wordGas, overflow = imath.SafeMul(toWordSize(uint64(srcLen)), params.Sha3WordGas); overflow {
+	if wordGas, overflow = imath.SafeMul(toWordSize(uint64(srcLen)), params.Keccak256WordGas); overflow {
 		panic(errGasUintOverflow)
 	}
-	if gas, overflow = imath.SafeAdd(wordGas, params.Sha3Gas); overflow {
+	if gas, overflow = imath.SafeAdd(wordGas, params.Keccak256Gas); overflow {
 		panic(errGasUintOverflow)
 	}
 
@@ -1019,7 +1019,7 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	if transfersValue {
 		gas += params.CallValueTransferGas
 	}
-	gasTemp, err := callGas(ctx.contract.Gas, params.TxGas, uint256.NewInt().SetUint64(ctx.contract.Gas))
+	gasTemp, err := callGas(ctx.contract.Gas, params.TxGas, new(uint256.Int).SetUint64(ctx.contract.Gas))
 	if nil != err {
 		panic(err)
 	}
@@ -1277,7 +1277,7 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 		gas += params.CallValueTransferGas
 	}
 
-	gasTemp, err := callGas(ctx.contract.Gas, gas, uint256.NewInt().SetBytes(bCost.Bytes()))
+	gasTemp, err := callGas(ctx.contract.Gas, gas, new(uint256.Int).SetBytes(bCost.Bytes()))
 	if nil != err {
 		panic(err)
 	}
@@ -1349,7 +1349,7 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGas(ctx.contract.Gas, ctx.gasTable.Calls, uint256.NewInt().SetBytes(bCost.Bytes()))
+	gasTemp, err := callGas(ctx.contract.Gas, ctx.gasTable.Calls, new(uint256.Int).SetBytes(bCost.Bytes()))
 	if nil != err {
 		panic(err)
 	}
@@ -1416,7 +1416,7 @@ func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost
 		bCost = new(big.Int).SetUint64(ctx.contract.Gas)
 	}
 
-	gasTemp, err := callGas(ctx.contract.Gas, ctx.gasTable.Calls, uint256.NewInt().SetBytes(bCost.Bytes()))
+	gasTemp, err := callGas(ctx.contract.Gas, ctx.gasTable.Calls, new(uint256.Int).SetBytes(bCost.Bytes()))
 	if nil != err {
 		panic(err)
 	}
@@ -1544,7 +1544,8 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	if bValue.Sign() != 0 {
 		gas += params.CallNewAccountGas
 	}
-	gasTemp, err := callGas(ctx.contract.Gas, gas, uint256.NewInt().SetBytes(bCost.Bytes()))
+
+	gasTemp, err := callGas(ctx.contract.Gas, gas, new(uint256.Int).SetBytes(bCost.Bytes()))
 	if nil != err {
 		panic(err)
 	}
@@ -2199,7 +2200,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	}
 
 	gas := params.CallNewAccountGas
-	gasTemp, err := callGas(ctx.contract.Gas, gas, uint256.NewInt().SetBytes(costValue.Bytes()))
+	gasTemp, err := callGas(ctx.contract.Gas, gas, new(uint256.Int).SetBytes(costValue.Bytes()))
 	if nil != err {
 		panic(err)
 	}

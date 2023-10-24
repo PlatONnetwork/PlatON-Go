@@ -19,14 +19,14 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
 	"sort"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 )
 
 // AppHelpFlagGroups is the application flags, grouped by functionality.
@@ -39,7 +39,6 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.AncientFlag,
 			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
-			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			utils.MainFlag,
 			utils.TestnetFlag,
@@ -112,6 +111,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.GraphQLCORSDomainFlag,
 			utils.GraphQLVirtualHostsFlag,
 			utils.RPCGlobalGasCapFlag,
+			utils.RPCGlobalEVMTimeoutFlag,
 			utils.RPCGlobalTxFeeCapFlag,
 			utils.JSpathFlag,
 			utils.ExecFlag,
@@ -150,6 +150,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.GpoBlocksFlag,
 			utils.GpoPercentileFlag,
 			utils.GpoMaxGasPriceFlag,
+			utils.GpoIgnoreGasPriceFlag,
 		},
 	},
 	/*	{
@@ -193,19 +194,13 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 	{
 		Name: "ALIASED (deprecated)",
 		Flags: append([]cli.Flag{
-			utils.LegacyRPCEnabledFlag,
-			utils.LegacyRPCListenAddrFlag,
-			utils.LegacyRPCPortFlag,
-			utils.LegacyRPCCORSDomainFlag,
-			utils.LegacyRPCVirtualHostsFlag,
-			utils.LegacyRPCApiFlag,
 			utils.LegacyWSListenAddrFlag,
 			utils.LegacyWSPortFlag,
 			utils.LegacyWSAllowedOriginsFlag,
 			utils.LegacyWSApiFlag,
 			utils.LegacyGpoBlocksFlag,
 			utils.LegacyGpoPercentileFlag,
-		}, debug.DeprecatedFlags...),
+		}),
 	},
 	{
 		Name: "MISC",
