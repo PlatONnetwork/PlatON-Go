@@ -798,10 +798,8 @@ running:
 			srv.log.Trace("Removing consensus node", "node", n)
 			id := n.ID()
 			if srv.localnode.ID() == id {
-				if bytes.Equal(crypto.Keccak256(srv.ourHandshake.ID), id[:]) {
-					srv.log.Debug("We are not an consensus node")
-					srv.consensus = false
-				}
+				srv.log.Debug("We are not an consensus node")
+				srv.consensus = false
 			}
 			srv.dialsched.removeConsensus(n)
 			if _, ok := consensusNodes[n.ID()]; ok {
@@ -1293,6 +1291,8 @@ func (srv *Server) watching() {
 								peer.rw.set(consensusDialedConn, false)
 							}
 						}
+						srv.log.Debug("We are become an consensus node")
+						srv.consensus = true
 						srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
 					})
 				} else {
@@ -1300,6 +1300,8 @@ func (srv *Server) watching() {
 						for _, peer := range peers {
 							peer.rw.set(consensusDialedConn, false)
 						}
+						srv.log.Debug("We are not an consensus node")
+						srv.consensus = false
 						srv.dialsched.updateConsensusNun(0)
 					})
 				}
