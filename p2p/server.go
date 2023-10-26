@@ -783,7 +783,6 @@ running:
 			if srv.localnode.ID() == id {
 				srv.log.Debug("We are become an consensus node")
 				srv.consensus = true
-				srv.dialsched.setConsensus(true)
 			} else {
 				srv.dialsched.addConsensus(n)
 			}
@@ -802,7 +801,6 @@ running:
 				if bytes.Equal(crypto.Keccak256(srv.ourHandshake.ID), id[:]) {
 					srv.log.Debug("We are not an consensus node")
 					srv.consensus = false
-					srv.dialsched.setConsensus(false)
 				}
 			}
 			srv.dialsched.removeConsensus(n)
@@ -1268,7 +1266,7 @@ func (srv *Server) StartWatching(eventMux *event.TypeMux) {
 }
 
 func (srv *Server) watching() {
-	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{}, cbfttypes.UpdateValidatorEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -1285,6 +1283,26 @@ func (srv *Server) watching() {
 			case cbfttypes.RemoveValidatorEvent:
 				srv.log.Trace("Received RemoveValidatorEvent", "nodeID", data.Node.ID().String())
 				srv.RemoveConsensusPeer(data.Node)
+			case cbfttypes.UpdateValidatorEvent:
+				if _, ok := data.Nodes[srv.localnode.ID()]; ok {
+					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+						for id, peer := range peers {
+							if _, ok := data.Nodes[id]; ok {
+								peer.rw.set(consensusDialedConn, true)
+							} else {
+								peer.rw.set(consensusDialedConn, false)
+							}
+						}
+						srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+					})
+				} else {
+					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+						for _, peer := range peers {
+							peer.rw.set(consensusDialedConn, false)
+						}
+						srv.dialsched.updateConsensusNun(0)
+					})
+				}
 			default:
 				srv.log.Error("Received unexcepted event")
 			}

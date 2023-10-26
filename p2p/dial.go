@@ -122,7 +122,6 @@ type dialScheduler struct {
 	static     map[enode.ID]*dialTask
 	staticPool []*dialTask
 
-	consensus              bool
 	consensusPeers         int
 	updateConsensusPeersCh chan int
 	consensusPool          *dialedTasks
@@ -217,10 +216,6 @@ func (d *dialScheduler) removeStatic(n *enode.Node) {
 	case d.remStaticCh <- n:
 	case <-d.ctx.Done():
 	}
-}
-
-func (d *dialScheduler) setConsensus(status bool) {
-	d.consensus = status
 }
 
 func (d *dialScheduler) updateConsensusNun(n int) {
@@ -478,9 +473,10 @@ func (d *dialScheduler) startStaticDials(n int) (started int) {
 }
 
 func (d *dialScheduler) startConsensusDials(n int) (started int) {
-	if !d.consensus {
+	if len(d.consensusPool.ListTask()) == 0 {
 		return
 	}
+
 	// 如果没有多余得slot，但是共识连接数量不够，那么每次额外拿出最多3个slot来执行，使得旧的连接可以被踢掉
 	if n <= 0 && d.MaxConsensusPeers > d.consensusPeers {
 		n = d.MaxConsensusPeers - d.consensusPeers
