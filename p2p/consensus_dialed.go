@@ -52,12 +52,12 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 	return nil
 }
 
-func (tasks *dialedTasks) RemoveTask(NodeID *enode.Node) error {
+func (tasks *dialedTasks) RemoveTask(NodeID enode.ID) error {
 
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
-			if t.dest.ID() == NodeID.ID() {
+			if t.dest.ID() == NodeID {
 				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
 				break
 			}
