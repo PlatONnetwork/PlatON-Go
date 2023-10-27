@@ -641,7 +641,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
-func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, async bool) error {
 	// Short circuit if the header is known, or its parent not
 	number := header.Number.Uint64()
 	if chain.GetHeader(header.Hash(), number) != nil {
@@ -650,7 +650,12 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 
 	parent := chain.GetHeader(header.ParentHash, number-1)
 	if parent == nil {
-		parentBlock := cbft.GetBlockWithoutLock(header.ParentHash, number-1)
+		var parentBlock *types.Block
+		if async {
+			parentBlock = cbft.GetBlockWithLock(header.ParentHash, number-1)
+		} else {
+			parentBlock = cbft.GetBlockWithoutLock(header.ParentHash, number-1)
+		}
 		if parentBlock != nil {
 			parent = parentBlock.Header()
 		}
@@ -738,7 +743,7 @@ func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*typ
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
 		if parent == nil {
-			parentBlock := cbft.GetBlockWithoutLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+			parentBlock := cbft.GetBlockWithLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
 			if parentBlock != nil {
 				parent = parentBlock.Header()
 			}
@@ -1309,6 +1314,25 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
 		result <- block
 	}
+	return <-result
+}
+
+// GetBlockWithLock synchronously obtains blocks according to the specified number and hash.
+func (cbft *Cbft) GetBlockWithLock(hash common.Hash, number uint64) *types.Block {
+	result := make(chan *types.Block, 1)
+
+	cbft.asyncCallCh <- func() {
+		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+		if block == nil {
+			if eb := cbft.state.FindBlock(hash, number); eb != nil {
+				block = eb
+			} else {
+				cbft.log.Debug("Get block failed", "hash", hash, "number", number)
+			}
+		}
+		result <- block
+	}
+
 	return <-result
 }
 
