@@ -165,7 +165,7 @@ func (bm *BftMock) Author(header *types.Header) (common.Address, error) {
 // VerifyHeader checks whether a header conforms to the consensus rules of a
 // given engine. Verifying the seal may be done optionally here, or explicitly
 // via the VerifySeal method.
-func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, seal bool) error {
+func (bm *BftMock) VerifyHeader(chain ChainReader, header *types.Header, async bool) error {
 	if bm.fakeFail == header.Number.Uint64() {
 		return fmt.Errorf("failed verifyHeader on bftMock")
 	}
