@@ -182,7 +182,15 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	})
 	parent := genesis.MustCommit(db)
-	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, consensus.NewFakerWithDataBase(db), db, blocks, nil)
+
+	errCh := make(chan error, 1)
+
+	engine := consensus.NewFakerWithDataBase(db)
+
+	errCh <- engine.InsertChain(parent)
+	<-errCh
+
+	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
 	txpool := newTestTxPool()
 
 	handler, _ := newHandler(&handlerConfig{
@@ -207,4 +215,5 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 func (b *testHandler) close() {
 	b.handler.Stop()
 	b.chain.Stop()
+	b.db.Close()
 }

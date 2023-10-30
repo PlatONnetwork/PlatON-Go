@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"math/big"
 	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -38,24 +37,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 )
 
-// Block's Signature info
-type BlockSignature struct {
-	SignHash  common.Hash // Signature hash，header[0:32]
-	Hash      common.Hash // Block hash，header[:]
-	Number    *big.Int
-	Signature *common.BlockConfirmSign
-}
-
-func (bs *BlockSignature) Copy() *BlockSignature {
-	sign := *bs.Signature
-	return &BlockSignature{
-		SignHash:  bs.SignHash,
-		Hash:      bs.Hash,
-		Number:    new(big.Int).Set(bs.Number),
-		Signature: &sign,
-	}
-}
-
 type UpdateChainStateFn func(qcState, lockState, commitState *protocols.State)
 
 type CbftResult struct {
@@ -63,28 +44,6 @@ type CbftResult struct {
 	ExtraData          []byte
 	SyncState          chan error
 	ChainStateUpdateCB func()
-}
-
-type ProducerState struct {
-	count int
-	miner common.Address
-}
-
-func (ps *ProducerState) Add(miner common.Address) {
-	if ps.miner == miner {
-		ps.count++
-	} else {
-		ps.miner = miner
-		ps.count = 1
-	}
-}
-
-func (ps *ProducerState) Get() (common.Address, int) {
-	return ps.miner, ps.count
-}
-
-func (ps *ProducerState) Validate(period int) bool {
-	return ps.count < period
 }
 
 type AddValidatorEvent struct {
@@ -95,7 +54,9 @@ type RemoveValidatorEvent struct {
 	Node *enode.Node
 }
 
-type UpdateValidatorEvent struct{}
+type UpdateValidatorEvent struct {
+	Nodes map[enode.ID]struct{}
+}
 
 type ValidateNode struct {
 	Index     uint32             `json:"index"`
