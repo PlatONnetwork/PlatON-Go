@@ -1538,12 +1538,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		headers[i] = block.Header()
 		seals[i] = verifySeals
 	}
-	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
-	defer close(abort)
 
 	// Pause engine
 	bc.engine.Pause()
 	defer bc.engine.Resume()
+
+	abort, results := bc.engine.VerifyHeaders(bc, headers, seals)
+	defer close(abort)
 
 	// Peek the error for the first block to decide the directing import logic
 	it := newInsertIterator(chain, results, bc.Validator())

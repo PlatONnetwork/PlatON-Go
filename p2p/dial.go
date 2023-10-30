@@ -122,7 +122,9 @@ type dialScheduler struct {
 	static     map[enode.ID]*dialTask
 	staticPool []*dialTask
 
-	consensus *dialedTasks
+	consensusPeers         int
+	updateConsensusPeersCh chan int
+	consensusPool          *dialedTasks
 
 	// The dial history keeps recently dialed nodes. Members of history are not dialed.
 	history          expHeap
@@ -170,20 +172,21 @@ func (cfg dialConfig) withDefaults() dialConfig {
 
 func newDialScheduler(config dialConfig, it enode.Iterator, setupFunc dialSetupFunc) *dialScheduler {
 	d := &dialScheduler{
-		dialConfig:      config.withDefaults(),
-		setupFunc:       setupFunc,
-		dialing:         make(map[enode.ID]*dialTask),
-		static:          make(map[enode.ID]*dialTask),
-		peers:           make(map[enode.ID]struct{}),
-		doneCh:          make(chan *dialTask),
-		nodesIn:         make(chan *enode.Node),
-		addStaticCh:     make(chan *enode.Node),
-		remStaticCh:     make(chan *enode.Node),
-		addPeerCh:       make(chan *conn),
-		remPeerCh:       make(chan *conn),
-		addconsensus:    make(chan *enode.Node),
-		removeconsensus: make(chan *enode.Node),
-		consensus:       NewDialedTasks(config.MaxConsensusPeers*2, nil),
+		dialConfig:             config.withDefaults(),
+		setupFunc:              setupFunc,
+		dialing:                make(map[enode.ID]*dialTask),
+		static:                 make(map[enode.ID]*dialTask),
+		peers:                  make(map[enode.ID]struct{}),
+		doneCh:                 make(chan *dialTask),
+		nodesIn:                make(chan *enode.Node),
+		addStaticCh:            make(chan *enode.Node),
+		remStaticCh:            make(chan *enode.Node),
+		addPeerCh:              make(chan *conn),
+		remPeerCh:              make(chan *conn),
+		addconsensus:           make(chan *enode.Node),
+		removeconsensus:        make(chan *enode.Node),
+		updateConsensusPeersCh: make(chan int),
+		consensusPool:          NewDialedTasks(config.MaxConsensusPeers*2, nil),
 	}
 	d.lastStatsLog = d.clock.Now()
 	d.ctx, d.cancel = context.WithCancel(context.Background())
@@ -215,6 +218,13 @@ func (d *dialScheduler) removeStatic(n *enode.Node) {
 	}
 }
 
+func (d *dialScheduler) updateConsensusNun(n int) {
+	select {
+	case d.updateConsensusPeersCh <- n:
+	case <-d.ctx.Done():
+	}
+}
+
 func (d *dialScheduler) addConsensus(n *enode.Node) {
 	select {
 	case d.addconsensus <- n:
@@ -234,7 +244,7 @@ func (d *dialScheduler) removeConsensusFromQueue(n *enode.Node) {
 }
 
 func (d *dialScheduler) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
-	d.consensus.InitRemoveConsensusPeerFn(removeConsensusPeerFn)
+	d.consensusPool.InitRemoveConsensusPeerFn(removeConsensusPeerFn)
 }
 
 // peerAdded updates the peer set.
@@ -264,8 +274,8 @@ loop:
 	for {
 		// Launch new dials if slots are available.
 		slots := d.freeDialSlots()
-		slots -= d.startConsensusDials(slots)
 		slots -= d.startStaticDials(slots)
+		slots -= d.startConsensusDials(slots)
 		if slots > 0 {
 			nodesCh = d.nodesIn
 		} else {
@@ -289,7 +299,7 @@ loop:
 			d.doneSinceLastLog++
 
 		case c := <-d.addPeerCh:
-			if c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn) {
+			if c.is(dynDialedConn) || c.is(staticDialedConn) {
 				d.dialPeers++
 			}
 			id := c.node.ID()
@@ -302,7 +312,7 @@ loop:
 			// TODO: cancel dials to connected peers
 
 		case c := <-d.remPeerCh:
-			if c.is(dynDialedConn) || c.is(staticDialedConn) || c.is(consensusDialedConn) {
+			if c.is(dynDialedConn) || c.is(staticDialedConn) {
 				d.dialPeers--
 			}
 			delete(d.peers, c.node.ID())
@@ -333,10 +343,12 @@ loop:
 			}
 		case node := <-d.addconsensus:
 			log.Warn("dial adding consensus node", "node", node)
-			d.consensus.AddTask(&dialTask{flags: consensusDialedConn, dest: node})
+			d.consensusPool.AddTask(newDialTask(node, dynDialedConn|consensusDialedConn))
 		case node := <-d.removeconsensus:
-			d.consensus.RemoveTask(node)
-
+			d.consensusPool.RemoveTask(node.ID())
+		case num := <-d.updateConsensusPeersCh:
+			d.log.Debug("update added consensus peers num", "num", num)
+			d.consensusPeers = num
 		case <-historyExp:
 			d.expireHistory()
 
@@ -461,22 +473,33 @@ func (d *dialScheduler) startStaticDials(n int) (started int) {
 }
 
 func (d *dialScheduler) startConsensusDials(n int) (started int) {
+	if len(d.consensusPool.ListTask()) == 0 {
+		return
+	}
+
+	// 如果没有多余得slot，但是共识连接数量不够，那么每次额外拿出最多3个slot来执行，使得旧的连接可以被踢掉
+	if n <= 0 && d.MaxConsensusPeers > d.consensusPeers {
+		n = d.MaxConsensusPeers - d.consensusPeers
+		if n > 3 {
+			n = 3
+		}
+	}
+
 	// Create dials for consensus nodes if they are not connected.
-	i := 0
-	for _, t := range d.consensus.ListTask() {
-		if i >= n {
+	for _, t := range d.consensusPool.ListTask() {
+		if started >= n {
 			break
 		}
 		err := d.checkDial(t.dest)
 		switch err {
 		case errNetRestrict, errSelf:
-			d.consensus.RemoveTask(t.dest)
+			d.consensusPool.RemoveTask(t.dest.ID())
 		case nil:
 			d.startDial(t)
-			i++
+			started++
 		}
 	}
-	return i
+	return started
 }
 
 // updateStaticPool attempts to move the given static dial back into staticPool.
