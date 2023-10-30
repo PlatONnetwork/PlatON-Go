@@ -438,9 +438,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   time.Time  // timestamp for each round of mining.
 	)
 
-	vdEvent := w.mux.Subscribe(cbfttypes.UpdateValidatorEvent{})
-	defer vdEvent.Unsubscribe()
-
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 	<-timer.C // discard the initial tick

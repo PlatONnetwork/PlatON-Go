@@ -161,7 +161,6 @@ func ListenV4(c UDPConn, ln *enode.LocalNode, cfg Config) (*UDPv4, error) {
 
 	if cfg.ChainID != nil {
 		bytes_ChainId, _ := rlp.EncodeToBytes(cfg.ChainID)
-		cRest = []rlp.RawValue{bytes_ChainId, bytes_ChainId}
 		log.Info("UDP set chain ID", "chainId", cfg.ChainID, "bytes_ChainId", bytes_ChainId)
 	}
 	if cfg.PIP7ChainID != nil {
@@ -364,6 +363,7 @@ func (t *UDPv4) RequestENR(n *enode.Node) (*enode.Node, error) {
 
 	req := &v4wire.ENRRequest{
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
+		Rest:       cRestPIP7,
 	}
 	packet, hash, err := v4wire.Encode(t.priv, req)
 	if err != nil {
@@ -572,7 +572,7 @@ func (t *UDPv4) handlePacket(from *net.UDPAddr, buf []byte) error {
 	packet := t.wrapPacket(rawpacket)
 	fromID := fromKey.ID()
 	if err == nil && packet.preverify != nil {
-		if !reflect.DeepEqual(rawpacket.Fork(), cRest) && !reflect.DeepEqual(rawpacket.Fork(), cRestPIP7) {
+		if !reflect.DeepEqual(rawpacket.Fork(), cRestPIP7) {
 			return errData
 		}
 		err = packet.preverify(packet, from, fromID, fromKey)
@@ -798,9 +798,12 @@ func (t *UDPv4) verifyENRRequest(h *packetHandlerV4, from *net.UDPAddr, fromID e
 }
 
 func (t *UDPv4) handleENRRequest(h *packetHandlerV4, from *net.UDPAddr, fromID enode.ID, mac []byte) {
+	req := h.Packet.(*v4wire.ENRRequest)
+
 	t.send(from, fromID, &v4wire.ENRResponse{
 		ReplyTok: mac,
 		Record:   *t.localNode.Node().Record(),
+		Rest:     req.Rest,
 	})
 }
 

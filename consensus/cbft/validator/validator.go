@@ -419,6 +419,12 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 
 	isValidatorAfter := vp.isValidator(epoch, vp.nodeID)
 
+	nodes := make(map[enode.ID]struct{})
+	for _, validator := range vp.currentValidators.Nodes {
+		nodes[validator.NodeID] = struct{}{}
+	}
+	eventMux.Post(cbfttypes.UpdateValidatorEvent{Nodes: nodes})
+
 	if isValidatorBefore {
 		// If we are still a consensus node, that adding
 		// new validators as consensus peer, and removing

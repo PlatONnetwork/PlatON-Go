@@ -54,7 +54,9 @@ type RemoveValidatorEvent struct {
 	Node *enode.Node
 }
 
-type UpdateValidatorEvent struct{}
+type UpdateValidatorEvent struct {
+	Nodes map[enode.ID]struct{}
+}
 
 type ValidateNode struct {
 	Index     uint32             `json:"index"`
