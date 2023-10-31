@@ -683,7 +683,7 @@ func (srv *Server) setupDialScheduler() {
 		srv.doPeerOp(func(peers map[enode.ID]*Peer) {
 			srv.dialsched.removeConsensusFromQueue(node)
 			if p, ok := peers[node.ID()]; ok {
-				p.Disconnect(DiscRequested)
+				p.rw.set(consensusDialedConn, false)
 			}
 		})
 	}
@@ -778,7 +778,7 @@ running:
 		case n := <-srv.addconsensus:
 			// This channel is used by AddConsensusNode to add an enode
 			// to the consensus node set.
-			srv.log.Trace("Adding consensus node", "node", n)
+			srv.log.Trace("Adding consensus node", "node", n.ID())
 			id := n.ID()
 			if srv.localnode.ID() == id {
 				srv.log.Debug("We are become an consensus node")
@@ -795,7 +795,7 @@ running:
 		case n := <-srv.removeconsensus:
 			// This channel is used by RemoveConsensusNode to remove an enode
 			// from the consensus node set.
-			srv.log.Trace("Removing consensus node", "node", n)
+			srv.log.Trace("Removing consensus node", "node", n.ID())
 			id := n.ID()
 			if srv.localnode.ID() == id {
 				srv.log.Debug("We are not an consensus node")
@@ -817,7 +817,7 @@ running:
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add a node
 			// to the trusted node set.
-			srv.log.Trace("Adding trusted node", "node", n)
+			srv.log.Trace("Adding trusted node", "node", n.ID())
 			trusted[n.ID()] = true
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(trustedConn, true)
@@ -826,7 +826,7 @@ running:
 		case n := <-srv.removetrusted:
 			// This channel is used by RemoveTrustedPeer to remove a node
 			// from the trusted node set.
-			srv.log.Trace("Removing trusted node", "node", n)
+			srv.log.Trace("Removing trusted node", "node", n.ID())
 			delete(trusted, n.ID())
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(trustedConn, false)
@@ -1276,12 +1276,13 @@ func (srv *Server) watching() {
 
 			switch data := ev.Data.(type) {
 			case cbfttypes.AddValidatorEvent:
-				srv.log.Trace("Received AddValidatorEvent", "nodeID", data.Node.ID().String())
+				srv.log.Trace("Received AddValidatorEvent", "nodeID", data.Node.ID())
 				srv.AddConsensusPeer(data.Node)
 			case cbfttypes.RemoveValidatorEvent:
-				srv.log.Trace("Received RemoveValidatorEvent", "nodeID", data.Node.ID().String())
+				srv.log.Trace("Received RemoveValidatorEvent", "nodeID", data.Node.ID())
 				srv.RemoveConsensusPeer(data.Node)
 			case cbfttypes.UpdateValidatorEvent:
+				consensusPeer := 0
 				if _, ok := data.Nodes[srv.localnode.ID()]; ok {
 					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
 						for id, peer := range peers {
@@ -1293,7 +1294,7 @@ func (srv *Server) watching() {
 						}
 						srv.log.Debug("We are become an consensus node")
 						srv.consensus = true
-						srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+						consensusPeer = srv.numConsensusPeer(peers)
 					})
 				} else {
 					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
@@ -1302,9 +1303,9 @@ func (srv *Server) watching() {
 						}
 						srv.log.Debug("We are not an consensus node")
 						srv.consensus = false
-						srv.dialsched.updateConsensusNun(0)
 					})
 				}
+				srv.dialsched.updateConsensusNun(consensusPeer)
 			default:
 				srv.log.Error("Received unexcepted event")
 			}
