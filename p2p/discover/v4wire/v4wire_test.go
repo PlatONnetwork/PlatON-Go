@@ -17,7 +17,6 @@
 package v4wire
 
 import (
-	"bytes"
 	"encoding/hex"
 	"net"
 	"reflect"
@@ -35,7 +34,7 @@ var testPackets = []struct {
 	wantPacket Packet
 }{
 	/*{
-		input: "96e7a55f265b738379447058e63d7bad33b05b1e3e93d9537f05be9975090bd72dbe25ab1d57c3de65e0b089f6b884c2273d29b343211483557f7c46f3df0b2650779f3459fabbf34261f113b4f29f6d5f540ea7d3fe5e35b24264517f8529110001ea04cb847f000001820cfa8215a8d790000000000000000000000000000000018208ae820d058443b9a355",
+		input: "86b1419e9db40e9b03fcebf50a247e8b0b0cb4f6000e8de56c33336fb54c01fff20d1818b4e7bca98129b72f3551c507705addc662a7eefa0000a51c9a39d691577bfb0b4320b6421cbafda7001dc033776ffad4a330ca74027ef38fb84c00990101eb04cb847f000001820cfa8215a8d790000000000000000000000000000000018208ae820d058443b9a355c0",
 		wantPacket: &Ping{
 			Version:    4,
 			From:       Endpoint{net.ParseIP("127.0.0.1").To4(), 3322, 5544},
@@ -44,14 +43,15 @@ var testPackets = []struct {
 		},
 	},*/
 	{
-		input: "b045fd6e610bfe8e51393adb7aa058d60259a744cbcbceed6078b006857a7e881e32b9760ea0fd6c07fd9fbd9e73cda03c5ffa5d58c5b1cce8fc309ad2a702fc3f5a496f0e008bba521b77d5486151d391a76690d095b27adfb6a3e77d0193400101eb04cb847f000001820cfa8215a8d790000000000000000000000000000000018208ae820d058443b9a35503",
+		input: "54fa00ece4514b03f0ce6380e31c6f882b644ddb3a1c8ec6fb511dd5c8b0d9853c0ec90ddf84859ae4bedef069a12db12ca895fcb8358483bc9c4935b7f7c5ef4e49d6242a82520456c1a788864eb1c510074a928b5151fcab397220ae8855090101ee04cb847f000001820cfa8215a8d790000000000000000000000000000000018208ae820d058443b9a355c1030102",
 		wantPacket: &Ping{
 			Version:    4,
 			From:       Endpoint{net.ParseIP("127.0.0.1").To4(), 3322, 5544},
 			To:         Endpoint{net.ParseIP("::1"), 2222, 3333},
 			Expiration: 1136239445,
 			ForkID:     []rlp.RawValue{{0x03}},
-			//ENRSeq:     1,
+			ENRSeq:     1,
+			Rest:       []rlp.RawValue{{0x02}},
 		},
 	},
 	{
@@ -118,44 +118,6 @@ func TestForwardCompatibility(t *testing.T) {
 		if nodekey != wantNodeKey {
 			t.Errorf("got id %v\nwant id %v", nodekey, wantNodeKey)
 		}
-	}
-}
-
-func TestPingEncode(t *testing.T) {
-	packet, err := rlp.EncodeToBytes(&Ping{
-		Version:    4,
-		From:       Endpoint{net.ParseIP("127.0.0.1").To4(), 3322, 5544},
-		To:         Endpoint{net.ParseIP("::1"), 2222, 3333},
-		Expiration: 1136239445,
-		ForkID:     []rlp.RawValue{{0x03}},
-	})
-	if err != nil {
-		t.Error(err)
-	}
-	packet2, err2 := rlp.EncodeToBytes(&Ping{
-		Version:    4,
-		From:       Endpoint{net.ParseIP("127.0.0.1").To4(), 3322, 5544},
-		To:         Endpoint{net.ParseIP("::1"), 2222, 3333},
-		Expiration: 1136239445,
-		ForkID:     []rlp.RawValue{{0x03}},
-		ENRSeq:     1,
-	})
-	if err2 != nil {
-		t.Error(err2)
-	}
-	packet3, err3 := rlp.EncodeToBytes(&PingV1{
-		Version:    4,
-		From:       Endpoint{net.ParseIP("127.0.0.1").To4(), 3322, 5544},
-		To:         Endpoint{net.ParseIP("::1"), 2222, 3333},
-		Expiration: 1136239445,
-		Rest:       []rlp.RawValue{{0x03}},
-	})
-	if err3 != nil {
-		t.Error(err3)
-	}
-
-	if !bytes.Equal(packet, packet2) && !bytes.Equal(packet3, packet2) {
-		t.Error("should be same")
 	}
 }
 

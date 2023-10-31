@@ -57,15 +57,6 @@ type (
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
-	PingV1 struct {
-		Version    uint
-		From, To   Endpoint
-		Expiration uint64
-
-		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
-	}
-
 	// Pong is the reply to ping.
 	Pong struct {
 		// This field should mirror the UDP envelope address
@@ -203,9 +194,6 @@ func (req *Ping) DecodeRLP(s *rlp.Stream) error {
 	if err := decodePingRLP(req, blob); err == nil {
 		return nil
 	}
-	if err := decodeV1PingRLP(req, blob); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -224,21 +212,6 @@ func decodePingRLP(p *Ping, blob []byte) error {
 	p.ForkID = ping.ForkID
 	p.ENRSeq = ping.ENRSeq
 	p.Rest = ping.Rest
-	return nil
-}
-
-func decodeV1PingRLP(p *Ping, blob []byte) error {
-	var ping PingV1
-	if err := rlp.DecodeBytes(blob, &ping); err != nil {
-		return err
-	}
-
-	p.Version = ping.Version
-	p.From = ping.From
-	p.To = ping.To
-	p.Expiration = ping.Expiration
-	p.ForkID = ping.Rest
-
 	return nil
 }
 

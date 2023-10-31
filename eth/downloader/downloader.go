@@ -765,7 +765,7 @@ func (d *Downloader) fetchPPOSStorageV2(p *peerConnection, pivot *types.Header) 
 				return fmt.Errorf("received ppos storage V2 from incorrect peer,%s", packet.PeerId())
 			}
 			pposDada := packet.(*pposStoragePack)
-			if len(pposDada.blocks) == 0 {
+			if pposDada.base {
 				count += int64(len(pposDada.kvs))
 				if uint64(count) != pposDada.kvNum {
 					return fmt.Errorf("received ppos storage v2 from incorrect kvNum %v,count %v", pposDada.kvNum, count)
@@ -1875,8 +1875,8 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64, blocks []snapshotdb.BlockData, baseBlock uint64) (err error) {
-	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum, blocks, baseBlock}, pposStorageInMeter, pposStorageDropMeter)
+func (d *Downloader) DeliverPposStorage(id string, kvs [][2][]byte, last bool, kvNum uint64, base bool, blocks []snapshotdb.BlockData, baseBlock uint64) (err error) {
+	return d.deliver(d.pposStorageCh, &pposStoragePack{id, kvs, last, kvNum, base, blocks, baseBlock}, pposStorageInMeter, pposStorageDropMeter)
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.

@@ -499,7 +499,7 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 	defer dlp.dl.lock.RUnlock()
 	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum]]
 	Latest := dlp.chain.headBlock().Header()
-	log.Debug("DeliverPposInfo")
+	log.Debug("DeliverPposInfo", "Pivot", Pivot.Number, "num", num)
 	if err := dlp.dl.downloader.DeliverPposInfo(dlp.id, Latest, Pivot); err != nil {
 		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 		return err
@@ -516,18 +516,27 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 		KVNum++
 		count++
 		if count >= eth.PPOSStorageKVSizeFetch {
-			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum, nil, 0); err != nil {
+			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum, true, nil, 0); err != nil {
 				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 				return err
 			}
 			count = 0
 			ps = make([][2][]byte, 0)
 		}
-		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum, nil, 0); err != nil {
-			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
-			return err
-		}
-		return nil
+	}
+	if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum, true, nil, 0); err != nil {
+		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		return err
+	}
+	datas := make([]snapshotdb.BlockData, 0)
+
+	for i := uint64(dlp.chain.baseNum) + 1; i <= num; i++ {
+		datas = append(datas, *snapshotdb.NewBlockData(new(big.Int).SetUint64(num), dlp.chain.headerm[dlp.chain.chain[i-1]].Hash(), dlp.chain.headerm[dlp.chain.chain[i]].Hash()))
+	}
+
+	if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, 0, false, datas, uint64(dlp.chain.baseNum)); err != nil {
+		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		return err
 	}
 	return nil
 }
@@ -1230,9 +1239,6 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol uint) {
 
 // Tests that synchronisation progress (origin block number, current block number
 // and highest block number) is tracked and updated correctly.
-func TestSyncProgress65Full(t *testing.T)  { testSyncProgress(t, eth.ETH65, FullSync) }
-func TestSyncProgress65Fast(t *testing.T)  { testSyncProgress(t, eth.ETH65, FastSync) }
-func TestSyncProgress65Light(t *testing.T) { testSyncProgress(t, eth.ETH65, LightSync) }
 
 func TestSyncProgress66Full(t *testing.T)  { testSyncProgress(t, eth.ETH66, FullSync) }
 func TestSyncProgress66Fast(t *testing.T)  { testSyncProgress(t, eth.ETH66, FastSync) }
@@ -1386,9 +1392,6 @@ func checkProgress(t *testing.T, d *Downloader, stage string, want ethereum.Sync
 // Tests that if synchronisation is aborted due to some failure, then the progress
 // origin is not updated in the next sync cycle, as it should be considered the
 // continuation of the previous sync and not a new instance.
-func TestFailedSyncProgress65Full(t *testing.T)  { testFailedSyncProgress(t, eth.ETH65, FullSync) }
-func TestFailedSyncProgress65Fast(t *testing.T)  { testFailedSyncProgress(t, eth.ETH65, FastSync) }
-func TestFailedSyncProgress65Light(t *testing.T) { testFailedSyncProgress(t, eth.ETH65, LightSync) }
 
 func TestFailedSyncProgress66Full(t *testing.T)  { testFailedSyncProgress(t, eth.ETH66, FullSync) }
 func TestFailedSyncProgress66Fast(t *testing.T)  { testFailedSyncProgress(t, eth.ETH66, FastSync) }
