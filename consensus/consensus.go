@@ -180,6 +180,8 @@ type Bft interface {
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]enode.ID, error)
 
+	ConsensusValidators() []*cbfttypes.ValidateNode
+
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime time.Time) (bool, error)
 

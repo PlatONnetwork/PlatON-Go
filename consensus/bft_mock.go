@@ -287,6 +287,10 @@ func (bm *BftMock) ConsensusNodes() ([]enode.ID, error) {
 	return nil, nil
 }
 
+func (bm *BftMock) ConsensusValidators() []*cbfttypes.ValidateNode {
+	return nil
+}
+
 // ShouldSeal returns whether the current node is out of the block
 func (bm *BftMock) ShouldSeal(curTime time.Time) (bool, error) {
 	return true, nil
