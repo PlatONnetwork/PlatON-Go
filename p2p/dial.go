@@ -342,7 +342,7 @@ loop:
 				}
 			}
 		case node := <-d.addconsensus:
-			log.Warn("dial adding consensus node", "node", node)
+			log.Warn("dial adding consensus node", "node", node.ID())
 			d.consensusPool.AddTask(newDialTask(node, dynDialedConn|consensusDialedConn))
 		case node := <-d.removeconsensus:
 			d.consensusPool.RemoveTask(node.ID())

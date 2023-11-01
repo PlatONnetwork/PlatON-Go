@@ -433,17 +433,17 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		// in the consensus stages. Also we are not needed
 		// to keep connect with old validators.
 		if isValidatorAfter {
-			for nodeID, vnode := range vp.currentValidators.Nodes {
-				if node, _ := vp.prevValidators.FindNodeByID(nodeID); node == nil {
-					eventMux.Post(cbfttypes.AddValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
-					log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
-				}
-			}
-
 			for nodeID, vnode := range vp.prevValidators.Nodes {
 				if node, _ := vp.currentValidators.FindNodeByID(nodeID); node == nil {
 					eventMux.Post(cbfttypes.RemoveValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
 					log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+				}
+			}
+
+			for nodeID, vnode := range vp.currentValidators.Nodes {
+				if node, _ := vp.prevValidators.FindNodeByID(nodeID); node == nil {
+					eventMux.Post(cbfttypes.AddValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
+					log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
 				}
 			}
 		} else {

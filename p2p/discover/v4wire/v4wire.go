@@ -71,17 +71,7 @@ type (
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
-	PongV1 struct {
-		// This field should mirror the UDP envelope address
-		// of the ping packet, which provides a way to discover the
-		// the external address (after NAT).
-		To         Endpoint
-		ReplyTok   []byte // This contains the hash of the ping packet.
-		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 
-		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
-	}
 	// Findnode is a query for nodes close to the given target.
 	Findnode struct {
 		Target     Pubkey
@@ -230,9 +220,6 @@ func (req *Pong) DecodeRLP(s *rlp.Stream) error {
 	if err := decodePongRLP(req, blob); err == nil {
 		return nil
 	}
-	if err := decodeV1PongRLP(req, blob); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -249,18 +236,6 @@ func decodePongRLP(p *Pong, blob []byte) error {
 	p.ForkID = pong.ForkID
 	p.ENRSeq = pong.ENRSeq
 	p.Rest = pong.Rest
-	return nil
-}
-
-func decodeV1PongRLP(p *Pong, blob []byte) error {
-	var pong PongV1
-	if err := rlp.DecodeBytes(blob, &pong); err != nil {
-		return err
-	}
-	p.To = pong.To
-	p.ReplyTok = pong.ReplyTok
-	p.Expiration = pong.Expiration
-	p.ForkID = pong.Rest
 	return nil
 }
 
