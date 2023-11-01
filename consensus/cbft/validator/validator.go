@@ -425,6 +425,9 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	}
 	eventMux.Post(cbfttypes.UpdateValidatorEvent{Nodes: nodes})
 
+	removes := make([]*enode.Node, 0)
+	adds := make([]*enode.Node, 0)
+
 	if isValidatorBefore {
 		// If we are still a consensus node, that adding
 		// new validators as consensus peer, and removing
@@ -435,21 +438,22 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		if isValidatorAfter {
 			for nodeID, vnode := range vp.prevValidators.Nodes {
 				if node, _ := vp.currentValidators.FindNodeByID(nodeID); node == nil {
-					eventMux.Post(cbfttypes.RemoveValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
-					log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+					removes = append(removes, enode.NewV4(vnode.PubKey, nil, 0, 0))
+					log.Trace("add to RemoveValidatorEvent", "nodeID", nodeID, "isValidatorAfter")
 				}
 			}
 
 			for nodeID, vnode := range vp.currentValidators.Nodes {
 				if node, _ := vp.prevValidators.FindNodeByID(nodeID); node == nil {
-					eventMux.Post(cbfttypes.AddValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
-					log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+					adds = append(adds, enode.NewV4(vnode.PubKey, nil, 0, 0))
+					log.Trace("add to AddValidatorEvent", "nodeID", nodeID)
 				}
 			}
+
 		} else {
 			for nodeID, vnode := range vp.prevValidators.Nodes {
-				eventMux.Post(cbfttypes.RemoveValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
-				log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+				removes = append(removes, enode.NewV4(vnode.PubKey, nil, 0, 0))
+				log.Trace("add to RemoveValidatorEvent", "nodeID", nodeID)
 			}
 		}
 	} else {
@@ -459,12 +463,19 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 		// with other validators in the consensus stages.
 		if isValidatorAfter {
 			for nodeID, vnode := range vp.currentValidators.Nodes {
-				eventMux.Post(cbfttypes.AddValidatorEvent{Node: enode.NewV4(vnode.PubKey, nil, 0, 0)})
-				log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+				adds = append(adds, enode.NewV4(vnode.PubKey, nil, 0, 0))
+				log.Trace("add to  AddValidatorEvent", "nodeID", nodeID)
 			}
 		}
 	}
-
+	if len(removes) > 0 {
+		eventMux.Post(cbfttypes.RemoveValidatorEvent{Nodes: removes})
+		log.Trace("Post RemoveValidatorEvent", "num", len(removes), "isValidatorBefore", isValidatorBefore, "isValidatorAfter", isValidatorAfter)
+	}
+	if len(adds) > 0 {
+		eventMux.Post(cbfttypes.AddValidatorEvent{Nodes: adds})
+		log.Trace("Post AddValidatorEvent", "num", len(adds), "isValidatorBefore", isValidatorBefore, "isValidatorAfter", isValidatorAfter)
+	}
 	return nil
 }
 
