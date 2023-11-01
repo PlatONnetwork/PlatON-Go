@@ -484,6 +484,11 @@ func (d *dialScheduler) startConsensusDials(n int) (started int) {
 			n = 3
 		}
 	}
+	if n <= 0 {
+		return
+	}
+
+	log.Debug("startConsensusDials", "maxConsensusPeers", d.MaxConsensusPeers, "consensusPeers", d.consensusPeers, "n", n, "task queue", d.consensusPool.description())
 
 	// Create dials for consensus nodes if they are not connected.
 	for _, t := range d.consensusPool.ListTask() {
