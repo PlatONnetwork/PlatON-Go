@@ -419,11 +419,13 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 
 	isValidatorAfter := vp.isValidator(epoch, vp.nodeID)
 
-	nodes := make(map[enode.ID]struct{})
-	for _, validator := range vp.currentValidators.Nodes {
-		nodes[validator.NodeID] = struct{}{}
+	if isValidatorBefore || isValidatorAfter {
+		nodes := make(map[enode.ID]struct{})
+		for _, validator := range vp.currentValidators.Nodes {
+			nodes[validator.NodeID] = struct{}{}
+		}
+		eventMux.Post(cbfttypes.UpdateValidatorEvent{Nodes: nodes})
 	}
-	eventMux.Post(cbfttypes.UpdateValidatorEvent{Nodes: nodes})
 
 	removes := make([]*enode.Node, 0)
 	adds := make([]*enode.Node, 0)
