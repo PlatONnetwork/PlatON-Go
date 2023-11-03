@@ -430,9 +430,6 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 	removes := make([]*enode.Node, 0)
 	adds := make([]*enode.Node, 0)
 
-	removes := make([]*enode.Node, 0)
-	adds := make([]*enode.Node, 0)
-
 	if isValidatorBefore {
 		// If we are still a consensus node, that adding
 		// new validators as consensus peer, and removing
