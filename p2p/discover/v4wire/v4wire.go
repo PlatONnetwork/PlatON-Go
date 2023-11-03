@@ -57,6 +57,15 @@ type (
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
+	PingV1 struct {
+		Version    uint
+		From, To   Endpoint
+		Expiration uint64
+
+		// Ignore additional fields (for forward compatibility).
+		Rest []rlp.RawValue `rlp:"tail"`
+	}
+
 	// Pong is the reply to ping.
 	Pong struct {
 		// This field should mirror the UDP envelope address
@@ -71,7 +80,17 @@ type (
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
+	PongV1 struct {
+		// This field should mirror the UDP envelope address
+		// of the ping packet, which provides a way to discover the
+		// the external address (after NAT).
+		To         Endpoint
+		ReplyTok   []byte // This contains the hash of the ping packet.
+		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 
+		// Ignore additional fields (for forward compatibility).
+		Rest []rlp.RawValue `rlp:"tail"`
+	}
 	// Findnode is a query for nodes close to the given target.
 	Findnode struct {
 		Target     Pubkey
@@ -184,6 +203,9 @@ func (req *Ping) DecodeRLP(s *rlp.Stream) error {
 	if err := decodePingRLP(req, blob); err == nil {
 		return nil
 	}
+	if err := decodeV1PingRLP(req, blob); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -205,6 +227,21 @@ func decodePingRLP(p *Ping, blob []byte) error {
 	return nil
 }
 
+func decodeV1PingRLP(p *Ping, blob []byte) error {
+	var ping PingV1
+	if err := rlp.DecodeBytes(blob, &ping); err != nil {
+		return err
+	}
+
+	p.Version = ping.Version
+	p.From = ping.From
+	p.To = ping.To
+	p.Expiration = ping.Expiration
+	p.ForkID = ping.Rest
+
+	return nil
+}
+
 func (req *Pong) Name() string { return "PONG/v4" }
 func (req *Pong) Kind() byte   { return PongPacket }
 func (req *Pong) Fork() []rlp.RawValue {
@@ -219,6 +256,9 @@ func (req *Pong) DecodeRLP(s *rlp.Stream) error {
 	}
 	if err := decodePongRLP(req, blob); err == nil {
 		return nil
+	}
+	if err := decodeV1PongRLP(req, blob); err != nil {
+		return err
 	}
 	return nil
 }
@@ -236,6 +276,18 @@ func decodePongRLP(p *Pong, blob []byte) error {
 	p.ForkID = pong.ForkID
 	p.ENRSeq = pong.ENRSeq
 	p.Rest = pong.Rest
+	return nil
+}
+
+func decodeV1PongRLP(p *Pong, blob []byte) error {
+	var pong PongV1
+	if err := rlp.DecodeBytes(blob, &pong); err != nil {
+		return err
+	}
+	p.To = pong.To
+	p.ReplyTok = pong.ReplyTok
+	p.Expiration = pong.Expiration
+	p.ForkID = pong.Rest
 	return nil
 }
 
