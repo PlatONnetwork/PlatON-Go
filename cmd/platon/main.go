@@ -119,6 +119,7 @@ var (
 		utils.LegacyGpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
+		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
 	}
 
