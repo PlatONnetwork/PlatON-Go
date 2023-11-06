@@ -191,13 +191,12 @@ func TestTraceCall(t *testing.T) {
 		tx, _ := types.SignTx(types.NewTransaction(uint64(i), accounts[1].addr, big.NewInt(1000), params.TxGas, b.BaseFee(), nil), signer, accounts[0].key)
 		b.AddTx(tx)
 	}))
-
 	var testSuite = []struct {
 		blockNumber rpc.BlockNumber
 		call        ethapi.TransactionArgs
 		config      *TraceCallConfig
 		expectErr   error
-		expect      interface{}
+		expect      string
 	}{
 		// Standard JSON trace upon the genesis, plain transfer.
 		{
@@ -209,12 +208,7 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
-				Gas:         params.TxGas,
-				Failed:      false,
-				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
-			},
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
 		},
 		// Standard JSON trace upon the head, plain transfer.
 		{
@@ -226,12 +220,7 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
-				Gas:         params.TxGas,
-				Failed:      false,
-				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
-			},
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
 		},
 		// Standard JSON trace upon the non-existent block, error expects
 		{
@@ -243,7 +232,7 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: fmt.Errorf("block #%d not found", genBlocks+1),
-			expect:    nil,
+			//expect:    nil,
 		},
 		// Standard JSON trace upon the latest block
 		{
@@ -255,14 +244,9 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
-				Gas:         params.TxGas,
-				Failed:      false,
-				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
-			},
+			expect:    `{"gas":21000,"failed":false,"returnValue":"","structLogs":[]}`,
 		},
-		// Standard JSON trace upon the pending block
+		// Tracing on 'pending' should fail:
 		{
 			blockNumber: rpc.PendingBlockNumber,
 			call: ethapi.TransactionArgs{
@@ -271,28 +255,36 @@ func TestTraceCall(t *testing.T) {
 				Value: (*hexutil.Big)(big.NewInt(1000)),
 			},
 			config:    nil,
-			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
-				Gas:         params.TxGas,
-				Failed:      false,
-				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
+			expectErr: errors.New("tracing on top of pending is not supported"),
+		},
+		{
+			blockNumber: rpc.LatestBlockNumber,
+			call: ethapi.TransactionArgs{
+				From:  &accounts[0].addr,
+				Input: &hexutil.Bytes{0x43}, // blocknumber
 			},
+			config: &TraceCallConfig{
+				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
+			},
+			expectErr: nil,
+			expect: ` {"gas":53018,"failed":false,"returnValue":"","structLogs":[
+		{"pc":0,"op":"NUMBER","gas":24946984,"gasCost":2,"depth":1,"stack":[]},
+		{"pc":1,"op":"STOP","gas":24946982,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
 		},
 	}
-	for _, testspec := range testSuite {
+	for i, testspec := range testSuite {
 		result, err := api.TraceCall(context.Background(), testspec.call, rpc.BlockNumberOrHash{BlockNumber: &testspec.blockNumber}, testspec.config)
 		if testspec.expectErr != nil {
 			if err == nil {
-				t.Errorf("Expect error %v, get nothing", testspec.expectErr)
+				t.Errorf("test %d: expect error %v, got nothing", i, testspec.expectErr)
 				continue
 			}
 			if !reflect.DeepEqual(err, testspec.expectErr) {
-				t.Errorf("Error mismatch, want %v, get %v", testspec.expectErr, err)
+				t.Errorf("test %d: error mismatch, want %v, git %v", i, testspec.expectErr, err)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("Expect no error, get %v", err)
+				t.Errorf("test %d: expect no error, got %v", i, err)
 				continue
 			}
 			if !reflect.DeepEqual(result, testspec.expect) {
