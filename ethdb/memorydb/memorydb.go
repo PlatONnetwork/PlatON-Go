@@ -175,6 +175,13 @@ func (db *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	}
 }
 
+// NewSnapshot creates a database snapshot based on the current state.
+// The created snapshot will not be affected by all following mutations
+// happened on the database.
+func (db *Database) NewSnapshot() (ethdb.Snapshot, error) {
+	return newSnapshot(db), nil
+}
+
 // Stat returns a particular internal stat of the database.
 func (db *Database) Stat(property string) (string, error) {
 	return "", errors.New("unknown property")
