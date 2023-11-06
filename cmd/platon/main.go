@@ -96,6 +96,7 @@ var (
 		utils.CacheSnapshotFlag,
 		utils.CacheTrieDBFlag,
 		utils.CachePreimagesFlag,
+		utils.FDLimitFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
