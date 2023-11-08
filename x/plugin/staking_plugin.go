@@ -390,14 +390,16 @@ func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error 
 }
 
 func (sk *StakingPlugin) addConsensusNode(nodes staking.ValidatorQueue) {
+	adds := make([]*enode.Node, 0)
 	for _, node := range nodes {
 		pub, err := node.NodeId.Pubkey()
 		if err != nil {
 			panic(err)
 		}
-		if err := sk.eventMux.Post(cbfttypes.AddValidatorEvent{Node: enode.NewV4(pub, nil, 0, 0)}); nil != err {
-			log.Error("post AddValidatorEvent failed", "nodeId", node.NodeId.TerminalString(), "err", err)
-		}
+		adds = append(adds, enode.NewV4(pub, nil, 0, 0))
+	}
+	if err := sk.eventMux.Post(cbfttypes.AddValidatorEvent{Nodes: adds}); nil != err {
+		log.Error("post AddValidatorEvent failed", "num", len(adds), "err", err)
 	}
 }
 
