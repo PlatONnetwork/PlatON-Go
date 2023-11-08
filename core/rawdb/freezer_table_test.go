@@ -18,11 +18,16 @@ package rawdb
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sync/atomic"
 	"testing"
+	"testing/quick"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
