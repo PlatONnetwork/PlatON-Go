@@ -597,9 +597,10 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 	f := func(baseBlock uint64, iter iterator.Iterator, blocks []rlp.RawValue) error {
 		peer.Log().Debug("begin answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
 		var (
-			byteSize int
-			ps       PposStoragePacket
-			count    int
+			byteSize        int
+			ps              PposStoragePacket
+			count           int
+			pposStorageRlps []rlp.RawValue
 		)
 		ps.KVs = make([][2][]byte, 0)
 		for iter.Next() {
@@ -629,28 +630,31 @@ func answerGetPPOSStorageMsgQueryV2(backend Backend, head uint64, peer *Peer) er
 			return fmt.Errorf("send last ppos storage message fail,%v", err)
 		}
 
-		var (
-			pposStorageRlps []rlp.RawValue
-		)
 		byteSize = 0
-
-		for _, encoded := range blocks {
-			if byteSize >= softResponseLimit {
-				id := rand.Uint64()
-				if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
-					return fmt.Errorf("reply ppos storage v2 message  fail,%v", err)
-				}
-				pposStorageRlps = []rlp.RawValue{}
-				byteSize = 0
-			} else {
-				pposStorageRlps = append(pposStorageRlps, encoded)
-				byteSize += len(encoded)
-			}
-		}
-		if len(pposStorageRlps) > 0 {
+		if head == baseBlock {
 			id := rand.Uint64()
 			if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
 				return fmt.Errorf("reply last ppos storage v2 message  fail,%v", err)
+			}
+		} else {
+			for _, encoded := range blocks {
+				if byteSize >= softResponseLimit {
+					id := rand.Uint64()
+					if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
+						return fmt.Errorf("reply ppos storage v2 message  fail,%v", err)
+					}
+					pposStorageRlps = []rlp.RawValue{}
+					byteSize = 0
+				} else {
+					pposStorageRlps = append(pposStorageRlps, encoded)
+					byteSize += len(encoded)
+				}
+			}
+			if len(pposStorageRlps) > 0 {
+				id := rand.Uint64()
+				if err := peer.ReplyPPOSStorageV2(id, baseBlock, pposStorageRlps); err != nil {
+					return fmt.Errorf("reply last ppos storage v2 message  fail,%v", err)
+				}
 			}
 		}
 		peer.Log().Debug("end answerGetPPOSStorageMsgQueryV2", "blocks", len(blocks), "baseBlock", baseBlock)
