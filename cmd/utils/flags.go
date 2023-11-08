@@ -1389,17 +1389,17 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
-func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) ethapi.Backend {
+func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
 	if cfg.SyncMode == downloader.LightSync {
 		Fatalf("Failed to register the Platon service: not les")
-		return nil
+		return nil, nil
 	} else {
 		backend, err := eth.New(stack, cfg)
 		if err != nil {
 			Fatalf("Failed to register the PlatON service: %v", err)
 		}
 		stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
-		return backend.APIBackend
+		return backend.APIBackend, backend
 	}
 }
 
