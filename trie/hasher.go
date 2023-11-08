@@ -154,7 +154,7 @@ func (h *hasher) store(n node, force bool) (node, error) {
 	// Larger nodes are replaced by their hash and stored in the database.
 	hash, _ := n.cache()
 	if len(hash) == 0 {
-		hash = h.makeHashNode(enc)
+		hash = h.hashData(enc)
 	}
 
 	return hash, nil
@@ -176,9 +176,9 @@ func (h *hasher) encodedBytes() []byte {
 	return h.tmp
 }
 
-// makeHashNode hashes the provided data
-func (h *hasher) makeHashNode(data []byte) hashNode {
-	n := make(hashNode, h.sha.Size())
+// hashData hashes the provided data
+func (h *hasher) hashData(data []byte) hashNode {
+	n := make(hashNode, 32)
 	h.sha.Reset()
 	h.sha.Write(data)
 	h.sha.Read(n)

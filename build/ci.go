@@ -119,11 +119,10 @@ var (
 	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
 	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.11",
-		"xenial":  "golang-go",
-		"bionic":  "golang-go",
-		"focal":   "golang-go",
-		"hirsute": "golang-go",
+		"trusty": "golang-1.11",
+		"xenial": "golang-go",
+		"bionic": "golang-go",
+		"focal":  "golang-go",
 	}
 
 	debGoBootPaths = map[string]string{
@@ -388,7 +387,7 @@ func doLint(cmdline []string) {
 
 // downloadLinter downloads and unpacks golangci-lint.
 func downloadLinter(cachedir string) string {
-	const version = "1.42.0"
+	const version = "1.45.2"
 
 	csdb := build.MustLoadChecksums("build/checksums.txt")
 	arch := runtime.GOARCH
@@ -1120,21 +1119,21 @@ func doPurge(cmdline []string) {
 
 	// Iterate over the blobs, collect and sort all unstable builds
 	for i := 0; i < len(blobs); i++ {
-		if !strings.Contains(blobs[i].Name, "unstable") {
+		if !strings.Contains(*blobs[i].Name, "unstable") {
 			blobs = append(blobs[:i], blobs[i+1:]...)
 			i--
 		}
 	}
 	for i := 0; i < len(blobs); i++ {
 		for j := i + 1; j < len(blobs); j++ {
-			if blobs[i].Properties.LastModified.After(blobs[j].Properties.LastModified) {
+			if blobs[i].Properties.LastModified.After(*blobs[j].Properties.LastModified) {
 				blobs[i], blobs[j] = blobs[j], blobs[i]
 			}
 		}
 	}
 	// Filter out all archives more recent that the given threshold
 	for i, blob := range blobs {
-		if time.Since(blob.Properties.LastModified) < time.Duration(*limit)*24*time.Hour {
+		if time.Since(*blob.Properties.LastModified) < time.Duration(*limit)*24*time.Hour {
 			blobs = blobs[:i]
 			break
 		}

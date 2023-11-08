@@ -99,6 +99,11 @@ func (db *nofreezedb) Ancients() (uint64, error) {
 	return 0, errNotSupported
 }
 
+// Tail returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) Tail() (uint64, error) {
+	return 0, errNotSupported
+}
+
 // AncientSize returns an error as we don't have a backing chain freezer.
 func (db *nofreezedb) AncientSize(kind string) (uint64, error) {
 	return 0, errNotSupported
@@ -109,8 +114,13 @@ func (db *nofreezedb) ModifyAncients(func(ethdb.AncientWriteOp) error) (int64, e
 	return 0, errNotSupported
 }
 
-// TruncateAncients returns an error as we don't have a backing chain freezer.
-func (db *nofreezedb) TruncateAncients(items uint64) error {
+// TruncateHead returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) TruncateHead(items uint64) error {
+	return errNotSupported
+}
+
+// TruncateTail returns an error as we don't have a backing chain freezer.
+func (db *nofreezedb) TruncateTail(items uint64) error {
 	return errNotSupported
 }
 
@@ -133,6 +143,12 @@ func (db *nofreezedb) ReadAncients(fn func(reader ethdb.AncientReader) error) (e
 	// have to explicitly check for that, having an extra clause to do the
 	// non-ancient operations.
 	return fn(db)
+}
+
+// MigrateTable processes the entries in a given table in sequence
+// converting them to a new format if they're of an old format.
+func (db *nofreezedb) MigrateTable(kind string, convert convertLegacyFn) error {
+	return errNotSupported
 }
 
 // NewDatabase creates a high level database on top of a given key-value data
@@ -211,7 +227,7 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, freezer string, namespace st
 				// Block #1 is still in the database, we're allowed to init a new feezer
 			}
 			// Otherwise, the head header is still the genesis, we're allowed to init a new
-			// feezer.
+			// freezer.
 		}
 	}
 	// Freezer is consistent with the key-value database, permit combining the two

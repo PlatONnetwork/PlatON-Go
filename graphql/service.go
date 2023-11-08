@@ -99,7 +99,7 @@ func newHandler(stack *node.Node, backend ethapi.Backend, cors, vhosts []string)
 	}
 
 	h := handler{Schema: s, SchemaEth: sEth}
-	handler := node.NewHTTPHandlerStack(h, cors, vhosts)
+	handler := node.NewHTTPHandlerStack(h, cors, vhosts, nil)
 
 	stack.RegisterHandler("GraphQL UI", "/graphql/ui", GraphiQL{})
 	stack.RegisterHandler("GraphQL UI", "/platon/graphql/ui", GraphiQL{}) // for PlatON

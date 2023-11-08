@@ -1458,15 +1458,18 @@ func (d *Downloader) processHeaders(origin uint64, pivot uint64, bn *big.Int) er
 					if chunk[len(chunk)-1].Number.Uint64()+uint64(fsHeaderForceVerify) > pivot {
 						frequency = 1
 					}
-					if n, err := d.lightchain.InsertHeaderChain(chunk, frequency); err != nil {
-						rollbackErr = err
-						// If some headers were inserted, track them as uncertain
-						if n > 0 && rollback == 0 {
-							rollback = chunk[0].Number.Uint64()
+					if len(chunk) > 0 {
+						if n, err := d.lightchain.InsertHeaderChain(chunk, frequency); err != nil {
+							rollbackErr = err
+							// If some headers were inserted, track them as uncertain
+							if n > 0 && rollback == 0 {
+								rollback = chunk[0].Number.Uint64()
+							}
+							log.Debug("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "parent", chunk[n].ParentHash, "err", err)
+							return fmt.Errorf("%w: %v", errInvalidChain, err)
 						}
-						log.Debug("Invalid header encountered", "number", chunk[n].Number, "hash", chunk[n].Hash(), "parent", chunk[n].ParentHash, "err", err)
-						return fmt.Errorf("%w: %v", errInvalidChain, err)
 					}
+
 					// All verifications passed, track all headers within the alloted limits
 					head := chunk[len(chunk)-1].Number.Uint64()
 					if head-rollback > uint64(fsHeaderSafetyNet) {

@@ -85,6 +85,10 @@ type NodeIterator interface {
 	// For leaf nodes, the last element of the path is the 'terminator symbol' 0x10.
 	Path() []byte
 
+	// NodeBlob returns the rlp-encoded value of the current iterated node.
+	// If the node is an embedded node in its parent, nil is returned then.
+	NodeBlob() []byte
+
 	// Leaf returns true iff the current node is a leaf node.
 	Leaf() bool
 
@@ -226,6 +230,18 @@ func (it *nodeIterator) Path() []byte {
 	return it.path
 }
 
+func (it *nodeIterator) NodeBlob() []byte {
+	if it.Hash() == (common.Hash{}) {
+		return nil // skip the non-standalone node
+	}
+	blob, err := it.resolveBlob(it.Hash().Bytes(), it.Path())
+	if err != nil {
+		it.err = err
+		return nil
+	}
+	return blob
+}
+
 func (it *nodeIterator) Error() error {
 	if it.err == errIteratorEnd {
 		return nil
@@ -362,6 +378,15 @@ func (it *nodeIterator) resolveHash(hash hashNode, path []byte) (node, error) {
 	}
 	resolved, err := it.trie.resolveHash(hash, path)
 	return resolved, err
+}
+
+func (it *nodeIterator) resolveBlob(hash hashNode, path []byte) ([]byte, error) {
+	if it.resolver != nil {
+		if blob, err := it.resolver.Get(hash); err == nil && len(blob) > 0 {
+			return blob, nil
+		}
+	}
+	return it.trie.resolveBlob(hash, path)
 }
 
 func (st *nodeIteratorState) resolve(it *nodeIterator, path []byte) error {
@@ -552,6 +577,10 @@ func (it *differenceIterator) Path() []byte {
 	return it.b.Path()
 }
 
+func (it *differenceIterator) NodeBlob() []byte {
+	return it.b.NodeBlob()
+}
+
 func (it *differenceIterator) AddResolver(resolver ethdb.KeyValueReader) {
 	panic("not implemented")
 }
@@ -661,6 +690,10 @@ func (it *unionIterator) LeafProof() [][]byte {
 
 func (it *unionIterator) Path() []byte {
 	return (*it.items)[0].Path()
+}
+
+func (it *unionIterator) NodeBlob() []byte {
+	return (*it.items)[0].NodeBlob()
 }
 
 func (it *unionIterator) AddResolver(resolver ethdb.KeyValueReader) {
