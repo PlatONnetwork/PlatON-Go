@@ -33,6 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -516,6 +517,22 @@ func (t *Transaction) V(ctx context.Context) (hexutil.Big, error) {
 	return hexutil.Big(*v), nil
 }
 
+func (t *Transaction) Raw(ctx context.Context) (hexutil.Bytes, error) {
+	tx, err := t.resolve(ctx)
+	if err != nil || tx == nil {
+		return hexutil.Bytes{}, err
+	}
+	return tx.MarshalBinary()
+}
+
+func (t *Transaction) RawReceipt(ctx context.Context) (hexutil.Bytes, error) {
+	receipt, err := t.getReceipt(ctx)
+	if err != nil || receipt == nil {
+		return hexutil.Bytes{}, err
+	}
+	return receipt.MarshalBinary()
+}
+
 type BlockType int
 
 // Block represents an PlatON block.
@@ -746,6 +763,22 @@ func (b *Block) LogsBloom(ctx context.Context) (hexutil.Bytes, error) {
 
 func (b *Block) TotalDifficulty(ctx context.Context) (hexutil.Big, error) {
 	return hexutil.Big{}, nil
+}
+
+func (b *Block) RawHeader(ctx context.Context) (hexutil.Bytes, error) {
+	header, err := b.resolveHeader(ctx)
+	if err != nil {
+		return hexutil.Bytes{}, err
+	}
+	return rlp.EncodeToBytes(header)
+}
+
+func (b *Block) Raw(ctx context.Context) (hexutil.Bytes, error) {
+	block, err := b.resolve(ctx)
+	if err != nil {
+		return hexutil.Bytes{}, err
+	}
+	return rlp.EncodeToBytes(block)
 }
 
 // BlockNumberArgs encapsulates arguments to accessors that specify a block number.
