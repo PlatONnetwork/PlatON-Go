@@ -24,7 +24,7 @@ import (
 )
 
 func TestMessageSignVerify(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "platonkey-test")
+	tmpdir, err := os.MkdirTemp("", "platonkey-test")
 	if err != nil {
 		t.Fatal("Can't create temporary directory:", err)
 	}

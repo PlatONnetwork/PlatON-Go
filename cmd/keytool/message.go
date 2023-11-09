@@ -57,7 +57,7 @@ To sign a message contained in a file, use the --msgfile flag.
 
 		// Load the keyfile.
 		keyfilepath := ctx.Args().First()
-		keyjson, err := ioutil.ReadFile(keyfilepath)
+		keyjson, err := os.ReadFile(keyfilepath)
 		if err != nil {
 			utils.Fatalf("Failed to read the keyfile at '%s': %v", keyfilepath, err)
 		}
@@ -155,7 +155,7 @@ func getMessage(ctx *cli.Context, msgarg int) []byte {
 		if len(ctx.Args()) > msgarg {
 			utils.Fatalf("Can't use --msgfile and message argument at the same time.")
 		}
-		msg, err := ioutil.ReadFile(file)
+		msg, err := os.ReadFile(file)
 		if err != nil {
 			utils.Fatalf("Can't read message file: %v", err)
 		}

@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,7 +36,7 @@ func EnsureGoSources(version string, hash []byte, path string) error {
 		return fmt.Errorf("destination path (%s) must end with .tar.gz", path)
 	}
 	// If the file exists, validate it's hash
-	if archive, err := ioutil.ReadFile(path); err == nil { // Go sources are ~20MB, it's fine to read all
+	if archive, err := os.ReadFile(path); err == nil { // Go sources are ~20MB, it's fine to read all
 		hasher := sha256.New()
 		hasher.Write(archive)
 		have := hasher.Sum(nil)
@@ -59,7 +59,7 @@ func EnsureGoSources(version string, hash []byte, path string) error {
 	}
 	defer res.Body.Close()
 
-	archive, err := ioutil.ReadAll(res.Body)
+	archive, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func EnsureGoSources(version string, hash []byte, path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(path, archive, 0644); err != nil {
+	if err := os.WriteFile(path, archive, 0644); err != nil {
 		return err
 	}
 	fmt.Printf("Downloaded Go %s [%x] into %s\n", version, hash, path)

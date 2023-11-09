@@ -32,7 +32,7 @@ import (
 )
 
 func tmpKeyStoreIface(t *testing.T, encrypted bool) (dir string, ks keyStore) {
-	d, err := ioutil.TempDir("", "platon-keystore-test")
+	d, err := os.MkdirTemp("", "platon-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

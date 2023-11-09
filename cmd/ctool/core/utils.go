@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -126,7 +125,7 @@ func parseConfigJson(configPath string) error {
 		configPath, _ = filepath.Abs(configPath)
 	}
 
-	bytes, err := ioutil.ReadFile(configPath)
+	bytes, err := os.ReadFile(configPath)
 	if err != nil {
 		panic(fmt.Errorf("parse config file error,%s", err.Error()))
 	}
@@ -138,7 +137,7 @@ func parseConfigJson(configPath string) error {
 }
 
 func parseAbiFromJson(fileName string) ([]FuncDesc, error) {
-	bytes, err := ioutil.ReadFile(fileName)
+	bytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("parse abi file error: %s", err.Error())
 	}

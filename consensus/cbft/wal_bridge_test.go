@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -39,7 +38,7 @@ import (
 )
 
 func TestUpdateChainState(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	pk, sk, cbftnodes := GenerateCbftNode(1)
@@ -159,7 +158,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 }
 
 func TestRecordCbftMsg(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	pk, sk, cbftnodes := GenerateCbftNode(1)
@@ -209,7 +208,7 @@ func TestRecordCbftMsg(t *testing.T) {
 }
 
 func TestInsertQCBlock_fork_priority(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	pk, sk, cbftnodes := GenerateCbftNode(1)

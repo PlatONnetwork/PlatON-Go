@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"unsafe"
@@ -107,7 +106,7 @@ func LoadBLS(file string) (*SecretKey, error) {
 
 func SaveBLS(file string, key *SecretKey) error {
 	k := hex.EncodeToString(key.GetLittleEndian())
-	return ioutil.WriteFile(file, []byte(k), 0600)
+	return os.WriteFile(file, []byte(k), 0600)
 }
 
 func GenerateKey() *SecretKey {

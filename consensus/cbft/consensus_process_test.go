@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -50,7 +49,7 @@ func TestViewChange(t *testing.T) {
 }
 
 func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	result := make(chan *types.Block, 1)

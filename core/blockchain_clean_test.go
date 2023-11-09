@@ -51,7 +51,7 @@ func randBytes(n int) []byte {
 }
 
 func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
-	buf, err := ioutil.ReadFile("../eth/downloader/testdata/platon.json")
+	buf, err := os.ReadFile("../eth/downloader/testdata/platon.json")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 }
 
 func TestCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := os.MkdirTemp("", "platon")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestCleaner(t *testing.T) {
 }
 
 func TestStopCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := os.MkdirTemp("", "platon")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}

@@ -108,7 +108,7 @@ func (ui *headlessUi) ShowInfo(message string) {
 }
 
 func tmpDirName(t *testing.T) string {
-	d, err := ioutil.TempDir("", "eth-keystore-test")
+	d, err := os.MkdirTemp("", "eth-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

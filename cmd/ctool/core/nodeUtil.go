@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -145,7 +144,7 @@ func prepare(t *testing.T) (*testPlatON, string) {
 	parseConfig(t)
 	datadir := tmpdir(t)
 	json := filepath.Join(datadir, "genesis.json")
-	err := ioutil.WriteFile(json, []byte(genesis), 0600)
+	err := os.WriteFile(json, []byte(genesis), 0600)
 
 	assert.Nil(t, err, fmt.Sprintf("failed to write genesis file: %v", err))
 
@@ -188,7 +187,7 @@ func trulyRandInt(lo, hi int) int {
 }
 
 func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "platon-test")
+	dir, err := os.MkdirTemp("", "platon-test")
 	if err != nil {
 		t.Fatal(err)
 	}

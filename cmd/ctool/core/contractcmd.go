@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -114,7 +113,7 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 }
 
 func parseFileToBytes(file string) []byte {
-	bytes, err := ioutil.ReadFile(file)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		panic(fmt.Sprintf("parse file %s error,%s", file, err.Error()))
 	}

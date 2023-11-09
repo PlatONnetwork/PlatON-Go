@@ -252,7 +252,7 @@ func TestPB01(t *testing.T) {
 }
 
 func TestPB03(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
+	tempDir, _ := os.MkdirTemp("", "evidence")
 	defer os.RemoveAll(tempDir)
 
 	nodes := MockNodes(t, 2)
@@ -476,7 +476,7 @@ func TestVT01(t *testing.T) {
 }
 
 func TestVT02(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
+	tempDir, _ := os.MkdirTemp("", "evidence")
 	defer os.RemoveAll(tempDir)
 
 	nodes := MockNodes(t, 2)
@@ -588,7 +588,7 @@ func TestVC02(t *testing.T) {
 }
 
 func TestVC03(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
+	tempDir, _ := os.MkdirTemp("", "evidence")
 	defer os.RemoveAll(tempDir)
 
 	nodes := MockNodes(t, 2)
@@ -621,7 +621,7 @@ func TestVC03(t *testing.T) {
 }
 
 func TestVC04(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
+	tempDir, _ := os.MkdirTemp("", "evidence")
 	defer os.RemoveAll(tempDir)
 
 	nodes := MockNodes(t, 2)

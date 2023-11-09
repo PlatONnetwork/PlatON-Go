@@ -268,7 +268,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
+	frdir, err := os.MkdirTemp("", "platon")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestEmptyByte(t *testing.T) {
 }
 
 func TestForEachStorage(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "platon")
+	tmpDir, _ := os.MkdirTemp("", "platon")
 	defer os.Remove(tmpDir)
 	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {
@@ -366,7 +366,7 @@ func TestForEachStorage(t *testing.T) {
 
 func TestMigrateStorage(t *testing.T) {
 
-	tmpDir, _ := ioutil.TempDir("", "platon")
+	tmpDir, _ := os.MkdirTemp("", "platon")
 	defer os.Remove(tmpDir)
 	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {

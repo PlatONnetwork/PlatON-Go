@@ -51,11 +51,11 @@ func TestOutput(t *testing.T) {
 
 			// Set this environment variable to regenerate the test outputs.
 			if os.Getenv("WRITE_TEST_FILES") != "" {
-				ioutil.WriteFile(outputFile, output, 0644)
+				os.WriteFile(outputFile, output, 0644)
 			}
 
 			// Check if output matches.
-			wantOutput, err := ioutil.ReadFile(outputFile)
+			wantOutput, err := os.ReadFile(outputFile)
 			if err != nil {
 				t.Fatal("error loading expected test output:", err)
 			}
@@ -71,7 +71,7 @@ func TestOutput(t *testing.T) {
 
 func loadTestSource(file string, typeName string) (*buildContext, *types.Named, error) {
 	// Load the test input.
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		return nil, nil, err
 	}

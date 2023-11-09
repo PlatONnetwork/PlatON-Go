@@ -1403,7 +1403,7 @@ func newTestVM(evm *EVM) *exec.VM {
 }
 
 func TestExternalFunction(t *testing.T) {
-	buf, err := ioutil.ReadFile("./testdata/external.wasm")
+	buf, err := os.ReadFile("./testdata/external.wasm")
 	assert.Nil(t, err)
 	module, err := ReadWasmModule(buf, false)
 	assert.Nil(t, err)
@@ -1485,7 +1485,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 }
 
 func readContractCode() []byte {
-	buf, err := ioutil.ReadFile("./testdata/contract_hello.wasm")
+	buf, err := os.ReadFile("./testdata/contract_hello.wasm")
 	if nil != err {
 		panic(err)
 	}

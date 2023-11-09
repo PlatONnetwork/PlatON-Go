@@ -31,7 +31,7 @@ import (
 )
 
 func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "platon-test")
+	dir, err := os.MkdirTemp("", "platon-test")
 	if err != nil {
 		t.Fatal(err)
 	}

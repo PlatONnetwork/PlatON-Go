@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -135,7 +134,7 @@ func saveAddrs(addrs []string, pkFile string) {
 	if err != nil {
 		panic(fmt.Errorf("create addr.json error%s \n", err.Error()))
 	}
-	err = ioutil.WriteFile(addrsPath, byts, 0644)
+	err = os.WriteFile(addrsPath, byts, 0644)
 	if err != nil {
 		panic(fmt.Errorf("write to addr.json error%s \n", err.Error()))
 	}
@@ -264,7 +263,7 @@ func getAllAddress(pkFile string) []string {
 		addrsPath = dir + DefaultAccountAddrFilePath
 	}
 
-	bytes, err := ioutil.ReadFile(addrsPath)
+	bytes, err := os.ReadFile(addrsPath)
 	if err != nil {
 		panic(fmt.Errorf("get all address array error,%s \n", err.Error()))
 	}
