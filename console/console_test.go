@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"

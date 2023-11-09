@@ -19,7 +19,7 @@ package compiler
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"regexp"
 )
 

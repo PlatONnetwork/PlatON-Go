@@ -19,7 +19,6 @@ package evidence
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"

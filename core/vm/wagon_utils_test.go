@@ -2,7 +2,7 @@ package vm
 
 import (
 	"hash/fnv"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"

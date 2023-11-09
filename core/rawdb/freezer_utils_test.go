@@ -18,7 +18,6 @@ package rawdb
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 )

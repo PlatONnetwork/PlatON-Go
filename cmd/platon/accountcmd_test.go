@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/cespare/cp"
+	"os"
 )
 
 // These tests are 'smoke tests' for the account related

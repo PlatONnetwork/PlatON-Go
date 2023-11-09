@@ -19,7 +19,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"gopkg.in/urfave/cli.v1"
 

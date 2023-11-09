@@ -19,7 +19,6 @@ package cbft
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"

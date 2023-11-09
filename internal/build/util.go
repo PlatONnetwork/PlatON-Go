@@ -24,7 +24,6 @@ import (
 	"go/parser"
 	"go/token"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -252,7 +251,7 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 // package paths.
 func FindMainPackages(dir string) []string {
 	var commands []string
-	cmds, err := ioutil.ReadDir(dir)
+	cmds, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/holiman/uint256"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

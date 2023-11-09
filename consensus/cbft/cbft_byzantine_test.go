@@ -18,7 +18,6 @@ package cbft
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"strings"

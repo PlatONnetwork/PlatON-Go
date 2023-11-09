@@ -17,7 +17,6 @@
 package wal
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"

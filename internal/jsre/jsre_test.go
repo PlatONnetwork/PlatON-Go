@@ -17,7 +17,6 @@
 package jsre
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"reflect"

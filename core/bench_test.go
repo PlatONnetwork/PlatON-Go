@@ -18,7 +18,6 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"

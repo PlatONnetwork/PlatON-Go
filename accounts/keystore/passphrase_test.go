@@ -17,7 +17,7 @@
 package keystore
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

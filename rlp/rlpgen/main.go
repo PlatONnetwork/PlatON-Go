@@ -22,7 +22,6 @@ import (
 	"flag"
 	"fmt"
 	"go/types"
-	"io/ioutil"
 	"os"
 
 	"golang.org/x/tools/go/packages"

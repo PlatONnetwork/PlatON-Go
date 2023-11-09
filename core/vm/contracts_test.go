@@ -18,8 +18,8 @@ package vm
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 

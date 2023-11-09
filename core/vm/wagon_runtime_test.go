@@ -7,8 +7,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"hash/fnv"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 

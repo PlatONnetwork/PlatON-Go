@@ -18,7 +18,7 @@ package fourbyte
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 

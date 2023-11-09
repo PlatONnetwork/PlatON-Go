@@ -3,8 +3,8 @@ package vm
 import (
 	"context"
 	"hash/fnv"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"

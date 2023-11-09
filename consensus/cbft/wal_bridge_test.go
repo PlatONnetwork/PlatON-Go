@@ -17,7 +17,6 @@
 package cbft
 
 import (
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"

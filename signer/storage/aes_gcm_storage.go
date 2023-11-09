@@ -23,7 +23,6 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"

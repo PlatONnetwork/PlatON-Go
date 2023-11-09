@@ -18,7 +18,6 @@ package filters
 
 import (
 	"context"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"

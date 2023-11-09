@@ -24,7 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"

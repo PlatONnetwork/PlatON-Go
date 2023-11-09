@@ -19,7 +19,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"

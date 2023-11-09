@@ -23,7 +23,6 @@
 package guide
 
 import (
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"

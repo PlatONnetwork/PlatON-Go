@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"

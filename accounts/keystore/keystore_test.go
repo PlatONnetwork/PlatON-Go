@@ -18,7 +18,6 @@ package keystore
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"runtime"
