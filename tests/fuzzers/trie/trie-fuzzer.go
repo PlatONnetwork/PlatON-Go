@@ -123,8 +123,10 @@ func Generate(input []byte) randTest {
 
 // The function must return
 // 1 if the fuzzer should increase priority of the
-//    given input during subsequent fuzzing (for example, the input is lexically
-//    correct and was parsed successfully);
+//
+//	given input during subsequent fuzzing (for example, the input is lexically
+//	correct and was parsed successfully);
+//
 // -1 if the input must not be added to corpus even if gives new coverage; and
 // 0  otherwise
 // other values are reserved for future use.
@@ -143,7 +145,7 @@ func runRandTest(rt randTest) error {
 
 	triedb := trie.NewDatabase(memorydb.New())
 
-	tr, _ := trie.New(common.Hash{}, triedb)
+	tr, _ := trie.New(common.Hash{}, common.Hash{}, triedb)
 	values := make(map[string]string) // tracks content of the trie
 
 	for i, step := range rt {
@@ -169,13 +171,13 @@ func runRandTest(rt randTest) error {
 			if err != nil {
 				return err
 			}
-			newtr, err := trie.New(hash, triedb)
+			newtr, err := trie.New(common.Hash{}, hash, triedb)
 			if err != nil {
 				return err
 			}
 			tr = newtr
 		case opItercheckhash:
-			checktr, _ := trie.New(common.Hash{}, triedb)
+			checktr, _ := trie.New(common.Hash{}, common.Hash{}, triedb)
 			it := trie.NewIterator(tr.NodeIterator(nil))
 			for it.Next() {
 				checktr.Update(it.Key, it.Value)

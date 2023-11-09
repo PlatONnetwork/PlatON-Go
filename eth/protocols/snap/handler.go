@@ -165,7 +165,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 			req.Bytes = softResponseLimit
 		}
 		// Retrieve the requested state and bail out if non existent
-		tr, err := trie.New(req.Root, backend.Chain().StateCache().TrieDB())
+		tr, err := trie.New(common.Hash{}, req.Root, backend.Chain().StateCache().TrieDB())
 		if err != nil {
 			log.Info("New Trie failed", "err", err)
 			return p2p.Send(peer.rw, AccountRangeMsg, &AccountRangePacket{ID: req.ID})
@@ -318,7 +318,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 			if origin != (common.Hash{}) || abort {
 				// Request started at a non-zero hash or was capped prematurely, add
 				// the endpoint Merkle proofs
-				accTrie, err := trie.New(req.Root, backend.Chain().StateCache().TrieDB())
+				accTrie, err := trie.New(common.Hash{}, req.Root, backend.Chain().StateCache().TrieDB())
 				if err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
@@ -326,7 +326,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 				if err := rlp.DecodeBytes(accTrie.Get(account[:]), &acc); err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
-				stTrie, err := trie.New(acc.Root, backend.Chain().StateCache().TrieDB())
+				stTrie, err := trie.New(common.Hash{}, acc.Root, backend.Chain().StateCache().TrieDB())
 				if err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
@@ -434,7 +434,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 		// Make sure we have the state associated with the request
 		triedb := backend.Chain().StateCache().TrieDB()
 
-		accTrie, err := trie.NewSecure(req.Root, triedb)
+		accTrie, err := trie.NewSecure(common.Hash{}, req.Root, triedb)
 		if err != nil {
 			// We don't have the requested state available, bail out
 			return p2p.Send(peer.rw, TrieNodesMsg, &TrieNodesPacket{ID: req.ID})
@@ -476,7 +476,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 				if err != nil || account == nil {
 					break
 				}
-				stTrie, err := trie.NewSecure(common.BytesToHash(account.Root), triedb)
+				stTrie, err := trie.NewSecure(common.Hash{}, common.BytesToHash(account.Root), triedb)
 				loads++ // always account database reads, even for failures
 				if err != nil {
 					break

@@ -692,7 +692,7 @@ func (s *Syncer) loadSyncStatus() {
 				}
 				task.genTrie = trie.NewStackTrie(task.genBatch)
 
-				for _, subtasks := range task.SubTasks {
+				for accountHash, subtasks := range task.SubTasks {
 					for _, subtask := range subtasks {
 						subtask.genBatch = ethdb.HookedBatch{
 							Batch: s.db.NewBatch(),
@@ -700,7 +700,7 @@ func (s *Syncer) loadSyncStatus() {
 								s.storageBytes += common.StorageSize(len(key) + len(value))
 							},
 						}
-						subtask.genTrie = trie.NewStackTrie(subtask.genBatch)
+						subtask.genTrie = trie.NewStackTrieWithOwner(subtask.genBatch, accountHash)
 					}
 				}
 			}
@@ -1935,7 +1935,7 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 						Last:     r.End(),
 						root:     acc.Root,
 						genBatch: batch,
-						genTrie:  trie.NewStackTrie(batch),
+						genTrie:  trie.NewStackTrieWithOwner(batch, account),
 					})
 					for r.Next() {
 						batch := ethdb.HookedBatch{
@@ -1949,7 +1949,7 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 							Last:     r.End(),
 							root:     acc.Root,
 							genBatch: batch,
-							genTrie:  trie.NewStackTrie(batch),
+							genTrie:  trie.NewStackTrieWithOwner(batch, account),
 						})
 					}
 					for _, task := range tasks {
@@ -1994,7 +1994,7 @@ func (s *Syncer) processStorageResponse(res *storageResponse) {
 		slots += len(res.hashes[i])
 
 		if i < len(res.hashes)-1 || res.subTask == nil {
-			tr := trie.NewStackTrie(batch)
+			tr := trie.NewStackTrieWithOwner(batch, account)
 			for j := 0; j < len(res.hashes[i]); j++ {
 				tr.Update(res.hashes[i][j][:], res.slots[i][j])
 			}

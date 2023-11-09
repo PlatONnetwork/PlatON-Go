@@ -53,7 +53,7 @@ func init() {
 
 // Used for testing
 func newEmpty() *Trie {
-	trie, _ := New(common.Hash{}, NewDatabase(memorydb.New()))
+	trie := NewEmpty(NewDatabase(memorydb.New()))
 	return trie
 }
 
@@ -77,7 +77,7 @@ func TestNull(t *testing.T) {
 }
 
 func TestMissingRoot(t *testing.T) {
-	trie, err := New(common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(memorydb.New()))
+	trie, err := New(common.Hash{}, common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(memorydb.New()))
 	if trie != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -93,7 +93,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	diskdb := memorydb.New()
 	triedb := NewDatabase(diskdb)
 
-	trie, _ := New(common.Hash{}, triedb)
+	trie := NewEmpty(triedb)
 	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _, _ := trie.Commit(nil)
@@ -101,27 +101,27 @@ func testMissingNode(t *testing.T, memonly bool) {
 		triedb.Commit(root, true, true)
 	}
 
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err := trie.TryGet([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err = trie.TryGet([]byte("123456"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	err = trie.TryUpdate([]byte("120099"), []byte("zxcvzxcvzxcvzxcvzxcvzxcvzxcvzxcv"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	err = trie.TryDelete([]byte("123456"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -134,27 +134,27 @@ func testMissingNode(t *testing.T, memonly bool) {
 		diskdb.Delete(hash[:])
 	}
 
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err = trie.TryGet([]byte("120000"))
 	if _, ok := err.(*MissingNodeError); !ok {
 		t.Errorf("Wrong error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if _, ok := err.(*MissingNodeError); !ok {
 		t.Errorf("Wrong error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	_, err = trie.TryGet([]byte("123456"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	err = trie.TryUpdate([]byte("120099"), []byte("zxcv"))
 	if _, ok := err.(*MissingNodeError); !ok {
 		t.Errorf("Wrong error: %v", err)
 	}
-	trie, _ = New(root, triedb)
+	trie, _ = New(common.Hash{}, root, triedb)
 	err = trie.TryDelete([]byte("123456"))
 	if _, ok := err.(*MissingNodeError); !ok {
 		t.Errorf("Wrong error: %v", err)
@@ -282,7 +282,7 @@ func TestReplication(t *testing.T) {
 	}
 
 	// create a new trie on top of the database and check that lookups work.
-	trie2, err := New(exp, trie.db)
+	trie2, err := New(common.Hash{}, exp, trie.db)
 	if err != nil {
 		t.Fatalf("can't recreate trie at %x: %v", exp, err)
 	}
@@ -415,7 +415,7 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 func runRandTest(rt randTest) bool {
 	triedb := NewDatabase(memorydb.New())
 
-	tr, _ := New(common.Hash{}, triedb)
+	tr := NewEmpty(triedb)
 	values := make(map[string]string) // tracks content of the trie
 
 	for i, step := range rt {
@@ -442,14 +442,14 @@ func runRandTest(rt randTest) bool {
 				rt[i].err = err
 				return false
 			}
-			newtr, err := New(hash, triedb)
+			newtr, err := New(common.Hash{}, hash, triedb)
 			if err != nil {
 				rt[i].err = err
 				return false
 			}
 			tr = newtr
 		case opItercheckhash:
-			checktr, _ := New(common.Hash{}, triedb)
+			checktr := NewEmpty(triedb)
 			it := NewIterator(tr.NodeIterator(nil))
 			for it.Next() {
 				checktr.Update(it.Key, it.Value)
@@ -495,7 +495,7 @@ func benchGet(b *testing.B, commit bool) {
 	trie := new(Trie)
 	if commit {
 		_, tmpdb := tempDB()
-		trie, _ = New(common.Hash{}, tmpdb)
+		trie = NewEmpty(tmpdb)
 	}
 	k := make([]byte, 32)
 	for i := 0; i < benchElemCount; i++ {
@@ -606,7 +606,7 @@ func TestDeepCopy(t *testing.T) {
 	memdb := memorydb.New()
 	triedb := NewDatabase(memdb)
 	root := common.Hash{}
-	tr, _ := NewSecure(root, triedb)
+	tr, _ := NewSecure(common.Hash{}, root, triedb)
 	kv := make(map[common.Hash][]byte)
 	codeWriter := triedb.DiskDB().NewBatch()
 	leafCB := func(path [][]byte, hexpath []byte, leaf []byte, parent common.Hash) error {
@@ -642,7 +642,7 @@ func TestDeepCopy(t *testing.T) {
 		triedb.Commit(root, false, false)
 	}
 
-	tr2, _ := NewSecure(root, triedb)
+	tr2, _ := NewSecure(common.Hash{}, root, triedb)
 	for i := 100; i < 200; i++ {
 		binary.BigEndian.PutUint32(k, uint32(i))
 		binary.BigEndian.PutUint32(v, uint32(i))
@@ -739,7 +739,7 @@ func TestOneTrieCollision(t *testing.T) {
 
 	mem := memorydb.New()
 	memdb := NewDatabase(mem)
-	trie, _ := New(common.Hash{}, memdb)
+	trie := NewEmpty(memdb)
 	for _, d := range trieData1 {
 		trie.Update(d.hash, d.value)
 	}
@@ -749,7 +749,7 @@ func TestOneTrieCollision(t *testing.T) {
 	assert.Nil(t, checkTrie(trie))
 	reopenMemdb := NewDatabase(mem)
 
-	reopenTrie, _ := New(root, reopenMemdb)
+	reopenTrie := NewEmpty(reopenMemdb)
 	reopenTrie.Delete(trieData1[0].hash)
 
 	reopenRoot, _, _ := reopenTrie.Commit(nil)
@@ -787,8 +787,8 @@ func TestTwoTrieCollision(t *testing.T) {
 	memdb1 := NewDatabase(mem1)
 	mem2 := memorydb.New()
 	memdb2 := NewDatabase(mem2)
-	trie1, _ := New(common.Hash{}, memdb1)
-	trie2, _ := New(common.Hash{}, memdb2)
+	trie1 := NewEmpty(memdb1)
+	trie2 := NewEmpty(memdb2)
 	for _, d := range trieData1 {
 		trie1.Update(d.hash, d.value)
 	}
@@ -916,7 +916,7 @@ func TestTrieHashByDisorderedData(t *testing.T) {
 	// Disrupted order
 	for i := 0; i < 1; i++ {
 		start = time.Now()
-		trie2, _ := New(common.Hash{}, NewDatabase(memorydb.New()))
+		trie2 := NewEmpty(NewDatabase(memorydb.New()))
 		triekvPairs2 := orderDisrupted(triekvPairs)
 		for i := 0; i < len(triekvPairs2); i++ {
 			err := trie2.TryUpdate(triekvPairs2[i].k, triekvPairs2[i].v)
@@ -959,7 +959,7 @@ func TestTrieHashByUpdate(t *testing.T) {
 	// Dag Trie
 	for i := 0; i < 1; i++ {
 		start = time.Now()
-		trie2, _ := New(common.Hash{}, NewDatabase(memorydb.New()))
+		trie2 := NewEmpty(NewDatabase(memorydb.New()))
 		for i := 0; i < len(triekvPairs); i++ {
 			err := trie2.TryUpdate(triekvPairs[i].k, triekvPairs[i].v)
 			if err != nil {
