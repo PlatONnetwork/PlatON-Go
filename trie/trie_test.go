@@ -749,7 +749,7 @@ func TestOneTrieCollision(t *testing.T) {
 	assert.Nil(t, checkTrie(trie))
 	reopenMemdb := NewDatabase(mem)
 
-	reopenTrie := NewEmpty(reopenMemdb)
+	reopenTrie, _ := New(common.Hash{}, root, reopenMemdb)
 	reopenTrie.Delete(trieData1[0].hash)
 
 	reopenRoot, _, _ := reopenTrie.Commit(nil)
