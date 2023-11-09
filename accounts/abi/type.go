@@ -161,19 +161,23 @@ func NewType(t string, internalType string, components []ArgumentMarshaling) (ty
 			elems      []*Type
 			names      []string
 			expression string // canonical parameter expression
+			used       = make(map[string]bool)
 		)
 		expression += "("
-		overloadedNames := make(map[string]string)
 		for idx, c := range components {
 			cType, err := NewType(c.Type, c.InternalType, c.Components)
 			if err != nil {
 				return Type{}, err
 			}
-			fieldName, err := overloadedArgName(c.Name, overloadedNames)
+			name := ToCamelCase(c.Name)
+			if name == "" {
+				return Type{}, errors.New("abi: purely anonymous or underscored field is not supported")
+			}
+			fieldName := ResolveNameConflict(name, func(s string) bool { return used[s] })
 			if err != nil {
 				return Type{}, err
 			}
-			overloadedNames[fieldName] = fieldName
+			used[fieldName] = true
 			fields = append(fields, reflect.StructField{
 				Name: fieldName, // reflect.StructOf will panic for any exported field.
 				Type: cType.GetType(),
@@ -248,20 +252,6 @@ func (t Type) GetType() reflect.Type {
 	default:
 		panic("Invalid type")
 	}
-}
-
-func overloadedArgName(rawName string, names map[string]string) (string, error) {
-	fieldName := ToCamelCase(rawName)
-	if fieldName == "" {
-		return "", errors.New("abi: purely anonymous or underscored field is not supported")
-	}
-	// Handle overloaded fieldNames
-	_, ok := names[fieldName]
-	for idx := 0; ok; idx++ {
-		fieldName = fmt.Sprintf("%s%d", ToCamelCase(rawName), idx)
-		_, ok = names[fieldName]
-	}
-	return fieldName, nil
 }
 
 // String implements Stringer.
