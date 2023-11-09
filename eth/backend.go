@@ -23,6 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
 	"math/big"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -231,7 +232,13 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		chainConfig.Cbft.Amount = config.CbftConfig.Amount
 	}
 
-	log.Info("Initialised chain configuration", "config", chainConfig)
+	log.Info("")
+	log.Info(strings.Repeat("-", 153))
+	for _, line := range strings.Split(chainConfig.String(), "\n") {
+		log.Info(line)
+	}
+	log.Info(strings.Repeat("-", 153))
+	log.Info("")
 	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
 
 	eth := &Ethereum{
