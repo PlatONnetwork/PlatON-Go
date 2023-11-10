@@ -111,9 +111,9 @@ func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
 	case *eth.PposStoragePacket:
-		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum, nil, 0)
+		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum, true, nil, 0)
 	case *eth.PposStorageV2Packet:
-		return h.downloader.DeliverPposStorage(peer.ID(), nil, false, 0, packet.BlockStorage, packet.BaseBlock)
+		return h.downloader.DeliverPposStorage(peer.ID(), nil, false, 0, false, packet.BlockStorage, packet.BaseBlock)
 	case *eth.OriginAndPivotPacket:
 		return h.downloader.DeliverOriginAndPivot(peer.ID(), *packet)
 

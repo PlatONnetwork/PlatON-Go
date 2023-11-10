@@ -113,9 +113,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
 	}
-	if config.SyncMode == downloader.SnapSync {
-		return nil, errors.New("can't run PlatON in snap sync mode now")
-	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}

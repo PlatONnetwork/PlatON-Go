@@ -470,7 +470,10 @@ func (ps *peerSet) NodeDataIdlePeers() ([]*peerConnection, int) {
 
 func (ps *peerSet) PPOSIdlePeers() ([]*peerConnection, int) {
 	idle := func(p *peerConnection) bool {
-		return atomic.LoadInt32(&p.blockIdle) == 0
+		if atomic.LoadInt32(&p.blockIdle) == 0 || atomic.LoadInt32(&p.receiptIdle) == 0 || atomic.LoadInt32(&p.stateIdle) == 0 || atomic.LoadInt32(&p.headerIdle) == 0 {
+			return true
+		}
+		return false
 	}
 	throughput := func(p *peerConnection) int {
 		return p.rates.Capacity(eth.PPOSStorageV2Msg, time.Second)

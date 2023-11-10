@@ -82,6 +82,7 @@ type pposStoragePack struct {
 	kvs    [][2][]byte
 	last   bool
 	kvNum  uint64
+	base   bool
 
 	blocks    []snapshotdb.BlockData
 	baseBlock uint64
