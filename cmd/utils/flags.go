@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/remotedb"
 	"io"
 	"math"
 	"math/big"
@@ -116,6 +117,10 @@ var (
 		Name:  "datadir",
 		Usage: "Data directory for the databases and keystore",
 		Value: DirectoryString(node.DefaultDataDir()),
+	}
+	RemoteDBFlag = cli.StringFlag{
+		Name:  "remotedb",
+		Usage: "URL for remote database",
 	}
 	AncientFlag = DirectoryFlag{
 		Name:  "datadir.ancient",
@@ -724,6 +729,24 @@ var (
 		Value:  ethconfig.Defaults.VmTimeoutDuration,
 	}
 )
+
+var (
+	// DatabasePathFlags is the flag group of all database path flags.
+	DatabasePathFlags = []cli.Flag{
+		DataDirFlag,
+		AncientFlag,
+		RemoteDBFlag,
+	}
+)
+
+// GroupFlags combines the given flag slices together and returns the merged one.
+func GroupFlags(groups ...[]cli.Flag) []cli.Flag {
+	var ret []cli.Flag
+	for _, group := range groups {
+		ret = append(ret, group...)
+	}
+	return ret
+}
 
 // MakeDataDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified. If the node is starting a testnet,
@@ -1508,12 +1531,19 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.
 	var (
 		cache   = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheDatabaseFlag.Name) / 100
 		handles = MakeDatabaseHandles(ctx.GlobalInt(FDLimitFlag.Name))
+
+		err     error
+		chainDb ethdb.Database
 	)
-	name := "chaindata"
-	if ctx.GlobalString(SyncModeFlag.Name) == "light" {
-		name = "lightchaindata"
+	switch {
+	case ctx.GlobalIsSet(RemoteDBFlag.Name):
+		log.Info("Using remote db", "url", ctx.GlobalString(RemoteDBFlag.Name))
+		chainDb, err = remotedb.New(ctx.GlobalString(RemoteDBFlag.Name))
+	case ctx.GlobalString(SyncModeFlag.Name) == "light":
+		chainDb, err = stack.OpenDatabase("lightchaindata", cache, handles, "", readonly)
+	default:
+		chainDb, err = stack.OpenDatabaseWithFreezer("chaindata", cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
 	}
-	chainDb, err := stack.OpenDatabaseWithFreezer(name, cache, handles, ctx.GlobalString(AncientFlag.Name), "", readonly)
 	if err != nil {
 		Fatalf("Could not open database: %v", err)
 	}
