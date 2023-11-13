@@ -1185,6 +1185,16 @@ func (cbft *Cbft) ConsensusNodes() ([]enode.ID, error) {
 	return cbft.validatorPool.ValidatorList(cbft.state.Epoch()), nil
 }
 
+// ConsensusNodes returns to the list of consensus nodes.
+func (cbft *Cbft) ConsensusValidators() []*cbfttypes.ValidateNode {
+	vs := cbft.validatorPool.Validators(cbft.state.Epoch())
+	nodeList := make([]*cbfttypes.ValidateNode, 0)
+	for _, node := range vs.Nodes {
+		nodeList = append(nodeList, node)
+	}
+	return nodeList
+}
+
 // ShouldSeal check if we can seal block.
 func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 	if cbft.isLoading() || !cbft.isStart() || !cbft.running() {

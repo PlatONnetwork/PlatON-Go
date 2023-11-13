@@ -47,11 +47,11 @@ type CbftResult struct {
 }
 
 type AddValidatorEvent struct {
-	Node *enode.Node
+	Nodes []*enode.Node
 }
 
 type RemoveValidatorEvent struct {
-	Node *enode.Node
+	Nodes []*enode.Node
 }
 
 type UpdateValidatorEvent struct {
