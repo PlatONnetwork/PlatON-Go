@@ -23,7 +23,6 @@ import (
 	"bufio"
 	"fmt"
 	fuzz "github.com/google/gofuzz"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -33,7 +32,7 @@ func Fuzz(data []byte) int {
 	if len(data) < 32 {
 		return -1
 	}
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +73,7 @@ func Fuzz(data []byte) int {
 
 	// Write the public key into the file to pass it as
 	// an argument to signify-openbsd
-	pubKeyFile, err := ioutil.TempFile("", "")
+	pubKeyFile, err := os.CreateTemp("", "")
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +125,7 @@ func getKey(fileS string) (string, error) {
 
 func createKeyPair() (string, string) {
 	// Create key and put it in correct format
-	tmpKey, err := ioutil.TempFile("", "")
+	tmpKey, err := os.CreateTemp("", "")
 	defer os.Remove(tmpKey.Name())
 	defer os.Remove(tmpKey.Name() + ".pub")
 	defer os.Remove(tmpKey.Name() + ".sec")

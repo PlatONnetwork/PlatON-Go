@@ -4012,7 +4012,7 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
     };
 
     var isPredefinedBlockNumber = function (blockNumber) {
-      return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
+      return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest' || blockNumber === 'finalized';
     };
 
     var inputDefaultBlockNumberFormatter = function (blockNumber) {

@@ -17,7 +17,6 @@
 package cbft
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -37,7 +36,7 @@ const (
 )
 
 func path() string {
-	name, err := ioutil.TempDir(os.TempDir(), "evidence")
+	name, err := os.MkdirTemp(os.TempDir(), "evidence")
 
 	if err != nil {
 		panic(err)

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -409,7 +408,7 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 
 func TestAncientStorage(t *testing.T) {
 	// Freezer style fast import the chain.
-	frdir, err := ioutil.TempDir("", "")
+	frdir, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
@@ -723,7 +722,7 @@ func TestHashesInRange(t *testing.T) {
 // This measures the write speed of the WriteAncientBlocks operation.
 func BenchmarkWriteAncientBlocks(b *testing.B) {
 	// Open freezer database.
-	frdir, err := ioutil.TempDir("", "")
+	frdir, err := os.MkdirTemp("", "")
 	if err != nil {
 		b.Fatalf("failed to create temp freezer dir: %v", err)
 	}

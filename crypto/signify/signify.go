@@ -23,7 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -77,7 +77,7 @@ func SignifySignFile(input string, output string, key string, unTrustedComment s
 		return err
 	}
 
-	filedata, err := ioutil.ReadAll(in)
+	filedata, err := io.ReadAll(in)
 	if err != nil {
 		return err
 	}

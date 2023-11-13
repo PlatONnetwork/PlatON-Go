@@ -21,6 +21,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
 )
 
@@ -79,6 +81,15 @@ func Bytes2Hex(d []byte) string {
 func Hex2Bytes(str string) []byte {
 	h, _ := hex.DecodeString(str)
 	return h
+}
+
+// ParseHexOrString tries to hexdecode b, but if the prefix is missing, it instead just returns the raw bytes
+func ParseHexOrString(str string) ([]byte, error) {
+	b, err := hexutil.Decode(str)
+	if errors.Is(err, hexutil.ErrMissingPrefix) {
+		return []byte(str), nil
+	}
+	return b, err
 }
 
 // RightPadBytes zero-pads slice to the right up to length l.

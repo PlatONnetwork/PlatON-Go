@@ -22,8 +22,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -204,7 +204,7 @@ func TestStaticAgency(t *testing.T) {
 
 func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) (*types.Block, *params.ChainConfig) {
 	common.SetAddressHRP("")
-	buf, err := ioutil.ReadFile("../../../eth/downloader/testdata/platon.json")
+	buf, err := os.ReadFile("../../../eth/downloader/testdata/platon.json")
 	if err != nil {
 		return nil, nil
 	}
