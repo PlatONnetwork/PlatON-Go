@@ -63,14 +63,14 @@ Minimum:
 
 * CPU with 2+ cores
 * 8GB RAM
-* 500GB free storage space to sync the Mainnet
+* 1TB free storage space to sync the Mainnet
 * 8 MBit/sec download Internet service
 
 Recommended:
 
 * Fast CPU with 4+ cores
 * 16GB+ RAM
-* High Performance SSD with at least 500GB free space
+* High Performance SSD with at least 1TB free space
 * 25+ MBit/sec download Internet service
 
 ### Generate the keys
