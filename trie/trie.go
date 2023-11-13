@@ -537,6 +537,15 @@ func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 // Deprecated: use Hash instead.
 func (t *Trie) Root() []byte { return t.Hash().Bytes() }
 
+func (t *Trie) resolveBlob(n hashNode, prefix []byte) ([]byte, error) {
+	hash := common.BytesToHash(n)
+	blob, _ := t.db.Node(hash)
+	if len(blob) != 0 {
+		return blob, nil
+	}
+	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
+}
+
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *Trie) Hash() common.Hash {

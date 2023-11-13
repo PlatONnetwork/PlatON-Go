@@ -67,6 +67,8 @@ require (
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/herumi/bls v1.37.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	golang.org/x/net v0.17.0

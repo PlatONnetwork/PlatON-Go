@@ -114,9 +114,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
 	}
-	if config.SyncMode == downloader.SnapSync {
-		return nil, errors.New("can't run PlatON in snap sync mode now")
-	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
@@ -660,13 +657,13 @@ func (s *Ethereum) Start() error {
 	// Start the networking layer and the light server if requested
 	s.handler.Start(maxPeers)
 
-	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		if flag := cbftEngine.IsConsensusNode(); flag {
-			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
-				// todo: Mock point.
+			for _, n := range cbftEngine.ConsensusValidators() {
 				if !node.FakeNetEnable {
-					s.p2pServer.AddConsensusPeer(n.Node)
+					enode := enode.NewV4(n.PubKey, nil, 0, 0)
+					log.Trace("PlatON start, adding consensus node", "nodeID", enode.IDv0())
+					s.p2pServer.AddConsensusPeer(enode)
 				}
 			}
 		}

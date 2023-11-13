@@ -25,7 +25,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 )
 
@@ -86,7 +85,7 @@ func NewWithFile(path string) (*Database, error) {
 	}
 	// Custom file may not exist. Will be created during save, if needed.
 	if _, err := os.Stat(path); err == nil {
-		if blob, err = ioutil.ReadFile(path); err != nil {
+		if blob, err = os.ReadFile(path); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(blob, &db.custom); err != nil {
@@ -140,5 +139,5 @@ func (db *Database) AddSelector(selector string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(db.customPath, blob, 0600)
+	return os.WriteFile(db.customPath, blob, 0600)
 }

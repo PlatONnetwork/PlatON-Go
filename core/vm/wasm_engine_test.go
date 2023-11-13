@@ -3,8 +3,8 @@ package vm
 import (
 	"context"
 	"hash/fnv"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -193,7 +193,7 @@ func TestWasmRun(t *testing.T) {
 
 func deployData(t *testing.T, funcName, filePath string) []byte {
 
-	buf, err := ioutil.ReadFile(filePath)
+	buf, err := os.ReadFile(filePath)
 	assert.Nil(t, err)
 
 	hash := fnv.New64()

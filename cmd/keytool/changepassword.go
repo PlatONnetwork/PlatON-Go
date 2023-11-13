@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"gopkg.in/urfave/cli.v1"
@@ -30,7 +30,7 @@ Change the password of a keyfile.`,
 		keyfilepath := ctx.Args().First()
 
 		// Read key from file.
-		keyjson, err := ioutil.ReadFile(keyfilepath)
+		keyjson, err := os.ReadFile(keyfilepath)
 		if err != nil {
 			utils.Fatalf("Failed to read the keyfile at '%s': %v", keyfilepath, err)
 		}
@@ -46,7 +46,7 @@ Change the password of a keyfile.`,
 		fmt.Println("Please provide a new password")
 		var newPhrase string
 		if passFile := ctx.String(newPassphraseFlag.Name); passFile != "" {
-			content, err := ioutil.ReadFile(passFile)
+			content, err := os.ReadFile(passFile)
 			if err != nil {
 				utils.Fatalf("Failed to read new password file '%s': %v", passFile, err)
 			}
@@ -62,7 +62,7 @@ Change the password of a keyfile.`,
 		}
 
 		// Then write the new keyfile in place of the old one.
-		if err := ioutil.WriteFile(keyfilepath, newJson, 0600); err != nil {
+		if err := os.WriteFile(keyfilepath, newJson, 0600); err != nil {
 			utils.Fatalf("Error writing new keyfile to disk: %v", err)
 		}
 

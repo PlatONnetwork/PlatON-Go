@@ -53,7 +53,7 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 200
-	MaxCommitBlock            = 100
+	MaxCommitBlock            = 180
 )
 
 // DB the main snapshotdb interface

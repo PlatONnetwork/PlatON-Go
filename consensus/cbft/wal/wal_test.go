@@ -14,11 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package wal
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -35,7 +33,7 @@ var (
 )
 
 func TestUpdateChainState(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	wal, _ := NewWal(nil, tempDir)
@@ -53,7 +51,7 @@ func TestUpdateChainState(t *testing.T) {
 }
 
 func TestWriteMsg(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	wal, _ := NewWal(nil, tempDir)
@@ -129,7 +127,7 @@ func testWalUpdateViewChange(wal Wal) error {
 }
 
 func TestUpdateViewChangeQC(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
+	tempDir, _ := os.MkdirTemp("", "wal")
 	defer os.RemoveAll(tempDir)
 
 	wal, _ := NewWal(nil, tempDir)

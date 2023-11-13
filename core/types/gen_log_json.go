@@ -23,7 +23,7 @@ func (l Log) MarshalJSON() ([]byte, error) {
 		TxIndex     hexutil.Uint   `json:"transactionIndex"`
 		BlockHash   common.Hash    `json:"blockHash"`
 		Index       hexutil.Uint   `json:"logIndex"`
-		Removed     bool           `json:"removed"`
+		Removed     bool           `json:"removed" rlp:"-"`
 	}
 	var enc Log
 	enc.Address = l.Address
@@ -49,7 +49,7 @@ func (l *Log) UnmarshalJSON(input []byte) error {
 		TxIndex     *hexutil.Uint   `json:"transactionIndex"`
 		BlockHash   *common.Hash    `json:"blockHash"`
 		Index       *hexutil.Uint   `json:"logIndex"`
-		Removed     *bool           `json:"removed"`
+		Removed     *bool           `json:"removed" rlp:"-"`
 	}
 	var dec Log
 	if err := json.Unmarshal(input, &dec); err != nil {

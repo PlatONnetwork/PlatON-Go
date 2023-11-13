@@ -25,7 +25,6 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -178,7 +177,7 @@ func makeGenesis(faucets []*ecdsa.PrivateKey, sealers []*ecdsa.PrivateKey) *core
 
 func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 	// Define the basic configurations for the Ethereum node
-	datadir, _ := ioutil.TempDir("", "")
+	datadir, _ := os.MkdirTemp("", "")
 
 	config := &node.Config{
 		Name:    "platon",

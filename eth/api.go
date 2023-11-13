@@ -199,7 +199,7 @@ func (api *PublicDebugAPI) DumpBlock(blockNr rpc.BlockNumber) (state.Dump, error
 		return stateDb.RawDump(opts), nil
 	}
 	var block *types.Block
-	if blockNr == rpc.LatestBlockNumber {
+	if blockNr == rpc.LatestBlockNumber || blockNr == rpc.FinalizedBlockNumber {
 		block = api.eth.blockchain.CurrentBlock()
 	} else {
 		block = api.eth.blockchain.GetBlockByNumber(uint64(blockNr))
@@ -306,7 +306,7 @@ func (api *PrivateDebugAPI) AccountRange(blockNrOrHash rpc.BlockNumberOrHash, st
 			_, stateDb = api.eth.miner.Pending()
 		} else {
 			var block *types.Block
-			if number == rpc.LatestBlockNumber {
+			if number == rpc.LatestBlockNumber || number == rpc.FinalizedBlockNumber {
 				block = api.eth.blockchain.CurrentBlock()
 			} else {
 				block = api.eth.blockchain.GetBlockByNumber(uint64(number))

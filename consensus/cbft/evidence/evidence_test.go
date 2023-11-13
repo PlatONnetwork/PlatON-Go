@@ -14,13 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package evidence
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"testing"
@@ -42,7 +40,7 @@ func init() {
 }
 
 func path() string {
-	name, err := ioutil.TempDir(os.TempDir(), "evidence")
+	name, err := os.MkdirTemp(os.TempDir(), "evidence")
 
 	if err != nil {
 		panic(err)

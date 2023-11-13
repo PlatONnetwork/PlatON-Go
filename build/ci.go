@@ -45,7 +45,6 @@ import (
 	"fmt"
 	"go/parser"
 	"go/token"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -119,11 +118,11 @@ var (
 	// Note: the following Ubuntu releases have been officially deprecated on Launchpad:
 	//   wily, yakkety, zesty, artful, cosmic, disco, eoan, groovy
 	debDistroGoBoots = map[string]string{
-		"trusty":  "golang-1.11",
-		"xenial":  "golang-go",
-		"bionic":  "golang-go",
-		"focal":   "golang-go",
-		"hirsute": "golang-go",
+		"trusty": "golang-1.11",
+		"xenial": "golang-go",
+		"bionic": "golang-go",
+		"focal":  "golang-go",
+		"jammy":  "golang-go", // EOL: 04/2032
 	}
 
 	debGoBootPaths = map[string]string{
@@ -266,7 +265,7 @@ func doInstall(cmdline []string) {
 	goinstall.Args = append(goinstall.Args, packages...)
 	build.MustRun(goinstall)
 
-	if cmds, err := ioutil.ReadDir("cmd"); err == nil {
+	if cmds, err := os.ReadDir("cmd"); err == nil {
 		for _, cmd := range cmds {
 			pkgs, err := parser.ParseDir(token.NewFileSet(), filepath.Join(".", "cmd", cmd.Name()), nil, parser.PackageClauseOnly)
 			if err != nil {
@@ -388,7 +387,7 @@ func doLint(cmdline []string) {
 
 // downloadLinter downloads and unpacks golangci-lint.
 func downloadLinter(cachedir string) string {
-	const version = "1.42.0"
+	const version = "1.45.2"
 
 	csdb := build.MustLoadChecksums("build/checksums.txt")
 	arch := runtime.GOARCH
@@ -617,7 +616,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
 		if _, err := os.Stat(idfile); os.IsNotExist(err) {
-			ioutil.WriteFile(idfile, sshkey, 0600)
+			os.WriteFile(idfile, sshkey, 0600)
 		}
 	}
 	// Upload
@@ -640,7 +639,7 @@ func makeWorkdir(wdflag string) string {
 	if wdflag != "" {
 		err = os.MkdirAll(wdflag, 0744)
 	} else {
-		wdflag, err = ioutil.TempDir("", "platon-build-")
+		wdflag, err = os.MkdirTemp("", "platon-build-")
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -1120,21 +1119,21 @@ func doPurge(cmdline []string) {
 
 	// Iterate over the blobs, collect and sort all unstable builds
 	for i := 0; i < len(blobs); i++ {
-		if !strings.Contains(blobs[i].Name, "unstable") {
+		if !strings.Contains(*blobs[i].Name, "unstable") {
 			blobs = append(blobs[:i], blobs[i+1:]...)
 			i--
 		}
 	}
 	for i := 0; i < len(blobs); i++ {
 		for j := i + 1; j < len(blobs); j++ {
-			if blobs[i].Properties.LastModified.After(blobs[j].Properties.LastModified) {
+			if blobs[i].Properties.LastModified.After(*blobs[j].Properties.LastModified) {
 				blobs[i], blobs[j] = blobs[j], blobs[i]
 			}
 		}
 	}
 	// Filter out all archives more recent that the given threshold
 	for i, blob := range blobs {
-		if time.Since(blob.Properties.LastModified) < time.Duration(*limit)*24*time.Hour {
+		if time.Since(*blob.Properties.LastModified) < time.Duration(*limit)*24*time.Hour {
 			blobs = blobs[:i]
 			break
 		}

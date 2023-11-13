@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"os"
@@ -566,7 +565,7 @@ func BenchmarkHash(b *testing.B) {
 }
 
 func tempDB() (string, *Database) {
-	dir, err := ioutil.TempDir("", "trie-bench")
+	dir, err := os.MkdirTemp("", "trie-bench")
 	if err != nil {
 		panic(fmt.Sprintf("can't create temporary directory: %v", err))
 	}

@@ -497,11 +497,19 @@ func (dlp *downloadTesterPeer) RequestNodeData(hashes []common.Hash) error {
 func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
-	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum]]
+	dlp.Log().Info("DeliverPposInfo", "chain", len(dlp.chain.chain), "Pivot", num)
+
 	Latest := dlp.chain.headBlock().Header()
-	log.Debug("DeliverPposInfo")
+
+	if Latest.Number.Uint64() < num {
+		dlp.Log().Error("faild to answerGetPPOSStorageMsgQueryV2 , the current headeris less than the request header", "current", Latest.Number.Uint64(), "pivot", num)
+		return fmt.Errorf("faild to answerGetPPOSStorageMsgQueryV2 , the current header %v is less than the request header %v", Latest.Number.Uint64(), num)
+	}
+
+	Pivot := dlp.chain.headerm[dlp.chain.chain[num]]
+
 	if err := dlp.dl.downloader.DeliverPposInfo(dlp.id, Latest, Pivot); err != nil {
-		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		dlp.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 		return err
 	}
 	var count int
@@ -516,18 +524,28 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 		KVNum++
 		count++
 		if count >= eth.PPOSStorageKVSizeFetch {
-			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum, nil, 0); err != nil {
+			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum, true, nil, 0); err != nil {
 				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 				return err
 			}
 			count = 0
 			ps = make([][2][]byte, 0)
 		}
-		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum, nil, 0); err != nil {
-			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
-			return err
+	}
+	if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum, true, nil, 0); err != nil {
+		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		return err
+	}
+	datas := make([]snapshotdb.BlockData, 0)
+	if num != uint64(dlp.chain.baseNum) {
+		for i := uint64(dlp.chain.baseNum) + 1; i <= num; i++ {
+			datas = append(datas, *snapshotdb.NewBlockData(new(big.Int).SetUint64(i), dlp.chain.headerm[dlp.chain.chain[i-1]].Hash(), dlp.chain.headerm[dlp.chain.chain[i]].Hash()))
 		}
-		return nil
+	}
+
+	if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, 0, false, datas, uint64(dlp.chain.baseNum)); err != nil {
+		logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+		return err
 	}
 	return nil
 }
@@ -535,24 +553,32 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 func (dlp *downloadTesterPeer) RequestOriginAndPivotByCurrent(c uint64) error {
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
-	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum-1]]
-	origin := dlp.chain.headerm[dlp.chain.chain[c]]
-	go dlp.dl.downloader.DeliverOriginAndPivot(dlp.id, []*types.Header{origin, Pivot})
+	baseNum := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum-1]]
+	if c > uint64(len(dlp.chain.chain)) {
+		go dlp.dl.downloader.DeliverOriginAndPivot(dlp.id, []*types.Header{nil, baseNum})
+	} else {
+		go dlp.dl.downloader.DeliverOriginAndPivot(dlp.id, []*types.Header{dlp.chain.headerm[dlp.chain.chain[c]], baseNum})
+	}
 	return nil
+}
+
+// Log retrieves the peer's own contextual logger.
+func (dlp *downloadTesterPeer) Log() log.Logger {
+	return log.New("peer", dlp.id)
 }
 
 // assertOwnChain checks if the local chain contains the correct number of items
 // of the various chain components.
-func assertOwnChain(t *testing.T, tester *downloadTester, length int, base int64) {
+func assertOwnChain(t *testing.T, tester *downloadTester, length int) {
 	// Mark this method as a helper to report errors at callsite, not in here
 	t.Helper()
 
-	assertOwnForkedChain(t, tester, 1, []int{length}, base)
+	assertOwnForkedChain(t, tester, 1, []int{length})
 }
 
 // assertOwnForkedChain checks if the local forked chain contains the correct
 // number of items of the various chain components.
-func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, lengths []int, base int64) {
+func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, lengths []int) {
 	// Mark this method as a helper to report errors at callsite, not in here
 	t.Helper()
 
@@ -586,8 +612,8 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 		if err != nil {
 			t.Error(err)
 		}
-		if baseNum.Int64() != base {
-			t.Fatalf("synchronised baseNum mismatch have %v, want %v", baseNum, base)
+		if baseNum.Int64() != tester.ownHeaders[tester.ownHashes[len(tester.ownHashes)-1]].Number.Int64() {
+			t.Fatalf("synchronised baseNum mismatch have %v, want %v", baseNum, tester.ownHeaders[tester.ownHashes[len(tester.ownHashes)-1]].Number.Int64())
 		}
 	}
 }
@@ -595,9 +621,6 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 // Tests that simple synchronization against a canonical chain works correctly.
 // In this test common ancestor lookup should be short circuited and not require
 // binary searching.
-func TestCanonicalSynchronisation65Full(t *testing.T)  { testCanonSync(t, eth.ETH65, FullSync) }
-func TestCanonicalSynchronisation65Fast(t *testing.T)  { testCanonSync(t, eth.ETH65, FastSync) }
-func TestCanonicalSynchronisation65Light(t *testing.T) { testCanonSync(t, eth.ETH65, LightSync) }
 
 func TestCanonicalSynchronisation66Full(t *testing.T)  { testCanonSync(t, eth.ETH66, FullSync) }
 func TestCanonicalSynchronisation66Fast(t *testing.T)  { testCanonSync(t, eth.ETH66, FastSync) }
@@ -617,19 +640,17 @@ func testCanonSync(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync("peer", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, blockSyncItems, snapshotDBBaseNum)
+	assertOwnChain(t, tester, blockSyncItems)
 }
 
 // Tests that if a large batch of blocks are being downloaded, it is throttled
 // until the cached blocks are retrieved.
-func TestThrottling65Full(t *testing.T) { testThrottling(t, eth.ETH65, FullSync) }
-func TestThrottling65Fast(t *testing.T) { testThrottling(t, eth.ETH65, FastSync) }
 
 func TestThrottling66Full(t *testing.T) { testThrottling(t, eth.ETH66, FullSync) }
 func TestThrottling66Fast(t *testing.T) { testThrottling(t, eth.ETH66, FastSync) }
 
 func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 	tester := newTester()
 
 	// Create a long block chain to download and the tester
@@ -696,7 +717,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		}
 	}
 	// Check that we haven't pulled more blocks than available
-	assertOwnChain(t, tester, targetBlocks+1, snapshotDBBaseNum)
+	assertOwnChain(t, tester, targetBlocks+1)
 	if err := <-errc; err != nil {
 		t.Fatalf("block synchronization failed: %v", err)
 	}
@@ -847,16 +868,13 @@ func TestInactiveDownloader63(t *testing.T) {
 }
 
 // Tests that a canceled download wipes all previously accumulated state.
-func TestCancel65Full(t *testing.T)  { testCancel(t, eth.ETH65, FullSync) }
-func TestCancel65Fast(t *testing.T)  { testCancel(t, eth.ETH65, FastSync) }
-func TestCancel65Light(t *testing.T) { testCancel(t, eth.ETH65, LightSync) }
 
 func TestCancel66Full(t *testing.T)  { testCancel(t, eth.ETH66, FullSync) }
 func TestCancel66Fast(t *testing.T)  { testCancel(t, eth.ETH66, FastSync) }
 func TestCancel66Light(t *testing.T) { testCancel(t, eth.ETH66, LightSync) }
 
 func testCancel(t *testing.T, protocol uint, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 
 	tester := newTester()
 	defer tester.terminate()
@@ -880,16 +898,13 @@ func testCancel(t *testing.T, protocol uint, mode SyncMode) {
 }
 
 // Tests that synchronisation from multiple peers works as intended (multi thread sanity test).
-func TestMultiSynchronisation65Full(t *testing.T)  { testMultiSynchronisation(t, eth.ETH65, FullSync) }
-func TestMultiSynchronisation65Fast(t *testing.T)  { testMultiSynchronisation(t, eth.ETH65, FastSync) }
-func TestMultiSynchronisation65Light(t *testing.T) { testMultiSynchronisation(t, eth.ETH65, LightSync) }
 
 func TestMultiSynchronisation66Full(t *testing.T)  { testMultiSynchronisation(t, eth.ETH66, FullSync) }
 func TestMultiSynchronisation66Fast(t *testing.T)  { testMultiSynchronisation(t, eth.ETH66, FastSync) }
 func TestMultiSynchronisation66Light(t *testing.T) { testMultiSynchronisation(t, eth.ETH66, LightSync) }
 
 func testMultiSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 
 	tester := newTester()
 	defer tester.terminate()
@@ -905,14 +920,11 @@ func testMultiSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync("peer #0", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, chain.len(), int64(chain.baseNum))
+	assertOwnChain(t, tester, chain.len())
 }
 
 // Tests that synchronisations behave well in multi-version protocol environments
 // and not wreak havoc on other nodes in the network.
-func TestMultiProtoSynchronisation65Full(t *testing.T)  { testMultiProtoSync(t, eth.ETH65, FullSync) }
-func TestMultiProtoSynchronisation65Fast(t *testing.T)  { testMultiProtoSync(t, eth.ETH65, FastSync) }
-func TestMultiProtoSynchronisation65Light(t *testing.T) { testMultiProtoSync(t, eth.ETH65, LightSync) }
 
 func TestMultiProtoSynchronisation66Full(t *testing.T)  { testMultiProtoSync(t, eth.ETH66, FullSync) }
 func TestMultiProtoSynchronisation66Fast(t *testing.T)  { testMultiProtoSync(t, eth.ETH66, FastSync) }
@@ -935,7 +947,7 @@ func testMultiProtoSync(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync(fmt.Sprintf("peer %d", protocol), nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, chain.len(), snapshotDBBaseNum-150-1)
+	assertOwnChain(t, tester, chain.len())
 
 	// Check that no peers have been dropped off
 	for _, version := range []int{65, 66} {
@@ -978,7 +990,7 @@ func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync("peer", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, targetBlocks, snapshotDBBaseNum-150-1)
+	assertOwnChain(t, tester, targetBlocks)
 
 	// Validate the number of block bodies that should have been requested
 	bodiesNeeded, receiptsNeeded := 0, 0
@@ -1002,16 +1014,13 @@ func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
 
 // Tests that headers are enqueued continuously, preventing malicious nodes from
 // stalling the downloader by feeding gapped header chains.
-func TestMissingHeaderAttack65Full(t *testing.T)  { testMissingHeaderAttack(t, eth.ETH65, FullSync) }
-func TestMissingHeaderAttack65Fast(t *testing.T)  { testMissingHeaderAttack(t, eth.ETH65, FastSync) }
-func TestMissingHeaderAttack65Light(t *testing.T) { testMissingHeaderAttack(t, eth.ETH65, LightSync) }
 
 func TestMissingHeaderAttack66Full(t *testing.T)  { testMissingHeaderAttack(t, eth.ETH66, FullSync) }
 func TestMissingHeaderAttack66Fast(t *testing.T)  { testMissingHeaderAttack(t, eth.ETH66, FastSync) }
 func TestMissingHeaderAttack66Light(t *testing.T) { testMissingHeaderAttack(t, eth.ETH66, LightSync) }
 
 func testMissingHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 
 	tester := newTester()
 	defer tester.terminate()
@@ -1030,7 +1039,7 @@ func testMissingHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync("valid", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, chain.len(), int64(snapshotDBBaseNum-15-1))
+	assertOwnChain(t, tester, chain.len())
 }
 
 // Tests that if requested headers are shifted (i.e. first is missing), the queue
@@ -1062,7 +1071,7 @@ func testShiftedHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
 	if err := tester.sync("valid", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
-	assertOwnChain(t, tester, chain.len(), int64(blockCacheMaxItems-15))
+	assertOwnChain(t, tester, chain.len())
 }
 
 // Tests that upon detecting an invalid header, the recent ones are rolled back
@@ -1177,7 +1186,6 @@ func testHighTDStarvationAttack(t *testing.T, protocol uint, mode SyncMode) {
 }
 
 // Tests that misbehaving peers are disconnected, whilst behaving ones are not.
-func TestBlockHeaderAttackerDropping65(t *testing.T) { testBlockHeaderAttackerDropping(t, eth.ETH65) }
 func TestBlockHeaderAttackerDropping66(t *testing.T) { testBlockHeaderAttackerDropping(t, eth.ETH66) }
 
 func testBlockHeaderAttackerDropping(t *testing.T, protocol uint) {
@@ -1230,9 +1238,6 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol uint) {
 
 // Tests that synchronisation progress (origin block number, current block number
 // and highest block number) is tracked and updated correctly.
-func TestSyncProgress65Full(t *testing.T)  { testSyncProgress(t, eth.ETH65, FullSync) }
-func TestSyncProgress65Fast(t *testing.T)  { testSyncProgress(t, eth.ETH65, FastSync) }
-func TestSyncProgress65Light(t *testing.T) { testSyncProgress(t, eth.ETH65, LightSync) }
 
 func TestSyncProgress66Full(t *testing.T)  { testSyncProgress(t, eth.ETH66, FullSync) }
 func TestSyncProgress66Fast(t *testing.T)  { testSyncProgress(t, eth.ETH66, FastSync) }
@@ -1386,9 +1391,6 @@ func checkProgress(t *testing.T, d *Downloader, stage string, want ethereum.Sync
 // Tests that if synchronisation is aborted due to some failure, then the progress
 // origin is not updated in the next sync cycle, as it should be considered the
 // continuation of the previous sync and not a new instance.
-func TestFailedSyncProgress65Full(t *testing.T)  { testFailedSyncProgress(t, eth.ETH65, FullSync) }
-func TestFailedSyncProgress65Fast(t *testing.T)  { testFailedSyncProgress(t, eth.ETH65, FastSync) }
-func TestFailedSyncProgress65Light(t *testing.T) { testFailedSyncProgress(t, eth.ETH65, LightSync) }
 
 func TestFailedSyncProgress66Full(t *testing.T)  { testFailedSyncProgress(t, eth.ETH66, FullSync) }
 func TestFailedSyncProgress66Fast(t *testing.T)  { testFailedSyncProgress(t, eth.ETH66, FastSync) }
@@ -1459,9 +1461,6 @@ func testFailedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 
 // Tests that if an attacker fakes a chain height, after the attack is detected,
 // the progress height is successfully reduced at the next sync invocation.
-func TestFakedSyncProgress65Full(t *testing.T)  { testFakedSyncProgress(t, eth.ETH65, FullSync) }
-func TestFakedSyncProgress65Fast(t *testing.T)  { testFakedSyncProgress(t, eth.ETH65, FastSync) }
-func TestFakedSyncProgress65Light(t *testing.T) { testFakedSyncProgress(t, eth.ETH65, LightSync) }
 
 func TestFakedSyncProgress66Full(t *testing.T)  { testFakedSyncProgress(t, eth.ETH66, FullSync) }
 func TestFakedSyncProgress66Fast(t *testing.T)  { testFakedSyncProgress(t, eth.ETH66, FastSync) }
@@ -1540,16 +1539,13 @@ func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 // block indefinitely if they arrived at the right time.
 // We use data driven subtests to manage this so that it will be parallel on its own
 // and not with the other tests, avoiding intermittent failures.
-func TestDeliverHeadersHang65Full(t *testing.T)  { testDeliverHeadersHang(t, eth.ETH65, FullSync) }
-func TestDeliverHeadersHang65Fast(t *testing.T)  { testDeliverHeadersHang(t, eth.ETH65, FastSync) }
-func TestDeliverHeadersHang65Light(t *testing.T) { testDeliverHeadersHang(t, eth.ETH65, LightSync) }
 
 func TestDeliverHeadersHang66Full(t *testing.T)  { testDeliverHeadersHang(t, eth.ETH66, FullSync) }
 func TestDeliverHeadersHang66Fast(t *testing.T)  { testDeliverHeadersHang(t, eth.ETH66, FastSync) }
 func TestDeliverHeadersHang66Light(t *testing.T) { testDeliverHeadersHang(t, eth.ETH66, LightSync) }
 
 func testDeliverHeadersHang(t *testing.T, protocol uint, mode SyncMode) {
-	t.Parallel()
+	//t.Parallel()
 
 	master := newTester()
 	defer master.terminate()
