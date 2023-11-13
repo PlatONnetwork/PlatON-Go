@@ -1017,7 +1017,7 @@ func BenchmarkBlockChain_1x1000ValueTransferToNonexisting(b *testing.B) {
 	)
 
 	recipientFn := func(nonce uint64) common.Address {
-		return common.BigToAddress(big.NewInt(0).SetUint64(1337 + nonce))
+		return common.BigToAddress(new(big.Int).SetUint64(1337 + nonce))
 	}
 	dataFn := func(nonce uint64) []byte {
 		return nil
@@ -1034,7 +1034,7 @@ func BenchmarkBlockChain_1x1000ValueTransferToExisting(b *testing.B) {
 	b.ResetTimer()
 
 	recipientFn := func(nonce uint64) common.Address {
-		return common.BigToAddress(big.NewInt(0).SetUint64(1337))
+		return common.BigToAddress(new(big.Int).SetUint64(1337))
 	}
 	dataFn := func(nonce uint64) []byte {
 		return nil
@@ -1051,7 +1051,7 @@ func BenchmarkBlockChain_1x1000Executions(b *testing.B) {
 	b.ResetTimer()
 
 	recipientFn := func(nonce uint64) common.Address {
-		return common.BigToAddress(big.NewInt(0).SetUint64(0xc0de))
+		return common.BigToAddress(new(big.Int).SetUint64(0xc0de))
 	}
 	dataFn := func(nonce uint64) []byte {
 		return nil
