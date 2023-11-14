@@ -24,7 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -108,7 +107,7 @@ func (ui *headlessUi) ShowInfo(message string) {
 }
 
 func tmpDirName(t *testing.T) string {
-	d, err := ioutil.TempDir("", "eth-keystore-test")
+	d, err := os.MkdirTemp("", "eth-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

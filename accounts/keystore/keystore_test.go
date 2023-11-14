@@ -18,7 +18,6 @@ package keystore
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"runtime"
@@ -462,7 +461,7 @@ func checkEvents(t *testing.T, want []walletEvent, have []walletEvent) {
 }
 
 func tmpKeyStore(t *testing.T, encrypted bool) (string, *KeyStore) {
-	d, err := ioutil.TempDir("", "eth-keystore-test")
+	d, err := os.MkdirTemp("", "eth-keystore-test")
 	if err != nil {
 		t.Fatal(err)
 	}

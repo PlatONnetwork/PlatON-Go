@@ -69,7 +69,10 @@ const (
 	SHL    OpCode = 0x1b
 	SHR    OpCode = 0x1c
 	SAR    OpCode = 0x1d
+)
 
+// 0x20 range - crypto.
+const (
 	KECCAK256 OpCode = 0x20
 )
 
@@ -124,6 +127,7 @@ const (
 	BEGINSUB  OpCode = 0x5c
 	RETURNSUB OpCode = 0x5d
 	JUMPSUB   OpCode = 0x5e
+	PUSH0     OpCode = 0x5f
 )
 
 // 0x60 range - pushes.
@@ -310,6 +314,7 @@ var opCodeToString = map[OpCode]string{
 	JUMPSUB:   "JUMPSUB",
 	RETURNSUB: "RETURNSUB",
 
+	PUSH0: "PUSH0",
 	// 0x60 range - push.
 	PUSH1:  "PUSH1",
 	PUSH2:  "PUSH2",
@@ -475,6 +480,7 @@ var stringToOp = map[string]OpCode{
 	"BEGINSUB":       BEGINSUB,
 	"RETURNSUB":      RETURNSUB,
 	"JUMPSUB":        JUMPSUB,
+	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
 	"PUSH2":          PUSH2,
 	"PUSH3":          PUSH3,

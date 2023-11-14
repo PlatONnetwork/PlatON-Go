@@ -78,6 +78,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.CacheSnapshotFlag,
 			utils.CacheTrieDBFlag,
 			utils.CachePreimagesFlag,
+			utils.FDLimitFlag,
 		},
 	},
 	{
@@ -107,6 +108,9 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.WSApiFlag,
 			utils.WSPathPrefixFlag,
 			utils.WSAllowedOriginsFlag,
+			utils.JWTSecretFlag,
+			utils.AuthHostFlag,
+			utils.AuthPortFlag,
 			utils.GraphQLEnabledFlag,
 			utils.GraphQLCORSDomainFlag,
 			utils.GraphQLVirtualHostsFlag,

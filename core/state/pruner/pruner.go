@@ -66,9 +66,9 @@ var (
 // Pruner is an offline tool to prune the stale state with the
 // help of the snapshot. The workflow of pruner is very simple:
 //
-//   - iterate the snapshot, reconstruct the relevant state
-//   - iterate the database, delete all other state entries which
-//     don't belong to the target state and the genesis state
+// - iterate the snapshot, reconstruct the relevant state
+// - iterate the database, delete all other state entries which
+//   don't belong to the target state and the genesis state
 //
 // It can take several hours(around 2 hours for mainnet) to finish
 // the whole pruning work. It's recommended to run this offline tool
@@ -230,7 +230,7 @@ func prune(snaptree *snapshot.Tree, root common.Hash, maindb ethdb.Database, sta
 
 // Prune deletes all historical state nodes except the nodes belong to the
 // specified state version. If user doesn't specify the state version, use
-// the top-most snapshot diff layer as the target.
+// the bottom-most snapshot diff layer as the target.
 func (p *Pruner) Prune(root common.Hash) error {
 	// If the state bloom filter is already committed previously,
 	// reuse it for pruning instead of generating a new one. It's
@@ -243,8 +243,8 @@ func (p *Pruner) Prune(root common.Hash) error {
 	if stateBloomRoot != (common.Hash{}) {
 		return RecoverPruning(p.datadir, p.db, p.trieCachePath)
 	}
-	// The target state root must be the root corresponding to the current HEAD
-	// The reason for picking it is:
+	// If the target state root is not specified, use the HEAD-127 as the
+	// target. The reason for picking it is:
 	// - in most of the normal cases, the related state is available
 	// - the probability of this layer being reorg is very low
 	if root != (common.Hash{}) && root != p.headHeader.Root {
@@ -268,7 +268,7 @@ func (p *Pruner) Prune(root common.Hash) error {
 	// Ensure the root is really present. The weak assumption
 	// is the presence of root can indicate the presence of the
 	// entire trie.
-	if blob := rawdb.ReadTrieNode(p.db, root); len(blob) == 0 {
+	if !rawdb.HasTrieNode(p.db, root) {
 		log.Error("Could not find the trie node corresponding to root", "root", root.TerminalString())
 		return fmt.Errorf("could not find the trie node corresponding to root:%s", root)
 	}

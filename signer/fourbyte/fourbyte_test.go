@@ -18,7 +18,7 @@ package fourbyte
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -57,7 +57,7 @@ func TestEmbeddedDatabase(t *testing.T) {
 // Tests that custom 4byte datasets can be handled too.
 func TestCustomDatabase(t *testing.T) {
 	// Create a new custom 4byte database with no embedded component
-	tmpdir, err := ioutil.TempDir("", "signer-4byte-test")
+	tmpdir, err := os.MkdirTemp("", "signer-4byte-test")
 	if err != nil {
 		t.Fatal(err)
 	}

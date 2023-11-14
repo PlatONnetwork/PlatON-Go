@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/btcsuite/btcd/btcutil/bech32"
 
@@ -47,7 +47,7 @@ update hex/bech32 address to  bech32 address.
 		var accounts []string
 		if ctx.IsSet(HexAccountFileFlag.Name) {
 			accountPath := ctx.String(HexAccountFileFlag.Name)
-			accountjson, err := ioutil.ReadFile(accountPath)
+			accountjson, err := os.ReadFile(accountPath)
 			if err != nil {
 				utils.Fatalf("Failed to read the keyfile at '%s': %v", accountPath, err)
 			}
