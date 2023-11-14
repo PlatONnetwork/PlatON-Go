@@ -1,3 +1,19 @@
+// Copyright 2019 The go-ethereum Authors
+// This file is part of the go-ethereum library.
+//
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The go-ethereum library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package bind_test
 
 import (
@@ -8,6 +24,7 @@ import (
 	"strings"
 	"testing"
 
+	"errors"
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
@@ -59,34 +76,51 @@ func (mt *mockTransactor) SendTransaction(ctx context.Context, tx *types.Transac
 }
 
 type mockCaller struct {
-	codeAtBlockNumber         *big.Int
-	callContractBlockNumber   *big.Int
-	pendingCodeAtCalled       bool
-	pendingCallContractCalled bool
+	codeAtBlockNumber       *big.Int
+	callContractBlockNumber *big.Int
+	callContractBytes       []byte
+	callContractErr         error
+	codeAtBytes             []byte
+	codeAtErr               error
 }
 
 func (mc *mockCaller) CodeAt(ctx context.Context, contract common.Address, blockNumber *big.Int) ([]byte, error) {
 	mc.codeAtBlockNumber = blockNumber
-	return []byte{1, 2, 3}, nil
+	return mc.codeAtBytes, mc.codeAtErr
 }
 
 func (mc *mockCaller) CallContract(ctx context.Context, call ethereum.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	mc.callContractBlockNumber = blockNumber
-	return nil, nil
+	return mc.callContractBytes, mc.callContractErr
 }
 
-func (mc *mockCaller) PendingCodeAt(ctx context.Context, contract common.Address) ([]byte, error) {
+type mockPendingCaller struct {
+	*mockCaller
+	pendingCodeAtBytes        []byte
+	pendingCodeAtErr          error
+	pendingCodeAtCalled       bool
+	pendingCallContractCalled bool
+	pendingCallContractBytes  []byte
+	pendingCallContractErr    error
+}
+
+func (mc *mockPendingCaller) PendingCodeAt(ctx context.Context, contract common.Address) ([]byte, error) {
 	mc.pendingCodeAtCalled = true
-	return nil, nil
+	return mc.pendingCodeAtBytes, mc.pendingCodeAtErr
 }
 
-func (mc *mockCaller) PendingCallContract(ctx context.Context, call ethereum.CallMsg) ([]byte, error) {
+func (mc *mockPendingCaller) PendingCallContract(ctx context.Context, call ethereum.CallMsg) ([]byte, error) {
 	mc.pendingCallContractCalled = true
-	return nil, nil
+	return mc.pendingCallContractBytes, mc.pendingCallContractErr
 }
+
 func TestPassingBlockNumber(t *testing.T) {
 
-	mc := &mockCaller{}
+	mc := &mockPendingCaller{
+		mockCaller: &mockCaller{
+			codeAtBytes: []byte{1, 2, 3},
+		},
+	}
 
 	bc := bind.NewBoundContract(common.HexToAddress("0x0"), abi.ABI{
 		Methods: map[string]abi.Method{
@@ -323,6 +357,135 @@ func newMockLog(topics []common.Hash, txHash common.Hash) types.Log {
 		BlockHash:   common.BytesToHash([]byte{1, 2, 3, 4, 5}),
 		Index:       7,
 		Removed:     false,
+	}
+}
+
+func TestCall(t *testing.T) {
+	var method, methodWithArg = "something", "somethingArrrrg"
+	tests := []struct {
+		name, method string
+		opts         *bind.CallOpts
+		mc           bind.ContractCaller
+		results      *[]interface{}
+		wantErr      bool
+		wantErrExact error
+	}{{
+		name: "ok not pending",
+		mc: &mockCaller{
+			codeAtBytes: []byte{0},
+		},
+		method: method,
+	}, {
+		name: "ok pending",
+		mc: &mockPendingCaller{
+			pendingCodeAtBytes: []byte{0},
+		},
+		opts: &bind.CallOpts{
+			Pending: true,
+		},
+		method: method,
+	}, {
+		name:    "pack error, no method",
+		mc:      new(mockCaller),
+		method:  "else",
+		wantErr: true,
+	}, {
+		name: "interface error, pending but not a PendingContractCaller",
+		mc:   new(mockCaller),
+		opts: &bind.CallOpts{
+			Pending: true,
+		},
+		method:       method,
+		wantErrExact: bind.ErrNoPendingState,
+	}, {
+		name: "pending call canceled",
+		mc: &mockPendingCaller{
+			pendingCallContractErr: context.DeadlineExceeded,
+		},
+		opts: &bind.CallOpts{
+			Pending: true,
+		},
+		method:       method,
+		wantErrExact: context.DeadlineExceeded,
+	}, {
+		name: "pending code at error",
+		mc: &mockPendingCaller{
+			pendingCodeAtErr: errors.New(""),
+		},
+		opts: &bind.CallOpts{
+			Pending: true,
+		},
+		method:  method,
+		wantErr: true,
+	}, {
+		name: "no pending code at",
+		mc:   new(mockPendingCaller),
+		opts: &bind.CallOpts{
+			Pending: true,
+		},
+		method:       method,
+		wantErrExact: bind.ErrNoCode,
+	}, {
+		name: "call contract error",
+		mc: &mockCaller{
+			callContractErr: context.DeadlineExceeded,
+		},
+		method:       method,
+		wantErrExact: context.DeadlineExceeded,
+	}, {
+		name: "code at error",
+		mc: &mockCaller{
+			codeAtErr: errors.New(""),
+		},
+		method:  method,
+		wantErr: true,
+	}, {
+		name:         "no code at",
+		mc:           new(mockCaller),
+		method:       method,
+		wantErrExact: bind.ErrNoCode,
+	}, {
+		name: "unpack error missing arg",
+		mc: &mockCaller{
+			codeAtBytes: []byte{0},
+		},
+		method:  methodWithArg,
+		wantErr: true,
+	}, {
+		name: "interface unpack error",
+		mc: &mockCaller{
+			codeAtBytes: []byte{0},
+		},
+		method:  method,
+		results: &[]interface{}{0},
+		wantErr: true,
+	}}
+	for _, test := range tests {
+		bc := bind.NewBoundContract(common.HexToAddress("0x0"), abi.ABI{
+			Methods: map[string]abi.Method{
+				method: {
+					Name:    method,
+					Outputs: abi.Arguments{},
+				},
+				methodWithArg: {
+					Name:    methodWithArg,
+					Outputs: abi.Arguments{abi.Argument{}},
+				},
+			},
+		}, test.mc, nil, nil)
+		err := bc.Call(test.opts, test.results, test.method)
+		if test.wantErr || test.wantErrExact != nil {
+			if err == nil {
+				t.Fatalf("%q expected error", test.name)
+			}
+			if test.wantErrExact != nil && !errors.Is(err, test.wantErrExact) {
+				t.Fatalf("%q expected error %q but got %q", test.name, test.wantErrExact, err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatalf("%q unexpected error: %v", test.name, err)
+		}
 	}
 }
 
