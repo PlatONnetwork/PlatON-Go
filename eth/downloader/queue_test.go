@@ -18,6 +18,7 @@ package downloader
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -97,6 +98,8 @@ func dummyPeer(id string) *peerConnection {
 }
 
 func TestBasics(t *testing.T) {
+	numOfBlocks := len(emptyChain.blocks)
+
 	q := newQueue(10, 10, nil)
 	if !q.Idle() {
 		t.Errorf("new queue should be idle")
@@ -107,7 +110,12 @@ func TestBasics(t *testing.T) {
 	}
 
 	// Schedule a batch of headers
-	q.Schedule(chain.headers(), 1)
+	headers := chain.headers()
+	hashes := make([]common.Hash, len(headers))
+	for i, header := range headers {
+		hashes[i] = header.Hash()
+	}
+	q.Schedule(headers, hashes, 1)
 	if q.Idle() {
 		t.Errorf("queue should not be idle")
 	}
@@ -135,6 +143,9 @@ func TestBasics(t *testing.T) {
 		if got, exp := fetchReq.Headers[0].Number.Uint64(), uint64(1); got != exp {
 			t.Fatalf("expected header %d, got %d", exp, got)
 		}
+	}
+	if exp, got := q.blockTaskQueue.Size(), numOfBlocks-10; exp != got {
+		t.Errorf("expected block task queue to be %d, got %d", exp, got)
 	}
 	{
 		peer := dummyPeer("peer-2")
@@ -175,11 +186,19 @@ func TestBasics(t *testing.T) {
 }
 
 func TestEmptyBlocks(t *testing.T) {
+	numOfBlocks := len(emptyChain.blocks)
+
 	q := newQueue(10, 10, nil)
 
 	q.Prepare(1, SnapSync)
+
 	// Schedule a batch of headers
-	q.Schedule(emptyChain.headers(), 1)
+	headers := emptyChain.headers()
+	hashes := make([]common.Hash, len(headers))
+	for i, header := range headers {
+		hashes[i] = header.Hash()
+	}
+	q.Schedule(headers, hashes, 1)
 	if q.Idle() {
 		t.Errorf("queue should not be idle")
 	}
@@ -209,13 +228,12 @@ func TestEmptyBlocks(t *testing.T) {
 		}
 
 	}
-	if q.blockTaskQueue.Size() != len(emptyChain.blocks)-10 {
-		t.Errorf("expected block task queue to be 0, got %d", q.blockTaskQueue.Size())
+	if q.blockTaskQueue.Size() != numOfBlocks-10 {
+		t.Errorf("expected block task queue to be %d, got %d", numOfBlocks-10, q.blockTaskQueue.Size())
 	}
 	if q.receiptTaskQueue.Size() != 0 {
-		t.Errorf("expected receipt task queue to be 0, got %d", q.receiptTaskQueue.Size())
+		t.Errorf("expected receipt task queue to be %d, got %d", 0, q.receiptTaskQueue.Size())
 	}
-	//fmt.Printf("receiptTaskQueue len: %d\n", q.receiptTaskQueue.Size())
 	{
 		peer := dummyPeer("peer-3")
 		fetchReq, _, _ := q.ReserveReceipts(peer, 50)
@@ -255,11 +273,15 @@ func XTestDelivery(t *testing.T) {
 		c := 1
 		for {
 			//fmt.Printf("getting headers from %d\n", c)
-			hdrs := world.headers(c)
-			l := len(hdrs)
+			headers := world.headers(c)
+			hashes := make([]common.Hash, len(headers))
+			for i, header := range headers {
+				hashes[i] = header.Hash()
+			}
+			l := len(headers)
 			//fmt.Printf("scheduling %d headers, first %d last %d\n",
-			//	l, hdrs[0].Number.Uint64(), hdrs[len(hdrs)-1].Number.Uint64())
-			q.Schedule(hdrs, uint64(c))
+			//	l, headers[0].Number.Uint64(), headers[len(headers)-1].Number.Uint64())
+			q.Schedule(headers, hashes, uint64(c))
 			c += l
 		}
 	}()
@@ -286,18 +308,27 @@ func XTestDelivery(t *testing.T) {
 			peer := dummyPeer(fmt.Sprintf("peer-%d", i))
 			f, _, _ := q.ReserveBodies(peer, rand.Intn(30))
 			if f != nil {
-				var emptyList []*types.Header
-				var txs [][]*types.Transaction
-				var uncles [][]*types.Header
+				var (
+					emptyList []byte
+					txset     [][]*types.Transaction
+					extraset  [][]byte
+				)
 				numToSkip := rand.Intn(len(f.Headers))
 				for _, hdr := range f.Headers[0 : len(f.Headers)-numToSkip] {
-					txs = append(txs, world.getTransactions(hdr.Number.Uint64()))
-					uncles = append(uncles, emptyList)
+					txset = append(txset, world.getTransactions(hdr.Number.Uint64()))
+					extraset = append(extraset, emptyList)
+				}
+				var (
+					txsHashes = make([]common.Hash, len(txset))
+				)
+				hasher := trie.NewStackTrie(nil)
+				for i, txs := range txset {
+					txsHashes[i] = types.DeriveSha(types.Transactions(txs), hasher)
 				}
 				time.Sleep(100 * time.Millisecond)
-				_, err := q.DeliverBodies(peer.id, txs, nil)
+				_, err := q.DeliverBodies(peer.id, txset, txsHashes, extraset)
 				if err != nil {
-					fmt.Printf("delivered %d bodies %v\n", len(txs), err)
+					fmt.Printf("delivered %d bodies %v\n", len(txset), err)
 				}
 			} else {
 				i++
@@ -316,7 +347,12 @@ func XTestDelivery(t *testing.T) {
 				for _, hdr := range f.Headers {
 					rcs = append(rcs, world.getReceipts(hdr.Number.Uint64()))
 				}
-				_, err := q.DeliverReceipts(peer.id, rcs)
+				hasher := trie.NewStackTrie(nil)
+				hashes := make([]common.Hash, len(rcs))
+				for i, receipt := range rcs {
+					hashes[i] = types.DeriveSha(types.Receipts(receipt), hasher)
+				}
+				_, err := q.DeliverReceipts(peer.id, rcs, hashes)
 				if err != nil {
 					fmt.Printf("delivered %d receipts %v\n", len(rcs), err)
 				}

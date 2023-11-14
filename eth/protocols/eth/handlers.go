@@ -284,11 +284,18 @@ func handleBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	metadata := func() interface{} {
+		hashes := make([]common.Hash, len(res.BlockHeadersPacket))
+		for i, header := range res.BlockHeadersPacket {
+			hashes[i] = header.Hash()
+		}
+		return hashes
+	}
 	return peer.dispatchResponse(&Response{
 		id:   res.RequestId,
 		code: BlockHeadersMsg,
 		Res:  &res.BlockHeadersPacket,
-	})
+	}, metadata)
 }
 
 func handleBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
@@ -297,11 +304,21 @@ func handleBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	metadata := func() interface{} {
+		var (
+			txsHashes = make([]common.Hash, len(res.BlockBodiesPacket))
+		)
+		hasher := trie.NewStackTrie(nil)
+		for i, body := range res.BlockBodiesPacket {
+			txsHashes[i] = types.DeriveSha(types.Transactions(body.Transactions), hasher)
+		}
+		return [][]common.Hash{txsHashes}
+	}
 	return peer.dispatchResponse(&Response{
 		id:   res.RequestId,
 		code: BlockBodiesMsg,
 		Res:  &res.BlockBodiesPacket,
-	})
+	}, metadata)
 }
 
 func handleNodeData66(backend Backend, msg Decoder, peer *Peer) error {
@@ -314,7 +331,7 @@ func handleNodeData66(backend Backend, msg Decoder, peer *Peer) error {
 		id:   res.RequestId,
 		code: NodeDataMsg,
 		Res:  &res.NodeDataPacket,
-	})
+	}, nil) // No post-processing, we're not using this packet anymore
 }
 
 func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
@@ -323,11 +340,19 @@ func handleReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(res); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+	metadata := func() interface{} {
+		hasher := trie.NewStackTrie(nil)
+		hashes := make([]common.Hash, len(res.ReceiptsPacket))
+		for i, receipt := range res.ReceiptsPacket {
+			hashes[i] = types.DeriveSha(types.Receipts(receipt), hasher)
+		}
+		return hashes
+	}
 	return peer.dispatchResponse(&Response{
 		id:   res.RequestId,
 		code: ReceiptsMsg,
 		Res:  &res.ReceiptsPacket,
-	})
+	}, metadata)
 }
 
 func handleNewPooledTransactionHashes(backend Backend, msg Decoder, peer *Peer) error {

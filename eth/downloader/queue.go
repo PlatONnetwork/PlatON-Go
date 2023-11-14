@@ -31,7 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 const (
@@ -122,6 +121,7 @@ type queue struct {
 	headerPeerMiss  map[string]map[uint64]struct{} // Set of per-peer header batches known to be unavailable
 	headerPendPool  map[string]*fetchRequest       // Currently pending header retrieval operations
 	headerResults   []*types.Header                // Result cache accumulating the completed headers
+	headerHashes    []common.Hash                  // Result cache accumulating the completed header hashes
 	headerProced    int                            // Number of headers already processed from the results
 	headerOffset    uint64                         // Number of the first header in the result cache
 	headerContCh    chan bool                      // Channel to notify when header download finishes
@@ -266,6 +266,7 @@ func (q *queue) ScheduleSkeleton(from uint64, skeleton []*types.Header) {
 	q.headerTaskQueue = prque.New(nil)
 	q.headerPeerMiss = make(map[string]map[uint64]struct{}) // Reset availability to correct invalid chains
 	q.headerResults = make([]*types.Header, len(skeleton)*MaxHeaderFetch)
+	q.headerHashes = make([]common.Hash, len(skeleton)*MaxHeaderFetch)
 	q.headerProced = 0
 	q.headerOffset = from
 	q.headerContCh = make(chan bool, 1)
@@ -280,27 +281,27 @@ func (q *queue) ScheduleSkeleton(from uint64, skeleton []*types.Header) {
 
 // RetrieveHeaders retrieves the header chain assemble based on the scheduled
 // skeleton.
-func (q *queue) RetrieveHeaders() ([]*types.Header, int) {
+func (q *queue) RetrieveHeaders() ([]*types.Header, []common.Hash, int) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	headers, proced := q.headerResults, q.headerProced
-	q.headerResults, q.headerProced = nil, 0
+	headers, hashes, proced := q.headerResults, q.headerHashes, q.headerProced
+	q.headerResults, q.headerHashes, q.headerProced = nil, nil, 0
 
-	return headers, proced
+	return headers, hashes, proced
 }
 
 // Schedule adds a set of headers for the download queue for scheduling, returning
 // the new headers encountered.
-func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
+func (q *queue) Schedule(headers []*types.Header, hashes []common.Hash, from uint64) []*types.Header {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	// Insert all the headers prioritised by the contained block number
 	inserts := make([]*types.Header, 0, len(headers))
-	for _, header := range headers {
+	for i, header := range headers {
 		// Make sure chain order is honoured and preserved throughout
-		hash := header.Hash()
+		hash := hashes[i]
 		if header.Number == nil || header.Number.Uint64() != from {
 			log.Warn("Header broke chain ordering", "number", header.Number, "hash", hash, "expected", from)
 			break
@@ -660,7 +661,7 @@ func (q *queue) expire(peer string, pendPool map[string]*fetchRequest, taskQueue
 // If the headers are accepted, the method makes an attempt to deliver the set
 // of ready headers to the processor to keep the pipeline full. However, it will
 // not block to prevent stalling other pending deliveries.
-func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh chan []*types.Header) (int, error) {
+func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []common.Hash, headerProcCh chan *headerTask) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -688,17 +689,17 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 	accepted := len(headers) == MaxHeaderFetch
 	if accepted {
 		if headers[0].Number.Uint64() != request.From {
-			logger.Trace("First header broke chain ordering", "number", headers[0].Number, "hash", headers[0].Hash(), "expected", request.From)
+			logger.Trace("First header broke chain ordering", "number", headers[0].Number, "hash", hashes[0], "expected", request.From)
 			accepted = false
-		} else if headers[len(headers)-1].Hash() != target {
-			logger.Trace("Last header broke skeleton structure ", "number", headers[len(headers)-1].Number, "hash", headers[len(headers)-1].Hash(), "expected", target)
+		} else if hashes[len(headers)-1] != target {
+			logger.Trace("Last header broke skeleton structure ", "number", headers[len(headers)-1].Number, "hash", hashes[len(headers)-1], "expected", target)
 			accepted = false
 		}
 	}
 	if accepted {
-		parentHash := headers[0].Hash()
+		parentHash := hashes[0]
 		for i, header := range headers[1:] {
-			hash := header.Hash()
+			hash := hashes[i+1]
 			if want := request.From + 1 + uint64(i); header.Number.Uint64() != want {
 				logger.Warn("Header broke chain ordering", "number", header.Number, "hash", hash, "expected", want)
 				accepted = false
@@ -730,6 +731,8 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 	}
 	// Clean up a successful fetch and try to deliver any sub-results
 	copy(q.headerResults[request.From-q.headerOffset:], headers)
+	copy(q.headerHashes[request.From-q.headerOffset:], hashes)
+
 	delete(q.headerTaskPool, request.From)
 
 	ready := 0
@@ -738,13 +741,19 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 	}
 	if ready > 0 {
 		// Headers are ready for delivery, gather them and push forward (non blocking)
-		process := make([]*types.Header, ready)
-		copy(process, q.headerResults[q.headerProced:q.headerProced+ready])
+		processHeaders := make([]*types.Header, ready)
+		copy(processHeaders, q.headerResults[q.headerProced:q.headerProced+ready])
+
+		processHashes := make([]common.Hash, ready)
+		copy(processHashes, q.headerHashes[q.headerProced:q.headerProced+ready])
 
 		select {
-		case headerProcCh <- process:
-			logger.Trace("Pre-scheduled new headers", "count", len(process), "from", process[0].Number)
-			q.headerProced += len(process)
+		case headerProcCh <- &headerTask{
+			headers: processHeaders,
+			hashes:  processHashes,
+		}:
+			logger.Trace("Pre-scheduled new headers", "count", len(processHeaders), "from", processHeaders[0].Number)
+			q.headerProced += len(processHeaders)
 		default:
 		}
 	}
@@ -758,7 +767,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraData [][]byte) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash, extraData [][]byte) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -771,10 +780,11 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 		//log.Debug("DeliverBodies equalExtra", "bh", bh, "header.Hash", header.Hash(), "blockNumber", header.Number)
 		return err == nil && bh == header.Hash()
 	}
-	trieHasher := trie.NewStackTrie(nil)
 	validate := func(index int, header *types.Header) error {
-		deriveSha := types.DeriveSha(types.Transactions(txLists[index]), trieHasher)
-		if deriveSha != header.TxHash || !equalExtra(header, extraData[index]) {
+		if txListHashes[index] != header.TxHash {
+			return errInvalidBody
+		}
+		if !equalExtra(header, extraData[index]) {
 			//log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
 			return errInvalidBody
 		}
@@ -793,13 +803,12 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 // DeliverReceipts injects a receipt retrieval response into the results queue.
 // The method returns the number of transaction receipts accepted from the delivery
 // and also wakes any threads waiting for data delivery.
-func (q *queue) DeliverReceipts(id string, receiptList [][]*types.Receipt) (int, error) {
+func (q *queue) DeliverReceipts(id string, receiptList [][]*types.Receipt, receiptListHashes []common.Hash) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
-	trieHasher := trie.NewStackTrie(nil)
 	validate := func(index int, header *types.Header) error {
-		if types.DeriveSha(types.Receipts(receiptList[index]), trieHasher) != header.ReceiptHash {
+		if receiptListHashes[index] != header.ReceiptHash {
 			return errInvalidReceipt
 		}
 		return nil
