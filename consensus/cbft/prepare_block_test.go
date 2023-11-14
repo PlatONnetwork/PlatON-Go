@@ -384,7 +384,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNo
 // The first block confirmed by the last block, the hash with the same blockNumber is different from the prepareBlock message.
 // The first block passes, the second check fails, and the corresponding PrepareVoteLen=1 returns double evidence error.
 func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -619,7 +619,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithAmountTooMany() {
 // Same block height, different hash of prepareBlock
 // The second Verification failed, double evidence error
 func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberRepeat() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,

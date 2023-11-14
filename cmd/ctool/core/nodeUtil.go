@@ -17,9 +17,7 @@
 package core
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -173,23 +171,8 @@ func prepare(t *testing.T) (*testPlatON, string) {
 	return platon, datadir
 }
 
-func clean(platon *testPlatON, datadir string) {
-
-	platon.Interrupt()
-	platon.ExpectExit()
-	os.RemoveAll(datadir)
-}
-
-func trulyRandInt(lo, hi int) int {
-	num, _ := rand.Int(rand.Reader, big.NewInt(int64(hi-lo)))
-	return int(num.Int64()) + lo
-}
-
 func tmpdir(t *testing.T) string {
-	dir, err := os.MkdirTemp("", "platon-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	dir := t.TempDir()
 	return dir
 }
 

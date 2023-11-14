@@ -19,7 +19,6 @@ package evidence
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"sort"
 	"testing"
 
@@ -39,25 +38,19 @@ func init() {
 	bls.Init(bls.BLS12_381)
 }
 
-func path() string {
-	name, err := os.MkdirTemp(os.TempDir(), "evidence")
-
-	if err != nil {
-		panic(err)
-	}
-	return name
+func path(t *testing.T) string {
+	dir := t.TempDir()
+	return dir
 }
 
 func TestNewBaseEvidencePool(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	_, err := NewEvidencePool(nil, p)
 	assert.Nil(t, err)
 }
 
 func TestAddAndClear(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -73,7 +66,7 @@ func TestAddAndClear(t *testing.T) {
 		node := validateNodes[i]
 		for j := 0; j < 10; j++ { // mock seal ten block per node
 			block = newBlock(blockNumber)
-			pb := makePrepareBlock(epoch, viewNumber, block, uint32(j), uint32(node.Index), t, secretKeys[i])
+			pb := makePrepareBlock(epoch, viewNumber, block, uint32(j), node.Index, t, secretKeys[i])
 			assert.Nil(t, pool.AddPrepareBlock(pb, node))
 
 			pv := makePrepareVote(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(j), uint32(node.Index), t, secretKeys[i])
@@ -103,8 +96,7 @@ func TestAddAndClear(t *testing.T) {
 }
 
 func TestDuplicatePrepareBlockEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -139,8 +131,7 @@ func TestDuplicatePrepareBlockEvidence(t *testing.T) {
 }
 
 func TestDuplicatePrepareVoteEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -170,8 +161,7 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 }
 
 func TestDuplicateViewChangeEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -238,9 +228,6 @@ func TestJson(t *testing.T) {
 	assert.Equal(t, b, b2)
 
 	// test UnmarshalEvidence
-	p := path()
-	defer os.RemoveAll(p)
-
 	evidences, err := NewEvidences(string(b2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, evidences.Len())

@@ -274,7 +274,7 @@ func (suit *PrepareVoteTestSuite) TestPrepareVoteWithRepeat() {
 // duplicate sign
 // Return duplicate sign error
 func (suit *PrepareVoteTestSuite) TestPrepareVoteDu() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
