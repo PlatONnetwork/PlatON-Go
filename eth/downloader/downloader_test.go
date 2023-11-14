@@ -171,12 +171,24 @@ func (dlp *downloadTesterPeer) Head() (common.Hash, *big.Int) {
 	return head.Hash(), head.Number()
 }
 
+func unmarshalRlpHeaders(rlpdata []rlp.RawValue) []*types.Header {
+	var headers = make([]*types.Header, len(rlpdata))
+	for i, data := range rlpdata {
+		var h types.Header
+		if err := rlp.DecodeBytes(data, &h); err != nil {
+			panic(err)
+		}
+		headers[i] = &h
+	}
+	return headers
+}
+
 // RequestHeadersByHash constructs a GetBlockHeaders function based on a hashed
 // origin; associated with a particular peer in the download tester. The returned
 // function can be used to retrieve batches of headers from the particular peer.
 func (dlp *downloadTesterPeer) RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool, sink chan *eth.Response) (*eth.Request, error) {
 	// Service the header query via the live handler code
-	headers := eth.ServiceGetBlockHeadersQuery(dlp.chain, &eth.GetBlockHeadersPacket{
+	rlpHeaders := eth.ServiceGetBlockHeadersQuery(dlp.chain, &eth.GetBlockHeadersPacket{
 		Origin: eth.HashOrNumber{
 			Hash: origin,
 		},
@@ -184,7 +196,7 @@ func (dlp *downloadTesterPeer) RequestHeadersByHash(origin common.Hash, amount i
 		Skip:    uint64(skip),
 		Reverse: reverse,
 	}, nil)
-
+	headers := unmarshalRlpHeaders(rlpHeaders)
 	// If a malicious peer is simulated withholding headers, delete them
 	for hash := range dlp.withholdHeaders {
 		for i, header := range headers {
@@ -220,7 +232,7 @@ func (dlp *downloadTesterPeer) RequestHeadersByHash(origin common.Hash, amount i
 // function can be used to retrieve batches of headers from the particular peer.
 func (dlp *downloadTesterPeer) RequestHeadersByNumber(origin uint64, amount int, skip int, reverse bool, sink chan *eth.Response) (*eth.Request, error) {
 	// Service the header query via the live handler code
-	headers := eth.ServiceGetBlockHeadersQuery(dlp.chain, &eth.GetBlockHeadersPacket{
+	rlpHeaders := eth.ServiceGetBlockHeadersQuery(dlp.chain, &eth.GetBlockHeadersPacket{
 		Origin: eth.HashOrNumber{
 			Number: origin,
 		},
@@ -228,7 +240,7 @@ func (dlp *downloadTesterPeer) RequestHeadersByNumber(origin uint64, amount int,
 		Skip:    uint64(skip),
 		Reverse: reverse,
 	}, nil)
-
+	headers := unmarshalRlpHeaders(rlpHeaders)
 	// If a malicious peer is simulated withholding headers, delete them
 	for hash := range dlp.withholdHeaders {
 		for i, header := range headers {
