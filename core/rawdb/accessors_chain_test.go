@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
-	"os"
 	"reflect"
 	"testing"
 
@@ -408,11 +407,7 @@ func checkReceiptsRLP(have, want types.Receipts) error {
 
 func TestAncientStorage(t *testing.T) {
 	// Freezer style fast import the chain.
-	frdir, err := os.MkdirTemp("", "")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.RemoveAll(frdir)
+	frdir := t.TempDir()
 
 	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
 	if err != nil {
@@ -722,11 +717,7 @@ func TestHashesInRange(t *testing.T) {
 // This measures the write speed of the WriteAncientBlocks operation.
 func BenchmarkWriteAncientBlocks(b *testing.B) {
 	// Open freezer database.
-	frdir, err := os.MkdirTemp("", "")
-	if err != nil {
-		b.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.RemoveAll(frdir)
+	frdir := b.TempDir()
 	db, err := NewDatabaseWithFreezer(NewMemoryDatabase(), frdir, "", false)
 	if err != nil {
 		b.Fatalf("failed to create database with ancient backend")

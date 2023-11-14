@@ -32,7 +32,6 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -44,10 +43,7 @@ import (
 )
 
 func TestBuildSchema(t *testing.T) {
-	ddir, err := os.MkdirTemp("", "graphql-buildschema")
-	if err != nil {
-		t.Fatalf("failed to create temporary datadir: %v", err)
-	}
+	ddir := t.TempDir()
 	// Copy config
 	conf := node.DefaultConfig
 	conf.DataDir = ddir
