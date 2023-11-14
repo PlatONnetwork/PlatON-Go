@@ -101,7 +101,7 @@ func TestBasics(t *testing.T) {
 	if !q.Idle() {
 		t.Errorf("new queue should be idle")
 	}
-	q.Prepare(1, FastSync)
+	q.Prepare(1, SnapSync)
 	if res := q.Results(false); len(res) != 0 {
 		t.Fatal("new queue should have 0 results")
 	}
@@ -111,7 +111,7 @@ func TestBasics(t *testing.T) {
 	if q.Idle() {
 		t.Errorf("queue should not be idle")
 	}
-	if got, exp := q.PendingBlocks(), chain.Len(); got != exp {
+	if got, exp := q.PendingBodies(), chain.Len(); got != exp {
 		t.Errorf("wrong pending block count, got %d, exp %d", got, exp)
 	}
 	// Only non-empty receipts get added to task-queue
@@ -177,13 +177,13 @@ func TestBasics(t *testing.T) {
 func TestEmptyBlocks(t *testing.T) {
 	q := newQueue(10, 10, nil)
 
-	q.Prepare(1, FastSync)
+	q.Prepare(1, SnapSync)
 	// Schedule a batch of headers
 	q.Schedule(emptyChain.headers(), 1)
 	if q.Idle() {
 		t.Errorf("queue should not be idle")
 	}
-	if got, exp := q.PendingBlocks(), len(emptyChain.blocks); got != exp {
+	if got, exp := q.PendingBodies(), len(emptyChain.blocks); got != exp {
 		t.Errorf("wrong pending block count, got %d, exp %d", got, exp)
 	}
 	if got, exp := q.PendingReceipts(), 0; got != exp {
@@ -247,7 +247,7 @@ func XTestDelivery(t *testing.T) {
 	}
 	q := newQueue(10, 10, nil)
 	var wg sync.WaitGroup
-	q.Prepare(1, FastSync)
+	q.Prepare(1, SnapSync)
 	wg.Add(1)
 	go func() {
 		// deliver headers

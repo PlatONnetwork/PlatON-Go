@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math/big"
 	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -242,24 +241,6 @@ func WriteLastPivotNumber(db ethdb.KeyValueWriter, pivot uint64) {
 	}
 	if err := db.Put(lastPivotKey, enc); err != nil {
 		log.Crit("Failed to store pivot block number", "err", err)
-	}
-}
-
-// ReadFastTrieProgress retrieves the number of tries nodes fast synced to allow
-// reporting correct numbers across restarts.
-func ReadFastTrieProgress(db ethdb.KeyValueReader) uint64 {
-	data, _ := db.Get(fastTrieProgressKey)
-	if len(data) == 0 {
-		return 0
-	}
-	return new(big.Int).SetBytes(data).Uint64()
-}
-
-// WriteFastTrieProgress stores the fast sync trie process counter to support
-// retrieving it across restarts.
-func WriteFastTrieProgress(db ethdb.KeyValueWriter, count uint64) {
-	if err := db.Put(fastTrieProgressKey, new(big.Int).SetUint64(count).Bytes()); err != nil {
-		log.Crit("Failed to store fast sync trie progress", "err", err)
 	}
 }
 

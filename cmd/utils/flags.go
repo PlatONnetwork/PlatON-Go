@@ -184,8 +184,7 @@ var (
 	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
-		Usage: `Blockchain sync mode ("fast", "full")`,
-		//Usage: `Blockchain sync mode ("fast", "full", "snap")`,
+		Usage: `Blockchain sync mode ("snap", "full")`,
 		Value: &defaultSyncMode,
 	}
 	TxLookupLimitFlag = cli.Uint64Flag{
