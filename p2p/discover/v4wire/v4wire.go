@@ -57,15 +57,6 @@ type (
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
-	PingV1 struct {
-		Version    uint
-		From, To   Endpoint
-		Expiration uint64
-
-		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
-	}
-
 	// Pong is the reply to ping.
 	Pong struct {
 		// This field should mirror the UDP envelope address
@@ -80,17 +71,7 @@ type (
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
-	PongV1 struct {
-		// This field should mirror the UDP envelope address
-		// of the ping packet, which provides a way to discover the
-		// the external address (after NAT).
-		To         Endpoint
-		ReplyTok   []byte // This contains the hash of the ping packet.
-		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 
-		// Ignore additional fields (for forward compatibility).
-		Rest []rlp.RawValue `rlp:"tail"`
-	}
 	// Findnode is a query for nodes close to the given target.
 	Findnode struct {
 		Target     Pubkey
@@ -107,16 +88,16 @@ type (
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
-	// enrRequest queries for the remote node's record.
+	// ENRRequest queries for the remote node's record.
 	ENRRequest struct {
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
 	}
 
-	// enrResponse is the reply to enrRequest.
+	// ENRResponse is the reply to ENRRequest.
 	ENRResponse struct {
-		ReplyTok []byte // Hash of the enrRequest packet.
+		ReplyTok []byte // Hash of the ENRRequest packet.
 		Record   enr.Record
 		// Ignore additional fields (for forward compatibility).
 		Rest []rlp.RawValue `rlp:"tail"`
@@ -194,101 +175,10 @@ func (req *Ping) Fork() []rlp.RawValue {
 	return req.ForkID
 }
 
-func (req *Ping) DecodeRLP(s *rlp.Stream) error {
-	// Retrieve the entire receipt blob as we need to try multiple decoders
-	blob, err := s.Raw()
-	if err != nil {
-		return err
-	}
-	if err := decodePingRLP(req, blob); err == nil {
-		return nil
-	}
-	if err := decodeV1PingRLP(req, blob); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type pingRLP Ping
-
-func decodePingRLP(p *Ping, blob []byte) error {
-	var ping pingRLP
-	if err := rlp.DecodeBytes(blob, &ping); err != nil {
-		return err
-	}
-	p.Version = ping.Version
-	p.From = ping.From
-	p.To = ping.To
-	p.Expiration = ping.Expiration
-	p.ForkID = ping.ForkID
-	p.ENRSeq = ping.ENRSeq
-	p.Rest = ping.Rest
-	return nil
-}
-
-func decodeV1PingRLP(p *Ping, blob []byte) error {
-	var ping PingV1
-	if err := rlp.DecodeBytes(blob, &ping); err != nil {
-		return err
-	}
-
-	p.Version = ping.Version
-	p.From = ping.From
-	p.To = ping.To
-	p.Expiration = ping.Expiration
-	p.ForkID = ping.Rest
-
-	return nil
-}
-
 func (req *Pong) Name() string { return "PONG/v4" }
 func (req *Pong) Kind() byte   { return PongPacket }
 func (req *Pong) Fork() []rlp.RawValue {
 	return req.ForkID
-}
-
-func (req *Pong) DecodeRLP(s *rlp.Stream) error {
-	// Retrieve the entire receipt blob as we need to try multiple decoders
-	blob, err := s.Raw()
-	if err != nil {
-		return err
-	}
-	if err := decodePongRLP(req, blob); err == nil {
-		return nil
-	}
-	if err := decodeV1PongRLP(req, blob); err != nil {
-		return err
-	}
-	return nil
-}
-
-type pongRLP Pong
-
-func decodePongRLP(p *Pong, blob []byte) error {
-	var pong pongRLP
-	if err := rlp.DecodeBytes(blob, &pong); err != nil {
-		return err
-	}
-	p.To = pong.To
-	p.ReplyTok = pong.ReplyTok
-	p.Expiration = pong.Expiration
-	p.ForkID = pong.ForkID
-	p.ENRSeq = pong.ENRSeq
-	p.Rest = pong.Rest
-	return nil
-}
-
-func decodeV1PongRLP(p *Pong, blob []byte) error {
-	var pong PongV1
-	if err := rlp.DecodeBytes(blob, &pong); err != nil {
-		return err
-	}
-	p.To = pong.To
-	p.ReplyTok = pong.ReplyTok
-	p.Expiration = pong.Expiration
-	p.ForkID = pong.Rest
-	return nil
 }
 
 func (req *Findnode) Name() string { return "FINDNODE/v4" }

@@ -89,8 +89,8 @@ type handlerConfig struct {
 	Chain      *core.BlockChain          // Blockchain to serve data from
 	TxPool     txPool                    // Transaction pool to propagate from
 	Network    uint64                    // Network identifier to adfvertise
-	Sync       downloader.SyncMode       // Whether to fast or full sync
-	BloomCache uint64                    // Megabytes to alloc for fast sync bloom
+	Sync       downloader.SyncMode       // Whether to snap or full sync
+	BloomCache uint64                    // Megabytes to alloc for snap sync bloom
 	EventMux   *event.TypeMux            // Legacy event mux, deprecate for `feed`
 	Checkpoint *params.TrustedCheckpoint // Hard coded checkpoint for sync challenges
 	Whitelist  map[uint64]common.Hash    // Hard coded whitelist for sync challenged
@@ -99,8 +99,7 @@ type handlerConfig struct {
 type handler struct {
 	networkID uint64
 
-	fastSync        uint32 // Flag whether fast sync is enabled (gets disabled if we already have blocks)
-	snapSync        uint32 // Flag whether fast sync should operate on top of the snap protocol
+	snapSync        uint32 // Flag whether snap sync is enabled (gets disabled if we already have blocks)
 	acceptTxs       uint32 // Flag whether we're considered synchronised (enables transaction processing)
 	acceptRemoteTxs uint32 // Flag whether we're accept remote txs
 
@@ -126,7 +125,6 @@ type handler struct {
 	whitelist map[uint64]common.Hash
 
 	// channels for fetcher, syncer, txsyncLoop
-	txsyncCh chan *txsync
 	quitSync chan struct{}
 
 	chainSync *chainSyncer
@@ -149,42 +147,40 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		txpool:    config.TxPool,
 		chain:     config.Chain,
 		peers:     newPeerSet(),
-		txsyncCh:  make(chan *txsync),
 		quitSync:  make(chan struct{}),
 		engine:    config.Chain.Engine(),
 	}
 	if config.Sync == downloader.FullSync {
-		// The database seems empty as the current block is the genesis. Yet the fast
-		// block is ahead, so fast sync was enabled for this node at a certain point.
+		// The database seems empty as the current block is the genesis. Yet the snap
+		// block is ahead, so snap sync was enabled for this node at a certain point.
 		// The scenarios where this can happen is
-		// * if the user manually (or via a bad block) rolled back a fast sync node
+		// * if the user manually (or via a bad block) rolled back a snap sync node
 		//   below the sync point.
-		// * the last fast sync is not finished while user specifies a full sync this
+		// * the last snap sync is not finished while user specifies a full sync this
 		//   time. But we don't have any recent state for full sync.
-		// In these cases however it's safe to reenable fast sync.
+		// In these cases however it's safe to reenable snap sync.
 		fullBlock, fastBlock := h.chain.CurrentBlock(), h.chain.CurrentFastBlock()
 		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
-			h.fastSync = uint32(1)
-			log.Warn("Switch sync mode from full sync to fast sync")
+			h.snapSync = uint32(1)
+			log.Warn("Switch sync mode from full sync to snap sync")
 		}
 	} else {
 		if h.chain.CurrentBlock().NumberU64() > 0 {
-			// Print warning log if database is not empty to run fast sync.
-			log.Warn("Switch sync mode from fast sync to full sync")
+			// Print warning log if database is not empty to run snap sync.
+			log.Warn("Switch sync mode from snap sync to full sync")
 		} else {
-			// If fast sync was requested and our database is empty, grant it
-			h.fastSync = uint32(1)
-			if config.Sync == downloader.SnapSync {
-				h.snapSync = uint32(1)
-			}
+			// If snap sync was requested and our database is empty, grant it
+			h.snapSync = uint32(1)
 		}
 	}
+	var decodeExtra func([]byte) (common.Hash, uint64, error)
 
-	decodeExtra := func(extra []byte) (common.Hash, uint64, error) {
-		return h.engine.DecodeExtra(extra)
+	if _, ok := h.engine.(*consensus.BftMock); !ok {
+		decodeExtra = func(extra []byte) (common.Hash, uint64, error) {
+			return h.engine.DecodeExtra(extra)
+		}
 	}
-
-	// Construct the downloader (long sync) and its backing state bloom if fast
+	// Construct the downloader (long sync) and its backing state bloom if snap
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
 	h.downloader = downloader.New(config.Database, snapshotdb.Instance(), h.eventMux, h.chain, nil, h.removePeer, decodeExtra)
@@ -197,12 +193,12 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		return h.chain.Engine().CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
-		// If fast sync is running, deny importing weird blocks. This is a problematic
-		// clause when starting up a new network, because fast-syncing miners might not
+		// If snap sync is running, deny importing weird blocks. This is a problematic
+		// clause when starting up a new network, because snap-syncing miners might not
 		// accept each others' blocks until a restart. Unfortunately we haven't figured
 		// out a way yet where nodes can decide unilaterally whether the network is new
 		// or not. This should be fixed if we figure out a solution.
-		if atomic.LoadUint32(&h.fastSync) == 1 {
+		if atomic.LoadUint32(&h.snapSync) == 1 {
 			log.Warn("Fast syncing, discarded propagated block", "number", blocks[0].Number(), "hash", blocks[0].Hash())
 			return 0, nil
 		}
@@ -268,7 +264,6 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		peer.Log().Debug("PlatON handshake failed", "err", err)
 		return err
 	}
-
 	reject := false // reserved peer slots
 	if atomic.LoadUint32(&h.snapSync) == 1 {
 		if snap == nil {
@@ -316,11 +311,44 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	// after this will be sent via broadcasts.
 	h.syncTransactions(peer)
 
+	//todo 以太坊此处有checkpoint逻辑，检查对端节点是否hash匹配
+
 	// If we have any explicit whitelist block hashes, request them
-	for number := range h.whitelist {
-		if err := peer.RequestHeadersByNumber(number, 1, 0, false); err != nil {
+	for number, hash := range h.whitelist {
+		resCh := make(chan *eth.Response)
+		if _, err := peer.RequestHeadersByNumber(number, 1, 0, false, resCh); err != nil {
 			return err
 		}
+		go func(number uint64, hash common.Hash) {
+			timeout := time.NewTimer(syncChallengeTimeout)
+			defer timeout.Stop()
+
+			select {
+			case res := <-resCh:
+				headers := ([]*types.Header)(*res.Res.(*eth.BlockHeadersPacket))
+				if len(headers) == 0 {
+					// Whitelisted blocks are allowed to be missing if the remote
+					// node is not yet synced
+					res.Done <- nil
+					return
+				}
+				// Validate the header and either drop the peer or continue
+				if len(headers) > 1 {
+					res.Done <- errors.New("too many headers in whitelist response")
+					return
+				}
+				if headers[0].Number.Uint64() != number || headers[0].Hash() != hash {
+					peer.Log().Info("Whitelist mismatch, dropping peer", "number", number, "hash", headers[0].Hash(), "want", hash)
+					res.Done <- errors.New("whitelist block mismatch")
+					return
+				}
+				peer.Log().Debug("Whitelist block verified", "number", number, "hash", hash)
+
+			case <-timeout.C:
+				peer.Log().Warn("Whitelist challenge timed out, dropping", "addr", peer.RemoteAddr(), "type", peer.Name())
+				h.removePeer(peer.ID())
+			}
+		}(number, hash)
 	}
 	// Handle incoming messages until the connection is torn down
 	return handler(peer)
@@ -395,9 +423,8 @@ func (h *handler) Start(maxPeers int) {
 	go h.minedBroadcastLoop()
 
 	// start sync handlers
-	h.wg.Add(2)
+	h.wg.Add(1)
 	go h.chainSync.loop()
-	go h.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with eth/64.
 }
 
 func (h *handler) Stop() {

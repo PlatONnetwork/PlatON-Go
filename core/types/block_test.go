@@ -273,3 +273,60 @@ func makeBenchBlock() *Block {
 	}
 	return NewBlock(header, txs, receipts, newHasher())
 }
+
+func TestRlpDecodeParentHash(t *testing.T) {
+	// A minimum one
+	want := common.HexToHash("0x112233445566778899001122334455667788990011223344556677889900aabb")
+	if rlpData, err := rlp.EncodeToBytes(&Header{ParentHash: want}); err != nil {
+		t.Fatal(err)
+	} else {
+		if have := HeaderParentHashFromRLP(rlpData); have != want {
+			t.Fatalf("have %x, want %x", have, want)
+		}
+	}
+	// And a maximum one
+	// | Number      | dynamic| *big.Int       | 64 bits               |
+	// | Extra       | dynamic| []byte         | 65+32 byte (clique)   |
+	// | BaseFee     | dynamic| *big.Int       | 64 bits               |
+	if rlpData, err := rlp.EncodeToBytes(&Header{
+		ParentHash: want,
+		Number:     new(big.Int).SetUint64(math.MaxUint64),
+		Extra:      make([]byte, 65+32),
+		BaseFee:    new(big.Int).SetUint64(math.MaxUint64),
+	}); err != nil {
+		t.Fatal(err)
+	} else {
+		if have := HeaderParentHashFromRLP(rlpData); have != want {
+			t.Fatalf("have %x, want %x", have, want)
+		}
+	}
+	// Also test a very very large header.
+	{
+		// The rlp-encoding of the heder belowCauses _total_ length of 65540,
+		// which is the first to blow the fast-path.
+		h := &Header{
+			ParentHash: want,
+			Extra:      make([]byte, 65041),
+		}
+		if rlpData, err := rlp.EncodeToBytes(h); err != nil {
+			t.Fatal(err)
+		} else {
+			if have := HeaderParentHashFromRLP(rlpData); have != want {
+				t.Fatalf("have %x, want %x", have, want)
+			}
+		}
+	}
+	{
+		// Test some invalid erroneous stuff
+		for i, rlpData := range [][]byte{
+			nil,
+			common.FromHex("0x"),
+			common.FromHex("0x01"),
+			common.FromHex("0x3031323334"),
+		} {
+			if have, want := HeaderParentHashFromRLP(rlpData), (common.Hash{}); have != want {
+				t.Fatalf("invalid %d: have %x, want %x", i, have, want)
+			}
+		}
+	}
+}

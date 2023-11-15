@@ -116,7 +116,7 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 	genesis, _ := gspec.Commit(db, snapshotdb.Instance())
 
 	// Generate testing blocks
-	chain := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
+	chain, _ := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		var txdata types.TxData

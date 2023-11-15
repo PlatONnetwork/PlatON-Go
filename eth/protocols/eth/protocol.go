@@ -30,7 +30,6 @@ import (
 
 // Constants to match up protocol versions and messages
 const (
-	ETH65 = 65
 	ETH66 = 66
 )
 
@@ -40,11 +39,11 @@ const ProtocolName = "platon"
 
 // ProtocolVersions are the supported versions of the `eth` protocol (first
 // is primary).
-var ProtocolVersions = []uint{ETH66, ETH65}
+var ProtocolVersions = []uint{ETH66}
 
 // protocolLengths are the number of implemented message corresponding to
 // different protocol versions.
-var protocolLengths = map[uint]uint64{ETH66: 40, ETH65: 40}
+var protocolLengths = map[uint]uint64{ETH66: 40}
 
 // maxMessageSize is the maximum cap on the size of a protocol message.
 const maxMessageSize = 10 * 1024 * 1024
@@ -90,7 +89,6 @@ var (
 )
 
 // Packet represents a p2p message in the `eth` protocol.
-
 type Packet interface {
 	Name() string // Name returns a string corresponding to the message type.
 	Kind() byte   // Kind returns the message type.
@@ -136,7 +134,7 @@ type GetBlockHeadersPacket struct {
 	Reverse bool         // Query direction (false = rising towards latest, true = falling towards genesis)
 }
 
-// GetBlockHeadersPacket represents a block header query over eth/66
+// GetBlockHeadersPacket66 represents a block header query over eth/66
 type GetBlockHeadersPacket66 struct {
 	RequestId uint64
 	*GetBlockHeadersPacket

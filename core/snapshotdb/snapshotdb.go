@@ -53,7 +53,7 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 200
-	MaxCommitBlock            = 100
+	MaxCommitBlock            = 180
 )
 
 // DB the main snapshotdb interface
@@ -438,6 +438,9 @@ func (s *snapshotDB) WriteBaseDBWithBlock(current *types.Header, blocks []BlockD
 	})
 	batch := new(leveldb.Batch)
 	for _, block := range blocks {
+		if block.data == nil {
+			return fmt.Errorf("writeBaseDBWithBlock fail,block data is nil,num %v", block.Number)
+		}
 		itr := block.data.NewIterator(nil)
 		for itr.Next() {
 			if itr.Value() == nil || len(itr.Value()) == 0 {

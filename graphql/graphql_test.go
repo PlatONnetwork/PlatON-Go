@@ -267,7 +267,7 @@ func createGQLService(t *testing.T, stack *node.Node) {
 	}*/
 
 	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
-		consensus.NewFakerWithDataBase(ethBackend.ChainDb()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
+		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
 	// create gql service
 	err = New(stack, ethBackend.APIBackend, []string{}, []string{})
 	if err != nil {
@@ -344,7 +344,7 @@ func createGQLServiceWithTransactions(t *testing.T, stack *node.Node) {
 
 	// Create some blocks and import them
 	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
-		consensus.NewFakerWithDataBase(ethBackend.ChainDb()), ethBackend.BlockChain(), 1, func(i int, b *core.BlockGen) {
+		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 1, func(i int, b *core.BlockGen) {
 			b.SetCoinbase(common.Address{1})
 			b.SetActiveVersion(params.FORKVERSION_1_5_0)
 			b.AddTx(legacyTx)
