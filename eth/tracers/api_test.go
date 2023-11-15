@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"math/big"
 	"reflect"
 	"sort"
@@ -212,11 +213,11 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
+			expect: &logger.ExecutionResult{
 				Gas:         params.TxGas,
 				Failed:      false,
 				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
+				StructLogs:  []logger.StructLogRes{},
 			},
 		},
 		// Standard JSON trace upon the head, plain transfer.
@@ -229,11 +230,11 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
+			expect: &logger.ExecutionResult{
 				Gas:         params.TxGas,
 				Failed:      false,
 				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
+				StructLogs:  []logger.StructLogRes{},
 			},
 		},
 		// Standard JSON trace upon the non-existent block, error expects
@@ -258,11 +259,11 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
+			expect: &logger.ExecutionResult{
 				Gas:         params.TxGas,
 				Failed:      false,
 				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
+				StructLogs:  []logger.StructLogRes{},
 			},
 		},
 		// Standard JSON trace upon the pending block
@@ -275,11 +276,11 @@ func TestTraceCall(t *testing.T) {
 			},
 			config:    nil,
 			expectErr: nil,
-			expect: &ethapi.ExecutionResult{
+			expect: &logger.ExecutionResult{
 				Gas:         params.TxGas,
 				Failed:      false,
 				ReturnValue: "",
-				StructLogs:  []ethapi.StructLogRes{},
+				StructLogs:  []logger.StructLogRes{},
 			},
 		},
 	}
@@ -298,8 +299,12 @@ func TestTraceCall(t *testing.T) {
 				t.Errorf("Expect no error, get %v", err)
 				continue
 			}
-			if !reflect.DeepEqual(result, testspec.expect) {
-				t.Errorf("Result mismatch, want %v, get %v", testspec.expect, result)
+			var have *logger.ExecutionResult
+			if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
+				t.Errorf("failed to unmarshal result %v", err)
+			}
+			if !reflect.DeepEqual(have, testspec.expect) {
+				t.Errorf("Result mismatch, want %v, get %v", testspec.expect, have)
 			}
 		}
 	}
@@ -330,11 +335,15 @@ func TestTraceTransaction(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to trace transaction %v", err)
 	}
-	if !reflect.DeepEqual(result, &ethapi.ExecutionResult{
+	var have *logger.ExecutionResult
+	if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
+		t.Errorf("failed to unmarshal result %v", err)
+	}
+	if !reflect.DeepEqual(have, &logger.ExecutionResult{
 		Gas:         params.TxGas,
 		Failed:      false,
 		ReturnValue: "",
-		StructLogs:  []ethapi.StructLogRes{},
+		StructLogs:  []logger.StructLogRes{},
 	}) {
 		t.Error("Transaction tracing result is different")
 	}

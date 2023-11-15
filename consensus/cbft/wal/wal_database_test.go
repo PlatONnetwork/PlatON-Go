@@ -17,7 +17,6 @@
 package wal
 
 import (
-	"os"
 	"testing"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -31,9 +30,7 @@ var (
 )
 
 func TestWALDatabase(t *testing.T) {
-
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	// empty path
 	_, err := createWalDB("")

@@ -18,6 +18,7 @@ package cbft
 
 import (
 	"os"
+	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -35,18 +36,14 @@ const (
 	testNodeNumber = 4
 )
 
-func path() string {
-	name, err := os.MkdirTemp(os.TempDir(), "evidence")
-
-	if err != nil {
-		panic(err)
-	}
-	return name
+func path(t *testing.T) string {
+	dir := t.TempDir()
+	return dir
 }
 
-func createPaths(number int) (paths []string) {
+func createPaths(number int, t *testing.T) (paths []string) {
 	for i := 0; i < number; i++ {
-		p := path()
+		p := path(t)
 		paths = append(paths, p)
 	}
 	return

@@ -19,7 +19,6 @@ package main
 import (
 	"crypto/rand"
 	"math/big"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -38,8 +37,7 @@ const (
 // Tests that a node embedded within a console can be started up properly and
 // then terminated by closing the input stream.
 func TestConsoleWelcome(t *testing.T) {
-	datadir := tmpdir(t)
-	defer os.RemoveAll(datadir)
+	datadir := t.TempDir()
 	platon := runPlatON(t,
 		"--datadir", datadir, "--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "console")
 
@@ -76,9 +74,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		ipc = `\\.\pipe\platon` + strconv.Itoa(trulyRandInt(100000, 999999))
 	} else {
-		ws := tmpdir(t)
-		defer os.RemoveAll(ws)
-		ipc = filepath.Join(ws, "platon.ipc")
+		ipc = filepath.Join(t.TempDir(), "geth.ipc")
 	}
 	platon := runPlatON(t,
 		"--port", "0", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "--ipcpath", ipc)

@@ -19,7 +19,6 @@ package cbft
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
-	"os"
 	"testing"
 	"time"
 
@@ -48,8 +47,7 @@ func TestViewChange(t *testing.T) {
 }
 
 func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	result := make(chan *types.Block, 1)
 	complete := make(chan struct{}, 1)

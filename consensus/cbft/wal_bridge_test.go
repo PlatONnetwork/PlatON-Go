@@ -18,7 +18,6 @@ package cbft
 
 import (
 	"math/big"
-	"os"
 	"testing"
 	"time"
 
@@ -37,9 +36,7 @@ import (
 )
 
 func TestUpdateChainState(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
@@ -157,9 +154,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 }
 
 func TestRecordCbftMsg(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)
@@ -207,9 +202,7 @@ func TestRecordCbftMsg(t *testing.T) {
 }
 
 func TestInsertQCBlock_fork_priority(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)

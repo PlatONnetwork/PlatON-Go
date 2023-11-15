@@ -19,7 +19,6 @@ package filters
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -44,11 +43,7 @@ func makeReceipt(addr common.Address) *types.Receipt {
 }
 
 func BenchmarkFilters(b *testing.B) {
-	dir, err := os.MkdirTemp("", "filtertest")
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := b.TempDir()
 
 	var (
 		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "", false)
@@ -103,11 +98,7 @@ func BenchmarkFilters(b *testing.B) {
 }
 
 func TestFilters(t *testing.T) {
-	dir, err := os.MkdirTemp("", "filtertest")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	var (
 		db, _   = rawdb.NewLevelDBDatabase(dir, 0, 0, "", false)

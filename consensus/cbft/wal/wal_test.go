@@ -17,7 +17,6 @@
 package wal
 
 import (
-	"os"
 	"testing"
 	"time"
 
@@ -33,9 +32,7 @@ var (
 )
 
 func TestUpdateChainState(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	wal, _ := NewWal(nil, tempDir)
 	// Test Wal UpdateChainState
 	chainStateW, err := testWalUpdateChainState(wal)
@@ -51,9 +48,7 @@ func TestUpdateChainState(t *testing.T) {
 }
 
 func TestWriteMsg(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	wal, _ := NewWal(nil, tempDir)
 	wal.SetMockJournalLimitSize(1 * 1024)
 
@@ -127,9 +122,7 @@ func testWalUpdateViewChange(wal Wal) error {
 }
 
 func TestUpdateViewChangeQC(t *testing.T) {
-	tempDir, _ := os.MkdirTemp("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	wal, _ := NewWal(nil, tempDir)
 	epochBegin, epochEnd := uint64(1), uint64(20)
 	viewBegin, viewEnd := uint64(0), uint64(25)

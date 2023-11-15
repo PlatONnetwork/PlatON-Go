@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -299,11 +298,7 @@ func testSeedQuery() error {
 }
 
 func TestDBPersistency(t *testing.T) {
-	root, err := os.MkdirTemp("", "nodedb-")
-	if err != nil {
-		t.Fatalf("failed to create temporary data folder: %v", err)
-	}
-	defer os.RemoveAll(root)
+	root := t.TempDir()
 
 	var (
 		testKey = []byte("somekey")
