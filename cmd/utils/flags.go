@@ -730,6 +730,15 @@ var (
 )
 
 var (
+	// TestnetFlags is the flag group of all built-in supported testnets.
+	TestnetFlags = []cli.Flag{
+		TestnetFlag,
+	}
+	// NetworkFlags is the flag group of all built-in supported networks.
+	NetworkFlags = append([]cli.Flag{
+		MainFlag,
+	}, TestnetFlags...)
+
 	// DatabasePathFlags is the flag group of all database path flags.
 	DatabasePathFlags = []cli.Flag{
 		DataDirFlag,
