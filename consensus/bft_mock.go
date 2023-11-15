@@ -18,7 +18,9 @@ package consensus
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"math/big"
 	"time"
 
@@ -33,7 +35,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -42,6 +43,16 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
+type Chain interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
+
+	ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error)
+
+	WriteBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool, cbftBridgeUpdateChainState func()) error
+
+	GetHeaderByNumber(number uint64) *types.Header
+}
+
 func NewFaker() *BftMock {
 	c := new(BftMock)
 	c.Blocks = make([]*types.Block, 0)
@@ -49,11 +60,12 @@ func NewFaker() *BftMock {
 	return c
 }
 
-func NewFakerWithDataBase(database ethdb.Database) *BftMock {
+func NewFakerWithDataBase(database ethdb.Database, genesis *types.Block) *BftMock {
 	c := new(BftMock)
 	c.Blocks = make([]*types.Block, 0)
 	c.blockIndexs = make(map[common.Hash]int, 0)
 	c.database = database
+	c.genesis = genesis
 	return c
 }
 
@@ -73,6 +85,17 @@ type BftMock struct {
 	Base        *types.Block
 	fakeFail    uint64         // Block number which fails BFT check even in fake mode
 	database    ethdb.Database // In memory database to store our testing data
+	chain       Chain
+	genesis     *types.Block
+}
+
+func (bm *BftMock) Reset() {
+	bm.Blocks = make([]*types.Block, 0)
+	bm.blockIndexs = make(map[common.Hash]int, 0)
+}
+
+func (bm *BftMock) SetChain(c Chain) {
+	bm.chain = c
 }
 
 // InsertChain is a fake interface, no need to implement.
@@ -82,8 +105,35 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	}
 
 	if len(bm.Blocks) != 0 && bm.Blocks[len(bm.Blocks)-1].Hash() != block.ParentHash() {
-		return nil
+		return errors.New("insertChain fail,block not compare")
 	}
+
+	if bm.chain != nil {
+		root := common.ZeroHash
+		if block.ParentHash() == bm.genesis.Hash() {
+			root = bm.genesis.Root()
+		} else if len(bm.Blocks) == 0 {
+			root = bm.chain.GetHeaderByNumber(block.NumberU64() - 1).Root
+		} else {
+			root = bm.Blocks[len(bm.Blocks)-1].Root()
+		}
+
+		statedb, err := bm.chain.StateAt(root)
+		if err != nil {
+			return err
+		}
+		receipts, err := bm.chain.ProcessDirectly(block, statedb, nil)
+		if err != nil {
+			return err
+		}
+		if err := statedb.UpdateSnaps(); err != nil {
+			return err
+		}
+		if err := bm.chain.WriteBlockWithState(block, receipts, nil, statedb, false, nil); err != nil {
+			return err
+		}
+	}
+
 	bm.Blocks = append(bm.Blocks, block)
 	bm.blockIndexs[block.Hash()] = len(bm.Blocks) - 1
 	bm.Current = block

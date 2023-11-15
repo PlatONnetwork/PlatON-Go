@@ -148,13 +148,14 @@ var (
 			Period: 3,
 		},
 		GenesisVersion: CodeVersion(),
+		test:           true,
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, sync.RWMutex{}}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, false, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -194,7 +195,12 @@ type ChainConfig struct {
 	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	GenesisVersion uint32 `json:"genesisVersion"`
+	test           bool
 	sync.RWMutex
+}
+
+func (c *ChainConfig) Test() bool {
+	return c.test
 }
 
 // String implements the fmt.Stringer interface.

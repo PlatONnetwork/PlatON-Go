@@ -59,14 +59,14 @@ type testBackend struct {
 
 func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i int, b *core.BlockGen)) *testBackend {
 	var gendb = rawdb.NewMemoryDatabase()
+	var genesis = gspec.MustCommit(gendb)
 	backend := &testBackend{
 		chainConfig: params.TestChainConfig,
-		engine:      consensus.NewFakerWithDataBase(gendb),
+		engine:      consensus.NewFakerWithDataBase(gendb, genesis),
 		chaindb:     gendb,
 	}
 	// Generate blocks for testing
 	gspec.Config = backend.chainConfig
-	var genesis = gspec.MustCommit(gendb)
 	//blocks, _ := core.GenerateChain(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
 
 	// Import the canonical chain
@@ -84,7 +84,7 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}*/
-	backend.chain = core.GenerateBlockChain2(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
+	backend.chain, _ = core.GenerateBlockChain2(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
 	return backend
 }
 
@@ -177,11 +177,14 @@ func TestTraceCall(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
-		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	genesis := &core.Genesis{
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
+		},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	genBlocks := 10
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
@@ -310,7 +313,9 @@ func TestTraceTransaction(t *testing.T) {
 	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
 		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
 		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	target := common.Hash{}
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, 1, genesis, func(i int, b *core.BlockGen) {
@@ -340,11 +345,14 @@ func TestTraceBlock(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
-		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	genesis := &core.Genesis{
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
+		},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	genBlocks := 10
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
@@ -418,7 +426,9 @@ func TestTracingWithOverrides(t *testing.T) {
 		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
 		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
 		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {

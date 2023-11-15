@@ -232,7 +232,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	return blocks, receipts
 }
 
-func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
+func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) (*BlockChain, []*types.Block) {
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -247,6 +247,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		TriesInMemory:   128,
 		DBGCInterval:    86400,
 		DBGCTimeout:     time.Minute,
+		SnapshotLimit:   256,
 	}
 	chainreader := &fakeChainReader{config: config}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
@@ -263,7 +264,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -284,7 +285,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		receipts[i] = receipt
 		parent = block
 	}
-	return blockchain
+	return blockchain, blocks
 }
 
 func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) *BlockChain {
@@ -305,7 +306,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -360,7 +361,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 			// Finalize and seal the block
 			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}

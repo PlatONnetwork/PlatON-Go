@@ -135,11 +135,11 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 	// Create a database pre-initialize with a genesis block
 	xcom.GetEc(xcom.DefaultUnitTestNet)
 	db := rawdb.NewMemoryDatabase()
-	(&core.Genesis{
+	gBlock := (&core.Genesis{
 		Config: params.TestChainConfig,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	}).MustCommit(db)
-	engine := consensus.NewFakerWithDataBase(db)
+	engine := consensus.NewFakerWithDataBase(db, gBlock)
 	chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, engine, vm.Config{}, nil, nil)
 
 	engine.InsertChain(chain.CurrentBlock())
@@ -154,7 +154,7 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		Chain:      chain,
 		TxPool:     txpool,
 		Network:    1,
-		Sync:       downloader.FastSync,
+		Sync:       downloader.SnapSync,
 		BloomCache: 1,
 	})
 	handler.Start(1000)
@@ -165,11 +165,6 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 		txpool:  txpool,
 		handler: handler,
 	}
-}
-
-// newTestHandler2 creates a new handler for testing purposes with no blocks.
-func newTestHandler2() *testHandler {
-	return newTestHandlerWithBlocks2(0)
 }
 
 // newTestHandlerWithBlocks2 creates a new handler for testing purposes, with a
@@ -185,12 +180,12 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 
 	errCh := make(chan error, 1)
 
-	engine := consensus.NewFakerWithDataBase(db)
+	engine := consensus.NewFakerWithDataBase(db, parent)
 
 	errCh <- engine.InsertChain(parent)
 	<-errCh
 
-	chain := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
+	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
 	txpool := newTestTxPool()
 
 	handler, _ := newHandler(&handlerConfig{
@@ -198,7 +193,7 @@ func newTestHandlerWithBlocks2(blocks int) *testHandler {
 		Chain:      chain,
 		TxPool:     txpool,
 		Network:    1,
-		Sync:       downloader.FastSync,
+		Sync:       downloader.SnapSync,
 		BloomCache: 1,
 	})
 	handler.Start(1000)

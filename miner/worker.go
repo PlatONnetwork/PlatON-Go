@@ -805,7 +805,7 @@ func (w *worker) resultLoop() {
 			block.SetExtraData(cbftResult.ExtraData)
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
-			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true, cbftResult.ChainStateUpdateCB)
+			err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true, cbftResult.ChainStateUpdateCB)
 			if err != nil {
 				if cbftResult.SyncState != nil {
 					cbftResult.SyncState <- err
