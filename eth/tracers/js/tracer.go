@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// package js is a collection of tracers written in javascript.
+// Package js is a collection of tracers written in javascript.
 package js
 
 import (
@@ -25,37 +25,36 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-	"unicode"
 	"unsafe"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	tracers2 "github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/js/internal/tracers"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
+	jsassets "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js/internal/tracers"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"gopkg.in/olebedev/go-duktape.v3"
 )
 
-// camel converts a snake cased input string into a camel cased output.
-func camel(str string) string {
-	pieces := strings.Split(str, "_")
-	for i := 1; i < len(pieces); i++ {
-		pieces[i] = string(unicode.ToUpper(rune(pieces[i][0]))) + pieces[i][1:]
-	}
-	return strings.Join(pieces, "")
-}
-
-var assetTracers = make(map[string]string)
-
 // init retrieves the JavaScript transaction tracers included in go-ethereum.
 func init() {
-	for _, file := range tracers.AssetNames() {
-		name := camel(strings.TrimSuffix(file, ".js"))
-		assetTracers[name] = string(tracers.MustAsset(file))
+	assetTracers, err := jsassets.Load()
+	if err != nil {
+		panic(err)
 	}
-	tracers2.RegisterLookup(true, newJsTracer)
+	// TODO: Either disable duktape or solve conflicts between goja and duktape
+	tracers.RegisterLookup(false, func(name string, ctx *tracers.Context) (tracers.Tracer, error) {
+		if !strings.HasSuffix(name, "Duktape") {
+			return nil, errors.New("only suffix Duktape supported")
+		}
+		name = strings.TrimSuffix(name, "Duktape")
+		code, ok := assetTracers[name]
+		if !ok {
+			return nil, errors.New("only pre-built tracers supported")
+		}
+		return newJsTracer(code, ctx)
+	})
 }
 
 // makeSlice convert an unsafe memory pointer with the given type into a Go byte
@@ -424,12 +423,12 @@ type jsTracer struct {
 // New instantiates a new tracer instance. code specifies a Javascript snippet,
 // which must evaluate to an expression returning an object with 'step', 'fault'
 // and 'result' functions.
-func newJsTracer(code string, ctx *tracers2.Context) (tracers2.Tracer, error) {
+func newJsTracer(code string, ctx *tracers.Context) (tracers.Tracer, error) {
 	if c, ok := assetTracers[code]; ok {
 		code = c
 	}
 	if ctx == nil {
-		ctx = new(tracers2.Context)
+		ctx = new(tracers.Context)
 	}
 	tracer := &jsTracer{
 		vm:              duktape.New(),
@@ -685,7 +684,7 @@ func (jst *jsTracer) CaptureTxStart(gasLimit uint64) {
 	jst.gasLimit = gasLimit
 }
 
-// CaptureTxStart implements the Tracer interface and is invoked at the end of
+// CaptureTxEnd implements the Tracer interface and is invoked at the end of
 // transaction processing.
 func (*jsTracer) CaptureTxEnd(restGas uint64) {}
 
