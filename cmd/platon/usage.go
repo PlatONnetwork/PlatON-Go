@@ -33,21 +33,17 @@ import (
 var AppHelpFlagGroups = []flags.FlagGroup{
 	{
 		Name: "PLATON",
-		Flags: []cli.Flag{
+		Flags: utils.GroupFlags([]cli.Flag{
 			configFileFlag,
-			utils.DataDirFlag,
-			utils.AncientFlag,
 			utils.MinFreeDiskSpaceFlag,
 			utils.KeyStoreDirFlag,
 			utils.NetworkIdFlag,
-			utils.MainFlag,
-			utils.TestnetFlag,
 			utils.SyncModeFlag,
 			//	utils.EthStatsURLFlag,
 			utils.IdentityFlag,
 			utils.TxLookupLimitFlag,
 			utils.LightKDFFlag,
-		},
+		}, utils.NetworkFlags, utils.DatabasePathFlags),
 	},
 	{
 		Name: "TRANSACTION POOL",
