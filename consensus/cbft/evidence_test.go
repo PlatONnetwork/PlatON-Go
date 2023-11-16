@@ -73,7 +73,7 @@ func (suit *EvidenceTestSuite) SetupTest() {
 
 // Double view change
 func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.insertOneBlock()
@@ -103,7 +103,7 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicate() {
 
 // viewChange view number dif
 func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifViewNumber() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.insertOneBlock()
@@ -124,7 +124,7 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifViewNumber() {
 
 // viewChange dif epoch
 func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifEpoch() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.insertOneBlock()
@@ -145,7 +145,7 @@ func (suit *EvidenceTestSuite) TestViewChangeDuplicateDifEpoch() {
 
 // duplicateEvidence
 func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -195,7 +195,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicate() {
 
 // prepare block view number dif
 func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -233,7 +233,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifViewNumber() {
 
 // prepare block epoch dif
 func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -271,7 +271,7 @@ func (suit *EvidenceTestSuite) TestPrepareBlockDuplicateDifEpoch() {
 
 // duplicate sign
 func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -306,7 +306,7 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicate() {
 
 // prepare vote view number dif
 func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifViewNumber() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
@@ -332,7 +332,7 @@ func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifViewNumber() {
 
 // prepare vote epoch dif
 func (suit *EvidenceTestSuite) TestPrepareVoteDuplicateDifEpoch() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,

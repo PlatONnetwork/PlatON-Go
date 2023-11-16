@@ -178,29 +178,6 @@ type Decoder interface {
 	Time() time.Time
 }
 
-var eth65 = map[uint64]msgHandler{
-	GetBlockHeadersMsg:            handleGetBlockHeaders,
-	BlockHeadersMsg:               handleBlockHeaders,
-	GetBlockBodiesMsg:             handleGetBlockBodies,
-	BlockBodiesMsg:                handleBlockBodies,
-	GetNodeDataMsg:                handleGetNodeData,
-	NodeDataMsg:                   handleNodeData,
-	GetReceiptsMsg:                handleGetReceipts,
-	ReceiptsMsg:                   handleReceipts,
-	NewBlockHashesMsg:             handleNewBlockhashes,
-	NewBlockMsg:                   handleNewBlock,
-	TransactionsMsg:               handleTransactions,
-	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
-	GetPooledTransactionsMsg:      handleGetPooledTransactions,
-	PooledTransactionsMsg:         handlePooledTransactions,
-	// PPOS messages
-	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
-	PPOSStorageMsg:       handlePPosStorageMsg,
-	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
-	OriginAndPivotMsg:    handleOriginAndPivotMsg,
-	PPOSInfoMsg:          handlePPOSInfoMsg,
-}
-
 var eth66 = map[uint64]msgHandler{
 	NewBlockHashesMsg:             handleNewBlockhashes,
 	NewBlockMsg:                   handleNewBlock,
@@ -239,10 +216,10 @@ func handleMessage(backend Backend, peer *Peer) error {
 	}
 	defer msg.Discard()
 
-	var handlers = eth65
-	if peer.Version() >= ETH66 {
-		handlers = eth66
-	}
+	var handlers = eth66
+	//if peer.Version() >= ETH67 { // Left in as a sample when new protocol is added
+	//	handlers = eth67
+	//}
 	// Track the amount of time it takes to serve the request and run the handler
 	if metrics.Enabled {
 		h := fmt.Sprintf("%s/%s/%d/%#02x", p2p.HandleHistName, ProtocolName, peer.Version(), msg.Code)

@@ -71,7 +71,6 @@ func (h *testEthHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 }
 
 // Tests that received transactions are added to the local pool.
-func TestRecvTransactions65(t *testing.T) { testRecvTransactions(t, eth.ETH65) }
 func TestRecvTransactions66(t *testing.T) { testRecvTransactions(t, eth.ETH66) }
 
 func testRecvTransactions(t *testing.T, protocol uint) {
@@ -128,7 +127,6 @@ func testRecvTransactions(t *testing.T, protocol uint) {
 }
 
 // This test checks that pending transactions are sent.
-func TestSendTransactions65(t *testing.T) { testSendTransactions(t, eth.ETH65) }
 func TestSendTransactions66(t *testing.T) { testSendTransactions(t, eth.ETH66) }
 
 func testSendTransactions(t *testing.T, protocol uint) {
@@ -187,7 +185,7 @@ func testSendTransactions(t *testing.T, protocol uint) {
 	seen := make(map[common.Hash]struct{})
 	for len(seen) < len(insert) {
 		switch protocol {
-		case 65, 66:
+		case 66:
 			select {
 			case hashes := <-anns:
 				for _, hash := range hashes {
@@ -197,7 +195,7 @@ func testSendTransactions(t *testing.T, protocol uint) {
 					seen[hash] = struct{}{}
 				}
 			case <-bcasts:
-				t.Errorf("initial tx broadcast received on post eth/65")
+				t.Errorf("initial tx broadcast received on post eth/66")
 			}
 
 		default:
@@ -213,7 +211,6 @@ func testSendTransactions(t *testing.T, protocol uint) {
 
 // Tests that transactions get propagated to all attached peers, either via direct
 // broadcasts or via announcements/retrievals.
-func TestTransactionPropagation65(t *testing.T) { testTransactionPropagation(t, eth.ETH65) }
 func TestTransactionPropagation66(t *testing.T) { testTransactionPropagation(t, eth.ETH66) }
 
 func testTransactionPropagation(t *testing.T, protocol uint) {
@@ -223,6 +220,7 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 	// to receive them. We need multiple sinks since a one-to-one peering would
 	// broadcast all transactions without announcement.
 	source := newTestHandler()
+	source.handler.snapSync = 0 // Avoid requiring snap, otherwise some will be dropped below
 	defer source.close()
 
 	sinks := make([]*testHandler, 10)
@@ -272,12 +270,13 @@ func testTransactionPropagation(t *testing.T, protocol uint) {
 
 	// Iterate through all the sinks and ensure they all got the transactions
 	for i := range sinks {
-		for arrived := 0; arrived < len(txs); {
+		for arrived, timeout := 0, false; arrived < len(txs) && !timeout; {
 			select {
 			case event := <-txChs[i]:
 				arrived += len(event.Txs)
-			case <-time.NewTimer(time.Second).C:
+			case <-time.After(time.Second):
 				t.Errorf("sink %d: transaction propagation timed out: have %d, want %d", i, arrived, len(txs))
+				timeout = true
 			}
 		}
 	}
@@ -318,8 +317,8 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 		defer sourcePipe.Close()
 		defer sinkPipe.Close()
 
-		sourcePeer := eth.NewPeer(eth.ETH65, p2p.NewPeer(enode.ID{byte(i)}, "", nil), sourcePipe, nil, nil)
-		sinkPeer := eth.NewPeer(eth.ETH65, p2p.NewPeer(enode.ID{0}, "", nil), sinkPipe, nil, nil)
+		sourcePeer := eth.NewPeer(eth.ETH66, p2p.NewPeer(enode.ID{byte(i)}, "", nil), sourcePipe, nil, nil)
+		sinkPeer := eth.NewPeer(eth.ETH66, p2p.NewPeer(enode.ID{0}, "", nil), sinkPipe, nil, nil)
 		defer sourcePeer.Close()
 		defer sinkPeer.Close()
 
@@ -370,7 +369,6 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 
 // Tests that a propagated malformed block (uncles or transactions don't match
 // with the hashes in the header) gets discarded and not broadcast forward.
-func TestBroadcastMalformedBlock65(t *testing.T) { testBroadcastMalformedBlock(t, eth.ETH65) }
 func TestBroadcastMalformedBlock66(t *testing.T) { testBroadcastMalformedBlock(t, eth.ETH66) }
 
 func testBroadcastMalformedBlock(t *testing.T, protocol uint) {

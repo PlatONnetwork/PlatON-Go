@@ -280,7 +280,7 @@ func (suit *ViewChangeTestSuite) TestCheckCorrectViewChangeRepeat() {
 // The same person, viewChange message based on different blocks
 // The verification fails, and the error of returning double viewChange is returned.
 func (suit *ViewChangeTestSuite) TestViewChangeRepeatWithDifBlock() {
-	paths := createPaths(len(suit.view.allCbft))
+	paths := createPaths(len(suit.view.allCbft), suit.T())
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.insertOneBlock()

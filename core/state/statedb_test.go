@@ -54,8 +54,6 @@ func randString(n int) string {
 func TestUpdateLeaks(t *testing.T) {
 	// Create an empty state database
 	db := rawdb.NewMemoryDatabase()
-	//dir, _ := os.MkdirTemp("", "eth-core-bench")
-	//ethdb,err:= ethdb.NewLDBDatabase(dir,128,128)
 	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 

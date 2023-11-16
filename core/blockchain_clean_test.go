@@ -75,11 +75,7 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 }
 
 func TestCleaner(t *testing.T) {
-	frdir, err := os.MkdirTemp("", "platon")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.Remove(frdir)
+	frdir := t.TempDir()
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 
@@ -133,11 +129,7 @@ func TestCleaner(t *testing.T) {
 }
 
 func TestStopCleaner(t *testing.T) {
-	frdir, err := os.MkdirTemp("", "platon")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.Remove(frdir)
+	frdir := t.TempDir()
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 

@@ -133,11 +133,21 @@ func (s *PublicEthereumAPI) Syncing() (interface{}, error) {
 	}
 	// Otherwise gather the block sync stats
 	return map[string]interface{}{
-		"startingBlock": hexutil.Uint64(progress.StartingBlock),
-		"currentBlock":  hexutil.Uint64(progress.CurrentBlock),
-		"highestBlock":  hexutil.Uint64(progress.HighestBlock),
-		"pulledStates":  hexutil.Uint64(progress.PulledStates),
-		"knownStates":   hexutil.Uint64(progress.KnownStates),
+		"startingBlock":       hexutil.Uint64(progress.StartingBlock),
+		"currentBlock":        hexutil.Uint64(progress.CurrentBlock),
+		"highestBlock":        hexutil.Uint64(progress.HighestBlock),
+		"syncedAccounts":      hexutil.Uint64(progress.SyncedAccounts),
+		"syncedAccountBytes":  hexutil.Uint64(progress.SyncedAccountBytes),
+		"syncedBytecodes":     hexutil.Uint64(progress.SyncedBytecodes),
+		"syncedBytecodeBytes": hexutil.Uint64(progress.SyncedBytecodeBytes),
+		"syncedStorage":       hexutil.Uint64(progress.SyncedStorage),
+		"syncedStorageBytes":  hexutil.Uint64(progress.SyncedStorageBytes),
+		"healedTrienodes":     hexutil.Uint64(progress.HealedTrienodes),
+		"healedTrienodeBytes": hexutil.Uint64(progress.HealedTrienodeBytes),
+		"healedBytecodes":     hexutil.Uint64(progress.HealedBytecodes),
+		"healedBytecodeBytes": hexutil.Uint64(progress.HealedBytecodeBytes),
+		"healingTrienodes":    hexutil.Uint64(progress.HealingTrienodes),
+		"healingBytecode":     hexutil.Uint64(progress.HealingBytecode),
 	}, nil
 }
 
@@ -1106,67 +1116,6 @@ func (e *revertError) ErrorCode() int {
 // ErrorData returns the hex encoded revert reason.
 func (e *revertError) ErrorData() interface{} {
 	return e.reason
-}
-
-// ExecutionResult groups all structured logs emitted by the EVM
-// while replaying a transaction in debug mode as well as transaction
-// execution status, the amount of gas used and the return value
-type ExecutionResult struct {
-	Gas         uint64         `json:"gas"`
-	Failed      bool           `json:"failed"`
-	ReturnValue string         `json:"returnValue"`
-	StructLogs  []StructLogRes `json:"structLogs"`
-}
-
-// StructLogRes stores a structured log emitted by the EVM while replaying a
-// transaction in debug mode
-type StructLogRes struct {
-	Pc      uint64             `json:"pc"`
-	Op      string             `json:"op"`
-	Gas     uint64             `json:"gas"`
-	GasCost uint64             `json:"gasCost"`
-	Depth   int                `json:"depth"`
-	Error   string             `json:"error,omitempty"`
-	Stack   *[]string          `json:"stack,omitempty"`
-	Memory  *[]string          `json:"memory,omitempty"`
-	Storage *map[string]string `json:"storage,omitempty"`
-}
-
-// FormatLogs formats EVM returned structured logs for json output
-func FormatLogs(logs []logger.StructLog) []StructLogRes {
-	formatted := make([]StructLogRes, len(logs))
-	for index, trace := range logs {
-		formatted[index] = StructLogRes{
-			Pc:      trace.Pc,
-			Op:      trace.Op.String(),
-			Gas:     trace.Gas,
-			GasCost: trace.GasCost,
-			Depth:   trace.Depth,
-			Error:   trace.ErrorString(),
-		}
-		if trace.Stack != nil {
-			stack := make([]string, len(trace.Stack))
-			for i, stackValue := range trace.Stack {
-				stack[i] = stackValue.Hex()
-			}
-			formatted[index].Stack = &stack
-		}
-		if trace.Memory != nil {
-			memory := make([]string, 0, (len(trace.Memory)+31)/32)
-			for i := 0; i+32 <= len(trace.Memory); i += 32 {
-				memory = append(memory, fmt.Sprintf("%x", trace.Memory[i:i+32]))
-			}
-			formatted[index].Memory = &memory
-		}
-		if trace.Storage != nil {
-			storage := make(map[string]string)
-			for i, storageValue := range trace.Storage {
-				storage[fmt.Sprintf("%x", i)] = fmt.Sprintf("%x", storageValue)
-			}
-			formatted[index].Storage = &storage
-		}
-	}
-	return formatted
 }
 
 // RPCMarshalHeader converts the given header to the RPC output .

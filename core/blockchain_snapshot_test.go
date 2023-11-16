@@ -66,7 +66,7 @@ func (basic *snapshotTestBasic) prepare(t *testing.T) (*BlockChain, []*types.Blo
 	var (
 		genesis = new(Genesis).MustCommit(db)
 		gendb   = rawdb.NewMemoryDatabase()
-		engine  = consensus.NewFakerWithDataBase(db)
+		engine  = consensus.NewFakerWithDataBase(db, genesis)
 
 		// Snapshot is enabled, the first snapshot is created from the Genesis.
 		// The snapshot memory allowance is 256MB, it means no snapshot flush

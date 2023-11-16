@@ -1,18 +1,19 @@
 // Copyright 2018 The go-ethereum Authors
-// This file is part of go-ethereum.
+// This file is part of the go-ethereum library.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
+// GNU Lesser General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package core_test
 
 import (
@@ -107,11 +108,8 @@ func (ui *headlessUi) ShowInfo(message string) {
 }
 
 func tmpDirName(t *testing.T) string {
-	d, err := os.MkdirTemp("", "eth-keystore-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	d, err = filepath.EvalSymlinks(d)
+	d := t.TempDir()
+	d, err := filepath.EvalSymlinks(d)
 	if err != nil {
 		t.Fatal(err)
 	}
