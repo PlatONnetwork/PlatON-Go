@@ -24,6 +24,10 @@ require (
 	github.com/google/uuid v1.1.5
 	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
+	github.com/fjl/gencodec v0.0.0-20220412091415-8bb9e558978c
+	github.com/kevinburke/go-bindata v3.23.0+incompatible
+	golang.org/x/mobile v0.0.0-20190719004257-d2bd2a29d028
+
 	github.com/hashicorp/go-bexpr v0.1.10
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/holiman/bloomfilter/v2 v2.0.3
