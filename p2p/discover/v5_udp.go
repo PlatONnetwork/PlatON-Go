@@ -306,7 +306,7 @@ func (t *UDPv5) lookupWorker(destNode *node, target enode.ID) ([]*node, error) {
 	)
 	var r []*enode.Node
 	r, err = t.findnode(unwrapNode(destNode), dists)
-	if err == errClosed {
+	if errors.Is(err, errClosed) {
 		return nil, err
 	}
 	for _, n := range r {
