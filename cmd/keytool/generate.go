@@ -37,6 +37,17 @@ type outputGenerate struct {
 	AddressEIP55 string
 }
 
+var (
+	privateKeyFlag = cli.StringFlag{
+		Name:  "privatekey",
+		Usage: "file containing a raw private key to encrypt",
+	}
+	lightKDFFlag = cli.BoolFlag{
+		Name:  "lightkdf",
+		Usage: "use less secure scrypt parameters",
+	}
+)
+
 var commandGenerate = cli.Command{
 	Name:      "generate",
 	Usage:     "generate new keyfile",
@@ -50,15 +61,9 @@ If you want to encrypt an existing private key, it can be specified by setting
 	Flags: []cli.Flag{
 		passphraseFlag,
 		jsonFlag,
-		cli.StringFlag{
-			Name:  "privatekey",
-			Usage: "file containing a raw private key to encrypt",
-		},
+		privateKeyFlag,
+		lightKDFFlag,
 		utils.AddressHRPFlag,
-		cli.BoolFlag{
-			Name:  "lightkdf",
-			Usage: "use less secure scrypt parameters",
-		},
 	},
 	Action: func(ctx *cli.Context) error {
 		hrp := ctx.String(utils.AddressHRPFlag.Name)
@@ -79,7 +84,7 @@ If you want to encrypt an existing private key, it can be specified by setting
 
 		var privateKey *ecdsa.PrivateKey
 		var err error
-		if file := ctx.String("privatekey"); file != "" {
+		if file := ctx.String(privateKeyFlag.Name); file != "" {
 			// Load private key from file.
 			privateKey, err = crypto.LoadECDSA(file)
 			if err != nil {
@@ -107,7 +112,7 @@ If you want to encrypt an existing private key, it can be specified by setting
 		// Encrypt key with passphrase.
 		passphrase := utils.GetPassPhrase("", true)
 		scryptN, scryptP := keystore.StandardScryptN, keystore.StandardScryptP
-		if ctx.Bool("lightkdf") {
+		if ctx.Bool(lightKDFFlag.Name) {
 			scryptN, scryptP = keystore.LightScryptN, keystore.LightScryptP
 		}
 		keyjson, err := keystore.EncryptKey(key, passphrase, scryptN, scryptP)
