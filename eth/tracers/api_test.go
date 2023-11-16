@@ -178,11 +178,14 @@ func TestTraceCall(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
-		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	genesis := &core.Genesis{
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
+		},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	genBlocks := 10
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
