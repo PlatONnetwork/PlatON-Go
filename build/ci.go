@@ -1013,10 +1013,12 @@ func doXCodeFramework(cmdline []string) {
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
+	tc := new(build.GoToolchain)
+
+	// Build gomobile.
+	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 
 	// Build the iOS XCode framework
-	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
-	build.MustRun(gomobileTool("init"))
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile")
 
 	if *local {
@@ -1025,16 +1027,16 @@ func doXCodeFramework(cmdline []string) {
 		build.MustRun(bind)
 		return
 	}
+
+	// Create the archive.
+	maybeSkipArchive(env)
 	archive := "platon-" + archiveBasename("ios", params.ArchiveVersion(env.Commit))
-	if err := os.Mkdir(archive, os.ModePerm); err != nil {
+	if err := os.MkdirAll(archive, 0755); err != nil {
 		log.Fatal(err)
 	}
 	bind.Dir, _ = filepath.Abs(archive)
 	build.MustRun(bind)
 	build.MustRunCommand("tar", "-zcvf", archive+".tar.gz", archive)
-
-	// Skip CocoaPods deploy and Azure upload for PR builds
-	maybeSkipArchive(env)
 
 	// Sign and upload the framework to Azure
 	if err := archiveUpload(archive+".tar.gz", *upload, *signer, *signify); err != nil {
