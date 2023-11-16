@@ -26,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"sync"
@@ -64,15 +63,16 @@ type downloadTester struct {
 }
 
 // newTester creates a new downloader test mocker.
-func newTester() *downloadTester {
-	freezer, err := ioutil.TempDir("", "")
-	if err != nil {
-		panic(err)
-	}
+func newTester(t *testing.T) *downloadTester {
+	freezer := t.TempDir()
+
 	db, err := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), freezer, "", false)
 	if err != nil {
 		panic(err)
 	}
+	t.Cleanup(func() {
+		db.Close()
+	})
 	genesis := core.GenesisBlockForTesting(db, testAddress, big.NewInt(1000000000000000))
 
 	sdb, err := snapshotdb.OpenWithStorage(storage.NewMemStorage(), 0, 0, false)
@@ -540,7 +540,7 @@ func TestCanonicalSynchronisation66Full(t *testing.T) { testCanonSync(t, eth.ETH
 func TestCanonicalSynchronisation66Snap(t *testing.T) { testCanonSync(t, eth.ETH66, SnapSync) }
 
 func testCanonSync(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	// Create a small enough block chain to download
@@ -560,7 +560,7 @@ func TestThrottling66Full(t *testing.T) { testThrottling(t, eth.ETH66, FullSync)
 func TestThrottling66Snap(t *testing.T) { testThrottling(t, eth.ETH66, SnapSync) }
 
 func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	// Create a long block chain to download and the tester
@@ -756,7 +756,7 @@ func TestCancel66Full(t *testing.T) { testCancel(t, eth.ETH66, FullSync) }
 func TestCancel66Snap(t *testing.T) { testCancel(t, eth.ETH66, SnapSync) }
 
 func testCancel(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(MaxHeaderFetch)
@@ -782,7 +782,7 @@ func TestMultiSynchronisation66Full(t *testing.T) { testMultiSynchronisation(t, 
 func TestMultiSynchronisation66Snap(t *testing.T) { testMultiSynchronisation(t, eth.ETH66, SnapSync) }
 
 func testMultiSynchronisation(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	// Create various peers with various parts of the chain
@@ -807,7 +807,7 @@ func TestMultiProtoSynchronisation66Snap(t *testing.T) { testMultiProtoSync(t, e
 //func TestMultiProtoSynchronisation66Light(t *testing.T) { testMultiProtoSync(t, eth.ETH66, LightSync) }
 
 func testMultiProtoSync(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	// Create a small enough block chain to download
@@ -840,7 +840,7 @@ func testMultiProtoSync(t *testing.T, protocol uint, mode SyncMode) {
 //func TestEmptyShortCircuit64Light(t *testing.T) { testEmptyShortCircuit(t, 64, LightSync) }
 
 func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	// Create a block chain to download
@@ -887,7 +887,7 @@ func TestMissingHeaderAttack66Full(t *testing.T) { testMissingHeaderAttack(t, et
 func TestMissingHeaderAttack66Snap(t *testing.T) { testMissingHeaderAttack(t, eth.ETH66, SnapSync) }
 
 func testMissingHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(blockCacheMaxItems - 15)
@@ -912,7 +912,7 @@ func TestShiftedHeaderAttack66Full(t *testing.T) { testShiftedHeaderAttack(t, et
 func TestShiftedHeaderAttack66Snap(t *testing.T) { testShiftedHeaderAttack(t, eth.ETH66, SnapSync) }
 
 func testShiftedHeaderAttack(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(blockCacheMaxItems - 15)
@@ -1037,7 +1037,7 @@ func testBlockHeaderAttackerDropping(t *testing.T, protocol uint) {
 		{errCancelContentProcessing, false}, // Synchronisation was canceled, origin may be innocent, don't drop
 	}
 	// Run the tests and check disconnection status
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 	chain := testChainBase.shorten(1)
 
@@ -1065,7 +1065,7 @@ func TestSyncProgress66Snap(t *testing.T) { testSyncProgress(t, eth.ETH66, SnapS
 
 func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
 
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(blockCacheMaxItems - 15)
@@ -1212,7 +1212,7 @@ func TestFailedSyncProgress66Full(t *testing.T) { testFailedSyncProgress(t, eth.
 func TestFailedSyncProgress66Snap(t *testing.T) { testFailedSyncProgress(t, eth.ETH66, SnapSync) }
 
 func testFailedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(blockCacheMaxItems - 15)
@@ -1278,7 +1278,7 @@ func TestFakedSyncProgress66Full(t *testing.T) { testFakedSyncProgress(t, eth.ET
 //func TestFakedSyncProgress66Snap(t *testing.T) { testFakedSyncProgress(t, eth.ETH66, SnapSync) }
 
 func testFakedSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
-	tester := newTester()
+	tester := newTester(t)
 	defer tester.terminate()
 
 	chain := testChainBase.shorten(blockCacheMaxItems - 15)
