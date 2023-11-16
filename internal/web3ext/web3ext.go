@@ -390,6 +390,11 @@ web3._extend({
 			params: 1
 		}),
 		new web3._extend.Method({
+			name: 'dbGet',
+			call: 'debug_dbGet',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'dbAncient',
 			call: 'debug_dbAncient',
 			params: 2

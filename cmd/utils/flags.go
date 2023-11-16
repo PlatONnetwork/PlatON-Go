@@ -139,7 +139,7 @@ var (
 		Usage: "Explicitly set network id (integer)",
 		Value: ethconfig.Defaults.NetworkId,
 	}
-	MainFlag = cli.BoolFlag{
+	MainnetFlag = cli.BoolFlag{
 		Name:  "main",
 		Usage: "Mainnet network: pre-configured main network (default network)",
 	}
@@ -736,7 +736,7 @@ var (
 	}
 	// NetworkFlags is the flag group of all built-in supported networks.
 	NetworkFlags = append([]cli.Flag{
-		MainFlag,
+		MainnetFlag,
 	}, TestnetFlags...)
 
 	// DatabasePathFlags is the flag group of all database path flags.

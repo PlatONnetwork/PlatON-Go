@@ -54,6 +54,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	signifyPkg "github.com/PlatONnetwork/PlatON-Go/crypto/signify"
 	"github.com/PlatONnetwork/PlatON-Go/internal/build"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -615,7 +616,7 @@ func ppaUpload(workdir, ppa, sshUser string, files []string) {
 	var idfile string
 	if sshkey := getenvBase64("PPA_SSH_KEY"); len(sshkey) > 0 {
 		idfile = filepath.Join(workdir, "sshkey")
-		if _, err := os.Stat(idfile); os.IsNotExist(err) {
+		if !common.FileExist(idfile) {
 			os.WriteFile(idfile, sshkey, 0600)
 		}
 	}
