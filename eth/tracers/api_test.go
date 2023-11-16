@@ -265,15 +265,17 @@ func TestTraceCall(t *testing.T) {
 			blockNumber: rpc.LatestBlockNumber,
 			call: ethapi.TransactionArgs{
 				From:  &accounts[0].addr,
-				Input: &hexutil.Bytes{0x43}, // blocknumber
+				Input: &hexutil.Bytes{0x60, 0x80, 0x60, 0x40, 0x43}, // blocknumber
 			},
 			config: &TraceCallConfig{
 				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
 			},
 			expectErr: nil,
-			expect: ` {"gas":53018,"failed":false,"returnValue":"","structLogs":[
-		{"pc":0,"op":"NUMBER","gas":24946984,"gasCost":2,"depth":1,"stack":[]},
-		{"pc":1,"op":"STOP","gas":24946982,"gasCost":0,"depth":1,"stack":["0x1337"]}]}`,
+			expect: ` {"gas":53088,"failed":false,"returnValue":"","structLogs":[
+						{"pc":0,"op":"PUSH1","gas":24946920,"gasCost":3,"depth":1,"stack":[]},
+						{"pc":2,"op":"PUSH1","gas":24946917,"gasCost":3,"depth":1,"stack":["0x80"]},
+						{"pc":4,"op":"NUMBER","gas":24946914,"gasCost":2,"depth":1,"stack":["0x80","0x40"]},
+						{"pc":5,"op":"STOP","gas":24946912,"gasCost":0,"depth":1,"stack":["0x80","0x40","0x1337"]}]}`,
 		},
 	}
 	for i, testspec := range testSuite {
@@ -447,7 +449,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	type res struct {
 		Gas         int
 		Failed      bool
-		returnValue string
+		ReturnValue string
 	}
 	var testSuite = []struct {
 		blockNumber rpc.BlockNumber
@@ -458,7 +460,7 @@ func TestTracingWithOverrides(t *testing.T) {
 	}{
 		// Call which can only succeed if state is state overridden
 		{
-			blockNumber: rpc.PendingBlockNumber,
+			blockNumber: rpc.LatestBlockNumber,
 			call: ethapi.TransactionArgs{
 				From:  &randomAccounts[0].addr,
 				To:    &randomAccounts[1].addr,
@@ -473,7 +475,7 @@ func TestTracingWithOverrides(t *testing.T) {
 		},
 		// Invalid call without state overriding
 		{
-			blockNumber: rpc.PendingBlockNumber,
+			blockNumber: rpc.LatestBlockNumber,
 			call: ethapi.TransactionArgs{
 				From:  &randomAccounts[0].addr,
 				To:    &randomAccounts[1].addr,
@@ -499,7 +501,7 @@ func TestTracingWithOverrides(t *testing.T) {
 		//      }
 		//  }
 		{
-			blockNumber: rpc.PendingBlockNumber,
+			blockNumber: rpc.LatestBlockNumber,
 			call: ethapi.TransactionArgs{
 				From: &randomAccounts[0].addr,
 				To:   &randomAccounts[2].addr,
@@ -515,6 +517,39 @@ func TestTracingWithOverrides(t *testing.T) {
 				},
 			},
 			want: `{"gas":23347,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000007b"}`,
+		},
+		{ // Override blocknumber
+			blockNumber: rpc.LatestBlockNumber,
+			call: ethapi.TransactionArgs{
+				From: &accounts[0].addr,
+				// BLOCKNUMBER PUSH1 MSTORE
+				Input: newRPCBytes(common.Hex2Bytes("4360005260206000f3")),
+				//&hexutil.Bytes{0x43}, // blocknumber
+			},
+			config: &TraceCallConfig{
+				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
+			},
+			want: `{"gas":59537,"failed":false,"returnValue":"0000000000000000000000000000000000000000000000000000000000001337"}`,
+		},
+		{ // Override blocknumber, and query a blockhash
+			blockNumber: rpc.LatestBlockNumber,
+			call: ethapi.TransactionArgs{
+				From: &accounts[0].addr,
+				Input: &hexutil.Bytes{
+					0x60, 0x00, 0x40, // BLOCKHASH(0)
+					0x60, 0x00, 0x52, // STORE memory offset 0
+					0x61, 0x13, 0x36, 0x40, // BLOCKHASH(0x1336)
+					0x60, 0x20, 0x52, // STORE memory offset 32
+					0x61, 0x13, 0x37, 0x40, // BLOCKHASH(0x1337)
+					0x60, 0x40, 0x52, // STORE memory offset 64
+					0x60, 0x60, 0x60, 0x00, 0xf3, // RETURN (0-96)
+
+				}, // blocknumber
+			},
+			config: &TraceCallConfig{
+				BlockOverrides: &ethapi.BlockOverrides{Number: (*hexutil.Big)(big.NewInt(0x1337))},
+			},
+			want: `{"gas":72666,"failed":false,"returnValue":"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}`,
 		},
 	}
 	for i, tc := range testSuite {
