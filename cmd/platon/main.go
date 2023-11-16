@@ -60,15 +60,13 @@ var (
 	// The app that holds all commands and flags.
 	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
 	// flags that configure the node
-	nodeFlags = []cli.Flag{
+	nodeFlags = utils.GroupFlags([]cli.Flag{
 		utils.IdentityFlag,
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
 		//	utils.BootnodesV5Flag,
-		utils.DataDirFlag,
-		utils.AncientFlag,
 		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
 		utils.TxPoolLocalsFlag,
@@ -109,8 +107,6 @@ var (
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		//	utils.DNSDiscoveryFlag,
-		utils.MainFlag,
-		utils.TestnetFlag,
 		utils.NetworkIdFlag,
 		//utils.EthStatsURLFlag,
 		//utils.NoCompactionFlag,
@@ -121,7 +117,7 @@ var (
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
 		configFileFlag,
-	}
+	}, utils.NetworkFlags, utils.DatabasePathFlags)
 
 	rpcFlags = []cli.Flag{
 		utils.HTTPEnabledFlag,
@@ -231,17 +227,7 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	app.Flags = append(app.Flags, nodeFlags...)
-	app.Flags = append(app.Flags, rpcFlags...)
-	app.Flags = append(app.Flags, consoleFlags...)
-	app.Flags = append(app.Flags, debug.Flags...)
-	//app.Flags = append(app.Flags, whisperFlags...)
-	app.Flags = append(app.Flags, metricsFlags...)
-
-	// for cbft
-	app.Flags = append(app.Flags, cbftFlags...)
-	app.Flags = append(app.Flags, dbFlags...)
-	app.Flags = append(app.Flags, vmFlags...)
+	app.Flags = utils.GroupFlags(nodeFlags, rpcFlags, consoleFlags, debug.Flags, metricsFlags, cbftFlags, dbFlags, vmFlags)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
