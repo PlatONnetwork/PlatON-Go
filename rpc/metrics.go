@@ -26,7 +26,7 @@ import (
 var (
 	rpcRequestGauge        = metrics.NewRegisteredGauge("rpc/requests", nil)
 	successfulRequestGauge = metrics.NewRegisteredGauge("rpc/success", nil)
-	failedReqeustGauge     = metrics.NewRegisteredGauge("rpc/failure", nil)
+	failedRequestGauge     = metrics.NewRegisteredGauge("rpc/failure", nil)
 
 	// serveTimeHistName is the prefix of the per-request serving time histograms.
 	serveTimeHistName = "rpc/duration"
