@@ -109,7 +109,7 @@ var Defaults = Config{
 	RPCTxFeeCap:   1, // 1 lat
 }
 
-//go:generate gencodec -type Config -formats toml -out gen_config.go
+//go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.

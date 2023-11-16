@@ -35,7 +35,7 @@ var (
 		Name:   "console",
 		Usage:  "Start an interactive JavaScript environment",
 		//Flags:    append(append(append(nodeFlags, rpcFlags...), consoleFlags...), whisperFlags...),
-		Flags:    append(append(append(nodeFlags, rpcFlags...), consoleFlags...)),
+		Flags:    utils.GroupFlags(nodeFlags, rpcFlags, consoleFlags),
 		Category: "CONSOLE COMMANDS",
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
@@ -48,7 +48,7 @@ See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     append(consoleFlags, utils.DataDirFlag),
+		Flags:     utils.GroupFlags([]cli.Flag{utils.DataDirFlag}, consoleFlags),
 		Category:  "CONSOLE COMMANDS",
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
@@ -62,7 +62,7 @@ This command allows to open a console on a running platon node.`,
 		Name:      "js",
 		Usage:     "Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
-		Flags:     append(nodeFlags, consoleFlags...),
+		Flags:     utils.GroupFlags(nodeFlags, consoleFlags),
 		Category:  "CONSOLE COMMANDS",
 		Description: `
 The JavaScript VM exposes a node admin interface as well as the Ðapp

@@ -58,12 +58,10 @@ var (
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(pruneState),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.AncientFlag,
+				Flags: utils.GroupFlags([]cli.Flag{
 					utils.CacheTrieJournalFlag,
 					utils.BloomFilterSizeFlag,
-				},
+				}, utils.DatabasePathFlags),
 				Description: `
 geth snapshot prune-state <state-root>
 will prune historical state data with the help of the state snapshot.
@@ -85,10 +83,7 @@ the trie clean cache with default directory will be deleted.
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(verifyState),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.TestnetFlag,
-				},
+				Flags:     utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 platon snapshot verify-state <state-root>
 will traverse the whole accounts and storages set based on the specified
@@ -102,10 +97,7 @@ In other words, this command does the snapshot to trie conversion.
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(checkDanglingStorage),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.TestnetFlag,
-				},
+				Flags:     utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 geth snapshot check-dangling-storage <state-root> traverses the snap storage 
 data, and verifies that all snapshot storage data has a corresponding account. 
@@ -129,10 +121,7 @@ information about the specified address.
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(traverseState),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.TestnetFlag,
-				},
+				Flags:     utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 platon snapshot traverse-state <state-root>
 will traverse the whole state from the given state root and will abort if any
@@ -148,10 +137,7 @@ It's also usable without snapshot enabled.
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(traverseRawState),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.TestnetFlag,
-				},
+				Flags:     utils.GroupFlags(utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 platon snapshot traverse-rawstate <state-root>
 will traverse the whole state from the given root and will abort if any referenced
@@ -168,14 +154,12 @@ It's also usable without snapshot enabled.
 				ArgsUsage: "[? <blockHash> | <blockNum>]",
 				Action:    utils.MigrateFlags(dumpState),
 				Category:  "MISCELLANEOUS COMMANDS",
-				Flags: []cli.Flag{
-					utils.DataDirFlag,
-					utils.TestnetFlag,
+				Flags: utils.GroupFlags([]cli.Flag{
 					utils.ExcludeCodeFlag,
 					utils.ExcludeStorageFlag,
 					utils.StartKeyFlag,
 					utils.DumpLimitFlag,
-				},
+				}, utils.NetworkFlags, utils.DatabasePathFlags),
 				Description: `
 This command is semantically equivalent to 'geth dump', but uses the snapshots
 as the backend data source, making this command a lot faster. 

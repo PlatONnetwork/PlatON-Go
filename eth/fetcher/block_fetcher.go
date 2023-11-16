@@ -433,7 +433,8 @@ func (f *BlockFetcher) loop() {
 			request := make(map[string][]common.Hash)
 
 			for hash, announces := range f.announced {
-				if time.Since(announces[0].time) > arriveTimeout-gatherSlack {
+				timeout := arriveTimeout - gatherSlack
+				if time.Since(announces[0].time) > timeout {
 					// Pick a random peer to retrieve from, reset all others
 					announce := announces[rand.Intn(len(announces))]
 					f.forgetHash(hash)
@@ -466,10 +467,21 @@ func (f *BlockFetcher) loop() {
 							}
 							defer req.Close()
 
-							res := <-resCh
-							res.Done <- nil
+							timeout := time.NewTimer(2 * fetchTimeout) // 2x leeway before dropping the peer
+							defer timeout.Stop()
 
-							f.FilterHeaders(peer, *res.Res.(*eth.BlockHeadersPacket), time.Now().Add(res.Time))
+							select {
+							case res := <-resCh:
+								res.Done <- nil
+								f.FilterHeaders(peer, *res.Res.(*eth.BlockHeadersPacket), time.Now().Add(res.Time))
+
+							case <-timeout.C:
+								// The peer didn't respond in time. The request
+								// was already rescheduled at this point, we were
+								// waiting for a catchup. With an unresponsive
+								// peer however, it's a protocol violation.
+								f.dropPeer(peer)
+							}
 						}(hash)
 					}
 				}(peer)
@@ -501,6 +513,7 @@ func (f *BlockFetcher) loop() {
 					f.completingHook(hashes)
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
+
 				if v, ok := f.completing[hashes[0]]; ok && v != nil {
 					go func(peer string, hashes []common.Hash) {
 						resCh := make(chan *eth.Response)
@@ -511,14 +524,25 @@ func (f *BlockFetcher) loop() {
 						}
 						defer req.Close()
 
-						res := <-resCh
-						res.Done <- nil
+						timeout := time.NewTimer(2 * fetchTimeout) // 2x leeway before dropping the peer
+						defer timeout.Stop()
 
-						txs, extra := res.Res.(*eth.BlockBodiesPacket).Unpack()
-						f.FilterBodies(peer, txs, extra, time.Now())
+						select {
+						case res := <-resCh:
+							res.Done <- nil
+
+							txs, extra := res.Res.(*eth.BlockBodiesPacket).Unpack()
+							f.FilterBodies(peer, txs, extra, time.Now())
+
+						case <-timeout.C:
+							// The peer didn't respond in time. The request
+							// was already rescheduled at this point, we were
+							// waiting for a catchup. With an unresponsive
+							// peer however, it's a protocol violation.
+							f.dropPeer(peer)
+						}
 					}(peer, hashes)
 				}
-				//go f.completing[hashes[0]].fetchBodies(hashes)
 			}
 			// Schedule the next fetch if blocks are still pending
 			f.rescheduleComplete(completeTimer)
