@@ -18,6 +18,7 @@ package snapshot
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	"os"
 	"testing"
@@ -57,7 +58,7 @@ func TestGeneration(t *testing.T) {
 	helper.makeStorageTrie(common.Hash{}, hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
 
 	root, snap := helper.CommitAndGenerate()
-	if have, want := root, common.HexToHash("0xe3712f1a226f3782caca78ca770ccc19ee000552813a9f59d479f8611db9b1fd"); have != want {
+	if have, want := root, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"); have != want {
 		t.Fatalf("have %#x want %#x", have, want)
 	}
 	select {
@@ -374,19 +375,29 @@ func TestGenerateCorruptAccountTrie(t *testing.T) {
 	// We can't use statedb to make a test trie (circular dependency), so make
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// without any storage slots to keep the test smaller.
-	helper := newHelper()
+	var (
+		diskdb = memorydb.New()
+		triedb = trie.NewDatabase(diskdb)
+	)
+	tr, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)
+	acc := &Account{Balance: big.NewInt(1), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ := rlp.EncodeToBytes(acc)
+	tr.Update([]byte("acc-1"), val) // 0xc7a30f39aff471c95d8a837497ad0e49b65be475cc0953540f80cfcdbdcd9074
 
-	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0xc7a30f39aff471c95d8a837497ad0e49b65be475cc0953540f80cfcdbdcd9074
-	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
-	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}) // 0x19ead688e907b0fab07176120dceec244a72aff2f0aa51e8b827584e378772f4
+	acc = &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ = rlp.EncodeToBytes(acc)
+	tr.Update([]byte("acc-2"), val) // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
 
-	root, _, _ := helper.accTrie.Commit(nil) // Root: 0xa04693ea110a31037fb5ee814308a6f1d76bdab0b11676bdf4541d2de55ba978
+	acc = &Account{Balance: big.NewInt(3), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ = rlp.EncodeToBytes(acc)
+	tr.Update([]byte("acc-3"), val) // 0x19ead688e907b0fab07176120dceec244a72aff2f0aa51e8b827584e378772f4
+	tr.Commit(nil)                  // Root: 0xa04693ea110a31037fb5ee814308a6f1d76bdab0b11676bdf4541d2de55ba978
 
 	// Delete an account trie leaf and ensure the generator chokes
-	helper.triedb.Commit(root, false, true)
-	helper.diskdb.Delete(common.HexToHash("0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7").Bytes())
+	triedb.Commit(common.HexToHash("0xa04693ea110a31037fb5ee814308a6f1d76bdab0b11676bdf4541d2de55ba978"), false, true)
+	diskdb.Delete(common.HexToHash("0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7").Bytes())
 
-	snap := generateSnapshot(helper.diskdb, helper.triedb, 16, root)
+	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xa04693ea110a31037fb5ee814308a6f1d76bdab0b11676bdf4541d2de55ba978"))
 	select {
 	case <-snap.genPending:
 		// Snapshot generation succeeded
@@ -408,30 +419,45 @@ func TestGenerateMissingStorageTrie(t *testing.T) {
 	// We can't use statedb to make a test trie (circular dependency), so make
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// two of which also has the same 3-slot storage trie attached.
-	helper := newHelper()
+	var (
+		diskdb = memorydb.New()
+		triedb = trie.NewDatabase(diskdb)
+	)
+	stTrie, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)
+	stTrie.Update([]byte("key-1"), []byte("val-1")) // 0x1314700b81afc49f94db3623ef1df38f3ed18b73a1b7ea2f6c095118cf6118a0
+	stTrie.Update([]byte("key-2"), []byte("val-2")) // 0x18a0f4d79cff4459642dd7604f303886ad9d77c30cf3d7d7cedb3a693ab6d371
+	stTrie.Update([]byte("key-3"), []byte("val-3")) // 0x51c71a47af0695957647fb68766d0becee77e953df17c29b3c2f25436f055c78
+	stTrie.Commit(nil)                              // Root: 0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67
 
-	stRoot := helper.makeStorageTrie(common.Hash{}, hashData([]byte("acc-1")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true) // 0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67
-	helper.addTrieAccount("acc-1", &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: emptyCode.Bytes()})                                                // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
-	helper.addTrieAccount("acc-2", &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()})                                     // 0x65145f923027566669a1ae5ccac66f945b55ff6eaeb17d2ea8e048b7d381f2d7
-	stRoot = helper.makeStorageTrie(common.Hash{}, hashData([]byte("acc-3")), []string{"key-1", "key-2", "key-3"}, []string{"val-1", "val-2", "val-3"}, true)
-	helper.addTrieAccount("acc-3", &Account{Balance: big.NewInt(3), Root: stRoot, CodeHash: emptyCode.Bytes()}) // 0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2
-	root, _, _ := helper.accTrie.Commit(nil)
+	accTrie, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)
+	acc := &Account{Balance: big.NewInt(1), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ := rlp.EncodeToBytes(acc)
+	accTrie.Update([]byte("acc-1"), val) //  0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb
+
+	acc = &Account{Balance: big.NewInt(2), Root: emptyRoot.Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ = rlp.EncodeToBytes(acc)
+	accTrie.Update([]byte("acc-2"), val) // 0x70da4ebd7602dd313c936b39000ed9ab7f849986a90ea934f0c3ec4cc9840441
+
+	acc = &Account{Balance: big.NewInt(3), Root: stTrie.Hash().Bytes(), CodeHash: emptyCode.Bytes()}
+	val, _ = rlp.EncodeToBytes(acc)
+	accTrie.Update([]byte("acc-3"), val) // 0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e
+	accTrie.Commit(nil)                  // Root: 0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d
 
 	// We can only corrupt the disk database, so flush the tries out
-	helper.triedb.Reference(
-		common.BytesToHash(stRoot),
-		common.HexToHash("0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e"),
+	triedb.Reference(
+		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
+		common.HexToHash("0x547b07c3a71669c00eda14077d85c7fd14575b92d459572540b25b9a11914dcb"),
 	)
-	helper.triedb.Reference(
-		common.BytesToHash(stRoot),
-		common.HexToHash("0x50815097425d000edfc8b3a4a13e175fc2bdcfee8bdfbf2d1ff61041d3c235b2"),
+	triedb.Reference(
+		common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67"),
+		common.HexToHash("0xf73118e0254ce091588d66038744a0afae5f65a194de67cff310c683ae43329e"),
 	)
-	helper.triedb.Commit(root, false, true)
+	triedb.Commit(common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"), false, true)
 
 	// Delete a storage trie root and ensure the generator chokes
-	helper.diskdb.Delete(stRoot)
+	diskdb.Delete(common.HexToHash("0xddefcd9376dd029653ef384bd2f0a126bb755fe84fdcc9e7cf421ba454f2bc67").Bytes())
 
-	snap := generateSnapshot(helper.diskdb, helper.triedb, 16, root)
+	snap := generateSnapshot(diskdb, triedb, 16, common.HexToHash("0xa819054cfef894169a5b56ccc4e5e06f14829d4a57498e8b9fb13ff21491828d"))
 	select {
 	case <-snap.genPending:
 		// Snapshot generation succeeded

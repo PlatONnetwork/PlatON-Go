@@ -178,14 +178,11 @@ func TestTraceCall(t *testing.T) {
 
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	genesis := &core.Genesis{
-		Alloc: core.GenesisAlloc{
-			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
-			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-		},
-		BaseFee: big.NewInt(params.InitialBaseFee),
-	}
+	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
+		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
+		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
+		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
+	}}
 	genBlocks := 10
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
 	api := NewAPI(newTestBackend(t, genBlocks, genesis, func(i int, b *core.BlockGen) {
@@ -293,10 +290,14 @@ func TestTraceCall(t *testing.T) {
 			}
 			var have *logger.ExecutionResult
 			if err := json.Unmarshal(result.(json.RawMessage), &have); err != nil {
-				t.Errorf("failed to unmarshal result %v", err)
+				t.Errorf("test %d: failed to unmarshal result %v", i, err)
 			}
-			if !reflect.DeepEqual(have, testspec.expect) {
-				t.Errorf("Result mismatch, want %v, get %v", testspec.expect, have)
+			var want *logger.ExecutionResult
+			if err := json.Unmarshal([]byte(testspec.expect), &want); err != nil {
+				t.Errorf("test %d: failed to unmarshal result %v", i, err)
+			}
+			if !reflect.DeepEqual(have, want) {
+				t.Errorf("test %d: result mismatch, want %v, got %v", i, testspec.expect, string(result.(json.RawMessage)))
 			}
 		}
 	}
