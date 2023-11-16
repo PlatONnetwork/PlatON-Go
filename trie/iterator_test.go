@@ -550,9 +550,9 @@ func TestNodeIteratorLargeTrie(t *testing.T) {
 
 func TestIteratorNodeBlob(t *testing.T) {
 	var (
-		db      = memorydb.New()
-		triedb  = NewDatabase(db)
-		trie, _ = New(common.Hash{}, triedb)
+		db     = memorydb.New()
+		triedb = NewDatabase(db)
+		trie   = NewEmpty(triedb)
 	)
 	vals := []struct{ k, v string }{
 		{"do", "verb"},

@@ -543,7 +543,7 @@ func (t *Trie) resolveBlob(n hashNode, prefix []byte) ([]byte, error) {
 	if len(blob) != 0 {
 		return blob, nil
 	}
-	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
+	return nil, &MissingNodeError{Owner: t.owner, NodeHash: hash, Path: prefix}
 }
 
 // Hash returns the root hash of the trie. It does not write to the

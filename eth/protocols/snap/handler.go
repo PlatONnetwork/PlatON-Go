@@ -478,7 +478,7 @@ func HandleMessage(backend Backend, peer *Peer) error {
 				if err != nil || account == nil {
 					break
 				}
-				stTrie, err := trie.NewSecure(common.Hash{}, common.BytesToHash(account.Root), triedb)
+				stTrie, err := trie.NewSecure(common.BytesToHash(pathset[0]), common.BytesToHash(account.Root), triedb)
 				loads++ // always account database reads, even for failures
 				if err != nil {
 					break
