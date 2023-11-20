@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -59,8 +60,9 @@ type LeafCallback func(paths [][]byte, hexpath []byte, leaf []byte, parent commo
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db   *Database
-	root node
+	db    *Database
+	root  node
+	owner common.Hash
 }
 
 // newFlag returns the cache flag value for a newly created node.
@@ -69,18 +71,41 @@ func (t *Trie) newFlag() nodeFlag {
 	return nodeFlag{hash: &hashNode{}, dirty: &dirty}
 }
 
-// New creates a trie with an existing root node from db.
+// New creates a trie with an existing root node from db and an assigned
+// owner for storage proximity.
 //
 // If root is the zero hash or the sha3 hash of an empty string, the
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
 // not exist in the database. Accessing the trie loads nodes from db on demand.
-func New(root common.Hash, db *Database) (*Trie, error) {
+func New(owner common.Hash, root common.Hash, db *Database) (*Trie, error) {
+	return newTrie(owner, root, db)
+}
+
+// NewEmpty is a shortcut to create empty tree. It's mostly used in tests.
+func NewEmpty(db *Database) *Trie {
+	tr, _ := newTrie(common.Hash{}, common.Hash{}, db)
+	return tr
+}
+
+// newWithRootNode initializes the trie with the given root node.
+// It's only used by range prover.
+func newWithRootNode(root node) *Trie {
+	return &Trie{
+		root: root,
+		//tracer: newTracer(),
+		db: NewDatabase(rawdb.NewMemoryDatabase()),
+	}
+}
+
+// newTrie is the internal function used to construct the trie with given parameters.
+func newTrie(owner common.Hash, root common.Hash, db *Database) (*Trie, error) {
 	if db == nil {
 		panic("trie.New called without a database")
 	}
 	trie := &Trie{
-		db: db,
+		db:    db,
+		owner: owner,
 	}
 	if root != (common.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
@@ -505,7 +530,7 @@ func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	if node := t.db.node(hash); node != nil {
 		return node, nil
 	}
-	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
+	return nil, &MissingNodeError{Owner: t.owner, NodeHash: hash, Path: prefix}
 }
 
 // Root returns the root hash of the trie.
@@ -518,7 +543,7 @@ func (t *Trie) resolveBlob(n hashNode, prefix []byte) ([]byte, error) {
 	if len(blob) != 0 {
 		return blob, nil
 	}
-	return nil, &MissingNodeError{NodeHash: hash, Path: prefix}
+	return nil, &MissingNodeError{Owner: t.owner, NodeHash: hash, Path: prefix}
 }
 
 // Hash returns the root hash of the trie. It does not write to the
@@ -556,6 +581,12 @@ func (t *Trie) hashRoot() (node, node, error) {
 // Reset drops the referenced root node and cleans all internal state.
 func (t *Trie) Reset() {
 	t.root = nil
+	t.owner = common.Hash{}
+}
+
+// Owner returns the associated trie owner.
+func (t *Trie) Owner() common.Hash {
+	return t.owner
 }
 
 func (t *Trie) commitRoot(db *Database, onleaf LeafCallback) (node, node, int, error) {
@@ -579,8 +610,9 @@ func (t *Trie) DeepCopyTrie() *Trie {
 	}
 	t.copyNode(cpyRoot)
 	return &Trie{
-		db:   t.db,
-		root: cpyRoot,
+		db:    t.db,
+		root:  cpyRoot,
+		owner: t.owner,
 	}
 }
 

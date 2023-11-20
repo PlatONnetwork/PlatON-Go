@@ -205,6 +205,7 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 	{
 		Name: "MISC",
 		Flags: []cli.Flag{
+			utils.IgnoreLegacyReceiptsFlag,
 			cli.HelpFlag,
 		},
 	},

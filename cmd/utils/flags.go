@@ -377,6 +377,10 @@ var (
 		Name:  "nocompaction",
 		Usage: "Disables db compaction after import",
 	}
+	IgnoreLegacyReceiptsFlag = cli.BoolFlag{
+		Name:  "ignore-legacy-receipts",
+		Usage: "Platon will start up even if there are legacy receipts in freezer",
+	}
 	// RPC settings
 	IPCDisabledFlag = cli.BoolFlag{
 		Name:  "ipcdisable",

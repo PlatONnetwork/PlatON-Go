@@ -21,7 +21,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"io"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // nolint: gosec
 	"os"
 	"runtime"
 

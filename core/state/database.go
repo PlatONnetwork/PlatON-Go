@@ -103,12 +103,12 @@ type cachingDB struct {
 
 // OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	return trie.NewSecure(root, db.db)
+	return trie.NewSecure(common.Hash{}, root, db.db)
 }
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
-	return trie.NewSecure(root, db.db)
+	return trie.NewSecure(addrHash, root, db.db)
 }
 
 // CopyTrie returns an independent copy of the given trie.
