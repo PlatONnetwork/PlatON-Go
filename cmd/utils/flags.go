@@ -1156,6 +1156,12 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
+func SetDataDir(ctx *cli.Context, cfg *node.Config) {
+	switch {
+	case ctx.IsSet(DataDirFlag.Name):
+		cfg.DataDir = ctx.String(DataDirFlag.Name)
+	}
+}
 func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 	if ctx.GlobalIsSet(GpoBlocksFlag.Name) {
 		cfg.Blocks = ctx.GlobalInt(GpoBlocksFlag.Name)

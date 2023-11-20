@@ -152,12 +152,12 @@ func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	platon := runPlatON(t,
 		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
-		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"js", "testdata/empty.js")
+		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32", "console", "--exec", "loadScript('testdata/empty.js')")
 	platon.Expect(`
 Unlocking account lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
+undefined
 `)
 	platon.ExpectExit()
 
@@ -195,14 +195,14 @@ func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	platon := runPlatON(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "0,2",
-		"js", "testdata/empty.js")
+		"--unlock", "0,2", "console", "--exec", "loadScript('testdata/empty.js')")
 	platon.Expect(`
 Unlocking account 0 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 Unlocking account 2 | Attempt 1/3
 Password: {{.InputLine "foobar"}}
+undefined
 `)
 	platon.ExpectExit()
 
@@ -223,7 +223,10 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 	platon := runPlatON(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
 		"--password", "testdata/passwords.txt", "--unlock", "0,2", "--ipcdisable", "--testnet",
-		"js", "testdata/empty.js")
+		"console", "--exec", "loadScript('testdata/empty.js')")
+	platon.Expect(`
+undefined
+`)
 	platon.ExpectExit()
 
 	wantMessages := []string{
@@ -254,7 +257,7 @@ func TestUnlockFlagAmbiguous(t *testing.T) {
 	platon := runPlatON(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
-		"js", "testdata/empty.js")
+		"console", "--exec", "loadScript('testdata/empty.js')")
 	defer platon.ExpectExit()
 
 	// Helper for the expect template, returns absolute keystore path.
@@ -273,6 +276,7 @@ Testing your password against all of them...
 Your password unlocked keystore://{{keypath "1"}}
 In order to avoid this warning, you need to remove the following duplicate key files:
    keystore://{{keypath "2"}}
+undefined
 `)
 	platon.ExpectExit()
 
