@@ -493,17 +493,14 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "platon",
 			Version:   "1.0",
 			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
-			Public:    true,
 		}, {
 			Namespace: "miner",
 			Version:   "1.0",
 			Service:   NewMinerAPI(s),
-			Public:    false,
 		}, {
 			Namespace: "platon",
 			Version:   "1.0",
 			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
-			Public:    true,
 		}, {
 			Namespace: "admin",
 			Version:   "1.0",
@@ -512,7 +509,6 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "debug",
 			Version:   "1.0",
 			Service:   NewDebugAPI(s),
-			Public:    true,
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
@@ -521,13 +517,11 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
-			Public:    true,
 		},
 		{
 			Namespace: "txgen",
 			Version:   "1.0",
 			Service:   NewTxGenAPI(s),
-			Public:    true,
 		},
 	}...)
 }
