@@ -223,7 +223,6 @@ var eth67 = map[uint64]msgHandler{
 	PPOSStorageV2Msg:     handlePPosStorageV2Msg,
 	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
 	OriginAndPivotMsg:    handleOriginAndPivotMsg,
-	PPOSInfoMsg:          handlePPOSInfoMsg,
 }
 
 // handleMessage is invoked whenever an inbound message is received from a remote
