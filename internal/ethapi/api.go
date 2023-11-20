@@ -584,8 +584,8 @@ func NewBlockChainAPI(b Backend) *BlockChainAPI {
 }
 
 // ChainId is the PIP-7 replay-protection chain id for the current chain config.
-func (s *BlockChainAPI) ChainId() (*hexutil.Big, error) {
-	return (*hexutil.Big)(s.b.ChainConfig().PIP7ChainID), nil
+func (s *BlockChainAPI) ChainId() *hexutil.Big {
+	return (*hexutil.Big)(s.b.ChainConfig().ChainID)
 }
 
 // BlockNumber returns the block number of the chain head.
