@@ -24,18 +24,18 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	DeployCmd = cli.Command{
+	DeployCmd = &cli.Command{
 		Name:   "deploy",
 		Usage:  "deploy a contract",
 		Action: deploy,
 		Flags:  deployCmdFlags,
 	}
 
-	InvokeCmd = cli.Command{
+	InvokeCmd = &cli.Command{
 		Name:    "invoke",
 		Aliases: []string{"i"},
 		Usage:   "invoke contract function",
@@ -148,8 +148,8 @@ func invoke(c *cli.Context) error {
 	return nil
 }
 
-/**
-
+/*
+*
  */
 func InvokeContract(contractAddr string, abiPath string, funcParams string, txType int) error {
 
@@ -242,8 +242,10 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 	return nil
 }
 
-/**
-  Judging whether a contract exists through platon_getCode
+/*
+*
+
+	Judging whether a contract exists through platon_getCode
 */
 func getContractByAddress(addr string) bool {
 
@@ -275,7 +277,7 @@ func getContractByAddress(addr string) bool {
 }
 
 /*
-  Loop call to get transactionReceipt... until 200s timeout
+Loop call to get transactionReceipt... until 200s timeout
 */
 func GetTransactionReceipt(txHash string, ch chan string, exit chan string) {
 	var receipt = Receipt{}

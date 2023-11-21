@@ -17,27 +17,27 @@
 package ppos
 
 import (
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 var (
-	RewardCmd = cli.Command{
+	RewardCmd = &cli.Command{
 		Name:  "reward",
 		Usage: "use for reward",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			getDelegateRewardCmd,
 		},
 	}
-	getDelegateRewardCmd = cli.Command{
+	getDelegateRewardCmd = &cli.Command{
 		Name:   "getDelegateReward",
 		Usage:  "5100,query account not withdrawn commission rewards at each node,parameter:nodeList(can empty)",
 		Before: netCheck,
 		Action: getDelegateReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeList, jsonFlag},
 	}
-	nodeList = cli.StringSliceFlag{
+	nodeList = &cli.StringSliceFlag{
 		Name:  "nodeList",
 		Usage: "node list,may empty",
 	}

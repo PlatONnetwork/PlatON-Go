@@ -19,20 +19,20 @@ package ppos
 import (
 	"errors"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
-	RestrictingCmd = cli.Command{
+	RestrictingCmd = &cli.Command{
 		Name:  "restricting",
 		Usage: "use for restricting",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			getRestrictingInfoCmd,
 		},
 	}
-	getRestrictingInfoCmd = cli.Command{
+	getRestrictingInfoCmd = &cli.Command{
 		Name:   "getRestrictingInfo",
 		Usage:  "4100,get restricting info,parameter:address",
 		Before: netCheck,

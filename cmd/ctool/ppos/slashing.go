@@ -21,25 +21,25 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	SlashingCmd = cli.Command{
+	SlashingCmd = &cli.Command{
 		Name:  "slashing",
 		Usage: "use for slashing",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			checkDuplicateSignCmd,
 			zeroProduceNodeListCmd,
 		},
 	}
-	checkDuplicateSignCmd = cli.Command{
+	checkDuplicateSignCmd = &cli.Command{
 		Name:   "checkDuplicateSign",
 		Usage:  "3001,query whether the node has been reported for too many signatures,parameter:duplicateSignType,nodeid,blockNum",
 		Before: netCheck,
 		Action: checkDuplicateSign,
 		Flags: []cli.Flag{rpcUrlFlag, addressHRPFlag,
-			cli.Uint64Flag{
+			&cli.Uint64Flag{
 				Name:  "duplicateSignType",
 				Usage: "duplicateSign type,1：prepareBlock，2：prepareVote，3：viewChange",
 			},
@@ -47,14 +47,14 @@ var (
 			blockNumFlag, jsonFlag,
 		},
 	}
-	zeroProduceNodeListCmd = cli.Command{
+	zeroProduceNodeListCmd = &cli.Command{
 		Name:   "zeroProduceNodeList",
 		Usage:  "3002,query the list of nodes with zero block",
 		Before: netCheck,
 		Action: zeroProduceNodeList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	blockNumFlag = cli.Uint64Flag{
+	blockNumFlag = &cli.Uint64Flag{
 		Name:  "blockNum",
 		Usage: "blockNum",
 	}
