@@ -22,7 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"os"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -36,13 +36,13 @@ type outputInspect struct {
 }
 
 var (
-	privateFlag = cli.BoolFlag{
+	privateFlag = &cli.BoolFlag{
 		Name:  "private",
 		Usage: "include the private key in the output",
 	}
 )
 
-var commandInspect = cli.Command{
+var commandInspect = &cli.Command{
 	Name:      "inspect",
 	Usage:     "inspect a keyfile",
 	ArgsUsage: "<keyfile>",

@@ -49,20 +49,27 @@ func TestAccountListEmpty(t *testing.T) {
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t, "account", "list", "--datadir", datadir)
-	defer platon.ExpectExit()
-	if runtime.GOOS == "windows" {
-		platon.Expect(`
+	var want = `
 Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
 Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
 Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
-`)
-	} else {
-		platon.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}/keystore/aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}/keystore/zzz
-`)
+`
+	if runtime.GOOS == "windows" {
+		want = `
+Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
+Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
+`
+	}
+	{
+		platon := runPlatON(t, "account", "list", "--datadir", datadir)
+		platon.Expect(want)
+		platon.ExpectExit()
+	}
+	{
+		platon := runPlatON(t, "--datadir", datadir, "account", "list")
+		platon.Expect(want)
+		platon.ExpectExit()
 	}
 }
 
@@ -102,6 +109,20 @@ func TestAccountImport(t *testing.T) {
 	}
 	for _, test := range tests {
 		importAccountWithExpect(t, test.key, test.output)
+	}
+}
+
+func TestAccountHelp(t *testing.T) {
+	platon := runPlatON(t, "account", "-h")
+	platon.WaitExit()
+	if have, want := platon.ExitStatus(), 0; have != want {
+		t.Errorf("exit error, have %d want %d", have, want)
+	}
+
+	platon = runPlatON(t, "account", "import", "-h")
+	platon.WaitExit()
+	if have, want := platon.ExitStatus(), 0; have != want {
+		t.Errorf("exit error, have %d want %d", have, want)
 	}
 }
 

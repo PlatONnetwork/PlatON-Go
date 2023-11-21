@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -44,13 +44,12 @@ import (
 )
 
 var (
-	initCommand = cli.Command{
-		Action:    utils.MigrateFlags(initGenesis),
+	initCommand = &cli.Command{
+		Action:    initGenesis,
 		Name:      "init",
 		Usage:     "Bootstrap and initialize a new genesis block",
 		ArgsUsage: "<genesisPath>",
 		Flags:     utils.DatabasePathFlags,
-		Category:  "BLOCKCHAIN COMMANDS",
 		Description: `
 The init command initializes a new genesis block and definition for the network.
 This is a destructive action and changes the network in which you will be
@@ -58,20 +57,19 @@ participating.
 
 It expects the genesis file as argument.`,
 	}
-	dumpGenesisCommand = cli.Command{
-		Action:    utils.MigrateFlags(dumpGenesis),
+	dumpGenesisCommand = &cli.Command{
+		Action:    dumpGenesis,
 		Name:      "dumpgenesis",
 		Usage:     "Dumps genesis block JSON configuration to stdout",
 		ArgsUsage: "",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 		},
-		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The dumpgenesis command dumps the genesis block configuration in JSON format to stdout.`,
 	}
-	importPreimagesCommand = cli.Command{
-		Action:    utils.MigrateFlags(importPreimages),
+	importPreimagesCommand = &cli.Command{
+		Action:    importPreimages,
 		Name:      "import-preimages",
 		Usage:     "Import the preimage database from an RLP stream",
 		ArgsUsage: "<datafile>",
@@ -79,14 +77,13 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 			utils.CacheFlag,
 			utils.SyncModeFlag,
 		}, utils.DatabasePathFlags...),
-		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The import-preimages command imports hash preimages from an RLP encoded stream.
 It's deprecated, please use "geth db import" instead.
 `,
 	}
-	exportPreimagesCommand = cli.Command{
-		Action:    utils.MigrateFlags(exportPreimages),
+	exportPreimagesCommand = &cli.Command{
+		Action:    exportPreimages,
 		Name:      "export-preimages",
 		Usage:     "Export the preimage database into an RLP stream",
 		ArgsUsage: "<dumpfile>",
@@ -94,14 +91,13 @@ It's deprecated, please use "geth db import" instead.
 			utils.CacheFlag,
 			utils.SyncModeFlag,
 		}, utils.DatabasePathFlags...),
-		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The export-preimages command exports hash preimages to an RLP encoded stream.
 It's deprecated, please use "geth db export" instead.
 `,
 	}
-	dumpCommand = cli.Command{
-		Action:    utils.MigrateFlags(dump),
+	dumpCommand = &cli.Command{
+		Action:    dump,
 		Name:      "dump",
 		Usage:     "Dump a specific block from storage",
 		ArgsUsage: "[? <blockHash> | <blockNum>]",
@@ -114,7 +110,6 @@ It's deprecated, please use "geth db export" instead.
 			utils.StartKeyFlag,
 			utils.DumpLimitFlag,
 		}, utils.DatabasePathFlags...),
-		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 This command dumps out the state for a given block (or latest, if none provided).
 `,
@@ -140,7 +135,7 @@ func initGenesis(ctx *cli.Context) error {
 	defer stack.Close()
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-		chaindb, err := stack.OpenDatabaseWithFreezer(name, 0, 0, ctx.GlobalString(utils.AncientFlag.Name), "", false)
+		chaindb, err := stack.OpenDatabaseWithFreezer(name, 0, 0, ctx.String(utils.AncientFlag.Name), "", false)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
@@ -196,7 +191,7 @@ func dumpGenesis(ctx *cli.Context) error {
 
 // importPreimages imports preimage data from the specified file.
 func importPreimages(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
+	if ctx.Args().Len() < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
 	stack, _ := makeFullNode(ctx)
@@ -214,7 +209,7 @@ func importPreimages(ctx *cli.Context) error {
 
 // exportPreimages dumps the preimage data to specified json file in streaming way.
 func exportPreimages(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
+	if ctx.Args().Len() < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
 	stack, _ := makeFullNode(ctx)

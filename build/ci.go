@@ -260,6 +260,7 @@ func doInstall(cmdline []string) {
 	}
 	// Seems we are cross compiling, work around forbidden GOBIN
 	goinstall := goToolArch(*arch, *cc, "install", buildFlags(env)...)
+
 	goinstall.Args = append(goinstall.Args, "-trimpath")
 	goinstall.Args = append(goinstall.Args, "-v")
 	goinstall.Args = append(goinstall.Args, []string{"-buildmode", "archive"}...)
@@ -278,6 +279,8 @@ func doInstall(cmdline []string) {
 					gobuild.Args = append(gobuild.Args, "-v")
 					gobuild.Args = append(gobuild.Args, []string{"-o", executablePath(cmd.Name())}...)
 					gobuild.Args = append(gobuild.Args, "."+string(filepath.Separator)+filepath.Join("cmd", cmd.Name()))
+					// Disable CLI markdown doc generation in release builds.
+					gobuild.Args = append(gobuild.Args, "-tags", "urfave_cli_no_docs")
 					build.MustRun(gobuild)
 					break
 				}

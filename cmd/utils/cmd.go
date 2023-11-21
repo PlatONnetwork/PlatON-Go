@@ -31,7 +31,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -79,10 +79,10 @@ func StartNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
 		defer signal.Stop(sigc)
 
 		minFreeDiskSpace := 2 * ethconfig.Defaults.TrieDirtyCache // Default 2 * 256Mb
-		if ctx.GlobalIsSet(MinFreeDiskSpaceFlag.Name) {
-			minFreeDiskSpace = ctx.GlobalInt(MinFreeDiskSpaceFlag.Name)
-		} else if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
-			minFreeDiskSpace = 2 * ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+		if ctx.IsSet(MinFreeDiskSpaceFlag.Name) {
+			minFreeDiskSpace = ctx.Int(MinFreeDiskSpaceFlag.Name)
+		} else if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheGCFlag.Name) {
+			minFreeDiskSpace = 2 * ctx.Int(CacheFlag.Name) * ctx.Int(CacheGCFlag.Name) / 100
 		}
 		if minFreeDiskSpace > 0 {
 			go monitorFreeDiskSpace(sigc, stack.InstanceDir(), uint64(minFreeDiskSpace)*1024*1024)
@@ -119,6 +119,9 @@ func StartNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
 }
 
 func monitorFreeDiskSpace(sigc chan os.Signal, path string, freeDiskSpaceCritical uint64) {
+	if path == "" {
+		return
+	}
 	for {
 		freeSpace, err := getFreeDiskSpace(path)
 		if err != nil {
@@ -182,7 +185,7 @@ func ImportChain(chain *core.BlockChain, fn string) error {
 	for batch := 0; ; batch++ {
 		// Load a batch of RLP blocks.
 		if checkInterrupt() {
-			return fmt.Errorf("interrupted")
+			return errors.New("interrupted")
 		}
 		i := 0
 		for ; i < importBatchSize; i++ {
@@ -205,15 +208,21 @@ func ImportChain(chain *core.BlockChain, fn string) error {
 		}
 		// Import the batch.
 		if checkInterrupt() {
-			return fmt.Errorf("interrupted")
+			return errors.New("interrupted")
 		}
 		missing := missingBlocks(chain, blocks[:i])
 		if len(missing) == 0 {
 			log.Info("Skipping batch as all blocks present", "batch", batch, "first", blocks[0].Hash(), "last", blocks[i-1].Hash())
 			continue
 		}
-		if _, err := chain.InsertChain(missing); err != nil {
-			return fmt.Errorf("invalid block %d: %v", n, err)
+		if failindex, err := chain.InsertChain(missing); err != nil {
+			var failnumber uint64
+			if failindex > 0 && failindex < len(missing) {
+				failnumber = missing[failindex].NumberU64()
+			} else {
+				failnumber = missing[0].NumberU64()
+			}
+			return fmt.Errorf("invalid block %d: %v", failnumber, err)
 		}
 	}
 	return nil
@@ -223,7 +232,7 @@ func missingBlocks(chain *core.BlockChain, blocks []*types.Block) []*types.Block
 	head := chain.CurrentBlock()
 	for i, block := range blocks {
 		// If we're behind the chain head, only check block, state is available at head
-		if head.NumberU64() > block.NumberU64() {
+		if head.Number.Uint64() > block.NumberU64() {
 			if !chain.HasBlock(block.Hash(), block.NumberU64()) {
 				return blocks[i:]
 			}

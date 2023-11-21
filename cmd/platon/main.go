@@ -30,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/panjf2000/ants/v2"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -58,7 +58,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the go-ethereum command line interface")
 	// flags that configure the node
 	nodeFlags = utils.GroupFlags([]cli.Flag{
 		utils.IdentityFlag,
@@ -111,9 +111,7 @@ var (
 		//utils.EthStatsURLFlag,
 		//utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
-		utils.LegacyGpoBlocksFlag,
 		utils.GpoPercentileFlag,
-		utils.LegacyGpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
 		utils.IgnoreLegacyReceiptsFlag,
@@ -125,8 +123,6 @@ var (
 		utils.HTTPListenAddrFlag,
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
-		utils.AuthHostFlag,
-		utils.AuthPortFlag,
 		utils.JWTSecretFlag,
 		utils.HTTPVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
@@ -137,14 +133,10 @@ var (
 		utils.HTTPEnabledEthCompatibleFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
-		utils.LegacyWSListenAddrFlag,
 		utils.WSPortFlag,
-		utils.LegacyWSPortFlag,
 		utils.WSApiFlag,
-		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
 		utils.WSPathPrefixFlag,
-		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
@@ -199,7 +191,7 @@ func init() {
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		// See chaincmd.go:
 		initCommand,
 		//importCommand,
@@ -228,7 +220,16 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	app.Flags = utils.GroupFlags(nodeFlags, rpcFlags, consoleFlags, debug.Flags, metricsFlags, cbftFlags, dbFlags, vmFlags)
+	app.Flags = utils.GroupFlags(
+		nodeFlags,
+		rpcFlags,
+		consoleFlags,
+		debug.Flags,
+		metricsFlags,
+		cbftFlags,
+		dbFlags,
+		vmFlags,
+	)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -236,7 +237,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-
+		flags.MigrateGlobalFlags(ctx)
 		if err := debug.Setup(ctx); err != nil {
 			return err
 		}
@@ -274,7 +275,7 @@ func main() {
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
 func platon(ctx *cli.Context) error {
-	if args := ctx.Args(); len(args) > 0 {
+	if args := ctx.Args().Slice(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 	stack, backend := makeFullNode(ctx)
@@ -341,7 +342,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 	}()
 	// Start auxiliary services if enabled
 	// Mining only makes sense if a full Ethereum node is running
-	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
+	if ctx.String(utils.SyncModeFlag.Name) == "light" {
 		utils.Fatalf("Light clients do not support mining")
 	}
 	ethBackend, ok := backend.(*eth.EthAPIBackend)
@@ -349,7 +350,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		utils.Fatalf("Ethereum service not running")
 	}
 	// Set the gas price to the limits from the CLI and start mining
-	gasprice := utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+	gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 
 	ethBackend.TxPool().SetGasPrice(gasprice)
 
@@ -361,7 +362,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 // unlockAccounts unlocks any account specifically requested.
 func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	var unlocks []string
-	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+	inputs := strings.Split(ctx.String(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
 		if trimmed := strings.TrimSpace(input); trimmed != "" {
 			unlocks = append(unlocks, trimmed)

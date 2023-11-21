@@ -18,64 +18,53 @@ package utils
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
+	"github.com/urfave/cli/v2"
 )
 
-var ShowDeprecated = cli.Command{
+var ShowDeprecated = &cli.Command{
 	Action:      showDeprecated,
 	Name:        "show-deprecated-flags",
 	Usage:       "Show flags that have been deprecated",
 	ArgsUsage:   " ",
-	Category:    "MISCELLANEOUS COMMANDS",
 	Description: "Show flags that have been deprecated and will soon be removed",
 }
 
-var DeprecatedFlags = []cli.Flag{}
+var DeprecatedFlags = []cli.Flag{
+	NoUSBFlag,
+	LegacyWhitelistFlag,
+	LegacyDiscoveryV5Flag,
+}
 
 var (
-	LegacyWSListenAddrFlag = cli.StringFlag{
-		Name:  "wsaddr",
-		Usage: "WS-RPC server listening interface (deprecated, use --ws.addr)",
-		Value: node.DefaultWSHost,
+	// Deprecated May 2020, shown in aliased flags section
+	NoUSBFlag = &cli.BoolFlag{
+		Name:     "nousb",
+		Usage:    "Disables monitoring for and managing USB hardware wallets (deprecated)",
+		Category: flags.DeprecatedCategory,
 	}
-	LegacyWSPortFlag = cli.IntFlag{
-		Name:  "wsport",
-		Usage: "WS-RPC server listening port (deprecated, use --ws.port)",
-		Value: node.DefaultWSPort,
+	// Deprecated March 2022
+	LegacyWhitelistFlag = &cli.StringFlag{
+		Name:     "whitelist",
+		Usage:    "Comma separated block number-to-hash mappings to enforce (<number>=<hash>) (deprecated in favor of --eth.requiredblocks)",
+		Category: flags.DeprecatedCategory,
 	}
-	LegacyWSApiFlag = cli.StringFlag{
-		Name:  "wsapi",
-		Usage: "API's offered over the WS-RPC interface (deprecated, use --ws.api)",
-		Value: "",
-	}
-	LegacyWSAllowedOriginsFlag = cli.StringFlag{
-		Name:  "wsorigins",
-		Usage: "Origins from which to accept websockets requests (deprecated, use --ws.origins)",
-		Value: "",
-	}
-	LegacyGpoBlocksFlag = cli.IntFlag{
-		Name:  "gpoblocks",
-		Usage: "Number of recent blocks to check for gas prices (deprecated, use --gpo.blocks)",
-		Value: ethconfig.Defaults.GPO.Blocks,
-	}
-	LegacyGpoPercentileFlag = cli.IntFlag{
-		Name:  "gpopercentile",
-		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices (deprecated, use --gpo.percentile)",
-		Value: ethconfig.Defaults.GPO.Percentile,
+	LegacyDiscoveryV5Flag = &cli.BoolFlag{
+		Name:     "v5disc",
+		Usage:    "Enables the experimental RLPx V5 (Topic Discovery) mechanism (deprecated, use --discv5 instead)",
+		Category: flags.DeprecatedCategory,
 	}
 )
 
 // showDeprecated displays deprecated flags that will be soon removed from the codebase.
-func showDeprecated(*cli.Context) {
+func showDeprecated(*cli.Context) error {
 	fmt.Println("--------------------------------------------------------------------")
 	fmt.Println("The following flags are deprecated and will be removed in the future!")
 	fmt.Println("--------------------------------------------------------------------")
 	fmt.Println()
-
 	for _, flag := range DeprecatedFlags {
 		fmt.Println(flag.String())
 	}
+	fmt.Println()
+	return nil
 }
