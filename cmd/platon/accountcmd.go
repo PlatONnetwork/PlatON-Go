@@ -308,9 +308,9 @@ func importWallet(ctx *cli.Context) error {
 }
 
 func accountImport(ctx *cli.Context) error {
-	if ctx.Args().Len() != 1 {
-		utils.Fatalf("keyfile must be given as the only argument")
-	}
+	//if ctx.Args().Len() != 1 {
+	//	utils.Fatalf("keyfile must be given as the only argument")
+	//}
 	keyfile := ctx.Args().First()
 	key, err := crypto.LoadECDSA(keyfile)
 	if err != nil {

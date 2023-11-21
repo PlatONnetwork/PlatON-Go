@@ -50,9 +50,9 @@ func TestAccountListEmpty(t *testing.T) {
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	var want = `
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
+Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}/keystore/aaa
+Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}/keystore/zzz
 `
 	if runtime.GOOS == "windows" {
 		want = `
