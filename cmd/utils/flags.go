@@ -612,6 +612,13 @@ var (
 		Category: flags.NetworkingCategory,
 	}
 
+	DiscoveryPortFlag = &cli.IntFlag{
+		Name:     "discovery.port",
+		Usage:    "Use a custom UDP port for P2P discovery",
+		Value:    30303,
+		Category: flags.NetworkingCategory,
+	}
+
 	// ATM the url is left to the user and deployment to
 	// Console
 	JSpathFlag = &flags.DirectoryFlag{
@@ -956,11 +963,14 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 	}
 }*/
 
-// setListenAddress creates a TCP listening address string from set command
-// line flags.
+// setListenAddress creates TCP/UDP listening address strings from set command
+// line flags
 func setListenAddress(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.IsSet(ListenPortFlag.Name) {
 		cfg.ListenAddr = fmt.Sprintf(":%d", ctx.Int(ListenPortFlag.Name))
+	}
+	if ctx.IsSet(DiscoveryPortFlag.Name) {
+		cfg.DiscAddr = fmt.Sprintf(":%d", ctx.Int(DiscoveryPortFlag.Name))
 	}
 }
 

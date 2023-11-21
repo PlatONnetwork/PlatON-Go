@@ -58,7 +58,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = flags.NewApp(gitCommit, gitDate, "the go-ethereum command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the PlatON-Go command line interface")
 	// flags that configure the node
 	nodeFlags = utils.GroupFlags([]cli.Flag{
 		utils.IdentityFlag,
@@ -96,6 +96,7 @@ var (
 		utils.CachePreimagesFlag,
 		utils.FDLimitFlag,
 		utils.ListenPortFlag,
+		utils.DiscoveryPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
