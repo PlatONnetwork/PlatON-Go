@@ -71,9 +71,9 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/herumi/bls v1.37.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
+	github.com/karalabe/usb v0.0.2
 	github.com/urfave/cli/v2 v2.24.1
 	golang.org/x/net v0.17.0
-	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
 require (

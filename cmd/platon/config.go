@@ -21,10 +21,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/external"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"io"
 	"os"
 	"reflect"
 	"unicode"
@@ -44,11 +44,10 @@ import (
 
 var (
 	dumpConfigCommand = &cli.Command{
-		Action:    dumpConfig,
-		Name:      "dumpconfig",
-		Usage:     "Show configuration values",
-		ArgsUsage: "",
-		//Flags:       append(append(nodeFlags, rpcFlags...), whisperFlags...),
+		Action:      dumpConfig,
+		Name:        "dumpconfig",
+		Usage:       "Show configuration values",
+		ArgsUsage:   "",
 		Flags:       utils.GroupFlags(nodeFlags, rpcFlags),
 		Description: `The dumpconfig command shows configuration values.`,
 	}
@@ -132,9 +131,8 @@ func defaultNodeConfig() node.Config {
 	return cfg
 }
 
-// makeConfigNode loads platon configuration and creates a blank node instance.
+// makeConfigNode loads geth configuration and creates a blank node instance.
 func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
-
 	// Load defaults.
 	cfg := platonConfig{
 		Eth:     ethconfig.Defaults,
@@ -191,12 +189,11 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 
 	stack, cfg := makeConfigNode(ctx)
-
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 	// Warn users to migrate if they have a legacy freezer format.
-	if eth != nil {
+	if eth != nil && !ctx.IsSet(utils.IgnoreLegacyReceiptsFlag.Name) {
 		firstIdx := uint64(0)
 		// Hack to speed up check for mainnet because we know
 		// the first non-empty block.
@@ -206,10 +203,10 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		}
 		isLegacy, _, err := dbHasLegacyReceipts(eth.ChainDb(), firstIdx)
 		if err != nil {
-			utils.Fatalf("Failed to check db for legacy receipts: %v", err)
-		}
-		if isLegacy {
-			log.Warn("Database has receipts with a legacy format. Please run `geth db freezer-migrate`.")
+			log.Error("Failed to check db for legacy receipts", "err", err)
+		} else if isLegacy {
+			stack.Close()
+			utils.Fatalf("Database has receipts with a legacy format. Please run `geth db freezer-migrate`.")
 		}
 	}
 
@@ -239,8 +236,18 @@ func dumpConfig(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	io.WriteString(os.Stdout, comment)
-	os.Stdout.Write(out)
+
+	dump := os.Stdout
+	if ctx.NArg() > 0 {
+		dump, err = os.OpenFile(ctx.Args().Get(0), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return err
+		}
+		defer dump.Close()
+	}
+	dump.WriteString(comment)
+	dump.Write(out)
+
 	return nil
 }
 
@@ -302,6 +309,17 @@ func setAccountManagerBackends(stack *node.Node) error {
 	if conf.UseLightweightKDF {
 		scryptN = keystore.LightScryptN
 		scryptP = keystore.LightScryptP
+	}
+
+	// Assemble the supported backends
+	if len(conf.ExternalSigner) > 0 {
+		log.Info("Using external signer", "url", conf.ExternalSigner)
+		if extapi, err := external.NewExternalBackend(conf.ExternalSigner); err == nil {
+			am.AddBackend(extapi)
+			return nil
+		} else {
+			return fmt.Errorf("error connecting to external signer: %v", err)
+		}
 	}
 
 	// For now, we're using EITHER external signer OR local signers.
