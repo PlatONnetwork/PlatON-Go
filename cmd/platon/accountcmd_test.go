@@ -136,7 +136,7 @@ func importAccountWithExpect(t *testing.T, key string, expected string) {
 	if err := os.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
 		t.Error(err)
 	}
-	platon := runPlatON(t, "account", "import", keyfile, "-password", passwordFile)
+	platon := runPlatON(t, "account", "import", "-password", passwordFile, keyfile)
 	defer platon.ExpectExit()
 	platon.Expect(expected)
 }

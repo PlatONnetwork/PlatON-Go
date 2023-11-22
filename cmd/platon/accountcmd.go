@@ -162,7 +162,7 @@ func accountList(ctx *cli.Context) error {
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
 		for _, account := range wallet.Accounts() {
-			fmt.Printf("Account #%d: {%x} %s\n", index, account.Address, &account.URL)
+			fmt.Printf("Account #%d: {%s} %s\n", index, account.Address.String(), &account.URL)
 			index++
 		}
 	}
@@ -288,7 +288,7 @@ func accountUpdate(ctx *cli.Context) error {
 }
 func importWallet(ctx *cli.Context) error {
 	if ctx.Args().Len() != 1 {
-		utils.Fatalf("keyfile must be given as the only argument")
+		utils.Fatalf("keyfile must be given as the only argument", "args.count", ctx.Args().Len())
 	}
 	keyfile := ctx.Args().First()
 	keyJSON, err := os.ReadFile(keyfile)
@@ -308,7 +308,7 @@ func importWallet(ctx *cli.Context) error {
 
 func accountImport(ctx *cli.Context) error {
 	if ctx.Args().Len() != 1 {
-		utils.Fatalf("keyfile must be given as the only argument")
+		utils.Fatalf("keyfile must be given as the only argument", "args.count", ctx.Args().Len())
 	}
 	keyfile := ctx.Args().First()
 	key, err := crypto.LoadECDSA(keyfile)
