@@ -23,14 +23,14 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	StakingCmd = cli.Command{
+	StakingCmd = &cli.Command{
 		Name:  "staking",
 		Usage: "use for staking",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			GetVerifierListCmd,
 			getValidatorListCmd,
 			getCandidateListCmd,
@@ -43,85 +43,85 @@ var (
 			getAvgPackTimeCmd,
 		},
 	}
-	GetVerifierListCmd = cli.Command{
+	GetVerifierListCmd = &cli.Command{
 		Name:   "getVerifierList",
 		Usage:  "1100,query the validator queue of the current settlement epoch",
 		Before: netCheck,
 		Action: getVerifierList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	getValidatorListCmd = cli.Command{
+	getValidatorListCmd = &cli.Command{
 		Name:   "getValidatorList",
 		Usage:  "1101,query the list of validators in the current consensus round",
 		Before: netCheck,
 		Action: getValidatorList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	getCandidateListCmd = cli.Command{
+	getCandidateListCmd = &cli.Command{
 		Name:   "getCandidateList",
 		Usage:  "1102,Query the list of all real-time candidates",
 		Before: netCheck,
 		Action: getCandidateList,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	getRelatedListByDelAddrCmd = cli.Command{
+	getRelatedListByDelAddrCmd = &cli.Command{
 		Name:   "getRelatedListByDelAddr",
 		Usage:  "1103,Query the NodeID and staking Id of the node entrusted by the current account address,parameter:add",
 		Before: netCheck,
 		Action: getRelatedListByDelAddr,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
 	}
-	getDelegateInfoCmd = cli.Command{
+	getDelegateInfoCmd = &cli.Command{
 		Name:   "getDelegateInfo",
 		Usage:  "1104,Query the delegation information of the current single node,parameter:stakingBlock,address,nodeid",
 		Before: netCheck,
 		Action: getDelegateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, stakingBlockNumFlag, addFlag, nodeIdFlag, jsonFlag},
 	}
-	getCandidateInfoCmd = cli.Command{
+	getCandidateInfoCmd = &cli.Command{
 		Name:   "getCandidateInfo",
 		Usage:  "1105,Query the staking information of the current node,parameter:nodeid",
 		Before: netCheck,
 		Action: getCandidateInfo,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, nodeIdFlag, jsonFlag},
 	}
-	getDelegationLockCmd = cli.Command{
+	getDelegationLockCmd = &cli.Command{
 		Name:   "getDelegationLock",
 		Usage:  "1106,Query the delegation lock information of the current account,parameter:address",
 		Before: netCheck,
 		Action: getDelegationLock,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, addFlag, jsonFlag},
 	}
-	getPackageRewardCmd = cli.Command{
+	getPackageRewardCmd = &cli.Command{
 		Name:   "getPackageReward",
 		Usage:  "1200,query the block reward of the current settlement epoch",
 		Before: netCheck,
 		Action: getPackageReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	getStakingRewardCmd = cli.Command{
+	getStakingRewardCmd = &cli.Command{
 		Name:   "getStakingReward",
 		Usage:  "1201,query the staking reward of the current settlement epoch",
 		Before: netCheck,
 		Action: getStakingReward,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	getAvgPackTimeCmd = cli.Command{
+	getAvgPackTimeCmd = &cli.Command{
 		Name:   "getAvgPackTime",
 		Usage:  "1202,average time to query packaged blocks",
 		Before: netCheck,
 		Action: getAvgPackTime,
 		Flags:  []cli.Flag{rpcUrlFlag, addressHRPFlag, jsonFlag},
 	}
-	addFlag = cli.StringFlag{
+	addFlag = &cli.StringFlag{
 		Name:  "address",
 		Usage: "account address",
 	}
-	stakingBlockNumFlag = cli.Uint64Flag{
+	stakingBlockNumFlag = &cli.Uint64Flag{
 		Name:  "stakingBlock",
 		Usage: "block height when staking is initiated",
 	}
-	nodeIdFlag = cli.StringFlag{
+	nodeIdFlag = &cli.StringFlag{
 		Name:  "nodeid",
 		Usage: "node id",
 	}

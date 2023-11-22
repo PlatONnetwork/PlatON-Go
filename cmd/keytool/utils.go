@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 )

@@ -21,7 +21,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -31,37 +31,33 @@ const (
 // Git SHA1 commit hash of the release (set via linker flags)
 var gitCommit = ""
 var gitDate = ""
+
 var app *cli.App
 
 func init() {
-	app = flags.NewApp(gitCommit, gitDate, "an PlatON-Go key manager")
-	app.Commands = []cli.Command{
+	app = flags.NewApp(gitCommit, gitDate, "an PlatON key manager")
+	app.Commands = []*cli.Command{
 		commandGenerate,
 		commandInspect,
 		commandChangePassphrase,
 		commandSignMessage,
 		commandVerifyMessage,
-		commandGenkeypair,
-		commandGenblskeypair,
-		commandAddressHexToBech32,
 	}
-	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 }
 
 // Commonly used command line flags.
 var (
-	passphraseFlag = cli.StringFlag{
+	passphraseFlag = &cli.StringFlag{
 		Name:  "passwordfile",
-		Usage: "the file that contains the passphrase for the keyfile",
+		Usage: "the file that contains the password for the keyfile",
 	}
-	jsonFlag = cli.BoolFlag{
+	jsonFlag = &cli.BoolFlag{
 		Name:  "json",
 		Usage: "output JSON instead of human-readable format",
 	}
 )
 
 func main() {
-	cli.CommandHelpTemplate = flags.OriginCommandHelpTemplate
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

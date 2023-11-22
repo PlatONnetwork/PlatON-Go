@@ -12,10 +12,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
-var HexAccountFileFlag = cli.StringFlag{
+var HexAccountFileFlag = &cli.StringFlag{
 	Name:  "hexAddressFile",
 	Usage: "file bech32/hex accounts want to update to  bech32 address,file like  [hex,hex...]",
 }
@@ -26,7 +26,7 @@ type addressPair struct {
 	Hex           string
 }
 
-var commandAddressHexToBech32 = cli.Command{
+var commandAddressHexToBech32 = &cli.Command{
 	Name:      "updateaddress",
 	Usage:     "update hex/bech32 address to  bech32 address",
 	ArgsUsage: "[<address> <address>...]",
@@ -55,7 +55,7 @@ update hex/bech32 address to  bech32 address.
 				utils.Fatalf("Failed to json decode '%s': %v", accountPath, err)
 			}
 		} else {
-			for _, add := range ctx.Args() {
+			for _, add := range ctx.Args().Slice() {
 				if add == "" {
 					utils.Fatalf("the account can't be nil")
 				}

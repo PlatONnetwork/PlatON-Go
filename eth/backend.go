@@ -98,7 +98,7 @@ type Ethereum struct {
 	miner         *miner.Miner
 	gasPrice      *big.Int
 	networkID     uint64
-	netRPCService *ethapi.PublicNetAPI
+	netRPCService *ethapi.NetAPI
 
 	p2pServer *p2p.Server
 
@@ -445,7 +445,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// Start the RPC service
-	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, config.NetworkId)
+	eth.netRPCService = ethapi.NewNetAPI(eth.p2pServer, config.NetworkId)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
@@ -492,31 +492,23 @@ func (s *Ethereum) APIs() []rpc.API {
 		{
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.handler.downloader, s.eventMux),
-			Public:    true,
+			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
 		}, {
 			Namespace: "miner",
 			Version:   "1.0",
-			Service:   NewPrivateMinerAPI(s),
-			Public:    false,
+			Service:   NewMinerAPI(s),
 		}, {
 			Namespace: "platon",
 			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false, 5*time.Minute),
-			Public:    true,
+			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
 		}, {
 			Namespace: "admin",
 			Version:   "1.0",
-			Service:   NewPrivateAdminAPI(s),
+			Service:   NewAdminAPI(s),
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
-			Service:   NewPublicDebugAPI(s),
-			Public:    true,
-		}, {
-			Namespace: "debug",
-			Version:   "1.0",
-			Service:   NewPrivateDebugAPI(s),
+			Service:   NewDebugAPI(s),
 		}, {
 			Namespace: "debug",
 			Version:   "1.0",
@@ -525,13 +517,11 @@ func (s *Ethereum) APIs() []rpc.API {
 			Namespace: "net",
 			Version:   "1.0",
 			Service:   s.netRPCService,
-			Public:    true,
 		},
 		{
 			Namespace: "txgen",
 			Version:   "1.0",
 			Service:   NewTxGenAPI(s),
-			Public:    true,
 		},
 	}...)
 }

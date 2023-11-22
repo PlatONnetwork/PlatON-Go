@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 type outputGenblskeypair struct {
@@ -29,7 +29,7 @@ type outputGenblskeypair struct {
 	PublicKey  string
 }
 
-var commandGenblskeypair = cli.Command{
+var commandGenblskeypair = &cli.Command{
 	Name:      "genblskeypair",
 	Usage:     "generate new bls private key pair",
 	ArgsUsage: "[  ]",

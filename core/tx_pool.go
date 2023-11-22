@@ -203,7 +203,8 @@ type TxPoolConfig struct {
 	Journal   string           // Journal of local transactions to survive node restarts
 	Rejournal time.Duration    // Time interval to regenerate the local transaction journal
 
-	PriceBump uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
+	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
+	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
 	AccountSlots  uint64 // Number of executable transaction slots guaranteed per account
 	GlobalSlots   uint64 // Maximum number of executable transaction slots for all accounts
@@ -1711,7 +1712,7 @@ func (pool *TxPool) truncatePending() {
 	pendingRateLimitMeter.Mark(int64(pendingBeforeCap - pending))
 }
 
-// truncateQueue drops the oldes transactions in the queue if the pool is above the global queue limit.
+// truncateQueue drops the oldest transactions in the queue if the pool is above the global queue limit.
 func (pool *TxPool) truncateQueue() {
 	queued := uint64(0)
 	for _, list := range pool.queue {

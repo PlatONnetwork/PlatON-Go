@@ -1,4 +1,4 @@
-// Copyright 2021 The go-ethereum Authors
+// Copyright 2022 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -14,25 +14,39 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package utils
+package version
 
 import (
-	"fmt"
-
-	"golang.org/x/sys/windows"
+	"runtime/debug"
+	"time"
 )
 
-func getFreeDiskSpace(path string) (uint64, error) {
+// In go 1.18 and beyond, the go tool embeds VCS information into the build.
 
-	cwd, err := windows.UTF16PtrFromString(path)
-	if err != nil {
-		return 0, fmt.Errorf("failed to call UTF16PtrFromString: %v", err)
+const (
+	govcsTimeLayout = "2006-01-02T15:04:05Z"
+	ourTimeLayout   = "20060102"
+)
+
+// buildInfoVCS returns VCS information of the build.
+func buildInfoVCS(info *debug.BuildInfo) (s VCSInfo, ok bool) {
+	for _, v := range info.Settings {
+		switch v.Key {
+		case "vcs.revision":
+			s.Commit = v.Value
+		case "vcs.modified":
+			if v.Value == "true" {
+				s.Dirty = true
+			}
+		case "vcs.time":
+			t, err := time.Parse(govcsTimeLayout, v.Value)
+			if err == nil {
+				s.Date = t.Format(ourTimeLayout)
+			}
+		}
 	}
-
-	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
-	if err := windows.GetDiskFreeSpaceEx(cwd, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err != nil {
-		return 0, fmt.Errorf("failed to call GetDiskFreeSpaceEx: %v", err)
+	if s.Commit != "" && s.Date != "" {
+		ok = true
 	}
-
-	return freeBytesAvailableToCaller, nil
+	return
 }

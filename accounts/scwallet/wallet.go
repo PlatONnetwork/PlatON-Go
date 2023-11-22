@@ -364,7 +364,7 @@ func (w *Wallet) Open(passphrase string) error {
 				return err
 			}
 			// Pairing succeeded, fall through to PIN checks. This will of course fail,
-			// but we can't return ErrPINNeeded directly here becase we don't know whether
+			// but we can't return ErrPINNeeded directly here because we don't know whether
 			// a PIN check or a PIN reset is needed.
 			passphrase = ""
 		}
@@ -639,8 +639,8 @@ func (w *Wallet) Derive(path accounts.DerivationPath, pin bool) (accounts.Accoun
 // to discover non zero accounts and automatically add them to list of tracked
 // accounts.
 //
-// Note, self derivaton will increment the last component of the specified path
-// opposed to decending into a child path to allow discovering accounts starting
+// Note, self derivation will increment the last component of the specified path
+// opposed to descending into a child path to allow discovering accounts starting
 // from non zero components.
 //
 // Some hardware wallets switched derivation paths through their evolution, so
@@ -729,7 +729,7 @@ func (w *Wallet) signHashWithPassphrase(account accounts.Account, passphrase str
 	return w.signHash(account, hash)
 }
 
-// SignHash requests the wallet to sign the hash of a given piece of data, prefixed
+// SignText requests the wallet to sign the hash of a given piece of data, prefixed
 // by the Ethereum prefix scheme
 // It looks up the account specified either solely via its address contained within,
 // or optionally with the aid of any location metadata from the embedded URL field.
@@ -740,13 +740,13 @@ func (w *Wallet) signHashWithPassphrase(account accounts.Account, passphrase str
 // about which fields or actions are needed. The user may retry by providing
 // the needed details via SignHashWithPassphrase, or by other means (e.g. unlock
 // the account in a keystore).
-func (w *Wallet) SignHash(account accounts.Account, text []byte) ([]byte, error) {
+func (w *Wallet) SignText(account accounts.Account, text []byte) ([]byte, error) {
 	return w.signHash(account, accounts.TextHash(text))
 }
 
 // SignTextWithPassphrase implements accounts.Wallet, attempting to sign the
 // given hash with the given account using passphrase as extra authentication
-func (w *Wallet) SignHashWithPassphrase(account accounts.Account, passphrase string, text []byte) ([]byte, error) {
+func (w *Wallet) SignTextWithPassphrase(account accounts.Account, passphrase string, text []byte) ([]byte, error) {
 	return w.signHashWithPassphrase(account, passphrase, crypto.Keccak256(accounts.TextHash(text)))
 }
 
@@ -881,7 +881,6 @@ func (s *Session) walletStatus() (*walletStatus, error) {
 }
 
 // derivationPath fetches the wallet's current derivation path from the card.
-//
 //lint:ignore U1000 needs to be added to the console interface
 func (s *Session) derivationPath() (accounts.DerivationPath, error) {
 	response, err := s.Channel.transmitEncrypted(claSCWallet, insStatus, statusP1Path, 0, nil)
@@ -997,7 +996,6 @@ func (s *Session) derive(path accounts.DerivationPath) (accounts.Account, error)
 }
 
 // keyExport contains information on an exported keypair.
-//
 //lint:ignore U1000 needs to be added to the console interface
 type keyExport struct {
 	PublicKey  []byte `asn1:"tag:0"`
@@ -1005,7 +1003,6 @@ type keyExport struct {
 }
 
 // publicKey returns the public key for the current derivation path.
-//
 //lint:ignore U1000 needs to be added to the console interface
 func (s *Session) publicKey() ([]byte, error) {
 	response, err := s.Channel.transmitEncrypted(claSCWallet, insExportKey, exportP1Any, exportP2Pubkey, nil)
