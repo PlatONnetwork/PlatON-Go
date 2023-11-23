@@ -5,18 +5,18 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 )
 
-var newPassphraseFlag = cli.StringFlag{
+var newPassphraseFlag = &cli.StringFlag{
 	Name:  "newpasswordfile",
 	Usage: "the file that contains the new password for the keyfile",
 }
 
-var commandChangePassphrase = cli.Command{
+var commandChangePassphrase = &cli.Command{
 	Name:      "changepassword",
 	Usage:     "change the password on a keyfile",
 	ArgsUsage: "<keyfile>",

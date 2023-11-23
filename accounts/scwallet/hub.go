@@ -41,12 +41,11 @@ import (
 	"sync"
 	"time"
 
-	pcsc "github.com/gballet/go-libpcsclite"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	pcsc "github.com/gballet/go-libpcsclite"
 )
 
 // Scheme is the URI prefix for smartcard wallets.
@@ -221,7 +220,7 @@ func (hub *Hub) refreshWallets() {
 		// Mark the reader as present
 		seen[reader] = struct{}{}
 
-		// If we alreay know about this card, skip to the next reader, otherwise clean up
+		// If we already know about this card, skip to the next reader, otherwise clean up
 		if wallet, ok := hub.wallets[reader]; ok {
 			if err := wallet.ping(); err == nil {
 				continue

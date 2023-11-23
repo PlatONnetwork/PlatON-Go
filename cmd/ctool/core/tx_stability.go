@@ -31,7 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -44,14 +44,14 @@ var (
 	DefaultPrivateKeyFilePath  = "./test/privateKeys.txt"
 	DefaultAccountAddrFilePath = "./test/addr.json"
 
-	StabilityCmd = cli.Command{
+	StabilityCmd = &cli.Command{
 		Name:    "stability",
 		Aliases: []string{"stab"},
 		Usage:   "start stability test ",
 		Action:  stabilityTest,
 		Flags:   stabilityCmdFlags,
 	}
-	StabPrepareCmd = cli.Command{
+	StabPrepareCmd = &cli.Command{
 		Name:    "prepare",
 		Aliases: []string{"pre"},
 		Usage:   "prepare some accounts are used for stability test ",
@@ -60,7 +60,7 @@ var (
 	}
 )
 
-func prepareAccount(c *cli.Context) {
+func prepareAccount(c *cli.Context) error {
 	pkFile := c.String(PKFilePathFlag.Name)
 	size := c.Int(AccountSizeFlag.Name)
 	value := c.String(TransferValueFlag.Name)
@@ -71,9 +71,10 @@ func prepareAccount(c *cli.Context) {
 	if err != nil {
 		panic(fmt.Errorf("send raw transaction error,%s", err.Error()))
 	}
+	return err
 }
 
-func stabilityTest(c *cli.Context) {
+func stabilityTest(c *cli.Context) error {
 	pkFile := c.String(PKFilePathFlag.Name)
 	times := c.Int(StabExecTimesFlag.Name)
 	interval := c.Int(SendTxIntervalFlag.Name)
@@ -84,6 +85,7 @@ func stabilityTest(c *cli.Context) {
 	if err != nil {
 		panic(fmt.Errorf("stress test error,%s", err.Error()))
 	}
+	return err
 }
 
 type PriAccount struct {

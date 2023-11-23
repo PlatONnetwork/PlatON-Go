@@ -22,7 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"os"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -34,12 +34,12 @@ type outputSign struct {
 	Signature string
 }
 
-var msgfileFlag = cli.StringFlag{
+var msgfileFlag = &cli.StringFlag{
 	Name:  "msgfile",
 	Usage: "file containing the message to sign/verify",
 }
 
-var commandSignMessage = cli.Command{
+var commandSignMessage = &cli.Command{
 	Name:      "signmessage",
 	Usage:     "sign a message",
 	ArgsUsage: "<keyfile> <message>",
@@ -90,7 +90,7 @@ type outputVerify struct {
 	RecoveredPublicKey string
 }
 
-var commandVerifyMessage = cli.Command{
+var commandVerifyMessage = &cli.Command{
 	Name:      "verifymessage",
 	Usage:     "verify the signature of a signed message",
 	ArgsUsage: "<address> <signature> <message>",
@@ -153,7 +153,7 @@ It is possible to refer to a file containing the message.`,
 
 func getMessage(ctx *cli.Context, msgarg int) []byte {
 	if file := ctx.String(msgfileFlag.Name); file != "" {
-		if len(ctx.Args()) > msgarg {
+		if ctx.NArg() > msgarg {
 			utils.Fatalf("Can't use --msgfile and message argument at the same time.")
 		}
 		msg, err := os.ReadFile(file)
@@ -161,9 +161,9 @@ func getMessage(ctx *cli.Context, msgarg int) []byte {
 			utils.Fatalf("Can't read message file: %v", err)
 		}
 		return msg
-	} else if len(ctx.Args()) == msgarg+1 {
+	} else if ctx.NArg() == msgarg+1 {
 		return []byte(ctx.Args().Get(msgarg))
 	}
-	utils.Fatalf("Invalid number of arguments: want %d, got %d", msgarg+1, len(ctx.Args()))
+	utils.Fatalf("Invalid number of arguments: want %d, got %d", msgarg+1, ctx.NArg())
 	return nil
 }

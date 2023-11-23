@@ -49,20 +49,27 @@ func TestAccountListEmpty(t *testing.T) {
 
 func TestAccountList(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
-	platon := runPlatON(t, "account", "list", "--datadir", datadir)
-	defer platon.ExpectExit()
-	if runtime.GOOS == "windows" {
-		platon.Expect(`
-Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
-Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
-Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
-`)
-	} else {
-		platon.Expect(`
+	var want = `
 Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}/keystore/UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
 Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}/keystore/aaa
 Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}/keystore/zzz
-`)
+`
+	if runtime.GOOS == "windows" {
+		want = `
+Account #0: {lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32} keystore://{{.Datadir}}\keystore\UTC--2016-03-22T12-57-55.920751759Z--7ef5a6135f1fd6a02593eedc869c6d41d934aef8
+Account #1: {lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6} keystore://{{.Datadir}}\keystore\aaa
+Account #2: {lat19zw5shvhw9c5en536vun6ajwzvgeq7kvh7rqmg} keystore://{{.Datadir}}\keystore\zzz
+`
+	}
+	{
+		platon := runPlatON(t, "account", "list", "--datadir", datadir)
+		platon.Expect(want)
+		platon.ExpectExit()
+	}
+	{
+		platon := runPlatON(t, "--datadir", datadir, "account", "list")
+		platon.Expect(want)
+		platon.ExpectExit()
 	}
 }
 
@@ -105,6 +112,20 @@ func TestAccountImport(t *testing.T) {
 	}
 }
 
+func TestAccountHelp(t *testing.T) {
+	platon := runPlatON(t, "account", "-h")
+	platon.WaitExit()
+	if have, want := platon.ExitStatus(), 0; have != want {
+		t.Errorf("exit error, have %d want %d", have, want)
+	}
+
+	platon = runPlatON(t, "account", "import", "-h")
+	platon.WaitExit()
+	if have, want := platon.ExitStatus(), 0; have != want {
+		t.Errorf("exit error, have %d want %d", have, want)
+	}
+}
+
 func importAccountWithExpect(t *testing.T, key string, expected string) {
 	dir := t.TempDir()
 	keyfile := filepath.Join(dir, "key.prv")
@@ -115,7 +136,7 @@ func importAccountWithExpect(t *testing.T, key string, expected string) {
 	if err := os.WriteFile(passwordFile, []byte("foobar"), 0600); err != nil {
 		t.Error(err)
 	}
-	platon := runPlatON(t, "account", "import", keyfile, "-password", passwordFile)
+	platon := runPlatON(t, "account", "import", "-password", passwordFile, keyfile)
 	defer platon.ExpectExit()
 	platon.Expect(expected)
 }
@@ -152,12 +173,12 @@ func TestUnlockFlag(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	platon := runPlatON(t,
 		"--datadir", datadir, "--ipcdisable", "--testnet", "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
-		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32",
-		"js", "testdata/empty.js")
+		"--unlock", "lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32", "console", "--exec", "loadScript('testdata/empty.js')")
 	platon.Expect(`
 Unlocking account lat10m66vy6lrlt2qfvnamwgd8rdg8vnfthcd74p32 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
+undefined
 `)
 	platon.ExpectExit()
 
@@ -195,14 +216,14 @@ func TestUnlockFlagMultiIndex(t *testing.T) {
 	datadir := tmpDatadirWithKeystore(t)
 	platon := runPlatON(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
-		"--unlock", "0,2",
-		"js", "testdata/empty.js")
+		"--unlock", "0,2", "console", "--exec", "loadScript('testdata/empty.js')")
 	platon.Expect(`
 Unlocking account 0 | Attempt 1/3
 !! Unsupported terminal, password will be echoed.
 Password: {{.InputLine "foobar"}}
 Unlocking account 2 | Attempt 1/3
 Password: {{.InputLine "foobar"}}
+undefined
 `)
 	platon.ExpectExit()
 
@@ -223,7 +244,10 @@ func TestUnlockFlagPasswordFile(t *testing.T) {
 	platon := runPlatON(t,
 		"--datadir", datadir, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0",
 		"--password", "testdata/passwords.txt", "--unlock", "0,2", "--ipcdisable", "--testnet",
-		"js", "testdata/empty.js")
+		"console", "--exec", "loadScript('testdata/empty.js')")
+	platon.Expect(`
+undefined
+`)
 	platon.ExpectExit()
 
 	wantMessages := []string{
@@ -254,7 +278,7 @@ func TestUnlockFlagAmbiguous(t *testing.T) {
 	platon := runPlatON(t,
 		"--keystore", store, "--nat", "none", "--nodiscover", "--maxpeers", "60", "--port", "0", "--ipcdisable", "--testnet",
 		"--unlock", "lat173ngt84dryedws7kyt9hflq93zpwsey2m0wqp6",
-		"js", "testdata/empty.js")
+		"console", "--exec", "loadScript('testdata/empty.js')")
 	defer platon.ExpectExit()
 
 	// Helper for the expect template, returns absolute keystore path.
@@ -273,6 +297,7 @@ Testing your password against all of them...
 Your password unlocked keystore://{{keypath "1"}}
 In order to avoid this warning, you need to remove the following duplicate key files:
    keystore://{{keypath "2"}}
+undefined
 `)
 	platon.ExpectExit()
 

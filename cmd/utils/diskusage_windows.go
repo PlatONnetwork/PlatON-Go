@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of go-ethereum.
 //
 // go-ethereum is free software: you can redistribute it and/or modify
@@ -17,25 +17,22 @@
 package utils
 
 import (
-	"os"
-	"os/user"
-	"testing"
+	"fmt"
+
+	"golang.org/x/sys/windows"
 )
 
-func TestPathExpansion(t *testing.T) {
-	user, _ := user.Current()
-	tests := map[string]string{
-		"/home/someuser/tmp": "/home/someuser/tmp",
-		"~/tmp":              user.HomeDir + "/tmp",
-		"~thisOtherUser/b/":  "~thisOtherUser/b",
-		"$DDDXXX/a/b":        "/tmp/a/b",
-		"/a/b/":              "/a/b",
+func getFreeDiskSpace(path string) (uint64, error) {
+
+	cwd, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		return 0, fmt.Errorf("failed to call UTF16PtrFromString: %v", err)
 	}
-	os.Setenv("DDDXXX", "/tmp")
-	for test, expected := range tests {
-		got := expandPath(test)
-		if got != expected {
-			t.Errorf("test %s, got %s, expected %s\n", test, got, expected)
-		}
+
+	var freeBytesAvailableToCaller, totalNumberOfBytes, totalNumberOfFreeBytes uint64
+	if err := windows.GetDiskFreeSpaceEx(cwd, &freeBytesAvailableToCaller, &totalNumberOfBytes, &totalNumberOfFreeBytes); err != nil {
+		return 0, fmt.Errorf("failed to call GetDiskFreeSpaceEx: %v", err)
 	}
+
+	return freeBytesAvailableToCaller, nil
 }

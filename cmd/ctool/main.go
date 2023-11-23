@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -24,7 +23,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/core"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/ppos"
 )
@@ -37,7 +36,7 @@ func init() {
 	app = cli.NewApp()
 
 	// Initialize the CLI app
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		core.DeployCmd,
 		core.InvokeCmd,
 		core.SendTransactionCmd,

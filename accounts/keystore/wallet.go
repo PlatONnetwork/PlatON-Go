@@ -53,8 +53,8 @@ func (w *keystoreWallet) Status() (string, error) {
 // is no connection or decryption step necessary to access the list of accounts.
 func (w *keystoreWallet) Open(passphrase string) error { return nil }
 
-// Close implements accounts.Wallet, but is a noop for plain wallets since is no
-// meaningful open operation.
+// Close implements accounts.Wallet, but is a noop for plain wallets since there
+// is no meaningful open operation.
 func (w *keystoreWallet) Close() error { return nil }
 
 // Accounts implements accounts.Wallet, returning an account list consisting of
@@ -80,17 +80,49 @@ func (w *keystoreWallet) Derive(path accounts.DerivationPath, pin bool) (account
 func (w *keystoreWallet) SelfDerive(bases []accounts.DerivationPath, chain ethereum.ChainStateReader) {
 }
 
-// SignHash implements accounts.Wallet, attempting to sign the given hash with
+// signHash attempts to sign the given hash with
 // the given account. If the wallet does not wrap this particular account, an
 // error is returned to avoid account leakage (even though in theory we may be
 // able to sign via our shared keystore backend).
-func (w *keystoreWallet) SignHash(account accounts.Account, hash []byte) ([]byte, error) {
+func (w *keystoreWallet) signHash(account accounts.Account, hash []byte) ([]byte, error) {
 	// Make sure the requested account is contained within
 	if !w.Contains(account) {
 		return nil, accounts.ErrUnknownAccount
 	}
 	// Account seems valid, request the keystore to sign
 	return w.keystore.SignHash(account, hash)
+}
+
+// SignData signs keccak256(data). The mimetype parameter describes the type of data being signed.
+func (w *keystoreWallet) SignData(account accounts.Account, mimeType string, data []byte) ([]byte, error) {
+	return w.signHash(account, crypto.Keccak256(data))
+}
+
+// SignDataWithPassphrase signs keccak256(data). The mimetype parameter describes the type of data being signed.
+func (w *keystoreWallet) SignDataWithPassphrase(account accounts.Account, passphrase, mimeType string, data []byte) ([]byte, error) {
+	// Make sure the requested account is contained within
+	if !w.Contains(account) {
+		return nil, accounts.ErrUnknownAccount
+	}
+	// Account seems valid, request the keystore to sign
+	return w.keystore.SignHashWithPassphrase(account, passphrase, crypto.Keccak256(data))
+}
+
+// SignText implements accounts.Wallet, attempting to sign the hash of
+// the given text with the given account.
+func (w *keystoreWallet) SignText(account accounts.Account, text []byte) ([]byte, error) {
+	return w.signHash(account, accounts.TextHash(text))
+}
+
+// SignTextWithPassphrase implements accounts.Wallet, attempting to sign the
+// hash of the given text with the given account using passphrase as extra authentication.
+func (w *keystoreWallet) SignTextWithPassphrase(account accounts.Account, passphrase string, text []byte) ([]byte, error) {
+	// Make sure the requested account is contained within
+	if !w.Contains(account) {
+		return nil, accounts.ErrUnknownAccount
+	}
+	// Account seems valid, request the keystore to sign
+	return w.keystore.SignHashWithPassphrase(account, passphrase, accounts.TextHash(text))
 }
 
 // SignTx implements accounts.Wallet, attempting to sign the given transaction
@@ -104,27 +136,6 @@ func (w *keystoreWallet) SignTx(account accounts.Account, tx *types.Transaction,
 	}
 	// Account seems valid, request the keystore to sign
 	return w.keystore.SignTx(account, tx, chainID)
-}
-
-// SignDataWithPassphrase signs keccak256(data). The mimetype parameter describes the type of data being signed.
-func (w *keystoreWallet) SignDataWithPassphrase(account accounts.Account, passphrase, mimeType string, data []byte) ([]byte, error) {
-	// Make sure the requested account is contained within
-	if !w.Contains(account) {
-		return nil, accounts.ErrUnknownAccount
-	}
-	// Account seems valid, request the keystore to sign
-	return w.keystore.SignHashWithPassphrase(account, passphrase, crypto.Keccak256(data))
-}
-
-// SignHashWithPassphrase implements accounts.Wallet, attempting to sign the
-// given hash with the given account using passphrase as extra authentication.
-func (w *keystoreWallet) SignHashWithPassphrase(account accounts.Account, passphrase string, hash []byte) ([]byte, error) {
-	// Make sure the requested account is contained within
-	if !w.Contains(account) {
-		return nil, accounts.ErrUnknownAccount
-	}
-	// Account seems valid, request the keystore to sign
-	return w.keystore.SignHashWithPassphrase(account, passphrase, hash)
 }
 
 // SignTxWithPassphrase implements accounts.Wallet, attempting to sign the given
