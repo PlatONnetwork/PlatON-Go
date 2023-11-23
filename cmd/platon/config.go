@@ -48,7 +48,7 @@ var (
 		Name:        "dumpconfig",
 		Usage:       "Show configuration values",
 		ArgsUsage:   "",
-		Flags:       utils.GroupFlags(nodeFlags, rpcFlags),
+		Flags:       flags.Merge(nodeFlags, rpcFlags),
 		Description: `The dumpconfig command shows configuration values.`,
 	}
 
