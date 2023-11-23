@@ -2020,9 +2020,10 @@ func (bc *BlockChain) DisableDBGC() {
 	bc.cacheConfig.DBDisabledGC.Set(true)
 }
 
-// SetBlockValidatorForTesting sets the current validator.
+// SetBlockValidatorAndProcessorForTesting sets the current validator and processor.
 // This method can be used to force an invalid blockchain to be verified for tests.
 // This method is unsafe and should only be used before block import starts.
-func (bc *BlockChain) SetBlockValidatorForTesting(v Validator) {
+func (bc *BlockChain) SetBlockValidatorAndProcessorForTesting(v Validator, p Processor) {
 	bc.validator = v
+	bc.processor = p
 }
