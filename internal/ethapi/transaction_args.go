@@ -166,9 +166,16 @@ func (args *TransactionArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Gas = &estimated
 		log.Trace("Estimate gas usage automatically", "gas", args.Gas)
 	}
-	if args.ChainID == nil {
-		id := (*hexutil.Big)(b.ChainConfig().PIP7ChainID)
-		args.ChainID = id
+
+	// If chain id is provided, ensure it matches the local chain id. Otherwise, set the local
+	// chain id as the default.
+	want := b.ChainConfig().PIP7ChainID
+	if args.ChainID != nil {
+		if have := (*big.Int)(args.ChainID); have.Cmp(want) != 0 {
+			return fmt.Errorf("chainId does not match node's (have=%v, want=%v)", have, want)
+		}
+	} else {
+		args.ChainID = (*hexutil.Big)(want)
 	}
 	return nil
 }
