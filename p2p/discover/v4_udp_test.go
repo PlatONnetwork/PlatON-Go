@@ -493,7 +493,7 @@ func TestUDPv4_successfulPing(t *testing.T) {
 			t.Fatalf("invalid record: %v", err)
 		}
 		if !reflect.DeepEqual(n, wantNode) {
-			t.Fatalf("wrong node in enrResponse: %v", n)
+			t.Fatalf("wrong node in ENRResponse: %v", n)
 		}
 	})
 }*/
