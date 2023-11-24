@@ -18,6 +18,7 @@ package graphql
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"net/http"
 
 	"github.com/graph-gophers/graphql-go"
@@ -75,15 +76,14 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // New constructs a new GraphQL service instance.
-func New(stack *node.Node, backend ethapi.Backend, cors, vhosts []string) error {
-	// check if http server with given endpoint exists and enable graphQL on it
-	return newHandler(stack, backend, cors, vhosts)
+func New(stack *node.Node, backend ethapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) error {
+	return newHandler(stack, backend, filterSystem, cors, vhosts)
 }
 
 // newHandler returns a new `http.Handler` that will answer GraphQL queries.
 // It additionally exports an interactive query browser on the / endpoint.
-func newHandler(stack *node.Node, backend ethapi.Backend, cors, vhosts []string) error {
-	q := Resolver{backend}
+func newHandler(stack *node.Node, backend ethapi.Backend, filterSystem *filters.FilterSystem, cors, vhosts []string) error {
+	q := Resolver{backend, filterSystem}
 
 	s, err := graphql.ParseSchema(schema, &q)
 	if err != nil {

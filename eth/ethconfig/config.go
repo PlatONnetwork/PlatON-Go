@@ -77,6 +77,7 @@ var Defaults = Config{
 	TrieCleanCacheJournal:   "triecache",
 	TrieCleanCacheRejournal: 60 * time.Minute,
 	TrieDirtyCache:          256,
+	FilterLogCacheSize:      32,
 	Miner: miner.Config{
 		GasFloor: params.GenesisGasLimit,
 		GasPrice: big.NewInt(params.GVon),
@@ -155,6 +156,9 @@ type Config struct {
 	// VM options
 	VMWasmType        string
 	VmTimeoutDuration uint64
+
+	// This is the number of blocks for which logs will be cached in the filter system.
+	FilterLogCacheSize int
 
 	// Mining options
 	Miner miner.Config
