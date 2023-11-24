@@ -49,10 +49,10 @@ func (b *testBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber
 		number = 0
 	}
 	if number == rpc.FinalizedBlockNumber {
-		return b.chain.CurrentFinalizedBlock().Header(), nil
+		number = testHead
 	}
 	if number == rpc.SafeBlockNumber {
-		return b.chain.CurrentSafeBlock().Header(), nil
+		number = testHead
 	}
 	if number == rpc.LatestBlockNumber {
 		number = testHead
@@ -75,10 +75,10 @@ func (b *testBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber)
 		number = 0
 	}
 	if number == rpc.FinalizedBlockNumber {
-		return b.chain.CurrentFinalizedBlock(), nil
+		number = testHead
 	}
 	if number == rpc.SafeBlockNumber {
-		return b.chain.CurrentSafeBlock(), nil
+		number = testHead
 	}
 	if number == rpc.LatestBlockNumber {
 		number = testHead

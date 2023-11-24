@@ -746,20 +746,18 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		return obj
 	}
 	// If no live objects are available, attempt to use snapshots
-	var (
-		data types.StateAccount
-		err  error
-	)
+	var data *types.StateAccount
 	if s.snap != nil {
+		start := time.Now()
+		acc, err := s.snap.Account(crypto.Keccak256Hash(addr[:]))
 		if metrics.EnabledExpensive {
-			defer func(start time.Time) { s.SnapshotAccountReads += time.Since(start) }(time.Now())
+			s.SnapshotAccountReads += time.Since(start)
 		}
-		var acc *snapshot.Account
-		if acc, err = s.snap.Account(crypto.Keccak256Hash(addr[:])); err == nil {
+		if err == nil {
 			if acc == nil {
 				return nil
 			}
-			data = types.StateAccount{
+			data = &types.StateAccount{
 				Nonce:            acc.Nonce,
 				Balance:          acc.Balance,
 				CodeHash:         acc.CodeHash,
@@ -775,16 +773,21 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		}
 	}
 	// If snapshot unavailable or reading from it failed, load from the database
-	if s.snap == nil || err != nil {
-		if metrics.EnabledExpensive {
-			defer func(start time.Time) { s.AccountReads += time.Since(start) }(time.Now())
-		}
+	if data == nil {
+		start := time.Now()
 		enc, err := s.trie.TryGet(addr[:])
-		if len(enc) == 0 {
-			s.setError(err)
+		if metrics.EnabledExpensive {
+			s.AccountReads += time.Since(start)
+		}
+		if err != nil {
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
 			return nil
 		}
-		if err := rlp.DecodeBytes(enc, &data); err != nil {
+		if len(enc) == 0 {
+			return nil
+		}
+		data = new(types.StateAccount)
+		if err := rlp.DecodeBytes(enc, data); err != nil {
 			log.Error("Failed to decode state object", "addr", addr, "err", err)
 			return nil
 		}
@@ -794,7 +797,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 		data.StorageKeyPrefix = addr.Bytes()
 	}
 	// Insert into the live set.
-	obj := newObject(s, addr, data)
+	obj := newObject(s, addr, *data)
 	s.setStateObject(obj)
 	return obj
 }
