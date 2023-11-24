@@ -49,7 +49,7 @@ func InitDatabaseFromFreezer(db ethdb.Database) {
 		if i+count > frozen {
 			count = frozen - i
 		}
-		data, err := db.AncientRange(freezerHashTable, i, count, 32*count)
+		data, err := db.AncientRange(chainFreezerHashTable, i, count, 32*count)
 		if err != nil {
 			log.Crit("Failed to init database from freezer", "err", err)
 		}
@@ -168,8 +168,7 @@ func iterateTransactions(db ethdb.Database, from uint64, to uint64, reverse bool
 	return hashesCh
 }
 
-// IndexTransactions creates txlookup indices of the specified block range. The from
-// is included while to is excluded.
+// indexTransactions creates txlookup indices of the specified block range.
 //
 // This function iterates canonical chain in reverse order, it has one main advantage:
 // We can write tx index tail flag periodically even without the whole indexing
@@ -247,7 +246,8 @@ func indexTransactions(db ethdb.Database, from uint64, to uint64, interrupt chan
 	}
 }
 
-// IndexTransactions creates txlookup indices of the specified block range.
+// IndexTransactions creates txlookup indices of the specified block range. The from
+// is included while to is excluded.
 //
 // This function iterates canonical chain in reverse order, it has one main advantage:
 // We can write tx index tail flag periodically even without the whole indexing

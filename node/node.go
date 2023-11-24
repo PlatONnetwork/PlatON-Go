@@ -411,12 +411,11 @@ func (n *Node) startRPC() error {
 			return err
 		}
 	}
-
 	var (
 		servers   []*httpServer
 		open, all = n.GetAPIs()
 	)
-	// Configure HTTP.
+
 	initHttp := func(server *httpServer, apis []rpc.API, port int) error {
 		if err := server.setListenAddr(n.config.HTTPHost, port); err != nil {
 			return err
@@ -432,6 +431,7 @@ func (n *Node) startRPC() error {
 		servers = append(servers, server)
 		return nil
 	}
+
 	initWS := func(apis []rpc.API, port int) error {
 		server := n.wsServerForPort(port, false)
 		if err := server.setListenAddr(n.config.WSHost, port); err != nil {
@@ -447,6 +447,7 @@ func (n *Node) startRPC() error {
 		servers = append(servers, server)
 		return nil
 	}
+
 	initAuth := func(apis []rpc.API, port int, secret []byte) error {
 		// Enable auth via HTTP
 		server := n.httpAuth
@@ -479,6 +480,7 @@ func (n *Node) startRPC() error {
 		servers = append(servers, server)
 		return nil
 	}
+
 	// Set up HTTP.
 	if n.config.HTTPHost != "" {
 		// Configure legacy unauthenticated HTTP.
@@ -486,7 +488,6 @@ func (n *Node) startRPC() error {
 			return err
 		}
 	}
-
 	// Configure WebSocket.
 	if n.config.WSHost != "" {
 		// legacy unauthenticated
@@ -504,7 +505,6 @@ func (n *Node) startRPC() error {
 			return err
 		}
 	}
-
 	// Start the servers
 	for _, server := range servers {
 		if err := server.start(); err != nil {
@@ -727,7 +727,7 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string, r
 // also attaching a chain freezer to it that moves ancient chain data from the
 // database to immutable append-only files. If the node is an ephemeral one, a
 // memory database is returned.
-func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, freezer, namespace string, readonly bool) (ethdb.Database, error) {
+func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, ancient string, namespace string, readonly bool) (ethdb.Database, error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	if n.state == closedState {
@@ -739,14 +739,7 @@ func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, freezer,
 	if n.config.DataDir == "" {
 		db = rawdb.NewMemoryDatabase()
 	} else {
-		root := n.ResolvePath(name)
-		switch {
-		case freezer == "":
-			freezer = filepath.Join(root, "ancient")
-		case !filepath.IsAbs(freezer):
-			freezer = n.ResolvePath(freezer)
-		}
-		db, err = rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace, readonly)
+		db, err = rawdb.NewLevelDBDatabaseWithFreezer(n.ResolvePath(name), cache, handles, n.ResolveAncient(name, ancient), namespace, readonly)
 	}
 
 	if err == nil {
@@ -758,6 +751,17 @@ func (n *Node) OpenDatabaseWithFreezer(name string, cache, handles int, freezer,
 // ResolvePath returns the absolute path of a resource in the instance directory.
 func (n *Node) ResolvePath(x string) string {
 	return n.config.ResolvePath(x)
+}
+
+// ResolveAncient returns the absolute path of the root ancient directory.
+func (n *Node) ResolveAncient(name string, ancient string) string {
+	switch {
+	case ancient == "":
+		ancient = filepath.Join(n.ResolvePath(name), "ancient")
+	case !filepath.IsAbs(ancient):
+		ancient = n.ResolvePath(ancient)
+	}
+	return ancient
 }
 
 // GenesisPath returns the absolute path of a genesis file in the instance directory.
