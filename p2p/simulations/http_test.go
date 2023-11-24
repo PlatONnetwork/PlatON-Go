@@ -123,7 +123,6 @@ func (t *testService) Protocols() []p2p.Protocol {
 func (t *testService) APIs() []rpc.API {
 	return []rpc.API{{
 		Namespace: "test",
-		Version:   "1.0",
 		Service: &TestAPI{
 			state:     &t.state,
 			peerCount: &t.peerCount,

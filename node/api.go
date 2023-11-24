@@ -38,15 +38,12 @@ func (n *Node) apis() []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "admin",
-			Version:   "1.0",
 			Service:   &adminAPI{n},
 		}, {
 			Namespace: "debug",
-			Version:   "1.0",
 			Service:   debug.Handler,
 		}, {
 			Namespace: "web3",
-			Version:   "1.0",
 			Service:   &web3API{n},
 		},
 	}

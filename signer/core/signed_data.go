@@ -1,18 +1,19 @@
-// Copyright 2018 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2019 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
+// GNU Lesser General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package core
 
 import (
@@ -126,7 +127,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 			{
 				Name:  "Full message for signing",
 				Typ:   "hexdata",
-				Value: fmt.Sprintf("0x%x", msg),
+				Value: fmt.Sprintf("%#x", msg),
 			},
 		}
 		req = &SignDataRequest{ContentType: mediaType, Rawdata: []byte(msg), Messages: messages, Hash: sighash}
@@ -158,7 +159,7 @@ func (api *SignerAPI) determineSignatureFormat(ctx context.Context, contentType 
 			{
 				Name:  "Clique header",
 				Typ:   "clique",
-				Value: fmt.Sprintf("clique header %d [0x%x]", header.Number, header.Hash()),
+				Value: fmt.Sprintf("clique header %d [%#x]", header.Number, header.Hash()),
 			},
 		}
 		// Clique uses V on the form 0 or 1
@@ -230,23 +231,17 @@ func (api *SignerAPI) SignTypedData(ctx context.Context, addr common.MixedcaseAd
 // - the signature preimage (hash)
 func (api *SignerAPI) signTypedData(ctx context.Context, addr common.MixedcaseAddress,
 	typedData apitypes.TypedData, validationMessages *apitypes.ValidationMessages) (hexutil.Bytes, hexutil.Bytes, error) {
-	domainSeparator, err := typedData.HashStruct("EIP712Domain", typedData.Domain.Map())
+	sighash, rawData, err := apitypes.TypedDataAndHash(typedData)
 	if err != nil {
 		return nil, nil, err
 	}
-	typedDataHash, err := typedData.HashStruct(typedData.PrimaryType, typedData.Message)
-	if err != nil {
-		return nil, nil, err
-	}
-	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
-	sighash := crypto.Keccak256(rawData)
 	messages, err := typedData.Format()
 	if err != nil {
 		return nil, nil, err
 	}
 	req := &SignDataRequest{
 		ContentType: apitypes.DataTyped.Mime,
-		Rawdata:     rawData,
+		Rawdata:     []byte(rawData),
 		Messages:    messages,
 		Hash:        sighash,
 		Address:     addr}

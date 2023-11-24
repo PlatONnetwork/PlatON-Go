@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/rs/cors"
 
@@ -81,6 +82,10 @@ type httpServer struct {
 
 	handlerNames map[string]string
 }
+
+const (
+	shutdownTimeout = 5 * time.Second
+)
 
 func newHTTPServer(log log.Logger, timeouts rpc.HTTPTimeouts) *httpServer {
 	h := &httpServer{log: log, timeouts: timeouts, handlerNames: make(map[string]string)}
@@ -262,7 +267,13 @@ func (h *httpServer) doStop() {
 		h.wsHandler.Store((*rpcHandler)(nil))
 		wsHandler.server.Stop()
 	}
-	h.server.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	err := h.server.Shutdown(ctx)
+	if err == ctx.Err() {
+		h.log.Warn("HTTP server graceful shutdown timed out")
+		h.server.Close()
+	}
 	h.listener.Close()
 	h.log.Info("HTTP server stopped", "endpoint", h.listener.Addr())
 
@@ -311,7 +322,6 @@ func (h *httpServer) enableWS(apis []rpc.API, config wsConfig) error {
 	if h.wsAllowed() {
 		return fmt.Errorf("JSON-RPC over WebSocket is already enabled")
 	}
-
 	// Create RPC server and handler.
 	srv := rpc.NewServer()
 	if err := RegisterApis(apis, config.Modules, srv); err != nil {
@@ -429,7 +439,6 @@ func (h *virtualHostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// It's an IP address, we can serve that
 		h.next.ServeHTTP(w, r)
 		return
-
 	}
 	// Not an IP address, but a hostname. Need to validate
 	if _, exist := h.vhosts["*"]; exist {

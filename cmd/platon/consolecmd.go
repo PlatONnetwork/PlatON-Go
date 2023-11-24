@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/urfave/cli/v2"
@@ -33,7 +34,7 @@ var (
 		Action: localConsole,
 		Name:   "console",
 		Usage:  "Start an interactive JavaScript environment",
-		Flags:  utils.GroupFlags(nodeFlags, rpcFlags, consoleFlags),
+		Flags:  flags.Merge(nodeFlags, rpcFlags, consoleFlags),
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -45,7 +46,7 @@ See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     utils.GroupFlags([]cli.Flag{utils.DataDirFlag}, consoleFlags),
+		Flags:     flags.Merge([]cli.Flag{utils.DataDirFlag}, consoleFlags),
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -58,7 +59,7 @@ This command allows to open a console on a running platon node.`,
 		Name:      "js",
 		Usage:     "(DEPRECATED) Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
-		Flags:     utils.GroupFlags(nodeFlags, consoleFlags),
+		Flags:     flags.Merge(nodeFlags, consoleFlags),
 		Description: `
 The JavaScript VM exposes a node admin interface as well as the Ðapp
 JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console`,
@@ -113,6 +114,10 @@ func localConsole(ctx *cli.Context) error {
 // remoteConsole will connect to a remote platon instance, attaching a JavaScript
 // console to it.
 func remoteConsole(ctx *cli.Context) error {
+	if ctx.Args().Len() > 1 {
+		utils.Fatalf("invalid command-line: too many arguments")
+	}
+
 	endpoint := ctx.Args().First()
 	if endpoint == "" {
 		cfg := defaultNodeConfig()

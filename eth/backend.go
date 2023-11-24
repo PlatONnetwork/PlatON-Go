@@ -491,36 +491,28 @@ func (s *Ethereum) APIs() []rpc.API {
 	return append(apis, []rpc.API{
 		{
 			Namespace: "platon",
-			Version:   "1.0",
 			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
 		}, {
 			Namespace: "miner",
-			Version:   "1.0",
 			Service:   NewMinerAPI(s),
 		}, {
 			Namespace: "platon",
-			Version:   "1.0",
 			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
 		}, {
 			Namespace: "admin",
-			Version:   "1.0",
 			Service:   NewAdminAPI(s),
 		}, {
 			Namespace: "debug",
-			Version:   "1.0",
 			Service:   NewDebugAPI(s),
 		}, {
 			Namespace: "debug",
-			Version:   "1.0",
 			Service:   xplugin.NewPublicPPOSAPI(),
 		}, {
 			Namespace: "net",
-			Version:   "1.0",
 			Service:   s.netRPCService,
 		},
 		{
 			Namespace: "txgen",
-			Version:   "1.0",
 			Service:   NewTxGenAPI(s),
 		},
 	}...)
