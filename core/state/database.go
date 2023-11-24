@@ -83,6 +83,10 @@ type Trie interface {
 	TryUpdateAccount(key []byte, account *types.StateAccount) error
 
 	TryDelete(key []byte) error
+
+	// TryDeleteAccount abstracts an account deletion from the trie.
+	TryDeleteAccount(key []byte) error
+
 	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator

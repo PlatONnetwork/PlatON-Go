@@ -573,7 +573,9 @@ func (s *StateDB) deleteStateObject(obj *stateObject) {
 
 	// Delete the account from the trie
 	addr := obj.Address()
-	s.setError(s.trie.TryDelete(addr[:]))
+	if err := s.trie.TryDeleteAccount(addr[:]); err != nil {
+		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
+	}
 }
 
 // Get the current StateDB cache and the parent StateDB cache
