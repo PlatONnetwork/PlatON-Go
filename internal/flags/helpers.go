@@ -38,6 +38,15 @@ func NewApp(gitCommit, gitDate, usage string) *cli.App {
 	return app
 }
 
+// Merge merges the given flag slices.
+func Merge(groups ...[]cli.Flag) []cli.Flag {
+	var ret []cli.Flag
+	for _, group := range groups {
+		ret = append(ret, group...)
+	}
+	return ret
+}
+
 var migrationApplied = map[*cli.Command]struct{}{}
 
 // MigrateGlobalFlags makes all global flag values available in the
@@ -45,11 +54,11 @@ var migrationApplied = map[*cli.Command]struct{}{}
 //
 // Example:
 //
-//	geth account new --keystore /tmp/mykeystore --lightkdf
+//    geth account new --keystore /tmp/mykeystore --lightkdf
 //
 // is equivalent after calling this method with:
 //
-//	geth --keystore /tmp/mykeystore --lightkdf account new
+//    geth --keystore /tmp/mykeystore --lightkdf account new
 //
 // i.e. in the subcommand Action function of 'account new', ctx.Bool("lightkdf)
 // will return true even if --lightkdf is set as a global option.
@@ -70,6 +79,10 @@ func MigrateGlobalFlags(ctx *cli.Context) {
 
 	// This iterates over all commands and wraps their action function.
 	iterate(ctx.App.Commands, func(cmd *cli.Command) {
+		if cmd.Action == nil {
+			return
+		}
+
 		action := cmd.Action
 		cmd.Action = func(ctx *cli.Context) error {
 			doMigrateFlags(ctx)

@@ -63,7 +63,7 @@ func returnCommitterToPool(c *committer) {
 }
 
 // commit collapses a node down into a hash node and inserts it into the database
-func (c *committer) commit(n node, db *Database, force bool) (node, node, int, error) {
+func (c *committer) commit(path []byte, n node, db *Database, force bool) (node, node, int, error) {
 	// If we're not storing the node, just hashing, use available cached data
 	if hash, dirty := n.cache(); len(hash) != 0 {
 		if !dirty {
@@ -77,7 +77,7 @@ func (c *committer) commit(n node, db *Database, force bool) (node, node, int, e
 	}
 	var committed int
 	// Trie not processed yet or needs storage, walk the children
-	collapsed, cached, committed, err := c.commitChildren(n, db)
+	collapsed, cached, committed, err := c.commitChildren(path, n, db)
 	if err != nil {
 		return hashNode{}, n, 0, err
 	}
@@ -101,7 +101,7 @@ func (c *committer) commit(n node, db *Database, force bool) (node, node, int, e
 	return hashed, cached, committed + 1, nil
 }
 
-func (c *committer) commitChildren(original node, db *Database) (node, node, int, error) {
+func (c *committer) commitChildren(path []byte, original node, db *Database) (node, node, int, error) {
 	var (
 		err            error
 		committed      int
@@ -116,7 +116,7 @@ func (c *committer) commitChildren(original node, db *Database) (node, node, int
 		cached.Key = common.CopyBytes(n.Key)
 
 		if _, ok := n.Val.(valueNode); !ok {
-			collapsed.Val, cached.Val, committed, err = c.commit(n.Val, db, false)
+			collapsed.Val, cached.Val, committed, err = c.commit(append(path, n.Key...), n.Val, db, false)
 			if err != nil {
 				return original, original, 0, err
 			}
@@ -129,7 +129,7 @@ func (c *committer) commitChildren(original node, db *Database) (node, node, int
 
 		for i := 0; i < 16; i++ {
 			if n.Children[i] != nil {
-				collapsed.Children[i], cached.Children[i], childCommitted, err = c.commit(n.Children[i], db, false)
+				collapsed.Children[i], cached.Children[i], childCommitted, err = c.commit(path, n.Children[i], db, false)
 				if err != nil {
 					return original, original, 0, err
 				}
@@ -178,12 +178,12 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 		switch n := n.(type) {
 		case *shortNode:
 			if child, ok := n.Val.(valueNode); ok {
-				c.onleaf(nil, nil, child, hash2)
+				c.onleaf(nil, nil, child, hash2, nil)
 			}
 		case *fullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(valueNode); ok {
-					c.onleaf(nil, nil, child, hash2)
+					c.onleaf(nil, nil, child, hash2, nil)
 				}
 			}
 		}

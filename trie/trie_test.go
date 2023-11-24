@@ -429,7 +429,7 @@ func runRandTest(rt randTest) bool {
 			v := tr.Get(step.key)
 			want := values[string(step.key)]
 			if string(v) != want {
-				rt[i].err = fmt.Errorf("mismatch for key 0x%x, got 0x%x want 0x%x", step.key, v, want)
+				rt[i].err = fmt.Errorf("mismatch for key %#x, got %#x want %#x", step.key, v, want)
 			}
 		case opCommit:
 			_, _, rt[i].err = tr.Commit(nil)
@@ -605,7 +605,7 @@ func TestDeepCopy(t *testing.T) {
 	tr, _ := NewSecure(common.Hash{}, root, triedb)
 	kv := make(map[common.Hash][]byte)
 	codeWriter := triedb.DiskDB().NewBatch()
-	leafCB := func(path [][]byte, hexpath []byte, leaf []byte, parent common.Hash) error {
+	leafCB := func(path [][]byte, hexpath []byte, leaf []byte, parent common.Hash, parentPath []byte) error {
 		var valueKey common.Hash
 		_, content, _, err := rlp.Split(leaf)
 		assert.Nil(t, err)

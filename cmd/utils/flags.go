@@ -384,6 +384,25 @@ var (
 		Value:    ethconfig.Defaults.RPCTxFeeCap,
 		Category: flags.APICategory,
 	}
+	// Authenticated RPC HTTP settings
+	AuthListenFlag = &cli.StringFlag{
+		Name:     "authrpc.addr",
+		Usage:    "Listening address for authenticated APIs",
+		Value:    node.DefaultConfig.AuthAddr,
+		Category: flags.APICategory,
+	}
+	AuthVirtualHostsFlag = &cli.StringFlag{
+		Name:     "authrpc.vhosts",
+		Usage:    "Comma separated list of virtual hostnames from which to accept requests (server enforced). Accepts '*' wildcard.",
+		Value:    strings.Join(node.DefaultConfig.AuthVirtualHosts, ","),
+		Category: flags.APICategory,
+	}
+	AuthPortFlag = &cli.IntFlag{
+		Name:     "authrpc.port",
+		Usage:    "Listening port for authenticated APIs",
+		Value:    node.DefaultConfig.AuthPort,
+		Category: flags.APICategory,
+	}
 	JWTSecretFlag = &cli.StringFlag{
 		Name:     "authrpc.jwtsecret",
 		Usage:    "Path to a JWT secret to use for authenticated RPC endpoints",
@@ -849,15 +868,6 @@ var (
 	}
 )
 
-// GroupFlags combines the given flag slices together and returns the merged one.
-func GroupFlags(groups ...[]cli.Flag) []cli.Flag {
-	var ret []cli.Flag
-	for _, group := range groups {
-		ret = append(ret, group...)
-	}
-	return ret
-}
-
 // MakeDataDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified. If the node is starting a testnet,
 // then a subdirectory of the specified datadir will be used.
@@ -1021,6 +1031,15 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.Bool(HTTPEnabledEthCompatibleFlag.Name) {
 		types2.HttpEthCompatible = true
+	}
+	if ctx.IsSet(AuthListenFlag.Name) {
+		cfg.AuthAddr = ctx.String(AuthListenFlag.Name)
+	}
+	if ctx.IsSet(AuthPortFlag.Name) {
+		cfg.AuthPort = ctx.Int(AuthPortFlag.Name)
+	}
+	if ctx.IsSet(AuthVirtualHostsFlag.Name) {
+		cfg.AuthVirtualHosts = SplitAndTrim(ctx.String(AuthVirtualHostsFlag.Name))
 	}
 	if ctx.IsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.String(HTTPVirtualHostsFlag.Name))

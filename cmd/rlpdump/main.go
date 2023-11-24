@@ -252,7 +252,7 @@ func main() {
 		if err != nil {
 			die(err)
 		}
-		fmt.Printf("0x%x\n", data)
+		fmt.Printf("%#x\n", data)
 		return
 	} else {
 		err := rlpToText(r, out)

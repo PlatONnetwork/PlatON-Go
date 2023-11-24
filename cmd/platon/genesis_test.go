@@ -318,7 +318,7 @@ func TestCustomGenesis(t *testing.T) {
 
 		// Query the custom genesis block
 		platon := runPlatON(t,
-			"--datadir", datadir, "--maxpeers", "60", "--port", "0",
+			"--datadir", datadir, "--maxpeers", "60", "--port", "0", "--authrpc.port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)

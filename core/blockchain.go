@@ -782,22 +782,25 @@ func (bc *BlockChain) Export(w io.Writer) error {
 
 // ExportN writes a subset of the active chain to the given writer.
 func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
-	if !bc.chainmu.TryLock() {
-		return errChainStopped
-	}
-	defer bc.chainmu.Unlock()
-
 	if first > last {
 		return fmt.Errorf("export failed: first (%d) is greater than last (%d)", first, last)
 	}
 	log.Info("Exporting batch of blocks", "count", last-first+1)
 
-	start, reported := time.Now(), time.Now()
+	var (
+		parentHash common.Hash
+		start      = time.Now()
+		reported   = time.Now()
+	)
 	for nr := first; nr <= last; nr++ {
 		block := bc.GetBlockByNumber(nr)
 		if block == nil {
 			return fmt.Errorf("export failed on #%d: not found", nr)
 		}
+		if nr > first && block.ParentHash() != parentHash {
+			return fmt.Errorf("export failed: chain reorg during export")
+		}
+		parentHash = block.Hash()
 		if err := block.EncodeRLP(w); err != nil {
 			return err
 		}
@@ -806,7 +809,6 @@ func (bc *BlockChain) ExportN(w io.Writer, first uint64, last uint64) error {
 			reported = time.Now()
 		}
 	}
-
 	return nil
 }
 
@@ -1957,7 +1959,7 @@ func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 Chain config: %v
 
 Number: %v
-Hash: 0x%x
+Hash: %#x
 %v
 
 Error: %v
@@ -2018,4 +2020,12 @@ func (bc *BlockChain) EnableDBGC() {
 // DisableDBGC disable database garbage collection.
 func (bc *BlockChain) DisableDBGC() {
 	bc.cacheConfig.DBDisabledGC.Set(true)
+}
+
+// SetBlockValidatorAndProcessorForTesting sets the current validator and processor.
+// This method can be used to force an invalid blockchain to be verified for tests.
+// This method is unsafe and should only be used before block import starts.
+func (bc *BlockChain) SetBlockValidatorAndProcessorForTesting(v Validator, p Processor) {
+	bc.validator = v
+	bc.processor = p
 }
