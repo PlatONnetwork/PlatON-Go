@@ -19,10 +19,9 @@ package params
 // These are the multipliers for ether denominations.
 // Example: To get the von value of an amount in 'gvon', use
 //
-//    new(big.Int).Mul(value, big.NewInt(params.GVon))
-//
+//	new(big.Int).Mul(value, big.NewInt(params.GVon))
 const (
-	Von   = 1
-	GVon  = 1e9
-	LAT   =	1e18
+	Von  = 1
+	GVon = 1e9
+	LAT  = 1e18
 )
