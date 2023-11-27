@@ -67,8 +67,9 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 	stack := createNode(t)
 	defer stack.Close()
 	genesis := &core.Genesis{
-		Config:   params.AllEthashProtocolChanges,
-		GasLimit: 11500000,
+		Config:        params.AllEthashProtocolChanges,
+		GasLimit:      11500000,
+		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 	}
 	newGQLService(t, stack, genesis, 10, func(i int, gen *core.BlockGen) {})
 	// start node
@@ -193,7 +194,8 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 				Balance: big.NewInt(0),
 			},
 		},
-		BaseFee: big.NewInt(params.InitialBaseFee),
+		BaseFee:       big.NewInt(params.InitialBaseFee),
+		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 	}
 	signer := types.LatestSigner(genesis.Config, true)
 	newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
@@ -207,7 +209,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 		})
 		gen.AddTx(tx)
 		tx, _ = types.SignNewTx(key, signer, &types.AccessListTx{
-			ChainID:  genesis.Config.ChainID,
+			ChainID:  genesis.Config.PIP7ChainID,
 			Nonce:    uint64(1),
 			To:       &dad,
 			Gas:      30000,
@@ -232,7 +234,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 	}{
 		{
 			body: `{"query": "{block {number transactions { from { address } to { address } value hash type accessList { address storageKeys } index}}}"}`,
-			want: `{"data":{"block":{"number":1,"transactions":[{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x64","hash":"0xa20f53352272dcf4acb84bd1364de8240a53bb7c7725d8516b626107c0ff77af","type":0,"accessList":[],"index":0},{"from":{"address":"0x71562b71999873DB5b286dF957af199Ec94617F7"},"to":{"address":"0x0000000000000000000000000000000000000DAd"},"value":"0x32","hash":"0xb3ea15151ca9997a2e6db0f1d94193d60f4b4c5353f437460b92579e3900b0e8","type":1,"accessList":[{"address":"0x0000000000000000000000000000000000000DAd","storageKeys":["0x0000000000000000000000000000000000000000000000000000000000000000"]}],"index":1}]}}}`,
+			want: `{"data":{"block":{"number":1,"transactions":[{"from":{"address":"lat1w9tzkuvenpeakkegdhu40tcenmy5v9lh68aak9"},"to":{"address":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdd8h64sw"},"value":"0x64","hash":"0x10556408f445266db0b6729c59ea49c0c693e4f5e8a00c6ab11cd7480ad641e9","type":0,"accessList":[],"index":0},{"from":{"address":"lat1w9tzkuvenpeakkegdhu40tcenmy5v9lh68aak9"},"to":{"address":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdd8h64sw"},"value":"0x32","hash":"0x9d4fb150c0e3c566da017d5a9b7228933fe6d738677c7ee686412810d015e93e","type":1,"accessList":[{"address":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqrdd8h64sw","storageKeys":["0x0000000000000000000000000000000000000000000000000000000000000000"]}],"index":1}]}}}`,
 			code: 200,
 		},
 	} {
@@ -287,6 +289,7 @@ func TestGraphQLTransactionLogs(t *testing.T) {
 					Balance: big.NewInt(0),
 				},
 			},
+			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 		}
 		signer = types.LatestSigner(genesis.Config, true)
 		stack  = createNode(t)
@@ -314,7 +317,7 @@ func TestGraphQLTransactionLogs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to encode graphql response: %s", err)
 	}
-	want := fmt.Sprintf(`{"block":{"transactions":[{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]}]}}`, dadStr, dadStr, dadStr, dadStr, dadStr, dadStr)
+	want := fmt.Sprintf(`{"block":{"transactions":[{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]}]}}`, dad.String(), dad.String(), dad.String(), dad.String(), dad.String(), dad.String())
 	if string(have) != want {
 		t.Errorf("response unmatch. expected %s, got %s", want, have)
 	}
@@ -335,11 +338,7 @@ func createNode(t *testing.T) *node.Node {
 
 func newGQLService(t *testing.T, stack *node.Node, gspec *core.Genesis, genBlocks int, genfunc func(i int, gen *core.BlockGen)) *handler {
 	ethConf := &ethconfig.Config{
-		Genesis: &core.Genesis{
-			Config:        params.TestChainConfig,
-			GasLimit:      11500000,
-			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
-		},
+		Genesis:                 gspec,
 		NetworkId:               1337,
 		TrieCleanCache:          5,
 		TrieCleanCacheJournal:   "triecache",
@@ -350,21 +349,14 @@ func newGQLService(t *testing.T, stack *node.Node, gspec *core.Genesis, genBlock
 		BlockCacheLimit:         256,
 		MaxFutureBlocks:         256,
 	}
-	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 1)
+	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), params.FORKVERSION_1_5_0)
 	ethBackend, err := eth.New(stack, ethConf)
 	if err != nil {
 		t.Fatalf("could not create eth backend: %v", err)
 	}
 	// Create some blocks and import them
-	/*chain, _ := core.GenerateChain(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
-		consensus.NewFaker(), ethBackend.ChainDb(), 10, func(i int, gen *core.BlockGen) {})
-	_, err = ethBackend.BlockChain().InsertChain(chain)
-	if err != nil {
-		t.Fatalf("could not create import blocks: %v", err)
-	}*/
-
 	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
-		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
+		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), genBlocks, genfunc)
 	// Set up handler
 	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
 	handler, err := newHandler(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
