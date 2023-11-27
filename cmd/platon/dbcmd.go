@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -161,8 +160,8 @@ WARNING: This is a low-level operation which may cause database corruption!`,
 	dbDumpFreezerIndex = &cli.Command{
 		Action:    freezerInspect,
 		Name:      "freezer-index",
-		Usage:     "Dump out the index of a given freezer type",
-		ArgsUsage: "<type> <start (int)> <end (int)>",
+		Usage:     "Dump out the index of a specific freezer table",
+		ArgsUsage: "<freezer-type> <table-type> <start (int)> <end (int)>",
 		Flags: flags.Merge([]cli.Flag{
 			utils.SyncModeFlag,
 		}, utils.NetworkFlags, utils.DatabasePathFlags),
@@ -243,46 +242,6 @@ func removeDB(ctx *cli.Context) error {
 	return nil
 }
 
-func freezerInspect(ctx *cli.Context) error {
-	var (
-		start, end    int64
-		disableSnappy bool
-		err           error
-	)
-	if ctx.NArg() < 3 {
-		return fmt.Errorf("required arguments: %v", ctx.Command.ArgsUsage)
-	}
-	kind := ctx.Args().Get(0)
-	if noSnap, ok := rawdb.FreezerNoSnappy[kind]; !ok {
-		var options []string
-		for opt := range rawdb.FreezerNoSnappy {
-			options = append(options, opt)
-		}
-		sort.Strings(options)
-		return fmt.Errorf("Could read freezer-type '%v'. Available options: %v", kind, options)
-	} else {
-		disableSnappy = noSnap
-	}
-	if start, err = strconv.ParseInt(ctx.Args().Get(1), 10, 64); err != nil {
-		log.Info("Could read start-param", "error", err)
-		return err
-	}
-	if end, err = strconv.ParseInt(ctx.Args().Get(2), 10, 64); err != nil {
-		log.Info("Could read count param", "error", err)
-		return err
-	}
-	stack, _ := makeConfigNode(ctx)
-	defer stack.Close()
-	path := filepath.Join(stack.ResolvePath("chaindata"), "ancient")
-	log.Info("Opening freezer", "location", path, "name", kind)
-	if f, err := rawdb.NewFreezerTable(path, kind, disableSnappy, true); err != nil {
-		return err
-	} else {
-		f.DumpIndex(start, end)
-	}
-	return nil
-}
-
 // confirmAndRemoveDB prompts the user for a last confirmation and removes the
 // folder if accepted.
 func confirmAndRemoveDB(database string, kind string) {
@@ -316,7 +275,7 @@ func inspect(ctx *cli.Context) error {
 		start  []byte
 	)
 	if ctx.NArg() > 2 {
-		return fmt.Errorf("Max 2 arguments: %v", ctx.Command.ArgsUsage)
+		return fmt.Errorf("max 2 arguments: %v", ctx.Command.ArgsUsage)
 	}
 	if ctx.NArg() >= 1 {
 		if d, err := hexutil.Decode(ctx.Args().Get(0)); err != nil {
@@ -347,7 +306,7 @@ func checkStateContent(ctx *cli.Context) error {
 		start  []byte
 	)
 	if ctx.NArg() > 1 {
-		return fmt.Errorf("Max 1 argument: %v", ctx.Command.ArgsUsage)
+		return fmt.Errorf("max 1 argument: %v", ctx.Command.ArgsUsage)
 	}
 	if ctx.NArg() > 0 {
 		if d, err := hexutil.Decode(ctx.Args().First()); err != nil {
@@ -372,8 +331,8 @@ func checkStateContent(ctx *cli.Context) error {
 	)
 	for it.Next() {
 		count++
-		v := it.Value()
 		k := it.Key()
+		v := it.Value()
 		hasher.Reset()
 		hasher.Write(v)
 		hasher.Read(got)
@@ -574,6 +533,38 @@ func dbDumpTrie(ctx *cli.Context) error {
 		count++
 	}
 	return it.Err
+}
+
+func freezerInspect(ctx *cli.Context) error {
+	if ctx.NArg() < 4 {
+		return fmt.Errorf("required arguments: %v", ctx.Command.ArgsUsage)
+	}
+	var (
+		freezer = ctx.Args().Get(0)
+		table   = ctx.Args().Get(1)
+	)
+	start, err := strconv.ParseInt(ctx.Args().Get(2), 10, 64)
+	if err != nil {
+		log.Info("Could not read start-param", "err", err)
+		return err
+	}
+	end, err := strconv.ParseInt(ctx.Args().Get(3), 10, 64)
+	if err != nil {
+		log.Info("Could not read count param", "err", err)
+		return err
+	}
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+
+	db := utils.MakeChainDatabase(ctx, stack, true)
+	defer db.Close()
+
+	ancient, err := db.AncientDatadir()
+	if err != nil {
+		log.Info("Failed to retrieve ancient root", "err", err)
+		return err
+	}
+	return rawdb.InspectFreezerTable(ancient, freezer, table, start, end)
 }
 
 func importLDBdata(ctx *cli.Context) error {

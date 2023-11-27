@@ -66,6 +66,7 @@ func fromBuf(vm *goja.Runtime, bufType goja.Value, buf goja.Value, allowString b
 			break
 		}
 		return common.FromHex(obj.String()), nil
+
 	case "Array":
 		var b []byte
 		if err := vm.ExportTo(buf, &b); err != nil {
@@ -124,7 +125,7 @@ type jsTracer struct {
 // The methods `result` and `fault` are required to be present.
 // The methods `step`, `enter`, and `exit` are optional, but note that
 // `enter` and `exit` always go together.
-func newJsTracer(code string, ctx *tracers.Context) (tracers.Tracer, error) {
+func newJsTracer(code string, ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, error) {
 	if c, ok := assetTracers[code]; ok {
 		code = c
 	}
@@ -176,6 +177,17 @@ func newJsTracer(code string, ctx *tracers.Context) (tracers.Tracer, error) {
 	t.exit = exit
 	t.result = result
 	t.fault = fault
+
+	// Pass in config
+	if setup, ok := goja.AssertFunction(obj.Get("setup")); ok {
+		cfgStr := "{}"
+		if cfg != nil {
+			cfgStr = string(cfg)
+		}
+		if _, err := setup(obj, vm.ToValue(cfgStr)); err != nil {
+			return nil, err
+		}
+	}
 	// Setup objects carrying data to JS. These are created once and re-used.
 	t.log = &steplog{
 		vm:       vm,
@@ -692,7 +704,6 @@ func (do *dbObj) GetState(addrSlice goja.Value, hashSlice goja.Value) goja.Value
 	}
 	hash := common.BytesToHash(h)
 	state := do.db.GetState(addr, hash.Bytes())
-
 	res, err := do.toBuf(do.vm, state)
 	if err != nil {
 		do.vm.Interrupt(err)
@@ -878,7 +889,6 @@ func (r *callframeResult) GetError() goja.Value {
 		return r.vm.ToValue(r.err.Error())
 	}
 	return goja.Undefined()
-
 }
 
 func (r *callframeResult) setupObject() *goja.Object {

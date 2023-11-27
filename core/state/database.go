@@ -65,13 +65,28 @@ type Database interface {
 
 // Trie is a Ethereum Merkle Trie.
 type Trie interface {
+	// TryGet returns the value for key stored in the trie. The value bytes must
+	// not be modified by the caller. If a node was not found in the database, a
+	// trie.MissingNodeError is returned.
 	TryGet(key []byte) ([]byte, error)
+
+	// TryGetAccount abstract an account read from the trie.
+	TryGetAccount(key []byte) (*types.StateAccount, error)
+
+	// TryUpdate associates key with value in the trie. If value has length zero, any
+	// existing value is deleted from the trie. The value bytes must not be modified
+	// by the caller while they are stored in the trie. If a node was not found in the
+	// database, a trie.MissingNodeError is returned.
+	TryUpdate(key, value []byte) error
 
 	// TryUpdateAccount abstract an account write in the trie.
 	TryUpdateAccount(key []byte, account *types.StateAccount) error
 
-	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
+
+	// TryDeleteAccount abstracts an account deletion from the trie.
+	TryDeleteAccount(key []byte) error
+
 	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
@@ -103,18 +118,18 @@ type cachingDB struct {
 
 // OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	return trie.NewSecure(common.Hash{}, root, db.db)
+	return trie.NewStateTrie(common.Hash{}, root, db.db)
 }
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
-	return trie.NewSecure(addrHash, root, db.db)
+	return trie.NewStateTrie(addrHash, root, db.db)
 }
 
 // CopyTrie returns an independent copy of the given trie.
 func (db *cachingDB) CopyTrie(t Trie) Trie {
 	switch t := t.(type) {
-	case *trie.SecureTrie:
+	case *trie.StateTrie:
 		return t.Copy()
 	default:
 		panic(fmt.Errorf("unknown trie type %T", t))
@@ -123,7 +138,7 @@ func (db *cachingDB) CopyTrie(t Trie) Trie {
 
 func (db *cachingDB) NewTrie(t Trie) Trie {
 	switch t := t.(type) {
-	case *trie.SecureTrie:
+	case *trie.StateTrie:
 		return t.New()
 	default:
 		panic(fmt.Errorf("unknown trie type %T", t))

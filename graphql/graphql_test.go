@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -53,7 +54,7 @@ func TestBuildSchema(t *testing.T) {
 	}
 	defer stack.Close()
 	// Make sure the schema can be parsed and matched up to the object model.
-	if err := newHandler(stack, nil, []string{}, []string{}); err != nil {
+	if err := newHandler(stack, nil, nil, []string{}, []string{}); err != nil {
 		t.Errorf("Could not construct GraphQL handler: %v", err)
 	}
 }
@@ -269,7 +270,8 @@ func createGQLService(t *testing.T, stack *node.Node) {
 	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
 		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
 	// create gql service
-	err = New(stack, ethBackend.APIBackend, []string{}, []string{})
+	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
+	err = New(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
 	if err != nil {
 		t.Fatalf("could not create graphql service: %v", err)
 	}
@@ -351,7 +353,8 @@ func createGQLServiceWithTransactions(t *testing.T, stack *node.Node) {
 			b.AddTx(envelopTx)
 		})
 	// create gql service
-	err = New(stack, ethBackend.APIBackend, []string{}, []string{})
+	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
+	err = New(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
 	if err != nil {
 		t.Fatalf("could not create graphql service: %v", err)
 	}

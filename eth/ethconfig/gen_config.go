@@ -46,6 +46,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DBValidatorsHistory      bool
 		VMWasmType               string
 		VmTimeoutDuration        uint64
+		FilterLogCacheSize       int
 		Miner                    miner.Config
 		MiningLogAtDepth         uint
 		TxChanSize               int
@@ -106,6 +107,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DBValidatorsHistory = c.DBValidatorsHistory
 	enc.VMWasmType = c.VMWasmType
 	enc.VmTimeoutDuration = c.VmTimeoutDuration
+	enc.FilterLogCacheSize = c.FilterLogCacheSize
 	enc.Miner = c.Miner
 	enc.MiningLogAtDepth = c.MiningLogAtDepth
 	enc.TxChanSize = c.TxChanSize
@@ -170,6 +172,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DBValidatorsHistory      *bool
 		VMWasmType               *string
 		VmTimeoutDuration        *uint64
+		FilterLogCacheSize       *int
 		Miner                    *miner.Config
 		MiningLogAtDepth         *uint
 		TxChanSize               *int
@@ -290,6 +293,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.VmTimeoutDuration != nil {
 		c.VmTimeoutDuration = *dec.VmTimeoutDuration
+	}
+	if dec.FilterLogCacheSize != nil {
+		c.FilterLogCacheSize = *dec.FilterLogCacheSize
 	}
 	if dec.Miner != nil {
 		c.Miner = *dec.Miner

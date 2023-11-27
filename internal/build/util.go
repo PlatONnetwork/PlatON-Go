@@ -30,6 +30,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -40,7 +41,7 @@ var DryRunFlag = flag.Bool("n", false, "dry run, don't execute commands")
 // MustRun executes the given command and exits the host process for
 // any error.
 func MustRun(cmd *exec.Cmd) {
-	fmt.Println(">>>", strings.Join(cmd.Args, " "))
+	fmt.Println(">>>", printArgs(cmd.Args))
 	if !*DryRunFlag {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -48,6 +49,20 @@ func MustRun(cmd *exec.Cmd) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func printArgs(args []string) string {
+	var s strings.Builder
+	for i, arg := range args {
+		if i > 0 {
+			s.WriteByte(' ')
+		}
+		if strings.IndexByte(arg, ' ') >= 0 {
+			arg = strconv.QuoteToASCII(arg)
+		}
+		s.WriteString(arg)
+	}
+	return s.String()
 }
 
 func MustRunCommand(cmd string, args ...string) {
@@ -121,28 +136,6 @@ func render(tpl *template.Template, outputFile string, outputPerm os.FileMode, x
 	}
 }
 
-// CopyFile copies a file.
-func CopyFile(dst, src string, mode os.FileMode) {
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		log.Fatal(err)
-	}
-	destFile, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer destFile.Close()
-
-	srcFile, err := os.Open(src)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer srcFile.Close()
-
-	if _, err := io.Copy(destFile, srcFile); err != nil {
-		log.Fatal(err)
-	}
-}
-
 // GoTool returns the command that runs a go tool. This uses go from GOROOT instead of PATH
 // so that go commands executed by build use the same version of Go as the 'host' that runs
 // build code. e.g.
@@ -173,17 +166,6 @@ var no_compile_cmd = []string{
 	"/wnode",
 }
 
-// Insist on whether the package needs to compile
-func needCompile(strPack string) bool {
-	for _, value := range no_compile_cmd {
-		if strings.Contains(strPack, value) {
-			return false
-		}
-	}
-
-	return true
-}
-
 // UploadSFTP uploads files to a remote host using the sftp command line tool.
 // The destination host may be specified either as [user@]host[: or as a URI in
 // the form sftp://[user@]host[:port].
@@ -194,18 +176,18 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 		sftp.Args = append(sftp.Args, "-i", identityFile)
 	}
 	sftp.Args = append(sftp.Args, host)
-	fmt.Println(">>>", strings.Join(sftp.Args, " "))
+	fmt.Println(">>>", printArgs(sftp.Args))
 	if *DryRunFlag {
 		return nil
 	}
 
 	stdin, err := sftp.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("can't create stdin pipe for sftp: %v", err)
+	}
 	stdout, err := sftp.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("can't create stdout pipe for sftp: %v", err)
-	}
-	if err != nil {
-		return fmt.Errorf("can't create stdin pipe for sftp: %v", err)
 	}
 	if err := sftp.Start(); err != nil {
 		return err
@@ -235,10 +217,8 @@ func UploadSFTP(identityFile, host, dir string, files []string) error {
 				aborted = true
 				sftp.Process.Kill()
 			}
-
 		}
 	}()
-
 	stdin.Close()
 	err = sftp.Wait()
 	if aborted {
