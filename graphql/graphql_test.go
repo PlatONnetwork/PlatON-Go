@@ -17,6 +17,8 @@
 package graphql
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -54,15 +56,20 @@ func TestBuildSchema(t *testing.T) {
 	}
 	defer stack.Close()
 	// Make sure the schema can be parsed and matched up to the object model.
-	if err := newHandler(stack, nil, nil, []string{}, []string{}); err != nil {
+	if _, err := newHandler(stack, nil, nil, []string{}, []string{}); err != nil {
 		t.Errorf("Could not construct GraphQL handler: %v", err)
 	}
 }
 
 // Tests that a graphQL request is successfully handled when graphql is enabled on the specified endpoint
 func TestGraphQLBlockSerialization(t *testing.T) {
-	stack := createNode(t, true, false)
+	stack := createNode(t)
 	defer stack.Close()
+	genesis := &core.Genesis{
+		Config:   params.AllEthashProtocolChanges,
+		GasLimit: 11500000,
+	}
+	newGQLService(t, stack, genesis, 10, func(i int, gen *core.BlockGen) {})
 	// start node
 	if err := stack.Start(); err != nil {
 		t.Fatalf("could not start node: %v", err)
@@ -164,8 +171,54 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 }
 
 func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
-	stack := createNode(t, true, true)
+	// Account for signing txes
+	var (
+		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		address = crypto.PubkeyToAddress(key.PublicKey)
+		funds   = big.NewInt(1000000000000000)
+		dad     = common.HexToAddress("0x0000000000000000000000000000000000000dad")
+	)
+	stack := createNode(t)
 	defer stack.Close()
+	genesis := &core.Genesis{
+		Config:   params.AllEthashProtocolChanges,
+		GasLimit: 11500000,
+		Alloc: core.GenesisAlloc{
+			address: {Balance: funds},
+			// The address 0xdad sloads 0x00 and 0x01
+			dad: {
+				Code:    []byte{byte(vm.PC), byte(vm.PC), byte(vm.SLOAD), byte(vm.SLOAD)},
+				Nonce:   0,
+				Balance: big.NewInt(0),
+			},
+		},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
+	signer := types.LatestSigner(genesis.Config, false)
+	newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
+		gen.SetCoinbase(common.Address{1})
+		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{
+			Nonce:    uint64(0),
+			To:       &dad,
+			Value:    big.NewInt(100),
+			Gas:      50000,
+			GasPrice: big.NewInt(params.InitialBaseFee),
+		})
+		gen.AddTx(tx)
+		tx, _ = types.SignNewTx(key, signer, &types.AccessListTx{
+			ChainID:  genesis.Config.ChainID,
+			Nonce:    uint64(1),
+			To:       &dad,
+			Gas:      30000,
+			GasPrice: big.NewInt(params.InitialBaseFee),
+			Value:    big.NewInt(50),
+			AccessList: types.AccessList{{
+				Address:     dad,
+				StorageKeys: []common.Hash{{0}},
+			}},
+		})
+		gen.AddTx(tx)
+	})
 	// start node
 	if err := stack.Start(); err != nil {
 		t.Fatalf("could not start node: %v", err)
@@ -201,7 +254,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 
 // Tests that a graphQL request is not handled successfully when graphql is not enabled on the specified endpoint
 func TestGraphQLHTTPOnSamePort_GQLRequest_Unsuccessful(t *testing.T) {
-	stack := createNode(t, false, false)
+	stack := createNode(t)
 	defer stack.Close()
 	if err := stack.Start(); err != nil {
 		t.Fatalf("could not start node: %v", err)
@@ -215,7 +268,58 @@ func TestGraphQLHTTPOnSamePort_GQLRequest_Unsuccessful(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
-func createNode(t *testing.T, gqlEnabled bool, txEnabled bool) *node.Node {
+func TestGraphQLTransactionLogs(t *testing.T) {
+	var (
+		key, _  = crypto.GenerateKey()
+		addr    = crypto.PubkeyToAddress(key.PublicKey)
+		dadStr  = "0x0000000000000000000000000000000000000dad"
+		dad     = common.HexToAddress(dadStr)
+		genesis = &core.Genesis{
+			Config:   params.AllEthashProtocolChanges,
+			GasLimit: 11500000,
+			Alloc: core.GenesisAlloc{
+				addr: {Balance: big.NewInt(params.LAT)},
+				dad: {
+					// LOG0(0, 0), LOG0(0, 0), RETURN(0, 0)
+					Code:    common.Hex2Bytes("60006000a060006000a060006000f3"),
+					Nonce:   0,
+					Balance: big.NewInt(0),
+				},
+			},
+		}
+		signer = types.LatestSigner(genesis.Config, false)
+		stack  = createNode(t)
+	)
+	defer stack.Close()
+
+	handler := newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
+		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
+		gen.AddTx(tx)
+		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Nonce: 1, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
+		gen.AddTx(tx)
+		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{To: &dad, Nonce: 2, Gas: 100000, GasPrice: big.NewInt(params.InitialBaseFee)})
+		gen.AddTx(tx)
+	})
+	// start node
+	if err := stack.Start(); err != nil {
+		t.Fatalf("could not start node: %v", err)
+	}
+	query := `{block { transactions { logs { account { address } } } } }`
+	res := handler.Schema.Exec(context.Background(), query, "", map[string]interface{}{})
+	if res.Errors != nil {
+		t.Fatalf("graphql query failed: %v", res.Errors)
+	}
+	have, err := json.Marshal(res.Data)
+	if err != nil {
+		t.Fatalf("failed to encode graphql response: %s", err)
+	}
+	want := fmt.Sprintf(`{"block":{"transactions":[{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]},{"logs":[{"account":{"address":"%s"}},{"account":{"address":"%s"}}]}]}}`, dadStr, dadStr, dadStr, dadStr, dadStr, dadStr)
+	if string(have) != want {
+		t.Errorf("response unmatch. expected %s, got %s", want, have)
+	}
+}
+
+func createNode(t *testing.T) *node.Node {
 	stack, err := node.New(&node.Config{
 		HTTPHost: "127.0.0.1",
 		HTTPPort: 0,
@@ -225,19 +329,10 @@ func createNode(t *testing.T, gqlEnabled bool, txEnabled bool) *node.Node {
 	if err != nil {
 		t.Fatalf("could not create node: %v", err)
 	}
-	if !gqlEnabled {
-		return stack
-	}
-	if !txEnabled {
-		createGQLService(t, stack)
-	} else {
-		createGQLServiceWithTransactions(t, stack)
-	}
 	return stack
 }
 
-func createGQLService(t *testing.T, stack *node.Node) {
-	// create backend
+func newGQLService(t *testing.T, stack *node.Node, gspec *core.Genesis, genBlocks int, genfunc func(i int, gen *core.BlockGen)) *handler {
 	ethConf := &ethconfig.Config{
 		Genesis: &core.Genesis{
 			Config:        params.TestChainConfig,
@@ -269,93 +364,11 @@ func createGQLService(t *testing.T, stack *node.Node) {
 
 	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
 		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 10, func(i int, gen *core.BlockGen) {})
-	// create gql service
+	// Set up handler
 	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
-	err = New(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
+	handler, err := newHandler(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
 	if err != nil {
 		t.Fatalf("could not create graphql service: %v", err)
 	}
-}
-
-func createGQLServiceWithTransactions(t *testing.T, stack *node.Node) {
-	// create backend
-	key, _ := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	address := crypto.PubkeyToAddress(key.PublicKey)
-	funds := big.NewInt(1000000000)
-	dad := common.HexToAddress("0x0000000000000000000000000000000000000dad")
-
-	ethConf := &ethconfig.Config{
-		Genesis: &core.Genesis{
-			Config:   params.TestChainConfig,
-			GasLimit: 11500000,
-			Alloc: core.GenesisAlloc{
-				address: {Balance: funds},
-				// The address 0xdad sloads 0x00 and 0x01
-				dad: {
-					Code: []byte{
-						byte(vm.PC),
-						byte(vm.PC),
-						byte(vm.SLOAD),
-						byte(vm.SLOAD),
-					},
-					Nonce:   0,
-					Balance: big.NewInt(0),
-				},
-			},
-		},
-		NetworkId:               1337,
-		TrieCleanCache:          5,
-		TrieCleanCacheJournal:   "triecache",
-		TrieCleanCacheRejournal: 60 * time.Minute,
-		TrieDirtyCache:          5,
-		TrieTimeout:             60 * time.Minute,
-		SnapshotCache:           5,
-		BlockCacheLimit:         256,
-		MaxFutureBlocks:         256,
-	}
-	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 1)
-
-	ethBackend, err := eth.New(stack, ethConf)
-	if err != nil {
-		t.Fatalf("could not create eth backend: %v", err)
-	}
-
-	signer := types.NewPIP7Signer(ethConf.Genesis.Config.ChainID, ethConf.Genesis.Config.PIP7ChainID)
-
-	legacyTx, _ := types.SignNewTx(key, signer, &types.LegacyTx{
-		Nonce:    uint64(0),
-		To:       &dad,
-		Value:    big.NewInt(100),
-		Gas:      50000,
-		GasPrice: big.NewInt(1),
-	})
-
-	signer1 := types.NewLondonSigner(ethConf.Genesis.Config.PIP7ChainID)
-	envelopTx, _ := types.SignNewTx(key, signer1, &types.AccessListTx{
-		ChainID:  ethConf.Genesis.Config.PIP7ChainID,
-		Nonce:    uint64(1),
-		To:       &dad,
-		Gas:      30000,
-		GasPrice: big.NewInt(1),
-		Value:    big.NewInt(50),
-		AccessList: types.AccessList{{
-			Address:     dad,
-			StorageKeys: []common.Hash{{0}},
-		}},
-	})
-
-	// Create some blocks and import them
-	core.GenerateBlockChain3(params.TestChainConfig, ethBackend.BlockChain().Genesis(),
-		consensus.NewFakerWithDataBase(ethBackend.ChainDb(), ethBackend.BlockChain().Genesis()), ethBackend.BlockChain(), 1, func(i int, b *core.BlockGen) {
-			b.SetCoinbase(common.Address{1})
-			b.SetActiveVersion(params.FORKVERSION_1_5_0)
-			b.AddTx(legacyTx)
-			b.AddTx(envelopTx)
-		})
-	// create gql service
-	filterSystem := filters.NewFilterSystem(ethBackend.APIBackend, filters.Config{})
-	err = New(stack, ethBackend.APIBackend, filterSystem, []string{}, []string{})
-	if err != nil {
-		t.Fatalf("could not create graphql service: %v", err)
-	}
+	return handler
 }
