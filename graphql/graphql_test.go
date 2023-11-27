@@ -20,6 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
+	"net/http"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -32,12 +39,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"math/big"
-	"net/http"
-	"strings"
-	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 
@@ -194,7 +195,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 		},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
-	signer := types.LatestSigner(genesis.Config, false)
+	signer := types.LatestSigner(genesis.Config, true)
 	newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
 		gen.SetCoinbase(common.Address{1})
 		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{
@@ -287,7 +288,7 @@ func TestGraphQLTransactionLogs(t *testing.T) {
 				},
 			},
 		}
-		signer = types.LatestSigner(genesis.Config, false)
+		signer = types.LatestSigner(genesis.Config, true)
 		stack  = createNode(t)
 	)
 	defer stack.Close()
