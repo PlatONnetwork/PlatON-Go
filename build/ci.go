@@ -58,6 +58,7 @@ import (
 	signifyPkg "github.com/PlatONnetwork/PlatON-Go/crypto/signify"
 	"github.com/PlatONnetwork/PlatON-Go/internal/build"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/cespare/cp"
 )
 
 var (
