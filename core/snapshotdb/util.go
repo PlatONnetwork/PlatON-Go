@@ -18,11 +18,12 @@ package snapshotdb
 
 import (
 	"bytes"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"math/rand"
 	"sort"
 	"time"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -108,10 +109,7 @@ func (k kvs) Len() int {
 
 func (k kvs) Less(i, j int) bool {
 	n := bytes.Compare(k[i].key, k[j].key)
-	if n == -1 {
-		return true
-	}
-	return false
+	return n == -1
 }
 
 func (k kvs) Swap(i, j int) {
@@ -125,10 +123,7 @@ func (k kvsMaxToMin) Len() int {
 }
 
 func (k kvsMaxToMin) Less(i, j int) bool {
-	if bytes.Compare(k[i].key, k[j].key) >= 0 {
-		return true
-	}
-	return false
+	return bytes.Compare(k[i].key, k[j].key) >= 0
 }
 
 func (k kvsMaxToMin) Swap(i, j int) {
