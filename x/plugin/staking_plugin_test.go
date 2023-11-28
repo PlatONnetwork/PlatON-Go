@@ -496,7 +496,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
-	currentNumber := big.NewInt(1)
 
 	// build genesis veriferList and validatorList
 	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
@@ -687,7 +686,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 
 	// SetCurrent to snapshotDB
-	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
 		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
@@ -813,7 +812,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
-	currentNumber := big.NewInt(1)
 
 	// build genesis veriferList and validatorList
 	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
@@ -1004,7 +1002,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}
 
 	// SetCurrent to snapshotDB
-	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
 		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
@@ -1973,7 +1971,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+	_, _, _, _, _, err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0), true)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {

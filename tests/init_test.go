@@ -161,16 +161,6 @@ func (tm *testMatcher) findSkip(name string) (reason string, skipload bool) {
 	return "", false
 }
 
-// findConfig returns the chain config matching defined patterns.
-func (tm *testMatcher) findConfig(t *testing.T) *params.ChainConfig {
-	for _, m := range tm.configpat {
-		if m.p.MatchString(t.Name()) {
-			return &m.config
-		}
-	}
-	return new(params.ChainConfig)
-}
-
 // checkFailure checks whether a failure is expected.
 func (tm *testMatcher) checkFailure(t *testing.T, err error) error {
 	failReason := ""

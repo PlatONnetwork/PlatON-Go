@@ -18,8 +18,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
-	"golang.org/x/crypto/ripemd160"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -976,10 +974,10 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_ripemd160_test",
+		funcName: "platon_sha256_test",
 		check: func(self *Case, err error) bool {
 			input := []byte{1, 2, 3}
-			rip := ripemd160.New()
+			rip := sha256.New()
 			rip.Write(input)
 			h160 := rip.Sum(nil)
 			return bytes.Equal(h160[:], self.ctx.Output)

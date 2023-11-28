@@ -94,7 +94,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 
-	return stakingValIndex, validatorQueue, staking.Candidate{&canBase, &canMu}, delegation
+	return stakingValIndex, validatorQueue, staking.Candidate{CandidateBase: &canBase, CandidateMutable: &canMu}, delegation
 }
 
 func TestWithdrawDelegateRewardWithReward(t *testing.T) {
