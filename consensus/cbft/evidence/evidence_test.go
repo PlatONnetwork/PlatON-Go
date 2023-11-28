@@ -69,17 +69,17 @@ func TestAddAndClear(t *testing.T) {
 			pb := makePrepareBlock(epoch, viewNumber, block, uint32(j), node.Index, t, secretKeys[i])
 			assert.Nil(t, pool.AddPrepareBlock(pb, node))
 
-			pv := makePrepareVote(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(j), uint32(node.Index), t, secretKeys[i])
+			pv := makePrepareVote(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(j), node.Index, t, secretKeys[i])
 			assert.Nil(t, pool.AddPrepareVote(pv, node))
 
 			blockNumber = blockNumber + 1
 		}
 
-		identity := Identity(fmt.Sprintf("%d%d%d", epoch, viewNumber, uint32(node.Index)))
+		identity := Identity(fmt.Sprintf("%d%d%d", epoch, viewNumber, node.Index))
 		assert.True(t, sort.IsSorted(pool.pb[identity]))
 		assert.True(t, sort.IsSorted(pool.pv[identity]))
 
-		vc := makeViewChange(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(node.Index), t, secretKeys[i])
+		vc := makeViewChange(epoch, viewNumber, block.Hash(), block.NumberU64(), node.Index, t, secretKeys[i])
 		assert.Nil(t, pool.AddViewChange(vc, node))
 
 		viewNumber = viewNumber + 1

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package wal
 
 import (
@@ -55,10 +54,8 @@ func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 		var j MessageConfirmedViewChange
 		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
-
 		}
 		return j.Data, nil
-
 	case protocols.SendViewChangeMsg:
 		var j MessageSendViewChange
 		if err := rlp.DecodeBytes(pack, &j); err != nil {
@@ -66,14 +63,12 @@ func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 
 		}
 		return j.Data, nil
-
 	case protocols.SendPrepareBlockMsg:
 		var j MessageSendPrepareBlock
 		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
 		}
 		return j.Data, nil
-
 	case protocols.SendPrepareVoteMsg:
 		var j MessageSendPrepareVote
 		if err := rlp.DecodeBytes(pack, &j); err != nil {

@@ -74,7 +74,7 @@ func (tasks *dialedTasks) offer(task *dialTask) {
 }
 
 // remove the first task in the queue
-func (tasks *dialedTasks) poll() *dialTask {
+/*func (tasks *dialedTasks) poll() *dialTask {
 	if tasks.isEmpty() {
 		log.Info("dialedTasks is empty!")
 		return nil
@@ -83,7 +83,7 @@ func (tasks *dialedTasks) poll() *dialTask {
 	pollTask := tasks.queue[0]
 	tasks.queue = tasks.queue[1:]
 	return pollTask
-}
+}*/
 
 // remove the specify index task in the queue
 func (tasks *dialedTasks) pollIndex(index int) *dialTask {
@@ -113,7 +113,7 @@ func (tasks *dialedTasks) size() int {
 }
 
 // clear queue
-func (tasks *dialedTasks) clear() bool {
+/*func (tasks *dialedTasks) clear() bool {
 	if tasks.isEmpty() {
 		log.Info("queue is empty!")
 		return false
@@ -123,14 +123,11 @@ func (tasks *dialedTasks) clear() bool {
 	}
 	tasks.queue = nil
 	return true
-}
+}*/
 
 // whether the queue is empty
 func (tasks *dialedTasks) isEmpty() bool {
-	if len(tasks.queue) == 0 {
-		return true
-	}
-	return false
+	return len(tasks.queue) == 0
 }
 
 func (tasks *dialedTasks) description() []string {

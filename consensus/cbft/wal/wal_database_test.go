@@ -55,7 +55,7 @@ func TestWALDatabase(t *testing.T) {
 
 	// Delete
 	assert.Nil(t, waldb.Delete(testKey))
-	exist, err = waldb.Has(testKey)
+	exist, _ = waldb.Has(testKey)
 	assert.False(t, exist)
 
 	// NewIterator

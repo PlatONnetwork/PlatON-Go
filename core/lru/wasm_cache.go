@@ -5,8 +5,9 @@ import (
 
 	"github.com/PlatONnetwork/wagon/exec"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/hashicorp/golang-lru/simplelru"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
@@ -73,16 +74,7 @@ func (w *WasmLDBCache) Get(key common.Address) (*WasmModule, bool) {
 func (w *WasmLDBCache) Contains(key common.Address) bool {
 	w.lock.RLock()
 	defer w.lock.RUnlock()
-	if !w.lru.Contains(key) {
-		//ok := false
-		//if w.db != nil {
-		//	ok, _ = w.db.Has(key.Bytes(), nil)
-		//}
-		//return ok
-
-		return false
-	}
-	return true
+	return w.lru.Contains(key)
 }
 
 // Returns the key value (or undefined if not found) without updating
