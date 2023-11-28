@@ -22,9 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/stretchr/testify/assert"
 
@@ -38,7 +37,7 @@ import (
 )
 
 func init() {
-	log.Root().SetHandler(log.DiscardHandler())
+	//log.Root().SetHandler(log.DiscardHandler())
 	fetcher.SetArriveTimeout(10 * time.Second)
 }
 
@@ -91,8 +90,8 @@ func TestFetch(t *testing.T) {
 				select {
 				//case <-timer.C:
 				//	t.Fatal("execute block timeout")
-				case <-execute:
-
+				case n := <-execute:
+					log.Info("===================================", "n", n)
 				}
 				index, finish := nodes[j].engine.state.Executing()
 				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
