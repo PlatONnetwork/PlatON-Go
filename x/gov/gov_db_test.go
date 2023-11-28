@@ -933,10 +933,6 @@ func newBlock(chain *mock.Chain) common.Hash {
 	return chain.CurrentHeader().Hash()
 }
 
-func commitBlock(snapdbTest snapshotdb.DB, blockhash common.Hash) error {
-	return snapdbTest.Commit(blockhash)
-}
-
 func getTxtProposal() *TextProposal {
 	return &TextProposal{
 		ProposalID:   common.Hash{0x01},

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package state
 
 import (
@@ -30,10 +29,8 @@ func TestTimer(t *testing.T) {
 	viewTimer := &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: uint64(1 * time.Second), exponentBase: exponentBase, maxExponent: maxExponent}}
 	viewTimer.setupTimer(1)
 	assert.False(t, viewTimer.isDeadline())
-	select {
-	case <-viewTimer.timerChan():
-		assert.True(t, viewTimer.isDeadline())
-	}
+	<-viewTimer.timerChan()
+	assert.True(t, viewTimer.isDeadline())
 }
 
 func TestCalViewInterval(t *testing.T) {

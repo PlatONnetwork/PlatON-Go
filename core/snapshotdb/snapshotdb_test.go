@@ -132,7 +132,7 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(kv.value, val) != 0 {
+			if !bytes.Equal(kv.value, val) {
 				t.Error("must find key", i)
 			}
 		}
@@ -232,7 +232,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					if bytes.Compare(kv.value, val) != 0 {
+					if !bytes.Equal(kv.value, val) {
 						t.Error("must find key")
 					}
 				}
@@ -262,7 +262,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					if bytes.Compare(kv.value, val) != 0 {
+					if !bytes.Equal(kv.value, val) {
 						t.Error("must find key")
 					}
 				}

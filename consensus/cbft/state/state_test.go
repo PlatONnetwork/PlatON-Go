@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package state
 
 import (
@@ -69,11 +68,9 @@ func TestNewViewState(t *testing.T) {
 
 	viewState.SetViewTimer(1)
 
-	select {
-	case <-viewState.ViewTimeout():
-		assert.True(t, viewState.IsDeadline())
-		assert.True(t, viewState.IsDeadline())
-	}
+	<-viewState.ViewTimeout()
+	assert.True(t, viewState.IsDeadline())
+	assert.True(t, viewState.IsDeadline())
 }
 
 func TestPrepareVoteQueue(t *testing.T) {
