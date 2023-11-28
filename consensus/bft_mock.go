@@ -20,9 +20,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -109,7 +110,7 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	}
 
 	if bm.chain != nil {
-		root := common.ZeroHash
+		var root common.Hash
 		if block.ParentHash() == bm.genesis.Hash() {
 			root = bm.genesis.Root()
 		} else if len(bm.Blocks) == 0 {
