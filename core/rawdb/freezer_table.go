@@ -51,8 +51,8 @@ var (
 // offset within the file to the end of the data.
 // In serialized form, the filenum is stored as uint16.
 type indexEntry struct {
-	filenum uint32 // stored as uint16 ( 2 bytes)
-	offset  uint32 // stored as uint32 ( 4 bytes)
+	filenum uint32 // stored as uint16 ( 2 bytes )
+	offset  uint32 // stored as uint32 ( 4 bytes )
 }
 
 const indexEntrySize = 6
@@ -120,12 +120,12 @@ type freezerTable struct {
 	writeMeter metrics.Meter // Meter for measuring the effective amount of data written
 	sizeGauge  metrics.Gauge // Gauge for tracking the combined size of all freezer tables
 
-	logger log.Logger   // Logger with database path and table name ambedded
+	logger log.Logger   // Logger with database path and table name embedded
 	lock   sync.RWMutex // Mutex protecting the data file descriptors
 }
 
-// NewFreezerTable opens the given path as a freezer table.
-func NewFreezerTable(path, name string, disableSnappy, readonly bool) (*freezerTable, error) {
+// newFreezerTable opens the given path as a freezer table.
+func newFreezerTable(path, name string, disableSnappy, readonly bool) (*freezerTable, error) {
 	return newTable(path, name, metrics.NilMeter{}, metrics.NilMeter{}, metrics.NilGauge{}, freezerTableSize, disableSnappy, readonly)
 }
 
@@ -885,9 +885,7 @@ func (t *freezerTable) Sync() error {
 	return t.head.Sync()
 }
 
-// DumpIndex is a debug print utility function, mainly for testing. It can also
-// be used to analyse a live freezer table index.
-func (t *freezerTable) DumpIndex(start, stop int64) {
+func (t *freezerTable) dumpIndexStdout(start, stop int64) {
 	t.dumpIndex(os.Stdout, start, stop)
 }
 

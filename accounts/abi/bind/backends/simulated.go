@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -72,7 +73,8 @@ type SimulatedBackend struct {
 	pendingState    *state.StateDB // Currently pending state that will be the active on request
 	pendingReceipts types.Receipts // Currently receipts for the pending block
 
-	events *filters.EventSystem // Event system for filtering log events live
+	events       *filters.EventSystem  // for filtering log events live
+	filterSystem *filters.FilterSystem // for filtering database logs
 
 	config *params.ChainConfig
 }
@@ -81,7 +83,8 @@ type SimulatedBackend struct {
 // and uses a simulated blockchain for testing purposes.
 // A simulated backend always uses chainID 1337.
 func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
-	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, GasLimit: gasLimit, Alloc: alloc}
+	genesis := core.Genesis{Config: params.AllEthashProtocolChangesTest, GasLimit: gasLimit, Alloc: alloc}
+	xcom.GetEc(xcom.DefaultUnitTestNet)
 	gBlock := genesis.MustCommit(database)
 	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, consensus.NewFakerWithDataBase(database, gBlock), vm.Config{}, nil, nil)
 
@@ -90,7 +93,10 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 		blockchain: blockchain,
 		config:     genesis.Config,
 	}
-	backend.events = filters.NewEventSystem(&filterBackend{database, blockchain, backend}, false)
+
+	filterBackend := &filterBackend{database, blockchain, backend}
+	backend.filterSystem = filters.NewFilterSystem(filterBackend, filters.Config{})
+	backend.events = filters.NewEventSystem(backend.filterSystem, false)
 	backend.rollback()
 	return backend
 }
@@ -667,7 +673,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query ethereum.Filter
 	var filter *filters.Filter
 	if query.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = filters.NewBlockFilter(&filterBackend{b.database, b.blockchain, b}, *query.BlockHash, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewBlockFilter(*query.BlockHash, query.Addresses, query.Topics)
 	} else {
 		// Initialize unset filter boundaries to run from genesis to chain head
 		from := int64(0)
@@ -679,7 +685,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query ethereum.Filter
 			to = query.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter = filters.NewRangeFilter(&filterBackend{b.database, b.blockchain, b}, from, to, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
 	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
@@ -834,19 +840,8 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
 }
 
-func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
-	number := rawdb.ReadHeaderNumber(fb.db, hash)
-	if number == nil {
-		return nil, nil
-	}
-	receipts := rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config())
-	if receipts == nil {
-		return nil, nil
-	}
-	logs := make([][]*types.Log, len(receipts))
-	for i, receipt := range receipts {
-		logs[i] = receipt.Logs
-	}
+func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {
+	logs := rawdb.ReadLogs(fb.db, hash, number, fb.bc.Config())
 	return logs, nil
 }
 

@@ -369,7 +369,8 @@ func createStorageRequestResponse(t *testPeer, root common.Hash, accounts []comm
 	return hashes, slots, proofs
 }
 
-//  the createStorageRequestResponseAlwaysProve tests a cornercase, where it always
+//	the createStorageRequestResponseAlwaysProve tests a cornercase, where it always
+//
 // supplies the proof for the last account, even if it is 'complete'.h
 func createStorageRequestResponseAlwaysProve(t *testPeer, root common.Hash, accounts []common.Hash, bOrigin, bLimit []byte, max uint64) (hashes [][]common.Hash, slots [][][]byte, proofs [][]byte) {
 	var size uint64
@@ -1613,7 +1614,7 @@ func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 		}
 		accounts++
 		if acc.Root != emptyRoot {
-			storeTrie, err := trie.NewSecure(common.BytesToHash(accIt.Key), acc.Root, triedb)
+			storeTrie, err := trie.NewStateTrie(common.BytesToHash(accIt.Key), acc.Root, triedb)
 			if err != nil {
 				t.Fatal(err)
 			}

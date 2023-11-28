@@ -19,6 +19,7 @@ package eth
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/davecgh/go-spew/spew"
 	"math/big"
 	"sort"
@@ -65,7 +66,7 @@ func TestAccountRange(t *testing.T) {
 	t.Parallel()
 
 	var (
-		statedb  = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), nil)
+		statedb  = state.NewDatabaseWithConfig(rawdb.NewMemoryDatabase(), &trie.Config{Preimages: true})
 		state, _ = state.New(common.Hash{}, statedb, nil)
 		addrs    = [AccountRangeMaxResults * 2]common.Address{}
 		m        = map[common.Address]bool{}

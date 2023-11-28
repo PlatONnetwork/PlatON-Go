@@ -2,6 +2,7 @@ package params
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )

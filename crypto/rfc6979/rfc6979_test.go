@@ -22,9 +22,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 )
 
 // https://tools.ietf.org/html/rfc6979#appendix-A.1

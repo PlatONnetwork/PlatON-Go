@@ -21,14 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 	"math/big"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 
@@ -56,7 +54,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -495,9 +492,6 @@ func (s *Ethereum) APIs() []rpc.API {
 		}, {
 			Namespace: "miner",
 			Service:   NewMinerAPI(s),
-		}, {
-			Namespace: "platon",
-			Service:   filters.NewFilterAPI(s.APIBackend, false, 5*time.Minute),
 		}, {
 			Namespace: "admin",
 			Service:   NewAdminAPI(s),

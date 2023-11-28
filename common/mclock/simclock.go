@@ -58,7 +58,7 @@ func (s *Simulated) Run(d time.Duration) {
 	s.mu.Lock()
 	s.init()
 
-	end := s.now + AbsTime(d)
+	end := s.now.Add(d)
 	var do []func()
 	for len(s.scheduled) > 0 && s.scheduled[0].at <= end {
 		ev := heap.Pop(&s.scheduled).(*simTimer)

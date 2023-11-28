@@ -20,26 +20,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 )
@@ -148,7 +146,6 @@ func initGenesis(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("Failed to open snapshotdb: %v", err)
 			}
-
 		}
 		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
@@ -244,12 +241,12 @@ func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, eth
 				return nil, nil, common.Hash{}, fmt.Errorf("block %x not found", hash)
 			}
 		} else {
-			number, err := strconv.Atoi(arg)
+			number, err := strconv.ParseUint(arg, 10, 64)
 			if err != nil {
 				return nil, nil, common.Hash{}, err
 			}
-			if hash := rawdb.ReadCanonicalHash(db, uint64(number)); hash != (common.Hash{}) {
-				header = rawdb.ReadHeader(db, hash, uint64(number))
+			if hash := rawdb.ReadCanonicalHash(db, number); hash != (common.Hash{}) {
+				header = rawdb.ReadHeader(db, hash, number)
 			} else {
 				return nil, nil, common.Hash{}, fmt.Errorf("header for block %d not found", number)
 			}

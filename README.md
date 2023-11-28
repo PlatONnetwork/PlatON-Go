@@ -119,22 +119,22 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 
 ### Connect to the PlatON network
 
-| Options | description |
-| :------------ | :------------ |
-| --identity | Custom node name |
-| --datadir  | Data directory for the databases and keystore |
-| --rpcaddr  | HTTP-RPC server listening interface (default: "localhost") |
-| --rpcport  | HTTP-RPC server listening port (default: 6789) |
-| --rpcapi   | API's offered over the HTTP-RPC interface |
-| --rpc      | Enable the HTTP-RPC server |
-| --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
-| --nodekey | P2P node key file |
+| Options       | description |
+|:--------------| :------------ |
+| --identity    | Custom node name |
+| --datadir     | Data directory for the databases and keystore |
+| --http.addr   | HTTP-RPC server listening interface (default: "localhost") |
+| --http.port   | HTTP-RPC server listening port (default: 6789) |
+| --http.api    | API's offered over the HTTP-RPC interface |
+| --http        | Enable the HTTP-RPC server |
+| --nodiscover  | Disables the peer discovery mechanism (manual peer addition) |
+| --nodekey     | P2P node key file |
 | --cbft.blskey | BLS key file |
 
 Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
 
 ```
-platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
+platon --identity "platon" --datadir ./data --port {your-p2p-port} --http.addr 127.0.0.1 --http.port {your-rpc-port} --http.api "platon,net,web3,admin,personal" --http --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
 ```
 
 OK, it seems that the chain is running correctly, we can check it as follow:

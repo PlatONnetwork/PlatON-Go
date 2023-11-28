@@ -18,20 +18,21 @@ package debug
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-	"github.com/mattn/go-isatty"
 	"io"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec
 	"os"
 	"runtime"
 
+	"github.com/fjl/memsize/memsizeui"
+	"github.com/mattn/go-colorable"
+	"github.com/mattn/go-isatty"
+	"github.com/urfave/cli/v2"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
-	"github.com/fjl/memsize/memsizeui"
-	"github.com/mattn/go-colorable"
-	"github.com/urfave/cli/v2"
 )
 
 var Memsize memsizeui.Handler

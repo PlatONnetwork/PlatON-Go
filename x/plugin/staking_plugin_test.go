@@ -22,11 +22,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/trie"

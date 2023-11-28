@@ -23,7 +23,6 @@ package debug
 import (
 	"bytes"
 	"errors"
-	"github.com/hashicorp/go-bexpr"
 	"io"
 	"os"
 	"os/user"
@@ -36,9 +35,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 func GetLogVerbosity() log.Lvl {
