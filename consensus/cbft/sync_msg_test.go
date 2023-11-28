@@ -57,7 +57,7 @@ func (suit *SyncMsgTestSuite) SetupTest() {
 		select {
 		case suit.msgCh <- msg:
 		default:
-			suit.T().Fatal("fail")
+			suit.T().Error("fail")
 		}
 	}
 	for _, cbft := range suit.view.allCbft {
