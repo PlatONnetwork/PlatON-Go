@@ -18,8 +18,8 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/urfave/cli/v2"
-	"os"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -284,25 +284,6 @@ func accountUpdate(ctx *cli.Context) error {
 			utils.Fatalf("Could not update the account: %v", err)
 		}
 	}
-	return nil
-}
-func importWallet(ctx *cli.Context) error {
-	if ctx.Args().Len() != 1 {
-		utils.Fatalf("keyfile must be given as the only argument", "args.count", ctx.Args().Len())
-	}
-	keyfile := ctx.Args().First()
-	keyJSON, err := os.ReadFile(keyfile)
-	if err != nil {
-		utils.Fatalf("Could not read wallet file: %v", err)
-	}
-	stack, _ := makeConfigNode(ctx)
-	passphrase := utils.GetPassPhraseWithList("", false, 0, utils.MakePasswordList(ctx))
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	acct, err := ks.ImportPreSaleKey(keyJSON, passphrase)
-	if err != nil {
-		utils.Fatalf("%v", err)
-	}
-	fmt.Printf("Address: {%x}\n", acct.Address)
 	return nil
 }
 

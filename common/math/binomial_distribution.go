@@ -272,7 +272,7 @@ func (beta *Beta) deltaMinusDeltaSum(a float64, b float64) (float64, error) {
 			s[0] = 1.0
 
 			for i := 1; i < len(s); i++ {
-				s[i] = float64(1.0) + float64(q) + float64(q2)*s[i-1]
+				s[i] = 1.0 + float64(q) + q2*s[i-1]
 			}
 
 			sqrtT := 10.0 / b
@@ -280,11 +280,11 @@ func (beta *Beta) deltaMinusDeltaSum(a float64, b float64) (float64, error) {
 			w := DELTA[len(DELTA)-1] * s[len(s)-1]
 
 			for i := len(DELTA) - 2; i >= 0; i-- {
-				w = float64(t)*w + DELTA[i]*s[i]
+				w = t*w + DELTA[i]*s[i]
 			}
 
 			//return float64(w) * float64(p) / float64(b), nil
-			return float64(w) * p / b, nil
+			return w * p / b, nil
 		}
 	} else {
 		return 0, fmt.Errorf("%v out of [%v, %v] range", a, 0, b)
@@ -313,10 +313,10 @@ func (beta *Beta) logGammaSum(a float64, b float64) (float64, error) {
 				}
 			}
 		} else {
-			return 0, errors.New(fmt.Sprintf("%v out of [%v, %v] range", b, 1, 2))
+			return 0, fmt.Errorf("%v out of [%v, %v] range", b, 1, 2)
 		}
 	} else {
-		return 0, errors.New(fmt.Sprintf("%v out of [%v, %v] range", a, 1, 2))
+		return 0, fmt.Errorf("%v out of [%v, %v] range", a, 1, 2)
 	}
 }
 
@@ -528,11 +528,11 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 			deltaN := cN * dN
 			hN = hPrev * deltaN
 			if math.IsInf(hN, 0) {
-				return 0, errors.New(fmt.Sprintf("Continued fraction convergents diverged to +/- infinity for value %v", x))
+				return 0, fmt.Errorf("Continued fraction convergents diverged to +/- infinity for value %v", x)
 			}
 
 			if math.IsNaN(hN) {
-				return 0, errors.New(fmt.Sprintf("Continued fraction diverged to NaN for value %v", x))
+				return 0, fmt.Errorf("Continued fraction diverged to NaN for value %v", x)
 			}
 
 			if math.Abs(deltaN-1.0) >= epsilon {
@@ -545,7 +545,7 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 		}
 
 		if n >= maxIterations {
-			return 0, errors.New(fmt.Sprintf("Continued fraction convergents failed to converge (in less than %v iterations) for value %v", maxIterations, x))
+			return 0, fmt.Errorf("Continued fraction convergents failed to converge (in less than %v iterations) for value %v", maxIterations, x)
 		}
 
 		return hN, nil

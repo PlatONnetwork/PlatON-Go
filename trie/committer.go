@@ -18,8 +18,9 @@ package trie
 
 import (
 	"fmt"
-	"golang.org/x/crypto/sha3"
 	"sync"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"

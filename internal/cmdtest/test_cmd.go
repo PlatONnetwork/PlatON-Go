@@ -83,7 +83,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 // InputLine writes the given text to the child's stdin.
 // This method can also be called from an expect template, e.g.:
 //
-//     platon.expect(`Passphrase: {{.InputLine "password"}}`)
+//	platon.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
 	return ""
@@ -102,7 +102,6 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
-
 	// Generate the expected output by running the template.
 	tpl := template.Must(template.New("").Funcs(tt.Func).Parse(tplsource))
 	wantbuf := new(bytes.Buffer)
