@@ -94,7 +94,9 @@ func TestFetch(t *testing.T) {
 					log.Info("===================================", "n", n)
 				}
 				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
+				if !(index == uint32(i) && finish) {
+					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+				}
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
@@ -188,7 +190,9 @@ func TestFetch_Serial(t *testing.T) {
 
 				}
 				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
+				if !(index == uint32(i) && finish) {
+					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+				}
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
