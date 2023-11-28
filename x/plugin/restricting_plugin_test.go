@@ -277,14 +277,14 @@ func TestRestrictingPlugin_Compose3(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
-	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
 		t.Error(err)
 		return
 	}
 
 	plans := make([]restricting.RestrictingPlan, 0)
-	plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+	plans = append(plans, restricting.RestrictingPlan{Epoch: 1, Amount: big.NewInt(1e18)})
 	if err := plugin.AddRestrictingRecord(plugin.from, plugin.to, xutil.CalcBlocksEachEpoch()-10, common.ZeroHash, plans, plugin.mockDB, RestrictingTxHash); err != nil {
 		t.Error(err)
 	}
@@ -313,7 +313,7 @@ func TestRestrictingPlugin_Compose2(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
-	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
 		t.Error(err)
 		return

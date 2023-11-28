@@ -530,7 +530,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 
 		receive := make([]reward.DelegateRewardReceipt, 0)
-		receive = append(receive, reward.DelegateRewardReceipt{big.NewInt(2000000000), 1})
+		receive = append(receive, reward.DelegateRewardReceipt{Delegate: big.NewInt(2000000000), Epoch: 1})
 		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
 			return err
 		}
@@ -724,7 +724,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 
-	return stakingValIndex, validatorQueue, staking.Candidate{&canBase, &canMu}, delegation
+	return stakingValIndex, validatorQueue, staking.Candidate{CandidateBase: &canBase, CandidateMutable: &canMu}, delegation
 }
 
 func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {

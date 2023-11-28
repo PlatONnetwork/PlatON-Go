@@ -20,26 +20,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 )
@@ -148,7 +146,6 @@ func initGenesis(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("Failed to open snapshotdb: %v", err)
 			}
-
 		}
 		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {

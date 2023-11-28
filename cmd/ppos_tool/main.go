@@ -573,5 +573,4 @@ func main() {
 		}
 		getRlpData(uint16(funcType), &cfg)
 	}
-
 }
