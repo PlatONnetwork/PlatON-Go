@@ -120,13 +120,11 @@ func TestFetch(t *testing.T) {
 	timer := time.NewTimer(20 * time.Millisecond)
 
 	for {
-		select {
-		case <-timer.C:
-			if nodes[1].engine.fetcher.Len() == 1 {
-				goto SYNC
-			}
-			timer.Reset(20 * time.Millisecond)
+		<-timer.C
+		if nodes[1].engine.fetcher.Len() == 1 {
+			goto SYNC
 		}
+		timer.Reset(20 * time.Millisecond)
 	}
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
@@ -221,13 +219,11 @@ func TestFetch_Serial(t *testing.T) {
 	timer := time.NewTimer(20 * time.Millisecond)
 
 	for {
-		select {
-		case <-timer.C:
-			if nodes[1].engine.fetcher.Len() == 1 {
-				goto SYNC
-			}
-			timer.Reset(20 * time.Millisecond)
+		<-timer.C
+		if nodes[1].engine.fetcher.Len() == 1 {
+			goto SYNC
 		}
+		timer.Reset(20 * time.Millisecond)
 	}
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})

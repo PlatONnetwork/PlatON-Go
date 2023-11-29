@@ -269,7 +269,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
-				fmt.Sprintf("Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]")},
+				"Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]"},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceNumberThreshold())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 
@@ -345,7 +345,7 @@ func initParam() []*GovernParam {
 		{
 
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceFreezeDuration,
-				fmt.Sprintf("Zero production frozen time, range: [1, UnStakeFreezeDuration)")},
+				"Zero production frozen time, range: [1, UnStakeFreezeDuration)"},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(xcom.ZeroProduceFreezeDuration())), 0},
 			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
 

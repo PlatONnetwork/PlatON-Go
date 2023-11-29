@@ -112,7 +112,7 @@ func TestRecover(t *testing.T) {
 			t.Error("should be nil", err)
 			return
 		}
-		if bytes.Compare(v, value.value) != 0 {
+		if !bytes.Equal(v, value.value) {
 			t.Error("should be equal", v, []byte(value.value))
 			return
 		}
@@ -152,7 +152,7 @@ func TestRecover(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			if bytes.Compare(v, itr.Value()) != 0 {
+			if !bytes.Equal(v, itr.Value()) {
 				t.Error("kv  must compare", i)
 				return
 			}
@@ -201,10 +201,10 @@ func (k kvs) compareWithkvs(s kvs) error {
 		return fmt.Errorf("kv length not compare,want %d have %d", len(k), len(s))
 	}
 	for i := 0; i < len(k); i++ {
-		if bytes.Compare(k[i].key, s[i].key) != 0 {
+		if !bytes.Equal(k[i].key, s[i].key) {
 			return fmt.Errorf("key not compare,want %v have %v", k[i].key, s[i].key)
 		}
-		if bytes.Compare(k[i].value, s[i].value) != 0 {
+		if !bytes.Equal(k[i].value, s[i].value) {
 			return fmt.Errorf("value not compare,want %v have %v", k[i].value, s[i].value)
 		}
 	}

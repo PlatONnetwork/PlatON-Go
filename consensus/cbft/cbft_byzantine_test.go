@@ -143,7 +143,7 @@ func FakeViewChangeQC(t *testing.T, node *TestCBFT, epoch, viewNumber uint64, no
 	assert.Nil(t, node.engine.signMsgByBls(v))
 	viewChanges[nodeIndex] = v
 	viewChangeQC := node.engine.generateViewChangeQC(viewChanges)
-	viewChangeQC.QCs = append(append(viewChangeQC.QCs, viewChangeQC.QCs[0]))
+	viewChangeQC.QCs = append(viewChangeQC.QCs, viewChangeQC.QCs[0])
 	return viewChangeQC
 }
 

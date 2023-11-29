@@ -223,10 +223,6 @@ func (tv *testView) setBlockQC(number int, node *TestCBFT) {
 	}
 }
 
-func (tv *testView) ResetView(start bool, nodeNumber int) {
-	tv = newTestView(start, nodeNumber)
-}
-
 func insertBlock(cbft *Cbft, block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.AddQCBlock(block, qc)
 	cbft.insertQCBlock(block, qc)
