@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -23,13 +22,14 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/suite"
 )
 
 func TestVerifyMsgTestSuite(t *testing.T) {
@@ -46,7 +46,7 @@ type VerifyQCTestSuite struct {
 }
 
 func (suit *VerifyQCTestSuite) SetupTest() {
-	suit.view = newTestView(false, testNodeNumber)
+	suit.view = newTestView(false, 10000)
 	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
@@ -196,7 +196,7 @@ func (suit *VerifyQCTestSuite) TestVerifyChangeQCViewChangeDifViewNumber() {
 // Verification cannot pass
 func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrData() {
 	suit.insertOneBlock()
-	nodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	nodes := mockNotConsensusNode(suit.view.nodeParams, 4, testPeriod)
 	view := mockViewChange(suit.view.secondProposerBlsKey(), suit.epoch, suit.oldViewNumber, suit.blockOne.Hash(), suit.blockOne.NumberU64(), 0, suit.blockOneQC.BlockQC)
 	vs := &ctypes.ViewChangeQC{}
 	for i := 0; i < 4; i++ {
@@ -329,7 +329,7 @@ func (suit *VerifyQCTestSuite) TestPrepareVoteErr2() {
 // Verification cannot pass
 func (suit *VerifyQCTestSuite) TestVerifyPrepareQCErrData() {
 	suit.insertOneBlock()
-	nodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	nodes := mockNotConsensusNode(suit.view.nodeParams, 4, testPeriod)
 	qc := mockBlockQCWithNotConsensus(nodes[0:3], suit.blockOne, 0, nil)
 	if err := nodes[0].engine.verifyPrepareQC(suit.blockOne.NumberU64(), suit.blockOne.Hash(), qc.BlockQC); err == nil {
 		suit.T().Fatal("fail")

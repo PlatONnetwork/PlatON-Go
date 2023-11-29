@@ -152,13 +152,6 @@ func (a Address) Hex() string {
 	return "0x" + a.HexWithNoPrefix()
 }
 
-func (a Address) hex() []byte {
-	var buf [len(a)*2 + 2]byte
-	copy(buf[:2], "0x")
-	hex.Encode(buf[2:], a[:])
-	return buf[:]
-}
-
 func (a Address) HexWithNoPrefix() string {
 	unchecksummed := hex.EncodeToString(a[:])
 	sha := sha3.NewLegacyKeccak256()

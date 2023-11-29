@@ -40,7 +40,7 @@ type SyncMsgTestSuite struct {
 
 func SetupSyncMsgTestTest(t *testing.T) *SyncMsgTestSuite {
 	suit := new(SyncMsgTestSuite)
-	suit.view = newTestView(false, testNodeNumber)
+	suit.view = newTestView(false, 10000)
 	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()

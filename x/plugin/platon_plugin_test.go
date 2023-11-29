@@ -190,8 +190,8 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProgramVersion = uint32(0<<16 | 8<<8 | 0) // 65536, version: 0.8.0
-	promoteVersion     = params.CodeVersion()     // 131072, version: 2.0.0
+	initProgramVersion = uint32(0<<16 | 8<<8) // 65536, version: 0.8.0
+	promoteVersion     = params.CodeVersion() // 131072, version: 2.0.0
 
 	balanceStr = []string{
 		"90000000000000000000000000",
@@ -439,8 +439,8 @@ func build_staking_data_more(block uint64) {
 	epoch_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/22000)*22000 + 1,
 		//End:   ((block-1)/22000)*22000 + 22000,
-		Start: ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + 1,
-		End:   ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + uint64(xutil.CalcBlocksEachEpoch()),
+		Start: ((block-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + 1,
+		End:   ((block-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -453,8 +453,8 @@ func build_staking_data_more(block uint64) {
 	curr_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/250)*250 + 1,
 		//End:   ((block-1)/250)*250 + 250,
-		Start: ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + 1,
-		End:   ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + uint64(xutil.ConsensusSize()),
+		Start: ((block-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + 1,
+		End:   ((block-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 

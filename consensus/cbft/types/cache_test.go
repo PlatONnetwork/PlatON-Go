@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func TestSyncCache(t *testing.T) {
@@ -101,11 +102,11 @@ func TestCSMsgPool(t *testing.T) {
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
+		assert.NotNil(t, pool.GetPrepareBlock(1, 1, i))
 	}
 
 	for i := uint32(10); i < 11; i++ {
-		assert.Nil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
+		assert.Nil(t, pool.GetPrepareBlock(1, 1, i))
 	}
 
 	for i := uint32(0); i < 10; i++ {
@@ -117,11 +118,11 @@ func TestCSMsgPool(t *testing.T) {
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareQC(1, 1, uint32(i)))
+		assert.NotNil(t, pool.GetPrepareQC(1, 1, i))
 	}
 
 	for i := uint32(10); i < 11; i++ {
-		assert.Nil(t, pool.GetPrepareQC(1, 1, uint32(i)))
+		assert.Nil(t, pool.GetPrepareQC(1, 1, i))
 	}
 
 	//re-add
@@ -130,7 +131,7 @@ func TestCSMsgPool(t *testing.T) {
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareBlock(1, 1, uint32(i)))
+		assert.NotNil(t, pool.GetPrepareBlock(1, 1, i))
 	}
 
 	for i := uint32(0); i < 10; i++ {
@@ -138,7 +139,7 @@ func TestCSMsgPool(t *testing.T) {
 	}
 
 	for i := uint32(0); i < 10; i++ {
-		assert.NotNil(t, pool.GetPrepareQC(1, 1, uint32(i)))
+		assert.NotNil(t, pool.GetPrepareQC(1, 1, i))
 	}
 
 	for i := uint32(0); i < 10; i++ {

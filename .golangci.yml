@@ -9,10 +9,12 @@ run:
   skip-files:
     - core/genesis_alloc.go
     - log/term/terminal_notwindows.go
+    - params/version_history.go
   skip-dirs:
     - common/math
     - common/json
     - common/sort
+    - tests
 
 linters:
   disable-all: true

@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,8 +40,6 @@ import (
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -509,7 +508,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	state := stateDB.(*mock.MockStateDB)
 	state.Prepare(txHashArr[0], 0)
 
-	version := uint32(1<<16 | 2<<8 | 0)
+	version := uint32(1<<16 | 2<<8)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
 
 	if err := gov.AddActiveVersion(version, 10000, state); err != nil {

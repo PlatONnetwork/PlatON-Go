@@ -17,9 +17,9 @@
 package downloader
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )

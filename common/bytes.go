@@ -140,7 +140,7 @@ func BytesToInt64(b []byte) int64 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp int64
 	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
-	return int64(tmp)
+	return tmp
 }
 
 func Float32ToBytes(float float32) []byte {

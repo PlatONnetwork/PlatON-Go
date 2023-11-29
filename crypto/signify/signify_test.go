@@ -20,10 +20,11 @@
 package signify
 
 import (
-	"github.com/jedisct1/go-minisign"
 	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/jedisct1/go-minisign"
 )
 
 var (

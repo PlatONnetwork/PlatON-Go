@@ -113,7 +113,7 @@ func TestRecover(t *testing.T) {
 			return
 		}
 		if !bytes.Equal(v, value.value) {
-			t.Error("should be equal", v, []byte(value.value))
+			t.Error("should be equal", v, value.value)
 			return
 		}
 	}

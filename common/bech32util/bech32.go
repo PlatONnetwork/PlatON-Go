@@ -14,7 +14,6 @@ func ConvertAndEncode(hrp string, data []byte) (string, error) {
 		return "", errors.Wrap(err, "encoding bech32 failed")
 	}
 	return bech32.Encode(hrp, converted)
-
 }
 
 // DecodeAndConvert decodes a bech32 encoded string and converts to base64 encoded bytes

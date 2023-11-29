@@ -246,7 +246,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	vp.EndVotingBlock = endVotingBlock
 	vp.ActiveBlock = activeBlock
 
-	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= uint32(GetCurrentActiveVersion(state))>>8 {
+	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= GetCurrentActiveVersion(state)>>8 {
 		return NewVersionError
 	}
 

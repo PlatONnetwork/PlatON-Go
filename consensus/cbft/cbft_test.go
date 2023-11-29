@@ -228,14 +228,14 @@ func testViewChangeQC(t *testing.T, cnode []*Cbft) {
 
 func TestNode(t *testing.T) {
 	pk, sk, nodes := GenerateCbftNode(4)
-	node := MockNode(pk[0], sk[0], nodes, 5000, 10)
-	node2 := MockNode(pk[1], sk[1], nodes, 5000, 10)
+	node := MockNode(pk[0], sk[0], nodes, 2000, 10)
+	node2 := MockNode(pk[1], sk[1], nodes, 2000, 10)
 	assert.Nil(t, node.Start())
 	assert.Nil(t, node2.Start())
 
 	testSeal(t, node, node2)
 	testPrepare(t, node, node2)
-	testTimeout(t, node, node2)
+	testTimeout(t, node, node2, time.Second*3)
 }
 
 func testSeal(t *testing.T, node, node2 *TestCBFT) {
@@ -262,8 +262,8 @@ func testPrepare(t *testing.T, node, node2 *TestCBFT) {
 	assert.Nil(t, err)
 }
 
-func testTimeout(t *testing.T, node, node2 *TestCBFT) {
-	time.Sleep(10 * time.Second)
+func testTimeout(t *testing.T, node, node2 *TestCBFT, timeout time.Duration) {
+	time.Sleep(timeout)
 	pb := node.engine.state.PrepareBlockByIndex(0)
 	assert.Len(t, node.engine.state.AllViewChange(), 1)
 	assert.NotNil(t, node2.engine.OnPrepareBlock(node.engine.config.Option.NodeID.TerminalString(), pb))

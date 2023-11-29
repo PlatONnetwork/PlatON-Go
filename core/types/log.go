@@ -17,11 +17,11 @@
 package types
 
 import (
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"io"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
