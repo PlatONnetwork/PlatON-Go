@@ -75,7 +75,6 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 			NodeID:  enode.PubkeyToIDV4(&pk[i].PublicKey),
 		}
 		nodes[i].BlsPubKey = sk[i].GetPublicKey()
-
 	}
 	return nodes, sk
 }

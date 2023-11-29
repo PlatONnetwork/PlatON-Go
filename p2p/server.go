@@ -813,9 +813,7 @@ running:
 				srv.consensus = false
 			}
 			srv.dialsched.removeConsensus(n)
-			if _, ok := consensusNodes[n.ID()]; ok {
-				delete(consensusNodes, n.ID())
-			}
+			delete(consensusNodes, n.ID())
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(consensusDialedConn, false)
 				srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))

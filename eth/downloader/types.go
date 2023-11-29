@@ -57,9 +57,7 @@ func (p *pposStoragePack) Items() int     { return len(p.kvs) + len(p.blocks) }
 func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", len(p.kvs)+len(p.blocks)) }
 func (p *pposStoragePack) KVs() [][2][]byte {
 	var kv [][2][]byte
-	for _, value := range p.kvs {
-		kv = append(kv, value)
-	}
+	kv = append(kv, p.kvs...)
 	return kv
 }
 

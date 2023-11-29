@@ -18,7 +18,6 @@ package network
 
 import (
 	"crypto/rand"
-	"flag"
 	"fmt"
 	"math/big"
 	"testing"
@@ -36,8 +35,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
-
-var loglevel = flag.Int("loglevel", 4, "verbosity of logs")
 
 // Create a new PrepareBlock for testing.
 func newFakePrepareBlock() *protocols.PrepareBlock {
@@ -226,35 +223,6 @@ func newFakePong(pingTime string) *protocols.Pong {
 	}
 }
 
-// fakePeer is a simulated peer to allow testing direct network calls.
-type fakePeer struct {
-	net   p2p.MsgReadWriter // Network layer reader/writer to simulate remote messaging.
-	app   *p2p.MsgPipeRW    // Application layer reader/writer to simulate the local side.
-	*peer                   // The peer belonging to CBFT layer.
-}
-
-// newFakePeer creates a new peer registered at the given protocol manager.
-func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fakePeer, <-chan error) {
-	// Create a message pipe to communicate through.
-	app, net := p2p.MsgPipe()
-
-	// Generate a random id and create the peer.
-	var id enode.ID
-	rand.Read(id[:])
-
-	// Create a peer that belonging to cbft.
-	peer := newPeer(version, p2p.NewPeer(id, name, nil), net)
-
-	// Start the peer on a new thread
-	errc := make(chan error, 1)
-	go func() {
-		//
-		errc <- pm.handler(peer.Peer, peer.rw)
-	}()
-	tp := &fakePeer{app: app, net: net, peer: peer}
-	return tp, errc
-}
-
 // Create a new peer for testing, return peer and ID.
 func newTestPeer(version int, name string) (*peer, enode.ID) {
 	_, net := p2p.MsgPipe()
@@ -313,13 +281,12 @@ func Test_InitializePeers(t *testing.T) {
 	h4.Testing()
 
 	// Pretend to send data to p1.p2.p3
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h1.Broadcast(newFakePrepareBlockHash())
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h2.Broadcast(newFakeViewChange())
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h3.Broadcast(newFakeGetPrepareVote())
-	time.Sleep(3 * time.Second)
 }
 
 type mockCbft struct {

@@ -18,13 +18,13 @@ package logger
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"io"
 	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 type JSONLogger struct {

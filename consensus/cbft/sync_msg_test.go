@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -31,12 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-func TestSyncMsgTestSuite(t *testing.T) {
-	suite.Run(t, new(SyncMsgTestSuite))
-}
-
 type SyncMsgTestSuite struct {
-	suite.Suite
 	view          *testView
 	blockOne      *types.Block
 	blockOneQC    *protocols.BlockQuorumCert
@@ -45,8 +38,9 @@ type SyncMsgTestSuite struct {
 	msgCh         chan *ctypes.MsgPackage
 }
 
-func (suit *SyncMsgTestSuite) SetupTest() {
-	suit.view = newTestView(false, testNodeNumber)
+func SetupSyncMsgTestTest(t *testing.T) *SyncMsgTestSuite {
+	suit := new(SyncMsgTestSuite)
+	suit.view = newTestView(false, 10000)
 	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
@@ -57,12 +51,13 @@ func (suit *SyncMsgTestSuite) SetupTest() {
 		select {
 		case suit.msgCh <- msg:
 		default:
-			suit.T().Fatal("fail")
+			t.Error("fail")
 		}
 	}
 	for _, cbft := range suit.view.allCbft {
 		cbft.network.SetSendQueueHook(f)
 	}
+	return suit
 }
 
 func (suit *SyncMsgTestSuite) insertOneBlock(pb *protocols.PrepareBlock) {
@@ -78,7 +73,8 @@ func (suit *SyncMsgTestSuite) insertOneQCBlock() {
 }
 
 // normal
-func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
+func TestSyncPrepareBlock(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
 	prepareBlock := &protocols.GetPrepareBlock{
@@ -88,12 +84,12 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 	}
 	cleanCh(suit.msgCh)
 	if err := suit.view.firstProposer().OnGetPrepareBlock("", prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
@@ -102,7 +98,8 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlock() {
 // viewNumber leading
 // Behind viewNumber
 // blockIndex does not exist
-func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
+func TestSyncPrepareBlockErrData(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
 	testcases := []struct {
@@ -138,7 +135,7 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 	for _, testcase := range testcases {
 		cleanCh(suit.msgCh)
 		if err := suit.view.firstProposer().OnGetPrepareBlock("", testcase.data); err != nil {
-			suit.T().Errorf("case-%s is failed,reson:%s", testcase.name, err.Error())
+			t.Errorf("case-%s is failed,reson:%s", testcase.name, err.Error())
 		}
 		select {
 		case <-suit.msgCh:
@@ -149,7 +146,9 @@ func (suit *SyncMsgTestSuite) TestSyncPrepareBlockErrData() {
 }
 
 // normal
-func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCert() {
+func TestOnGetBlockQuorumCert(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
+
 	suit.insertOneQCBlock()
 	getQC := &protocols.GetBlockQuorumCert{
 		BlockHash:   suit.blockOne.Hash(),
@@ -157,17 +156,18 @@ func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCert() {
 	}
 	cleanCh(suit.msgCh)
 	if err := suit.view.firstProposer().OnGetBlockQuorumCert("", getQC); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
 // wrong
-func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCertErr() {
+func TestOnGetBlockQuorumCertErr(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	fmt.Println(suit.view.genesisBlock.Root().String())
 	suit.insertOneQCBlock()
 	getQC := &protocols.GetBlockQuorumCert{
@@ -175,39 +175,42 @@ func (suit *SyncMsgTestSuite) TestOnGetBlockQuorumCertErr() {
 		BlockNumber: math.MaxUint64,
 	}
 	if err := suit.view.firstProposer().OnGetBlockQuorumCert("", getQC); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 }
 
 // normal
-func (suit *SyncMsgTestSuite) TestOnBlockQuorumCert() {
+func TestOnBlockQuorumCert(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
 	time.Sleep(time.Millisecond * 30)
 	if err := suit.view.secondProposer().OnBlockQuorumCert("", suit.blockOneQC); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	if _, findQC := suit.view.secondProposer().blockTree.FindBlockAndQC(suit.blockOne.Hash(), 1); findQC == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	}
 }
 
 // normal Locally existing
-func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertExists() {
+func TestOnBlockQuorumCertExists(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.insertOneQCBlock()
 	time.Sleep(time.Millisecond * 20)
 	if err := suit.view.secondProposer().OnBlockQuorumCert("", suit.blockOneQC); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
 }
 
 // normal Local does not exist in this block
-func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertBlockNotExists() {
+func TestOnBlockQuorumCertBlockNotExists(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	if err := suit.view.secondProposer().OnBlockQuorumCert("", suit.blockOneQC); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -219,7 +222,8 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertBlockNotExists() {
 // viewNumber leading
 // Behind viewNumber
 // Insufficient signature
-func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
+func TestOnBlockQuorumCertErr(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.insertOneBlock(pb)
@@ -251,7 +255,7 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
 	}
 	for _, testcase := range testcases {
 		if err := suit.view.firstProposer().OnBlockQuorumCert("", testcase.data); err == nil {
-			suit.T().Errorf("case:%s is failed", testcase.name)
+			t.Errorf("case:%s is failed", testcase.name)
 		} else {
 			fmt.Println(err.Error())
 		}
@@ -259,7 +263,8 @@ func (suit *SyncMsgTestSuite) TestOnBlockQuorumCertErr() {
 }
 
 // Want a block
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
+func TestOnGetQCBlockListWith1(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	lockBlock := suit.view.firstProposer().state.HighestLockBlock()
 	getBlockList := &protocols.GetQCBlockList{
@@ -268,17 +273,18 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith1() {
 	}
 	cleanCh(suit.msgCh)
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
 // Want two blocks
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
+func TestOnGetQCBlockListWith2(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	commitBlock := suit.view.firstProposer().state.HighestCommitBlock()
 	getBlockList := &protocols.GetQCBlockList{
@@ -286,34 +292,36 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith2() {
 		BlockNumber: commitBlock.NumberU64(),
 	}
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
 // Want three blocks
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListWith3() {
+func TestOnGetQCBlockListWith3(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(3, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.genesisBlock.Hash(),
 		BlockNumber: suit.view.genesisBlock.NumberU64(),
 	}
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
 // Want four blocks
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
+func TestOnGetQCBlockListTooLow(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.genesisBlock.Hash(),
@@ -321,40 +329,43 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListTooLow() {
 	}
 
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	} else {
 		fmt.Println(err.Error())
 	}
 }
 
 // Want 0 blocks
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListEqual() {
+func TestOnGetQCBlockListEqual(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		BlockNumber: suit.view.firstProposer().state.HighestQCBlock().NumberU64(),
 	}
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	} else {
 		fmt.Println(err.Error())
 	}
 }
 
 // Number and hash does not match
-func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
+func TestOnGetQCBlockListDifNumber(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	suit.view.setBlockQC(5, suit.view.allNode[0])
 	getBlockList := &protocols.GetQCBlockList{
 		BlockHash:   suit.view.firstProposer().state.HighestQCBlock().Hash(),
 		BlockNumber: suit.view.firstProposer().state.HighestQCBlock().NumberU64() + 1,
 	}
 	if err := suit.view.secondProposer().OnGetQCBlockList("", getBlockList); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 }
 
 // normal
-func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
+func TestOnGetPrepareVote(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
 		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Node.ID())
@@ -381,12 +392,13 @@ func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	select {
 	case <-suit.msgCh:
 	case <-time.After(time.Millisecond * 10):
-		suit.T().Fatal("timeout")
+		t.Fatal("timeout")
 	}
 }
 
 // normal
-func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
+func TestOnPrepareVotes(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
@@ -406,12 +418,13 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
 	}
 	vs.Votes = append(vs.Votes, votes...)
 	if err := suit.view.firstProposer().OnPrepareVotes("", vs); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 }
 
 // Repeated
-func (suit *SyncMsgTestSuite) TestOnPrepareVotesDup() {
+func TestOnPrepareVotesDup(t *testing.T) {
+	suit := SetupSyncMsgTestTest(t)
 	pb := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.epoch, suit.oldViewNumber, 0, suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
@@ -432,7 +445,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotesDup() {
 	vs.Votes = append(vs.Votes, votes...)
 	vs.Votes = append(vs.Votes, votes...)
 	if err := suit.view.firstProposer().OnPrepareVotes("", vs); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	} else {
 		fmt.Println(err.Error())
 	}

@@ -20,9 +20,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -459,7 +460,6 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 
 // find a proposal at voting stage
 func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
-
 	if len(proposalTypes) == 0 {
 		return nil, common.InvalidParameter
 	}
@@ -512,7 +512,7 @@ func GetMaxEndVotingBlock(nodeID enode.IDv0, blockHash common.Hash, state xcom.S
 
 // NotifyPunishedVerifiers receives punished verifies notification from Staking
 func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enode.IDv0]struct{}, state xcom.StateDB) error {
-	if punishedVerifierMap == nil || len(punishedVerifierMap) == 0 {
+	if len(punishedVerifierMap) == 0 {
 		return nil
 	}
 	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {

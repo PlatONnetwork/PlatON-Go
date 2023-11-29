@@ -115,7 +115,7 @@ func TestNull(t *testing.T) {
 	s.state.SetState(address, key, value)
 	s.state.Commit(false)
 
-	if value := s.state.GetState(address, key); bytes.Compare(value, value) != 0 {
+	if value := s.state.GetState(address, key); !bytes.Equal(value, value) {
 		t.Error("expected empty current value")
 	}
 }
@@ -272,7 +272,7 @@ func TestEmptyByte(t *testing.T) {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
 	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
+	db, _ := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")

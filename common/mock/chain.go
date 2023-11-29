@@ -475,9 +475,9 @@ func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
 func (s *MockStateDB) CreateAccount(addr common.Address) {
 	s.Journal.append(createObjectChange{account: &addr})
 
-	storage, ok := s.State[addr]
+	_, ok := s.State[addr]
 	if !ok {
-		storage = make(map[string][]byte)
+		storage := make(map[string][]byte)
 		s.State[addr] = storage
 	}
 }
@@ -538,10 +538,8 @@ func (s *MockStateDB) GetCodeSize(addr common.Address) int {
 }
 
 func (s *MockStateDB) AddRefund(uint64) {
-	return
 }
 func (s *MockStateDB) SubRefund(uint64) {
-	return
 }
 func (s *MockStateDB) GetRefund() uint64 {
 	return 0
@@ -610,7 +608,6 @@ func (s *MockStateDB) GetLogs(hash common.Hash, blockHash common.Hash) []*types.
 }
 
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
-	return
 }
 
 func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) {

@@ -18,10 +18,11 @@ package dbtest
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 // TestDatabaseSuite runs a suite of tests against a KeyValueStore database

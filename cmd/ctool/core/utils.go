@@ -22,9 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -161,8 +158,10 @@ func parseFuncFromAbi(fileName string, funcName string) (*FuncDesc, error) {
 	return nil, fmt.Errorf("function %s not found in %s", funcName, fileName)
 }
 
-/**
-  Find the method called by parsing abi
+/*
+*
+
+	Find the method called by parsing abi
 */
 func GetFuncNameAndParams(f string) (string, []string) {
 	funcName := string(f[0:strings.Index(f, "(")])
@@ -180,43 +179,4 @@ func GetFuncNameAndParams(f string) (string, []string) {
 	}
 	return funcName, params
 
-}
-
-/**
-  Self-test method for encrypting parameters
-*/
-func encodeParam(abiPath string, funcName string, funcParams string) error {
-	// Determine if the method exists
-	abiFunc, err := parseFuncFromAbi(abiPath, funcName)
-	if err != nil {
-		return err
-	}
-
-	// Parsing the method of the call
-	funcName, inputParams := GetFuncNameAndParams(funcParams)
-
-	// Determine if the parameters are correct
-	if len(abiFunc.Inputs) != len(inputParams) {
-		return fmt.Errorf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
-	}
-
-	paramArr := [][]byte{
-		Int32ToBytes(111),
-		[]byte(funcName),
-	}
-
-	for i, v := range inputParams {
-		input := abiFunc.Inputs[i]
-		p, e := StringConverter(v, input.Type)
-		if e != nil {
-			return err
-		}
-		paramArr = append(paramArr, p)
-	}
-
-	paramBytes, _ := rlp.EncodeToBytes(paramArr)
-
-	fmt.Printf(hexutil.Encode(paramBytes))
-
-	return nil
 }

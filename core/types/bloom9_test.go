@@ -18,10 +18,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func TestBloom(t *testing.T) {
@@ -91,7 +92,6 @@ func BenchmarkBloom9Lookup(b *testing.B) {
 }
 
 func BenchmarkCreateBloom(b *testing.B) {
-
 	var txs = Transactions{
 		NewContractCreation(1, big.NewInt(1), 1, big.NewInt(1), nil),
 		NewTransaction(2, common.HexToAddress("0x2"), big.NewInt(2), 2, big.NewInt(2), nil),

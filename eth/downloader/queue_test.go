@@ -18,12 +18,13 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"math/rand"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -226,7 +227,6 @@ func TestEmptyBlocks(t *testing.T) {
 		if fetchReq == nil {
 			t.Fatal("there should be body fetch tasks remaining")
 		}
-
 	}
 	if q.blockTaskQueue.Size() != numOfBlocks-10 {
 		t.Errorf("expected block task queue to be %d, got %d", numOfBlocks-10, q.blockTaskQueue.Size())
@@ -261,7 +261,6 @@ func XTestDelivery(t *testing.T) {
 	world.progress(10)
 	if false {
 		log.Root().SetHandler(log.StdoutHandler)
-
 	}
 	q := newQueue(10, 10, nil)
 	var wg sync.WaitGroup

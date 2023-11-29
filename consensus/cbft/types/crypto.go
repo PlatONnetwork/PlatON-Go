@@ -50,7 +50,7 @@ func (sig *Signature) Bytes() []byte {
 
 func (sig *Signature) NotEmpty() bool {
 	var a Signature
-	return bytes.Compare(sig.Bytes(), a.Bytes()) != 0
+	return !bytes.Equal(sig.Bytes(), a.Bytes())
 }
 
 // MarshalText returns the hex representation of a.

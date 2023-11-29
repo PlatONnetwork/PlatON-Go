@@ -54,10 +54,7 @@ func (t BlockInfos) Len() int {
 }
 
 func (t BlockInfos) Less(i, j int) bool {
-	if t[i].ProduceTime < (t[j].ProduceTime) {
-		return true
-	}
-	return false
+	return t[i].ProduceTime < (t[j].ProduceTime)
 }
 
 func (t BlockInfos) Swap(i, j int) {
@@ -352,7 +349,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 				if err != nil {
 					return err
 				}
-				if err := txg.eth.TxPool().AddRemote(newTx); err != nil {
+				if err := txg.eth.TxPool().AddRemotes([]*types.Transaction{newTx}); err != nil {
 					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.Type)
 				}
 				config.DeployTxHash = newTx.Hash().String()

@@ -1505,7 +1505,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 	// get Candidate info
 	if _, err := getCandidate(blockHash2, index); snapshotdb.IsDbNotFoundErr(err) {
-		t.Fatal(fmt.Sprintf("expect candidate info is no found, err: %v", err))
+		t.Fatalf("expect candidate info is no found, err: %v", err)
 	}
 	/**
 	Start HandleUnCandidateItem

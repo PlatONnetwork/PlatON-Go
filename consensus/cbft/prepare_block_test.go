@@ -27,30 +27,24 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
-
-	"github.com/stretchr/testify/suite"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-func TestPrepareBlockSuite(t *testing.T) {
-	suite.Run(t, new(PrepareBlockTestSuite))
-}
-
 type PrepareBlockTestSuite struct {
-	suite.Suite
 	view          *testView
 	blockOne      *types.Block
 	blockOneQC    *protocols.BlockQuorumCert
 	oldViewNumber uint64
 }
 
-func (suit *PrepareBlockTestSuite) SetupTest() {
-	suit.view = newTestView(false, testNodeNumber)
+func SetupPrepareBlockTestTest(period uint64) *PrepareBlockTestSuite {
+	suit := new(PrepareBlockTestSuite)
+	suit.view = newTestView(false, period)
 	suit.blockOne = NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	suit.blockOneQC = mockBlockQC(suit.view.allNode, suit.blockOne, 0, nil)
 	suit.oldViewNumber = suit.view.firstProposer().state.ViewNumber()
+	return suit
 }
 func (suit *PrepareBlockTestSuite) insertOneBlock() {
 	for _, cbft := range suit.view.allCbft {
@@ -82,8 +76,9 @@ func (suit *PrepareBlockTestSuite) waitVote() {
 // 5.The prepareBlock message of the proposer non-consensus node
 // 6.epoch too big
 // 7.epoch too small
-func (suit *PrepareBlockTestSuite) TestCheckErrPrepareBlock() {
-	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 1)
+func TestCheckErrPrepareBlock(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
+	notConsensusNodes := mockNotConsensusNode(suit.view.nodeParams, 1, testPeriod)
 	// suit.view.secondProposer().state.ResetView(suit.view.Epoch(), suit.oldViewNumber+1)
 	testcases := []struct {
 		name string
@@ -134,16 +129,17 @@ func (suit *PrepareBlockTestSuite) TestCheckErrPrepareBlock() {
 	}
 	for _, testcase := range testcases {
 		if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), testcase.data); err == nil {
-			suit.T().Errorf("case %s is failed", testcase.name)
+			t.Errorf("case %s is failed", testcase.name)
 			suit.view.secondProposer().state.ResetView(suit.view.Epoch(), suit.oldViewNumber)
-			// suit.T().Error(err.Error())
+			// t.Error(err.Error())
 		}
 	}
 }
 
 // Carry the prepareBlock message of prepareQC and viewChangeQC. The node does not complete viewChangeQC.
 // The verification passes, the number of votes with blockIndex 0 is 1, viewNumber+1
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQC() {
+func TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	viewQC := mockViewQC(suit.blockOne, suit.view.allNode, suit.blockOneQC.BlockQC)
@@ -151,16 +147,21 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAnd
 		suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, suit.blockOneQC.BlockQC, viewQC)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
-	suit.Equal(suit.oldViewNumber+1, suit.view.firstProposer().state.ViewNumber())
+	if 1 != suit.view.firstProposer().state.PrepareVoteLenByIndex(0) {
+		t.Fatal("fail")
+	}
+	if suit.oldViewNumber+1 != suit.view.firstProposer().state.ViewNumber() {
+		t.Fatal("fail,suit.oldViewNumber", suit.oldViewNumber+1)
+	}
 }
 
 // Carry the prepareBlock message of prepareQC and viewChangeQC, and the node receiving the message has received the viewChangeQC.
 // The verification passes, the number of votes with blockIndex 0 is 1, and the viewNumber is unchanged.
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQCHadViewChangQC() {
+func TestPrepareBlockOneWithViewChangePrepareQCAndViewChangeQCHadViewChangQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	viewQC := mockViewQC(suit.blockOne, suit.view.allNode, suit.blockOneQC.BlockQC)
@@ -172,11 +173,15 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAnd
 	fmt.Println(prepareBlock.BlockNum())
 	fmt.Println(prepareBlock.Block.ParentHash().String())
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
-	suit.Equal(suit.oldViewNumber+1, suit.view.firstProposer().state.ViewNumber())
+	if 1 != suit.view.firstProposer().state.PrepareVoteLenByIndex(0) {
+		t.Fatal("fail")
+	}
+	if suit.oldViewNumber+1 != suit.view.firstProposer().state.ViewNumber() {
+		t.Fatal("fail,suit.oldViewNumber", suit.oldViewNumber+1)
+	}
 }
 
 // The first block of viewChangeQC, the node receiving the message did not receive viewChangeQC
@@ -187,7 +192,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangePrepareQCAnd
 // 5.Carry prepareQC and carry viewChangeQC that does not satisfy 2f+1
 // 6.epoch too big
 // 7.epoch too small
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBlock() {
+func TestPrepareBlockOneWithViewChangeErrFirstBlock(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	viewQC := mockViewQC(suit.blockOne, suit.view.allNode, suit.blockOneQC.BlockQC)
@@ -243,9 +249,9 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 	}
 	for _, testcase := range testcases {
 		if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), testcase.data); err == nil {
-			suit.T().Errorf("CASE:%s is failed", testcase.name)
+			t.Errorf("CASE:%s is failed", testcase.name)
 			suit.view.firstProposer().state.ResetView(oldEpoch, suit.oldViewNumber+1)
-			// suit.T().Error(err.Error())
+			// t.Error(err.Error())
 		} else {
 			fmt.Printf("case:%s-err:%s\n", testcase.name, err.Error())
 		}
@@ -258,7 +264,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 // 3.The prepareBlock message does not carry prepareQC and viewChangeQC
 // 4.prepareBlock message with blockIndex 1
 // 5.Carry prepareQC and carry viewChangeQC that does not satisfy 2f+1
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBlockHadViewChangQC() {
+func TestPrepareBlockOneWithViewChangeErrFirstBlockHadViewChangQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.insertOneBlock()
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	viewQC := mockViewQC(suit.blockOne, suit.view.allNode, suit.blockOneQC.BlockQC)
@@ -303,9 +310,9 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 	}
 	for _, testcase := range testcases {
 		if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), testcase.data); err == nil {
-			suit.T().Errorf("CASE:%s is failed", testcase.name)
+			t.Errorf("CASE:%s is failed", testcase.name)
 			suit.view.firstProposer().state.ResetView(oldEpoch, suit.oldViewNumber+1)
-			// suit.T().Error(err.Error())
+			// t.Error(err.Error())
 		} else {
 			fmt.Printf("case:%s-err:%s\n", testcase.name, err.Error())
 		}
@@ -314,7 +321,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeErrFirstBloc
 
 // The first block of viewChangeQC, the block node HighestQCBlock leads the prepareBlock message of the local HighestQCBlock, and the node receiving the block does not complete the viewChangeQC
 // Due to backwardness, synchronization will be triggered, verification will not pass, and the error value returned is viewNumber higher then local(local:0, msg:1)
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooHigh() {
+func TestPrepareBlockOneWithViewChangeFirstBlockTooHigh(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block3 := NewBlockWithSign(block2.Hash(), 3, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
@@ -324,15 +332,18 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(),
 		suit.oldViewNumber+1, 0, suit.view.secondProposerIndex(), block3, block2QC.BlockQC, viewQC)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
-		suit.EqualValues("viewNumber higher than local(local:0, msg:1)", err.Error())
+		if "viewNumber higher than local(local:0, msg:1)" != err.Error() {
+			t.Fatal("FAIL")
+		}
 	}
 }
 
 // The first block of viewChangeQC, the block node HighestQCBlock is behind the local HighestQCBlock prepareBlock message, and the node receiving the block is not completed viewChangeQC
 // The verification failed, and the error value returned is viewNumber higher then local(local:0, msg:1)
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooLow() {
+func TestPrepareBlockOneWithViewChangeFirstBlockTooLow(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
 	suit.insertOneBlock()
@@ -341,15 +352,18 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, suit.blockOneQC.BlockQC, viewQC)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
-		suit.EqualValues("viewNumber higher than local(local:0, msg:1)", err.Error())
+		if "viewNumber higher than local(local:0, msg:1)" != err.Error() {
+			t.Fatal("FAIL")
+		}
 	}
 }
 
 // The first block of viewChangeQC, the block node HighestQCBlock is behind the local HighestQCBlock prepareBlock message, the node receiving the block has completed viewChangeQC, and this time is not based on viewQC.MaxBlock
 // Verification cannot pass
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTooLowHad() {
+func TestPrepareBlockOneWithViewChangeFirstBlockTooLowHad(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
 	suit.insertOneBlock()
@@ -360,13 +374,14 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockTo
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, suit.blockOneQC.BlockQC, viewQC)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	}
 }
 
 // The first block of viewChangeQC, not based on viewQC.MaxBlock, the node that received the block did not complete viewChangeQC
 // Verification cannot pass
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNotWithMaxBlock() {
+func TestPrepareBlockOneWithViewChangeFirstBlockNotWithMaxBlock(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	block2QC := mockBlockQC(suit.view.allNode, block2, 1, suit.blockOneQC.BlockQC)
 	suit.insertOneBlock()
@@ -375,7 +390,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNo
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, suit.blockOneQC.BlockQC, viewQC)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -383,8 +398,9 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithViewChangeFirstBlockNo
 
 // The first block confirmed by the last block, the hash with the same blockNumber is different from the prepareBlock message.
 // The first block passes, the second check fails, and the corresponding PrepareVoteLen=1 returns double evidence error.
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
-	paths := createPaths(len(suit.view.allCbft), suit.T())
+func TestPrepareBlockOneWithDifHash(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
+	paths := createPaths(len(suit.view.allCbft), t)
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
@@ -409,73 +425,81 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithDifHash() {
 		suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block1, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
 	prepareBlock2 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block2, qc, nil)
 	fmt.Println(block1.Hash().String(), block2.Hash().String())
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock2); err == nil {
-		suit.T().Error("FAIL")
+		t.Error("FAIL")
 	} else {
 		reg := regexp.MustCompile(`DuplicatePrepareBlockEvidence`)
 		if len(reg.FindAllString(err.Error(), -1)) == 0 {
-			suit.T().Fatal(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 	suit.waitVote()
-	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
+	if 1 != suit.view.firstProposer().state.PrepareVoteLenByIndex(0) {
+		t.Fatal("fail")
+	}
 }
 
 // The first block confirmed by the last block, carrying the prepareBlock message of prepareQC
 // Verification pass，PrepareVoteLenByIndex(0)=1
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQC() {
+func TestPrepareBlockOneWithLastBlockQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[0])
 	_, qc := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(), suit.view.firstProposer().state.HighestQCBlock().NumberU64())
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block11, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(0))
+	if 1 != suit.view.firstProposer().state.PrepareVoteLenByIndex(0) {
+		t.Fatal("fail")
+	}
 }
 
 // The first block, carrying the wrong qc
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithNumberIsOne() {
+func TestPrepareBlockOneWithNumberIsOne(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 1, suit.view.allNode[0])
-	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	notConsensusNodes := mockNotConsensusNode(suit.view.nodeParams, 4, testPeriod)
 	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	}
 }
 
 // Non-first block, carrying the wrong qc
-func (suit *PrepareBlockTestSuite) TestPrepareBlockWithBlockIndexNotIsZero() {
+func TestPrepareBlockWithBlockIndexNotIsZero(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.insertOneBlock()
 	block1 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 2, suit.view.allNode[0])
-	notConsensusNodes := mockNotConsensusNode(false, suit.view.nodeParams, 4)
+	notConsensusNodes := mockNotConsensusNode(suit.view.nodeParams, 4, testPeriod)
 	errQC := mockErrBlockQC(notConsensusNodes, block1, 0, nil)
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.firstProposerIndex(), block1, errQC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("fail")
+		t.Fatal("fail")
 	}
 }
 
 // The first block confirmed by the last block, Does not carry the prepareBlock message of prepareQC
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCNotQC() {
+func TestPrepareBlockOneWithLastBlockQCNotQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block11, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -483,7 +507,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCNotQC() {
 
 // The first block confirmed by the last block, prepareBlock message with blockIndex 1
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCBlockIndexIsOne() {
+func TestPrepareBlockOneWithLastBlockQCBlockIndexIsOne(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	// oldEpoch := suit.view.Epoch()
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -492,7 +517,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCBlockIndexI
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block11, qc, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -500,7 +525,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCBlockIndexI
 
 // The first block confirmed by the last block, the block node HighestQCBlock leads the prepareBlock message of the local HighestQCBlock
 // Verification failed，Trigger synchronization
-func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCLead() {
+func TestPrepareBlockOneWithLastBlockQCLead(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	otherNode := suit.view.thirdProposer()
 	suit.view.setBlockQC(9, suit.view.allNode[0])
 	block10 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 10, suit.view.allNode[0])
@@ -513,7 +539,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCLead() {
 		suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block11, block10QC.BlockQC, nil)
 	if err := otherNode.OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -521,7 +547,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockOneWithLastBlockQCLead() {
 
 // viewNumber is less than the current viewNumber
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooLow() {
+func TestPrepareBlockNotOneWithViewNumberTooLow(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	// oldEpoch := suit.view.Epoch()
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -533,7 +560,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooLow() 
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.secondProposerIndex(), block12, block11QC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -541,7 +568,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooLow() 
 
 // viewNumber is greater than the current viewNumber
 // Verification failed，Trigger synchronization
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooHigh() {
+func TestPrepareBlockNotOneWithViewNumberTooHigh(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
@@ -552,7 +580,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooHigh()
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+2, 1,
 		suit.view.secondProposerIndex(), block12, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -560,7 +588,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithViewNumberTooHigh()
 
 // PreviousBlock of the previous block prepareQC
 // Verification pass, number of votes +1
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentQC() {
+func TestPrepareBlockNotOneWithParentQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
@@ -572,15 +601,18 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentQC() {
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block12, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	suit.Equal(1, suit.view.firstProposer().state.PrepareVoteLenByIndex(1))
+	if 1 != suit.view.firstProposer().state.PrepareVoteLenByIndex(1) {
+		t.Fatal("fail")
+	}
 }
 
 // Previous block without prepareQC prepareBlock
 // Verification pass，There are votes for the block in pengding
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentNotQC() {
+func TestPrepareBlockNotOneWithParentNotQC(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
@@ -588,29 +620,32 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithParentNotQC() {
 	prepareBlock11 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 0,
 		suit.view.secondProposerIndex(), block11, oldQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock11); err != nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	}
 	suit.waitVote()
 	block12 := NewBlockWithSign(block11.Hash(), 12, suit.view.allNode[1])
 	prepareBlock12 := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block12, nil, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock12); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	suit.Equal(uint64(12), suit.view.firstProposer().state.PendingPrepareVote().Votes[0].BlockNum())
+	if 12 != suit.view.firstProposer().state.PendingPrepareVote().Votes[0].BlockNum() {
+		t.Fatal("fail")
+	}
 
 }
 
 // The number of blocks exceeds the limit of one round
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithAmountTooMany() {
+func TestPrepareBlockNotOneWithAmountTooMany(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	prepareBlock := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 10,
 		suit.view.secondProposerIndex(), block11, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -618,31 +653,33 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithAmountTooMany() {
 
 // Same block height, different hash of prepareBlock
 // The second Verification failed, double evidence error
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberRepeat() {
-	paths := createPaths(len(suit.view.allCbft), suit.T())
+func TestPrepareBlockNotOneWithBlockNumberRepeat(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
+	paths := createPaths(len(suit.view.allCbft), t)
 	defer removePaths(paths)
 	suit.createEvPool(paths)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	block2 := NewBlockWithSign(suit.view.genesisBlock.Hash(), 1, suit.view.allNode[0])
 	prepareBlock2 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.firstProposer().Node().ID().String(), prepareBlock2); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		reg := regexp.MustCompile(`DuplicatePrepareBlockEvidence`)
 		if len(reg.FindAllString(err.Error(), -1)) == 0 {
-			suit.T().Fatal(err.Error())
+			t.Fatal(err.Error())
 		}
 	}
 }
 
 // Block high discontinuous prepareBlock, block hash continuous
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberDiscontinuous() {
+func TestPrepareBlockNotOneWithBlockNumberDiscontinuous(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
@@ -654,7 +691,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberDisconti
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block12, block11QC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -662,7 +699,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockNumberDisconti
 
 // Block hash discontinuous block high continuous prepareBlock
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockHashDiscontinuous() {
+func TestPrepareBlockNotOneWithBlockHashDiscontinuous(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	fmt.Println(suit.view.firstProposer().state.HighestQCBlock().NumberU64())
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
@@ -675,7 +713,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockHashDiscontinu
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 1,
 		suit.view.secondProposerIndex(), block12, block11QC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -683,7 +721,8 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockHashDiscontinu
 
 // The prepareBlock whose BlockIndex does not match the actual block index
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexErr() {
+func TestPrepareBlockNotOneWithBlockIndexErr(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	suit.view.setBlockQC(10, suit.view.allNode[0])
 	block11 := NewBlockWithSign(suit.view.firstProposer().state.HighestQCBlock().Hash(), 11, suit.view.allNode[1])
 	_, oldQC := suit.view.firstProposer().blockTree.FindBlockAndQC(suit.view.firstProposer().state.HighestQCBlock().Hash(),
@@ -695,7 +734,7 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexErr() {
 	prepareBlock := mockPrepareBlock(suit.view.secondProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber+1, 2,
 		suit.view.secondProposerIndex(), block12, block11QC.BlockQC, nil)
 	if err := suit.view.firstProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -704,30 +743,32 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexErr() {
 
 // The same BlockIndex block exists in this local block, but BlockHash, BlockNumber are not equal
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithBlockIndexRepeat() {
+func TestPrepareBlockNotOneWithBlockIndexRepeat(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 3, suit.view.allNode[0])
 	prepareBlock2 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock2); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	}
 }
 
 // Data correctly repeating prepareBlock message
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockDup() {
+func TestPrepareBlockDup(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -735,12 +776,13 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockDup() {
 
 // There is no prepareBlock message of the previous index block corresponding to the BlockIndex.
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockBlockIndexTooHigh() {
+func TestPrepareBlockBlockIndexTooHigh(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
 	block2 := NewBlockWithSign(suit.blockOne.Hash(), 2, suit.view.allNode[0])
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 1,
 		suit.view.firstProposerIndex(), block2, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
 		fmt.Println(err.Error())
 	}
@@ -748,24 +790,26 @@ func (suit *PrepareBlockTestSuite) TestPrepareBlockBlockIndexTooHigh() {
 
 // The correct timeout of the data is the prepareBlock message
 // Verification failed
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithTimeout() {
-	time.Sleep((testPeriod + 200) * time.Millisecond)
+func TestPrepareBlockNotOneWithTimeout(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(3000)
+	time.Sleep((3000 + 200) * time.Millisecond)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	if err := suit.view.secondProposer().OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err == nil {
-		suit.T().Fatal("FAIL")
+		t.Fatal("FAIL")
 	} else {
-		fmt.Println(err.Error())
+		t.Log(err)
 	}
 }
 
 // Non-consensus node receives a valid prepareBlock message
 // Verification pass
-func (suit *PrepareBlockTestSuite) TestPrepareBlockNotOneWithNotConsensus() {
-	notConsensus := mockNotConsensusNode(false, suit.view.nodeParams, 1)
+func TestPrepareBlockNotOneWithNotConsensus(t *testing.T) {
+	suit := SetupPrepareBlockTestTest(10000)
+	notConsensus := mockNotConsensusNode(suit.view.nodeParams, 1, testPeriod)
 	prepareBlock1 := mockPrepareBlock(suit.view.firstProposerBlsKey(), suit.view.Epoch(), suit.oldViewNumber, 0,
 		suit.view.firstProposerIndex(), suit.blockOne, nil, nil)
 	if err := notConsensus[0].engine.OnPrepareBlock(suit.view.secondProposer().Node().ID().String(), prepareBlock1); err != nil {
-		suit.T().Fatal(err.Error())
+		t.Fatal(err.Error())
 	}
 }

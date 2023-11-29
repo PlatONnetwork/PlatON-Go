@@ -18,12 +18,14 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/asm"
@@ -245,12 +247,13 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
-	/*// Current head
+	t.Skip()
+	// Current head
 	n := uint64(1000)
 	parentHash := common.Hash{}
 	s := common.LeftPadBytes(big.NewInt(int64(n-1)).Bytes(), 32)
 	copy(parentHash[:], s)
-	header := fakeHeader(n, parentHash)*/
+	header := fakeHeader(n, parentHash)
 
 	// This is the contract we're using. It requests the blockhash for current num (should be all zeroes),
 	// then iteratively fetches all blockhashes back to n-260.
@@ -285,7 +288,7 @@ func TestBlockhash(t *testing.T) {
 
 	*/
 	// The contract above
-	/*data := common.Hex2Bytes("6080604052348015600f57600080fd5b50600436106045576000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d14604a575b600080fd5b60506074565b60405180848152602001838152602001828152602001935050505060405180910390f35b600080600080439050600080600083409050600184034092506000600290505b61010481101560c35760008186034090506000816001900414151560b6578093505b5080806001019150506094565b508083839650965096505050505090919256fea165627a7a72305820462d71b510c1725ff35946c20b415b0d50b468ea157c8c77dff9466c9cb85f560029")
+	data := common.Hex2Bytes("6080604052348015600f57600080fd5b50600436106045576000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d14604a575b600080fd5b60506074565b60405180848152602001838152602001828152602001935050505060405180910390f35b600080600080439050600080600083409050600184034092506000600290505b61010481101560c35760008186034090506000816001900414151560b6578093505b5080806001019150506094565b508083839650965096505050505090919256fea165627a7a72305820462d71b510c1725ff35946c20b415b0d50b468ea157c8c77dff9466c9cb85f560029")
 	// The method call to 'test()'
 	input := common.Hex2Bytes("f8a8fd6d")
 	chain := &dummyChain{}
@@ -314,7 +317,7 @@ func TestBlockhash(t *testing.T) {
 	}
 	if exp, got := 255, chain.counter; exp != got {
 		t.Errorf("suboptimal; too much chain iteration, expected %d, got %d", exp, got)
-	}*/
+	}
 }
 
 // TestEip2929Cases contains various testcases that are used for

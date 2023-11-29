@@ -24,22 +24,18 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 )
 
 var (
