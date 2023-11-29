@@ -7,7 +7,6 @@ import (
 )
 
 func TestEncodeAndDecode(t *testing.T) {
-
 	sum := sha256.Sum256([]byte("hello world\n"))
 
 	bech, err := ConvertAndEncode("shasum", sum[:])

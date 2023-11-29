@@ -12,10 +12,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 type v2Reporter struct {
@@ -80,7 +81,6 @@ func (r *v2Reporter) run() {
 			}
 		}
 	}
-
 }
 
 func (r *v2Reporter) send() {
@@ -89,7 +89,6 @@ func (r *v2Reporter) send() {
 		namespace := r.namespace
 
 		switch metric := i.(type) {
-
 		case metrics.Counter:
 			v := metric.Count()
 			l := r.cache[name]

@@ -122,7 +122,7 @@ func (b *baseBridge) UpdateChainState(qcState, lockState, commitState *protocols
 		return
 	}
 	if !chainState.ValidChainState() {
-		panic(fmt.Sprintf("invalid chain state from wal"))
+		panic("invalid chain state from wal")
 	}
 	walCommitNumber := chainState.Commit.QuorumCert.BlockNumber
 	commitNumber := commitState.QuorumCert.BlockNumber
