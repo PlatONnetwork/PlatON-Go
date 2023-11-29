@@ -18,18 +18,17 @@ package runtime
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 // Config is a basic type specifying certain configuration flags for running

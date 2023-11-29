@@ -140,23 +140,6 @@ func GoTool(tool string, args ...string) *exec.Cmd {
 	return exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), args...)
 }
 
-// Binary packages that do not need to be compiled
-var no_compile_cmd = []string{
-	"/abigen",
-	"/bootnode",
-	"/clef",
-	"/ctool",
-	"/examples",
-	"/faucet",
-	"/life",
-	"/p2psim",
-	"/simulations",
-	"/test_runner",
-	"/wagon_run",
-	"/wasm",
-	"/wnode",
-}
-
 // UploadSFTP uploads files to a remote host using the sftp command line tool.
 // The destination host may be specified either as [user@]host[: or as a URI in
 // the form sftp://[user@]host[:port].

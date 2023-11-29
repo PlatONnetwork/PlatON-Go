@@ -28,7 +28,6 @@ func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
 	bls.Init(bls.BLS12_381)
 	NodeList := make([]CbftNode, 0, len(initialNodes))
 	for _, n := range initialNodes {
-
 		cbftNode := new(CbftNode)
 
 		if node, err := enode.Parse(enode.ValidSchemes, n.Enode); nil == err {

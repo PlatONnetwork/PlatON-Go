@@ -36,7 +36,7 @@ jobs:
 
 
       - name: Build
-        run: make all
+        run: make platon
 
       - name: Test
         run: go test -tags=test -covermode=atomic -coverprofile=coverage.txt  `go list ./...`
