@@ -647,7 +647,7 @@ func TestDeepCopy(t *testing.T) {
 	}
 
 	//root, _ = tr2.Commit(nil)
-	root = tr2.Hash()
+	//root = tr2.Hash()
 
 	cpy := tr2.New().New()
 

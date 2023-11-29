@@ -104,7 +104,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
-	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
 		t.Error(err)
 		return
@@ -120,10 +120,10 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		}
 		var largePlans, largeMountPlans []restricting.RestrictingPlan
 		for i := 0; i < 40; i++ {
-			largePlans = append(largePlans, restricting.RestrictingPlan{1, big.NewInt(1e15)})
+			largePlans = append(largePlans, restricting.RestrictingPlan{Epoch: 1, Amount: big.NewInt(1e15)})
 		}
 		for i := 0; i < 4; i++ {
-			largeMountPlans = append(largeMountPlans, restricting.RestrictingPlan{1, big.NewInt(1e18)})
+			largeMountPlans = append(largeMountPlans, restricting.RestrictingPlan{Epoch: 1, Amount: big.NewInt(1e18)})
 		}
 		x := []testtmp{
 			{
@@ -137,12 +137,12 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 				des:    "nil plan",
 			},
 			{
-				input:  []restricting.RestrictingPlan{{0, big.NewInt(1e15)}},
+				input:  []restricting.RestrictingPlan{{Epoch: 0, Amount: big.NewInt(1e15)}},
 				expect: restricting.ErrParamEpochInvalid,
 				des:    "epoch is zero",
 			},
 			{
-				input:  []restricting.RestrictingPlan{{1, big.NewInt(0)}},
+				input:  []restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(0)}},
 				expect: restricting.ErrCreatePlanAmountLessThanZero,
 				des:    "amount is 0",
 			},
@@ -167,9 +167,9 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		mockDB := buildStateDB(t)
 		mockDB.AddBalance(from, big.NewInt(8e18))
 		plans := make([]restricting.RestrictingPlan, 0)
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
-		plans = append(plans, restricting.RestrictingPlan{1, big.NewInt(1e17)})
-		plans = append(plans, restricting.RestrictingPlan{2, big.NewInt(1e18)})
+		plans = append(plans, restricting.RestrictingPlan{Epoch: 1, Amount: big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{Epoch: 1, Amount: big.NewInt(1e17)})
+		plans = append(plans, restricting.RestrictingPlan{Epoch: 2, Amount: big.NewInt(1e18)})
 
 		if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, common.ZeroHash, plans, mockDB, RestrictingTxHash); err != nil {
 			t.Error(err)
@@ -367,7 +367,7 @@ func TestRestrictingPlugin_Compose(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
-	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
 		t.Error(err)
 		return
@@ -429,7 +429,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
-	value := common.MustRlpEncode(&gov.ParamValue{"", new(big.Int).SetInt64(0).String(), 0})
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
 		t.Error(err)
 		return

@@ -24,8 +24,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
@@ -648,9 +646,9 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -665,9 +663,9 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 
 	nodeIdx = 1
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler = node.GetCryptoHandler()
@@ -705,9 +703,9 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 	buildBlockNoCommit(2)
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -721,9 +719,9 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 	}
 
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx], //repeated
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx], //repeated
+		VoteOption: gov.Yes,
 	}
 
 	err = gov.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, stk, stateDB)
@@ -746,9 +744,9 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -860,9 +858,9 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -877,9 +875,9 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 
 	nodeIdx = 1
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler = node.GetCryptoHandler()
@@ -978,19 +976,19 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 		t.Fatal("find proposal error", "err", err)
 	}
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastBlockNumber = p.GetEndVotingBlock() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1033,19 +1031,19 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1089,14 +1087,14 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 
 	beginBlock(t)
 
@@ -1199,7 +1197,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
-	lastBlockNumber = uint64(actvieBlock - 1)
+	lastBlockNumber = actvieBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1259,7 +1257,6 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 
 	if len(lastHeader.Extra) > 0 {
 		var tobeDecoded []byte
-		tobeDecoded = lastHeader.Extra
 		if len(lastHeader.Extra) <= 32 {
 			tobeDecoded = lastHeader.Extra
 		} else {
@@ -1304,12 +1301,5 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 }
 
 var (
-	chandler *node.CryptoHandler
-	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
-	nodeID   = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+	nodeID = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
-
-func initChandlerHandler() {
-	chandler = node.GetCryptoHandler()
-	chandler.SetPrivateKey(priKey)
-}
