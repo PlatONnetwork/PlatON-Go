@@ -587,21 +587,19 @@ func (ps *PeerSet) printPeers() {
 		if ps.closed {
 			break
 		}
-		select {
-		case <-outTimer.C:
-			peers := ps.allPeers()
-			if peers != nil {
-				neighborPeerGauage.Update(int64(len(peers)))
-			}
-			var bf bytes.Buffer
-			for idx, peer := range peers {
-				bf.WriteString(peer.id)
-				if idx < len(peers)-1 {
-					bf.WriteString(",")
-				}
-			}
-			pInfo := bf.String()
-			log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
+		<-outTimer.C
+		peers := ps.allPeers()
+		if peers != nil {
+			neighborPeerGauage.Update(int64(len(peers)))
 		}
+		var bf bytes.Buffer
+		for idx, peer := range peers {
+			bf.WriteString(peer.id)
+			if idx < len(peers)-1 {
+				bf.WriteString(",")
+			}
+		}
+		pInfo := bf.String()
+		log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
 	}
 }

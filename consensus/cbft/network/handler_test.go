@@ -81,13 +81,13 @@ func (s *fakeCbft) Config() *types.Config {
 
 // ReceiveMessage receives consensus messages.
 func (s *fakeCbft) ReceiveMessage(msg *types.MsgInfo) error {
-	fmt.Println(fmt.Sprintf("ReceiveMessage, type: %T", msg.Msg))
+	fmt.Printf("ReceiveMessage, type: %T", msg.Msg)
 	return nil
 }
 
 // ReceiveSyncMsg receives synchronization messages.
 func (s *fakeCbft) ReceiveSyncMsg(msg *types.MsgInfo) error {
-	fmt.Println(fmt.Sprintf("ReceiveSyncMsg, type: %T", msg.Msg))
+	fmt.Printf("ReceiveSyncMsg, type: %T", msg.Msg)
 	return nil
 }
 

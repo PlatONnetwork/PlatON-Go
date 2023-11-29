@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -46,12 +45,6 @@ var (
 	propViewChangeInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/view_change/in/traffic", nil)
 	propViewChangeOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/view_change/out/packets", nil)
 	propViewChangeOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/view_change/out/traffic", nil)
-
-	// PrepareBlockHashMsg
-	propPrepareBlockHashInPacketsMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/in/packets", nil)
-	propPrepareBlockHashInTrafficMeter  = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/in/traffic", nil)
-	propPrepareBlockHashOutPacketsMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/out/packets", nil)
-	propPrepareBlockHashOutTrafficMeter = metrics.NewRegisteredMeter("cbft/prop/prepare_block_hash/out/traffic", nil)
 
 	// GetPrepareBlockMsg
 	reqGetPrepareBlockInPacketsMeter  = metrics.NewRegisteredMeter("cbft/req/get_prepare_block/in/packets", nil)

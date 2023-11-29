@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
 type SyncCache struct {
@@ -130,26 +130,12 @@ func (v *viewCache) getPrepareQC(index uint32) *MsgInfo {
 	return nil
 }
 
-func (v *viewCache) getBlockMetric(index uint32) uint32 {
-	if m, ok := v.blockMetric[index]; ok {
-		return m
-	}
-	return 0
-}
-
 func (v *viewCache) addQCMetric(index uint32) {
 	if m, ok := v.qcMetric[index]; ok {
 		v.qcMetric[index] = m + 1
 	} else {
 		v.qcMetric[index] = 1
 	}
-}
-
-func (v *viewCache) getQCMetric(index uint32) uint32 {
-	if m, ok := v.qcMetric[index]; ok {
-		return m
-	}
-	return 0
 }
 
 // Add prepare votes to cache.
@@ -229,7 +215,7 @@ func (e *epochCache) findViewCache(view uint64) *viewCache {
 }
 
 func (e *epochCache) purge(view uint64) {
-	for k, _ := range e.views {
+	for k := range e.views {
 		if k < view {
 			delete(e.views, k)
 		}

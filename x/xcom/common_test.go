@@ -41,7 +41,7 @@ func setup(t *testing.T) *mock.Chain {
 	StorageAvgPackTime(chain.CurrentHeader().Hash(), chain.SnapDB, uint64(2000))
 	commit_sndb(chain)
 
-	prepair_sndb(chain, chain.CurrentHeader().Hash())
+	prepare_sndb(chain, chain.CurrentHeader().Hash())
 	return chain
 }
 
@@ -65,14 +65,14 @@ func commit_sndb(chain *mock.Chain) {
 	}
 }
 
-func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
+func prepare_sndb(chain *mock.Chain, txHash common.Hash) {
 	if txHash == common.ZeroHash {
 		chain.AddBlock()
 	} else {
 		chain.AddBlockWithTxHash(txHash)
 	}
 	if err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
-		fmt.Println("prepair_sndb error:", err)
+		fmt.Println("prepare_sndb error:", err)
 	}
 }
 

@@ -130,8 +130,8 @@ func saveAddrs(addrs []string, pkFile string) {
 		addrsPath = filepath.Dir(pkFile) + "/addr.json"
 	}
 	os.Truncate(DefaultAccountAddrFilePath, 0)
-	byts, err := json.MarshalIndent(addrs, "", "\t")
-	_, err = os.Create(addrsPath)
+	byts, _ := json.MarshalIndent(addrs, "", "\t")
+	_, err := os.Create(addrsPath)
 	if err != nil {
 		panic(fmt.Errorf("create addr.json error%s \n", err.Error()))
 	}

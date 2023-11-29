@@ -17,83 +17,51 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"math/big"
-	"sync/atomic"
-	"testing"
-	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
-// Tests that snap sync is disabled after a successful sync cycle.
-//func TestSnapSyncDisabling66(t *testing.T) { testSnapSyncDisabling(t, eth.ETH66, snap.SNAP1) }
-
-// Tests that snap sync gets disabled as soon as a real block is successfully
-// imported into the blockchain.
-func testSnapSyncDisabling(t *testing.T, ethVer uint, snapVer uint) {
-	t.Parallel()
-
-	// Create an empty handler and ensure it's in snap sync mode
-	empty := newTestHandler()
-	if atomic.LoadUint32(&empty.handler.snapSync) == 0 {
-		t.Fatalf("snap sync disabled on pristine blockchain")
-	}
-	defer empty.close()
-
-	// Create a full handler and ensure snap sync ends up disabled
-	full := newTestHandlerWithBlocks2(1024)
-	if atomic.LoadUint32(&full.handler.snapSync) == 1 {
-		t.Fatalf("snap sync not disabled on non-empty blockchain")
-	}
-	defer full.close()
-
-	// Sync up the two handlers via both `eth` and `snap`
-	caps := []p2p.Cap{{Name: eth.ProtocolName, Version: ethVer}, {Name: "snap", Version: snapVer}}
-
-	emptyPipeEth, fullPipeEth := p2p.MsgPipe()
-	defer emptyPipeEth.Close()
-	defer fullPipeEth.Close()
-
-	emptyPeerEth := eth.NewPeer(ethVer, p2p.NewPeer(enode.ID{1}, "", caps), emptyPipeEth, empty.txpool, nil)
-	fullPeerEth := eth.NewPeer(ethVer, p2p.NewPeer(enode.ID{2}, "", caps), fullPipeEth, full.txpool, nil)
-	defer emptyPeerEth.Close()
-	defer fullPeerEth.Close()
-
-	go empty.handler.runEthPeer(emptyPeerEth, func(peer *eth.Peer) error {
-		return eth.Handle((*ethHandler)(empty.handler), peer)
+// newTestHandlerWithBlocks2 creates a new handler for testing purposes, with a
+// given number of initial blocks.
+func newTestHandlerWithBlocks2(blocks int) *testHandler {
+	// Create a database pre-initialize with a genesis block
+	db := rawdb.NewMemoryDatabase()
+	genesis := &(core.Genesis{
+		Config: params.TestChainConfig,
+		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
 	})
-	go full.handler.runEthPeer(fullPeerEth, func(peer *eth.Peer) error {
-		return eth.Handle((*ethHandler)(full.handler), peer)
+	parent := genesis.MustCommit(db)
+
+	errCh := make(chan error, 1)
+
+	engine := consensus.NewFakerWithDataBase(db, parent)
+
+	errCh <- engine.InsertChain(parent)
+	<-errCh
+
+	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
+	txpool := newTestTxPool()
+
+	handler, _ := newHandler(&handlerConfig{
+		Database:   db,
+		Chain:      chain,
+		TxPool:     txpool,
+		Network:    1,
+		Sync:       downloader.SnapSync,
+		BloomCache: 1,
 	})
+	handler.Start(1000)
 
-	emptyPipeSnap, fullPipeSnap := p2p.MsgPipe()
-	defer emptyPipeSnap.Close()
-	defer fullPipeSnap.Close()
-
-	emptyPeerSnap := snap.NewPeer(snapVer, p2p.NewPeer(enode.ID{1}, "", caps), emptyPipeSnap)
-	fullPeerSnap := snap.NewPeer(snapVer, p2p.NewPeer(enode.ID{2}, "", caps), fullPipeSnap)
-
-	go empty.handler.runSnapExtension(emptyPeerSnap, func(peer *snap.Peer) error {
-		return snap.Handle((*snapHandler)(empty.handler), peer)
-	})
-	go full.handler.runSnapExtension(fullPeerSnap, func(peer *snap.Peer) error {
-		return snap.Handle((*snapHandler)(full.handler), peer)
-	})
-	// Wait a bit for the above handlers to start
-	time.Sleep(250 * time.Millisecond)
-
-	// Check that fast sync was disabled
-	p, _ := empty.handler.peers.peerWithHighestBlock()
-	head, bn := p.Head()
-	op := &chainSyncOp{mode: downloader.SnapSync, peer: p, head: head, bn: bn, diff: new(big.Int).SetUint64(0)}
-	if err := empty.handler.doSync(op); err != nil {
-		t.Fatal("sync failed:", err)
-	}
-	if atomic.LoadUint32(&empty.handler.snapSync) == 1 {
-		t.Fatalf("snap sync not disabled after successful synchronisation")
+	return &testHandler{
+		db:      db,
+		chain:   chain,
+		txpool:  txpool,
+		handler: handler,
 	}
 }

@@ -3,14 +3,12 @@ package bls
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-)
-import (
 	"bytes"
 	"fmt"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var unitN = 0
@@ -387,7 +385,7 @@ func TestNmain(t *testing.T) {
 	}
 }
 
-//add @20190716
+// add @20190716
 func testGetGOfG2(t *testing.T, c int) {
 	err := Init(c)
 	if err != nil {
@@ -540,44 +538,6 @@ func testSchnorrNIZk(t *testing.T, c int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func testSynthSameMsg(t *testing.T, c int) {
-	err := Init(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var k int = 10
-	var sk SecretKey
-	mpk := make([]PublicKey, k)
-	input := make([]string, k)
-	for i := 0; i < k; i++ {
-		input[i] = fmt.Sprintf("test%d", i)
-		sk.SetByCSPRNG()
-		mpk[i] = *sk.GetPublicKey()
-		fmt.Printf("input[%d]=%s\n", i, input[i])
-		fmt.Printf("mpk[%d]=%s\n", i, mpk[i].GetHexString())
-	}
-
-	input[3] = "test1"
-	input[6] = "test8"
-	input[4] = "test5"
-	input[7] = "test5"
-
-	pk, msg, index, err := SynthSameMsg(c, mpk, input)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("pklen:%d\n", len(pk))
-	fmt.Printf("msglen:%d\n", len(msg))
-	for j := 0; j < len(pk); j++ {
-		fmt.Printf("msg[%d]=%s\n", j, msg[j])
-		fmt.Printf("pk[%d]=%s\n", j, pk[j].GetHexString())
-	}
-	for m := 0; m < len(index); m++ {
-		fmt.Printf("index[%d]=%s\n", m, index[m])
-	}
-
 }
 
 func TestBlsInit(t *testing.T) {
@@ -801,8 +761,8 @@ func benchmarkDeriveSeckeyShare(k int, b *testing.B) {
 	}
 }
 
-//func BenchmarkDeriveSeckeyShare100(b *testing.B)  { benchmarkDeriveSeckeyShare(100, b) }
-//func BenchmarkDeriveSeckeyShare200(b *testing.B)  { benchmarkDeriveSeckeyShare(200, b) }
+// func BenchmarkDeriveSeckeyShare100(b *testing.B)  { benchmarkDeriveSeckeyShare(100, b) }
+// func BenchmarkDeriveSeckeyShare200(b *testing.B)  { benchmarkDeriveSeckeyShare(200, b) }
 func BenchmarkDeriveSeckeyShare500(b *testing.B) { benchmarkDeriveSeckeyShare(500, b) }
 
 //func BenchmarkDeriveSeckeyShare1000(b *testing.B) { benchmarkDeriveSeckeyShare(1000, b) }

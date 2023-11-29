@@ -22,8 +22,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 // FromHex returns the bytes represented by the hexadecimal string s.
@@ -117,9 +118,8 @@ func LeftPadBytes(slice []byte, l int) []byte {
 }
 
 func Int32ToBytes(n int32) []byte {
-	tmp := int32(n)
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	binary.Write(bytesBuffer, binary.BigEndian, n)
 	return bytesBuffer.Bytes()
 }
 
@@ -127,13 +127,12 @@ func BytesToInt32(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp int32
 	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
-	return int32(tmp)
+	return tmp
 }
 
 func Int64ToBytes(n int64) []byte {
-	tmp := int64(n)
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	binary.Write(bytesBuffer, binary.BigEndian, n)
 	return bytesBuffer.Bytes()
 }
 
