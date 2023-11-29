@@ -39,18 +39,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"

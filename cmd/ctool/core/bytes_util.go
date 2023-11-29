@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -26,9 +25,8 @@ import (
 )
 
 func Int32ToBytes(n int32) []byte {
-	tmp := int32(n)
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	binary.Write(bytesBuffer, binary.BigEndian, n)
 	return bytesBuffer.Bytes()
 }
 
@@ -40,9 +38,8 @@ func BytesToInt32(b []byte) int32 {
 }
 
 func Int64ToBytes(n int64) []byte {
-	tmp := int64(n)
 	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, tmp)
+	binary.Write(bytesBuffer, binary.BigEndian, n)
 	return bytesBuffer.Bytes()
 }
 
@@ -50,7 +47,7 @@ func BytesToInt64(b []byte) int64 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp int64
 	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
-	return int64(tmp)
+	return tmp
 }
 
 func Float32ToBytes(float float32) []byte {

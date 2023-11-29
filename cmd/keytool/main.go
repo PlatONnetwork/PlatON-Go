@@ -18,8 +18,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"github.com/urfave/cli/v2"
 )
@@ -42,6 +43,9 @@ func init() {
 		commandChangePassphrase,
 		commandSignMessage,
 		commandVerifyMessage,
+		commandGenkeypair,
+		commandGenblskeypair,
+		commandAddressHexToBech32,
 	}
 }
 

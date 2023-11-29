@@ -32,7 +32,7 @@ type outputGenkeypair struct {
 	PublicKey  string
 }
 
-var commandGenkeypair = cli.Command{
+var commandGenkeypair = &cli.Command{
 	Name:      "genkeypair",
 	Usage:     "generate new private key pair",
 	ArgsUsage: "[ ]",
