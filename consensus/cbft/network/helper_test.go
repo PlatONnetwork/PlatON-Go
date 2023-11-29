@@ -313,13 +313,12 @@ func Test_InitializePeers(t *testing.T) {
 	h4.Testing()
 
 	// Pretend to send data to p1.p2.p3
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h1.Broadcast(newFakePrepareBlockHash())
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h2.Broadcast(newFakeViewChange())
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	h3.Broadcast(newFakeGetPrepareVote())
-	time.Sleep(3 * time.Second)
 }
 
 type mockCbft struct {

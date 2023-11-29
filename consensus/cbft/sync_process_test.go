@@ -118,7 +118,6 @@ func TestFetch(t *testing.T) {
 	_, fetchBlockQC := nodes[0].engine.blockTree.FindBlockAndQC(fetchBlock.Hash(), fetchBlock.NumberU64())
 	nodes[1].engine.fetchBlock("id", fetchBlock.Hash(), fetchBlock.NumberU64(), fetchBlockQC)
 	timer := time.NewTimer(20 * time.Millisecond)
-
 	for {
 		select {
 		case <-timer.C:
@@ -232,7 +231,7 @@ func TestFetch_Serial(t *testing.T) {
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
-	case <-time.NewTimer(10 * time.Second).C:
+	case <-time.NewTimer(5 * time.Second).C:
 	case <-finish:
 
 	}

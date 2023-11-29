@@ -22,9 +22,13 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
 	mapset "github.com/deckarep/golang-set"
 
@@ -35,10 +39,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"reflect"
-	"sync"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"

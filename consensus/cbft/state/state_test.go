@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package state
 
 import (
@@ -22,16 +21,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewViewState(t *testing.T) {
-	viewState := NewViewState(BaseMs, nil)
+	viewState := NewViewState(3000, nil)
 	viewState.ResetView(1, 1)
 
 	assert.Equal(t, uint64(1), viewState.Epoch())

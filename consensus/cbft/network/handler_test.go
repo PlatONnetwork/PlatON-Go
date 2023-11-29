@@ -299,7 +299,7 @@ func Test_EngineManager_Synchronize(t *testing.T) {
 	}()
 	var wg sync.WaitGroup
 	wg.Add(1)
-	time.AfterFunc(23*time.Second, func() {
+	time.AfterFunc(3*time.Second, func() {
 		assert.True(t, handle.ContainsBlacklist(p1))
 		assert.True(t, handle.ContainsBlacklist(p2))
 		handle.Close()

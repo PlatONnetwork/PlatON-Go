@@ -222,7 +222,6 @@ func (t *TestCBFT) Start() error {
 // MockNode returns a new TestCBFT for testing.
 func MockNode(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, period uint64, amount uint32) *TestCBFT {
 	engine := CreateCBFT(pk, sk, period, amount)
-
 	chain, cache, txpool, agency := CreateBackend(engine, nodes)
 	return &TestCBFT{
 		engine: engine,

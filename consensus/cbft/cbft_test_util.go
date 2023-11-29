@@ -56,11 +56,11 @@ func removePaths(paths []string) {
 }
 
 // Mock4NodePipe returns a list of TestCBFT for testing.
-func Mock4NodePipe2(start bool) ([]*TestCBFT, []params.CbftNode) {
+func Mock4NodePipe2(start bool, period uint64) ([]*TestCBFT, []params.CbftNode) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, period, 10)
 
 		nodes = append(nodes, node)
 		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
@@ -86,8 +86,8 @@ type testView struct {
 	firstCbft    *Cbft
 }
 
-func newTestView(start bool, nodeNumber int) *testView {
-	nodes, nodeParams := Mock4NodePipe2(start)
+func newTestView(start bool, period uint64) *testView {
+	nodes, nodeParams := Mock4NodePipe2(start, period)
 	cbfts := make([]*Cbft, 0)
 	for _, node := range nodes {
 		cbfts = append(cbfts, node.engine)
@@ -224,7 +224,7 @@ func (tv *testView) setBlockQC(number int, node *TestCBFT) {
 }
 
 func (tv *testView) ResetView(start bool, nodeNumber int) {
-	tv = newTestView(start, nodeNumber)
+	tv = newTestView(start, 10000)
 }
 
 func insertBlock(cbft *Cbft, block *types.Block, qc *ctypes.QuorumCert) {
@@ -254,27 +254,17 @@ func mockNodeOfNumber(start bool, nodeNumber int) ([]*TestCBFT, []params.CbftNod
 	return nodes, cbftnodes
 }
 
-func mockNotConsensusNode(start bool, cbftnodes []params.CbftNode, number int) []*TestCBFT {
+func mockNotConsensusNode(cbftnodes []params.CbftNode, number int, period uint64) []*TestCBFT {
 	pk, sk, _ := GenerateCbftNode(number)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < number; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, testPeriod, testAmount)
+		node := MockNode(pk[i], sk[i], cbftnodes, period, testAmount)
 
 		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.NodeID().TerminalString())
 		if err := node.Start(); err != nil {
 			panic("cbft start fail")
 		}
 	}
-
-	// netHandler, nodeids := NewEngineManager(nodes)
-	//
-	// network.EnhanceEngineManager(nodeids, netHandler)
-	// if start {
-	// 	for i := 0; i < number; i++ {
-	// 		netHandler[i].Testing()
-	// 	}
-	// }
 	return nodes
 }
 

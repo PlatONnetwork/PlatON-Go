@@ -18,35 +18,36 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestViewChange(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, 3000, 10)
 		assert.Nil(t, node.Start())
 
 		nodes = append(nodes, node)
 	}
 
 	// TestTryViewChange
-	testTryViewChange(t, nodes)
+	testTryViewChange(t, nodes, 3*time.Second)
 
 	// TestTryChangeViewByViewChange
 	testTryChangeViewByViewChange(t, nodes)
 }
 
-func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
+func testTryViewChange(t *testing.T, nodes []*TestCBFT, wait time.Duration) {
 	tempDir := t.TempDir()
 
 	result := make(chan *types.Block, 1)
@@ -83,7 +84,7 @@ func testTryViewChange(t *testing.T, nodes []*TestCBFT) {
 			parent = b
 		}
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(wait)
 
 	block := nodes[0].engine.state.HighestQCBlock()
 	block, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
@@ -213,7 +214,7 @@ func testRichViewChangeQCCase(t *testing.T, c testCase) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, 3000, 10)
 		assert.Nil(t, node.Start())
 
 		nodes = append(nodes, node)
@@ -250,7 +251,7 @@ func testRichViewChangeQCCase(t *testing.T, c testCase) {
 		}
 	}
 	if c.hadViewTimeout {
-		time.Sleep(10 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 
 	hadSend := nodes[0].engine.state.ViewChangeByIndex(0)
