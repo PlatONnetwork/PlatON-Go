@@ -18,8 +18,18 @@
 package utils
 
 import (
+	"math"
+	"math/big"
+	"os"
+	"path/filepath"
+	godebug "runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"crypto/ecdsa"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -48,7 +58,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
@@ -57,14 +66,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	gopsutil "github.com/shirou/gopsutil/mem"
-	"math"
-	"math/big"
-	"os"
-	"path/filepath"
-	godebug "runtime/debug"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/urfave/cli/v2"
 )
@@ -1331,12 +1332,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.IsSet(TxPoolCacheSizeFlag.Name) {
 		cfg.TxCacheSize = ctx.Uint64(TxPoolCacheSizeFlag.Name)
-	}
-}
-
-func setMiner(ctx *cli.Context, cfg *miner.Config) {
-	if ctx.IsSet(MinerGasPriceFlag.Name) {
-		cfg.GasPrice = flags.GlobalBig(ctx, MinerGasPriceFlag.Name)
 	}
 }
 

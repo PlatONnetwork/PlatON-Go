@@ -349,7 +349,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 				if err != nil {
 					return err
 				}
-				if err := txg.eth.TxPool().AddRemotes([]*types.Transaction{newTx}); err != nil {
+				if err := txg.eth.TxPool().AddRemotes([]*types.Transaction{newTx}); err[0] != nil {
 					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.Type)
 				}
 				config.DeployTxHash = newTx.Hash().String()
