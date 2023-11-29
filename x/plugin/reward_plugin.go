@@ -95,9 +95,11 @@ func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
 
-	packageReward := new(big.Int)
-	stakingReward := new(big.Int)
-	var err error
+	var (
+		packageReward *big.Int
+		stakingReward *big.Int
+		err           error
+	)
 
 	if head.Number.Uint64() == common.Big1.Uint64() {
 		packageReward, stakingReward, err = rmp.CalcEpochReward(blockHash, head, state)
@@ -410,9 +412,9 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	totalValidatorReward, totalValidatorDelegateReward := new(big.Int), new(big.Int)
 
 	for _, value := range list {
-		delegateReward, stakingReward := new(big.Int), new(big.Int).Set(everyValidatorReward)
+		stakingReward := new(big.Int).Set(everyValidatorReward)
 		if value.ShouldGiveDelegateReward() {
-			delegateReward, stakingReward = rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
+			delegateReward, stakingReward := rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
 			totalValidatorDelegateReward.Add(totalValidatorDelegateReward, delegateReward)
 			log.Debug("allocate delegate reward of staking one-by-one", "nodeId", value.NodeId.TerminalString(), "staking reward", stakingReward, "per", value.RewardPer, "delegateReward", delegateReward)
 			//the  CurrentEpochDelegateReward will use by cal delegate reward Per

@@ -404,10 +404,6 @@ func TestIntermediateLeaks(t *testing.T) {
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 		state.SetBalance(addr, big.NewInt(int64(11*i)+int64(tweak)))
 		state.SetNonce(addr, uint64(42*i+tweak))
-		if i%2 == 0 {
-			//state.SetState(addr, common.Hash{i, i, i, 0}, common.Hash{})
-			//state.SetState(addr, common.Hash{i, i, i, tweak}, common.Hash{i, i, i, i, tweak})
-		}
 		if i%3 == 0 {
 			state.SetCode(addr, []byte{i, i, i, i, i, tweak})
 		}

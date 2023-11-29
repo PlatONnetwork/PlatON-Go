@@ -96,10 +96,7 @@ func (d *DelegateRewardPerList) DecreaseTotalAmount(receipt []DelegateRewardRece
 }
 
 func (d *DelegateRewardPerList) ShouldDel() bool {
-	if len(d.Pers) == 0 {
-		return true
-	}
-	return false
+	return len(d.Pers) == 0
 }
 
 func (d *DelegateRewardPerList) IsChange() bool {

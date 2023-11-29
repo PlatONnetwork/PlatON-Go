@@ -512,7 +512,7 @@ func GetMaxEndVotingBlock(nodeID enode.IDv0, blockHash common.Hash, state xcom.S
 
 // NotifyPunishedVerifiers receives punished verifies notification from Staking
 func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enode.IDv0]struct{}, state xcom.StateDB) error {
-	if punishedVerifierMap == nil || len(punishedVerifierMap) == 0 {
+	if len(punishedVerifierMap) == 0 {
 		return nil
 	}
 	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {

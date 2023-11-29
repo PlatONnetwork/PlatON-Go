@@ -90,7 +90,7 @@ func init() {
 	})
 	newTxs = append(newTxs, tx2)
 
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
@@ -176,33 +176,30 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
 	go func() {
 
-		for {
-			select {
-			case obj := <-bftResultSub.Chan():
+		for obj := range bftResultSub.Chan() {
 
-				if obj == nil {
-					continue
-				}
-				cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
-				if !ok {
-					log.Error("blockchain_reactor receive bft result type error")
-					continue
-				}
-
-				stateDB, err := w.blockChainCache.MakeStateDB(cbftResult.Block)
-				if nil != err {
-					panic(err)
-				}
-
-				// block write to real chain
-				err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
-				if nil != err {
-					panic(err)
-				}
-
-				// block write to BftMock engine chain
-				backend.engine.InsertChain(cbftResult.Block)
+			if obj == nil {
+				continue
 			}
+			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
+			if !ok {
+				log.Error("blockchain_reactor receive bft result type error")
+				continue
+			}
+
+			stateDB, err := w.blockChainCache.MakeStateDB(cbftResult.Block)
+			if nil != err {
+				panic(err)
+			}
+
+			// block write to real chain
+			err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
+			if nil != err {
+				panic(err)
+			}
+
+			// block write to BftMock engine chain
+			backend.engine.InsertChain(cbftResult.Block)
 		}
 
 	}()
@@ -329,7 +326,7 @@ func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, eng
 
 	// Ensure the new tx events has been processed
 	time.Sleep(100 * time.Millisecond)
-	block, state = w.pending()
+	_, state = w.pending()
 	if balance := state.GetBalance(testUserAddress); balance.Cmp(big.NewInt(2000)) != 0 {
 		t.Errorf("account balance mismatch: have %d, want %d", balance, 2000)
 	}

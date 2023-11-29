@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
@@ -219,7 +218,7 @@ func (b *BlockTree) findBlockExt(hash common.Hash, number uint64) *blockExt {
 
 func (b *BlockTree) IsForked(hash common.Hash, number uint64) (common.Hash, uint64, bool) {
 	ext := b.findForkedBlockExts(hash, number)
-	if ext != nil && len(ext) != 0 {
+	if len(ext) != 0 {
 		return ext[0].Block.Hash(), ext[0].Block.NumberU64(), true
 	}
 	return common.Hash{}, 0, false

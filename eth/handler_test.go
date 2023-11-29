@@ -17,10 +17,11 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -147,45 +148,6 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 	if _, err := chain.InsertChain(bs); err != nil {
 		panic(err)
 	}
-	txpool := newTestTxPool()
-
-	handler, _ := newHandler(&handlerConfig{
-		Database:   db,
-		Chain:      chain,
-		TxPool:     txpool,
-		Network:    1,
-		Sync:       downloader.SnapSync,
-		BloomCache: 1,
-	})
-	handler.Start(1000)
-
-	return &testHandler{
-		db:      db,
-		chain:   chain,
-		txpool:  txpool,
-		handler: handler,
-	}
-}
-
-// newTestHandlerWithBlocks2 creates a new handler for testing purposes, with a
-// given number of initial blocks.
-func newTestHandlerWithBlocks2(blocks int) *testHandler {
-	// Create a database pre-initialize with a genesis block
-	db := rawdb.NewMemoryDatabase()
-	genesis := &(core.Genesis{
-		Config: params.TestChainConfig,
-		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
-	})
-	parent := genesis.MustCommit(db)
-
-	errCh := make(chan error, 1)
-
-	engine := consensus.NewFakerWithDataBase(db, parent)
-
-	errCh <- engine.InsertChain(parent)
-	<-errCh
-
-	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, blocks, nil)
 	txpool := newTestTxPool()
 
 	handler, _ := newHandler(&handlerConfig{

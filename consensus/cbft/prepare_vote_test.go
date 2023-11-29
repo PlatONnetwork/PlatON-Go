@@ -482,8 +482,7 @@ func (cbft *Cbft) generateErrPrepareQC(votes map[uint32]*protocols.PrepareVote) 
 	if len(votes) == 0 {
 		return nil
 	}
-	var vote *protocols.PrepareVote
-	vote = votes[0]
+	vote := votes[0]
 	// Validator set prepareQC is the same as highestQC
 	total := cbft.validatorPool.Len(cbft.state.Epoch())
 

@@ -69,11 +69,9 @@ func TestNewViewState(t *testing.T) {
 
 	viewState.SetViewTimer(1)
 
-	select {
-	case <-viewState.ViewTimeout():
-		assert.True(t, viewState.IsDeadline())
-		assert.True(t, viewState.IsDeadline())
-	}
+	<-viewState.ViewTimeout()
+	assert.True(t, viewState.IsDeadline())
+	assert.True(t, viewState.IsDeadline())
 }
 
 func TestPrepareVoteQueue(t *testing.T) {

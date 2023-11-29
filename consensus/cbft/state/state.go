@@ -104,10 +104,6 @@ func (p *prepareVotes) len() int {
 	return len(p.Votes)
 }
 
-func (p *prepareVotes) clear() {
-	p.Votes = make(map[uint32]*protocols.PrepareVote)
-}
-
 type viewBlocks struct {
 	Blocks map[uint32]viewBlock `json:"blocks"`
 }
@@ -253,7 +249,7 @@ func (v *viewVotes) index(i uint32) *prepareVotes {
 
 func (v *viewVotes) MaxIndex() uint32 {
 	max := uint32(math.MaxUint32)
-	for index, _ := range v.Votes {
+	for index := range v.Votes {
 		if max == math.MaxUint32 || index > max {
 			max = index
 		}
@@ -758,7 +754,7 @@ func (vs *ViewState) SetViewTimer(viewInterval uint64) {
 }
 
 func (vs *ViewState) String() string {
-	return fmt.Sprintf("")
+	return ""
 }
 
 func (vs *ViewState) MarshalJSON() ([]byte, error) {

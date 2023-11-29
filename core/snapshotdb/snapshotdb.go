@@ -1024,11 +1024,11 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
 	}
+	logger.Info("begin close snapshotdb", "path", s.path)
 	if s.closed {
 		return nil
 	}

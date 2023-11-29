@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package handler
 
 import (
@@ -67,7 +66,6 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
-	hash := common.ZeroHash
 	for i := 0; i < int(xcom.MaxValidators())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
@@ -79,7 +77,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 		if err := vh.Storage(blockNumber, phash, common.ZeroHash, vrf.ProofToHash(pi)); nil != err {
 			t.Fatal(err)
 		}
-		hash = common.BytesToHash([]byte(strconv.Itoa(i)))
+		hash := common.BytesToHash([]byte(strconv.Itoa(i)))
 		phash = hash
 		if err := vh.db.Flush(hash, blockNumber); nil != err {
 			t.Fatal(err)

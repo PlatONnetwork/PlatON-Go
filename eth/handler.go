@@ -103,24 +103,21 @@ type handler struct {
 	acceptTxs       uint32 // Flag whether we're considered synchronised (enables transaction processing)
 	acceptRemoteTxs uint32 // Flag whether we're accept remote txs
 
-	chainconfig *params.ChainConfig
-	database    ethdb.Database
-	txpool      txPool
-	chain       *core.BlockChain
-	maxPeers    int
+	database ethdb.Database
+	txpool   txPool
+	chain    *core.BlockChain
+	maxPeers int
 
 	downloader   *downloader.Downloader
 	blockFetcher *fetcher.BlockFetcher
 	txFetcher    *fetcher.TxFetcher
 	peers        *peerSet
 
-	eventMux             *event.TypeMux
-	txsCh                chan core.NewTxsEvent
-	txsCache             []*types.Transaction
-	txsSub               event.Subscription
-	minedBlockSub        *event.TypeMuxSubscription
-	prepareMinedBlockSub *event.TypeMuxSubscription
-	blockSignatureSub    *event.TypeMuxSubscription
+	eventMux      *event.TypeMux
+	txsCh         chan core.NewTxsEvent
+	txsCache      []*types.Transaction
+	txsSub        event.Subscription
+	minedBlockSub *event.TypeMuxSubscription
 
 	whitelist map[uint64]common.Hash
 

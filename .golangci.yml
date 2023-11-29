@@ -8,6 +8,11 @@ run:
   skip-dirs-use-default: true
   skip-files:
     - core/genesis_alloc.go
+    - log/term/terminal_notwindows.go
+  skip-dirs:
+    - common/math
+    - common/json
+    - common/sort
 
 linters:
   disable-all: true

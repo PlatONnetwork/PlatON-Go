@@ -382,7 +382,7 @@ func (snaptest *wipeCrashSnapshotTest) test(t *testing.T) {
 		SnapshotLimit:  256,
 		SnapshotWait:   false, // Don't wait rebuild
 	}
-	newchain, err = NewBlockChain(snaptest.db, config, params.AllEthashProtocolChanges, snaptest.engine, vm.Config{}, nil, nil)
+	_, err = NewBlockChain(snaptest.db, config, params.AllEthashProtocolChanges, snaptest.engine, vm.Config{}, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to recreate chain: %v", err)
 	}

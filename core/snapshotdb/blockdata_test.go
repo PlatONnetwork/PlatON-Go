@@ -38,7 +38,7 @@ func TestBlockData_RevertToSnapshot(t *testing.T) {
 			t.Error(err)
 			return
 		} else {
-			if bytes.Compare(valOld, valNew) != 0 {
+			if !bytes.Equal(valOld, valNew) {
 				t.Error("key not same")
 			}
 		}
@@ -55,7 +55,7 @@ func TestBlockData_RevertToSnapshot(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		if bytes.Compare(keyA, valNew) != 0 {
+		if !bytes.Equal(keyA, valNew) {
 			t.Error("key not same")
 		}
 	}
@@ -91,7 +91,7 @@ func TestBlockData_RevertToSnapshot(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		if bytes.Compare(nil, valNew) != 0 {
+		if !bytes.Equal(nil, valNew) {
 			t.Error("key not same")
 		}
 	}
@@ -113,7 +113,7 @@ func TestBlockData_RevertToSnapshot(t *testing.T) {
 		t.Error(err)
 		return
 	} else {
-		if bytes.Compare(nil, valNew) != 0 {
+		if !bytes.Equal(nil, valNew) {
 			t.Error("key not same")
 		}
 	}

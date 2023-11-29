@@ -213,7 +213,7 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		return nil, err
 
 	case txTypeCurrent:
-		var vds *Validators = nil
+		var vds *Validators
 		vds, err = vic.CurrentValidators()
 		if err != nil {
 			log.Error("Get current validators fail", "error", err)
@@ -223,7 +223,7 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		return b, nil
 
 	case txTypeNext:
-		var vds *Validators = nil
+		var vds *Validators
 		vds, err = vic.NextValidators()
 		if err != nil {
 			log.Error("Get next validators fail", "error", err)

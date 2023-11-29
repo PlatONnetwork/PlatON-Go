@@ -76,7 +76,7 @@ func TestWasmRun(t *testing.T) {
 	assert.Nil(t, ret)
 
 	// bad call for empty input
-	buf = callData(t, "add_message")
+	//buf = callData(t, "add_message")
 	engine.contract.DeployContract = false
 	ret, err = engine.Run(nil, false)
 	assert.Nil(t, err)

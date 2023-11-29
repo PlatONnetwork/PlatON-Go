@@ -199,11 +199,6 @@ func Test_Router_FilteredPeers(t *testing.T) {
 				t.Log(len(peers))
 			}
 		case protocols.PrepareBlockHashMsg:
-			if v.cond == (common.Hash{}) {
-				//assert.Equal(t, testingPeerCount/2, len(peers))
-			} else {
-				//assert.Equal(t, testingPeerCount/2, len(peers))
-			}
 		}
 	}
 }
