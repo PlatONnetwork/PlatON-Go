@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package state
 
 import (
@@ -104,10 +103,6 @@ func (p *prepareVotes) hadVote(vote *protocols.PrepareVote) bool {
 
 func (p *prepareVotes) len() int {
 	return len(p.Votes)
-}
-
-func (p *prepareVotes) clear() {
-	p.Votes = make(map[uint32]*protocols.PrepareVote)
 }
 
 type viewBlocks struct {
@@ -255,7 +250,7 @@ func (v *viewVotes) index(i uint32) *prepareVotes {
 
 func (v *viewVotes) MaxIndex() uint32 {
 	max := uint32(math.MaxUint32)
-	for index, _ := range v.Votes {
+	for index := range v.Votes {
 		if max == math.MaxUint32 || index > max {
 			max = index
 		}
@@ -425,7 +420,7 @@ func (v *view) UnmarshalJSON(input []byte) error {
 //	return v.hadSendPrepareVote.hadVote(vote)
 //}
 
-//The block of current view, there two types, prepareBlock and block
+// The block of current view, there two types, prepareBlock and block
 type viewBlock interface {
 	hash() common.Hash
 	number() uint64
@@ -760,7 +755,7 @@ func (vs *ViewState) SetViewTimer(viewInterval uint64) {
 }
 
 func (vs *ViewState) String() string {
-	return fmt.Sprintf("")
+	return ""
 }
 
 func (vs *ViewState) MarshalJSON() ([]byte, error) {

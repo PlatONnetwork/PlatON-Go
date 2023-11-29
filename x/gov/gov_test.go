@@ -53,7 +53,7 @@ var (
 	vpPIPID           = "vpPIPID"
 	vpEndVotingRounds = uint64(2)
 
-	tempActiveVersion = params.GenesisVersion + uint32(0<<16|1<<8|0)
+	tempActiveVersion = params.GenesisVersion + uint32(0<<16|1<<8)
 
 	chainID = big.NewInt(100)
 )
@@ -121,7 +121,7 @@ func commit_sndb(chain *mock.Chain) {
 	}
 }
 
-func prepair_sndb(chain *mock.Chain) {
+func prepare_sndb(chain *mock.Chain) {
 	/*if txHash == common.ZeroHash {
 		chain.AddBlock()
 	} else {
@@ -129,9 +129,9 @@ func prepair_sndb(chain *mock.Chain) {
 	}*/
 
 	chain.AddBlock()
-	//fmt.Println("prepair_sndb::::::", chain.CurrentHeader().ParentHash.Hex())
+	//fmt.Println("prepare_sndb::::::", chain.CurrentHeader().ParentHash.Hex())
 	if err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
-		fmt.Println("prepair_sndb error:", err)
+		fmt.Println("prepare_sndb error:", err)
 	}
 }
 
@@ -139,7 +139,7 @@ func skip_emptyBlock(chain *mock.Chain, blockNumber uint64) {
 	if blockNumber > chain.CurrentHeader().Number.Uint64() {
 		cnt := blockNumber - chain.CurrentHeader().Number.Uint64()
 		for i := uint64(0); i < cnt; i++ {
-			prepair_sndb(chain)
+			prepare_sndb(chain)
 			commit_sndb(chain)
 		}
 	} else {
@@ -194,7 +194,7 @@ func setup(t *testing.T) *mock.Chain {
 	commit_sndb(chain)
 
 	//the contract will retrieve this txHash as ProposalID
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	return chain
 }
@@ -288,7 +288,7 @@ func TestGov_Submit(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	submitText(t, chain)
 
 	if tp, err := FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Text); err != nil {
@@ -305,7 +305,7 @@ func TestGov_Vote(t *testing.T) {
 	submitText(t, chain)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
@@ -316,7 +316,7 @@ func TestGov_Vote(t *testing.T) {
 	}
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
@@ -386,7 +386,7 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 	if err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
@@ -424,7 +424,7 @@ func TestGov_ListProposal(t *testing.T) {
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if pList, err := ListProposal(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("ListProposal, err", err)
 	} else {
@@ -442,7 +442,7 @@ func TestGov_ListVotingProposalID(t *testing.T) {
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if pIDList, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
@@ -461,7 +461,7 @@ func TestGov_FindVotingProposal(t *testing.T) {
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if p, err := FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Version); err != nil {
 		t.Error("FindVotingProposal, err", err)
 	} else {
@@ -479,12 +479,12 @@ func TestGov_GetMaxEndVotingBlock(t *testing.T) {
 	tp := submitText(t, chain)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	vp := submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
@@ -518,12 +518,12 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 	submitText(t, chain)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
@@ -540,7 +540,7 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 		return
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
@@ -579,14 +579,14 @@ func TestGov_SetGovernParam(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if gp, err := FindGovernParam("myModule", "myName", chain.CurrentHeader().Hash()); err != nil {
 		t.Error("FindGovernParam, err", err)
@@ -604,13 +604,13 @@ func TestGov_UpdateGovernParam(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := UpdateGovernParamValue("myModule", "myName", "newValue", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("UpdateGovernParamValue, err", err)
@@ -632,20 +632,20 @@ func TestGov_ListGovernParam(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
@@ -674,20 +674,20 @@ func TestGov_UpdateGovernParamValue(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
@@ -716,13 +716,13 @@ func TestGov_GetGovernParamValue(t *testing.T) {
 	defer clear(chain, t)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	if gpv, err := GetGovernParamValue("myModule", "myName", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GetGovernParamValue, err", err)
@@ -736,7 +736,7 @@ func TestGov_GovernStakeThreshold(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernStakeThreshold(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernStakeThreshold, err", err)
 	} else {
@@ -749,7 +749,7 @@ func TestGov_GovernOperatingThreshold(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernOperatingThreshold(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernOperatingThreshold, err", err)
 	} else {
@@ -762,7 +762,7 @@ func TestGov_GovernMaxValidators(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernMaxValidators(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernMaxValidators, err", err)
 	} else {
@@ -775,7 +775,7 @@ func TestGov_GovernUnStakeFreezeDuration(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernUnStakeFreezeDuration(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernUnStakeFreezeDuration, err", err)
 	} else {
@@ -788,7 +788,7 @@ func TestGov_GovernSlashFractionDuplicateSign(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernSlashFractionDuplicateSign(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernSlashFractionDuplicateSign, err", err)
 	} else {
@@ -801,7 +801,7 @@ func TestGov_GovernDuplicateSignReportReward(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernDuplicateSignReportReward(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernDuplicateSignReportReward, err", err)
 	} else {
@@ -814,7 +814,7 @@ func TestGov_GovernMaxEvidenceAge(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernMaxEvidenceAge(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernMaxEvidenceAge, err", err)
 	} else {
@@ -827,7 +827,7 @@ func TestGov_GovernSlashBlocksReward(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernSlashBlocksReward(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernSlashBlocksReward, err", err)
 	} else {
@@ -840,7 +840,7 @@ func TestGov_GovernMaxBlockGasLimit(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash(), chain.SnapDB); err != nil {
 		t.Error("GovernMaxBlockGasLimit, err", err)
 	} else {
@@ -853,19 +853,19 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	stk := NewMockStaking()
 
 	submitText(t, chain)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
@@ -882,7 +882,7 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		return
 	}
 	commit_sndb(chain)
-	prepair_sndb(chain)
+	prepare_sndb(chain)
 
 	//-------
 	//-------

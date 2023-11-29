@@ -22,9 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/stretchr/testify/assert"
 
@@ -38,7 +37,7 @@ import (
 )
 
 func init() {
-	log.Root().SetHandler(log.DiscardHandler())
+	//log.Root().SetHandler(log.DiscardHandler())
 	fetcher.SetArriveTimeout(10 * time.Second)
 }
 
@@ -91,11 +90,13 @@ func TestFetch(t *testing.T) {
 				select {
 				//case <-timer.C:
 				//	t.Fatal("execute block timeout")
-				case <-execute:
-
+				case n := <-execute:
+					log.Info("===================================", "n", n)
 				}
 				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
+				if !(index == uint32(i) && finish) {
+					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+				}
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
@@ -119,13 +120,11 @@ func TestFetch(t *testing.T) {
 	timer := time.NewTimer(20 * time.Millisecond)
 
 	for {
-		select {
-		case <-timer.C:
-			if nodes[1].engine.fetcher.Len() == 1 {
-				goto SYNC
-			}
-			timer.Reset(20 * time.Millisecond)
+		<-timer.C
+		if nodes[1].engine.fetcher.Len() == 1 {
+			goto SYNC
 		}
+		timer.Reset(20 * time.Millisecond)
 	}
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
@@ -189,7 +188,9 @@ func TestFetch_Serial(t *testing.T) {
 
 				}
 				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("i:%d,index:%d,finish:%v", i, index, finish))
+				if !(index == uint32(i) && finish) {
+					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+				}
 				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 			}
@@ -218,13 +219,11 @@ func TestFetch_Serial(t *testing.T) {
 	timer := time.NewTimer(20 * time.Millisecond)
 
 	for {
-		select {
-		case <-timer.C:
-			if nodes[1].engine.fetcher.Len() == 1 {
-				goto SYNC
-			}
-			timer.Reset(20 * time.Millisecond)
+		<-timer.C
+		if nodes[1].engine.fetcher.Len() == 1 {
+			goto SYNC
 		}
+		timer.Reset(20 * time.Millisecond)
 	}
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})

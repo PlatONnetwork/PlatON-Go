@@ -41,10 +41,6 @@ import (
 	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-var (
-	deadline = 5 * time.Minute
-)
-
 type testBackend struct {
 	db              ethdb.Database
 	sections        uint64

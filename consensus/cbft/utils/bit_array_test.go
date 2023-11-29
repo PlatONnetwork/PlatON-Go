@@ -57,7 +57,6 @@ func TestRLP(t *testing.T) {
 }
 
 func TestAnd(t *testing.T) {
-
 	bA1, _ := randBitArray(51)
 	bA2, _ := randBitArray(31)
 	bA3 := bA1.And(bA2)

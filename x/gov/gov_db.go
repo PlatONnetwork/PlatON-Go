@@ -475,7 +475,7 @@ func AddPIPID(pipID string, state xcom.StateDB) error {
 		return err
 	}
 
-	if pipIDList == nil || len(pipIDList) == 0 {
+	if len(pipIDList) == 0 {
 		pipIDList = []string{pipID}
 	} else {
 		pipIDList = append(pipIDList, pipID)
