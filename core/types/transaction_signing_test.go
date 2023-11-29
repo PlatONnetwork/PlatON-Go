@@ -67,7 +67,6 @@ func TestEIP155ChainId(t *testing.T) {
 	if tx.ChainId().Sign() != 1 {
 		t.Error("expected chain id is not exist")
 	}
-
 }
 
 func TestPIP7ChainId(t *testing.T) {
@@ -91,7 +90,6 @@ func TestPIP7ChainId(t *testing.T) {
 	if tx.FromAddr(signer) != from || addr != from {
 		t.Error("expected chain id is not exist")
 	}
-
 }
 func TestEIP155SigningVitalik(t *testing.T) {
 	// Test vectors come from http://vitalik.ca/files/eip155_testvec.txt
@@ -128,7 +126,6 @@ func TestEIP155SigningVitalik(t *testing.T) {
 		if from != addr {
 			t.Errorf("%d: expected %x got %x", i, addr, from)
 		}
-
 	}
 }
 

@@ -22,9 +22,13 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
 	mapset "github.com/deckarep/golang-set"
 
@@ -35,10 +39,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"reflect"
-	"sync"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -243,7 +243,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 		if err != nil {
 			cbft.log.Error("It's not genesis", "err", err)
-			return errors.Wrap(err, fmt.Sprintf("start cbft failed"))
+			return errors.Wrap(err, "start cbft failed")
 		}
 	}
 
@@ -507,9 +507,9 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.MarkBlacklist(msg.PeerID)
 				cbft.network.RemovePeer(msg.PeerID)
 			}
-		} else {
-			//cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
-		}
+		} /* else {
+			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+		}*/
 		cbft.forgetMessage(msg.PeerID)
 	}
 
@@ -1271,7 +1271,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 
 	rtt := cbft.avgRTT()
 	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
-		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", cbft.state.Deadline().Sub(time.Now()), "rtt", rtt)
+		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", time.Until(cbft.state.Deadline()), "rtt", rtt)
 		result <- errors.New("not enough time to propagated block, stopped sealing")
 		return
 	}

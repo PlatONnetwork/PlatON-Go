@@ -89,7 +89,7 @@ var (
 	errCanceled                = errors.New("syncing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer's protocol version too old")
-	errTooLess                 = errors.New("peer's hight less than 64")
+	//errTooLess                 = errors.New("peer's hight less than 64")
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
@@ -131,17 +131,15 @@ type Downloader struct {
 	ancientLimit    uint64 // The maximum block number which can be regarded as ancient data.
 
 	// Channels
-	headerProcCh      chan *headerTask // Channel to feed the header processor new tasks
-	pposInfoCh        chan dataPack    // Channel receiving inbound ppos storage
-	pposStorageCh     chan dataPack    // Channel receiving inbound ppos storage
-	pposStorageDoneCh chan struct{}    // Channel to signal termination completion
-	originAndPivotCh  chan dataPack    // Channel receiving origin and pivot block
+	headerProcCh     chan *headerTask // Channel to feed the header processor new tasks
+	pposInfoCh       chan dataPack    // Channel receiving inbound ppos storage
+	pposStorageCh    chan dataPack    // Channel receiving inbound ppos storage
+	originAndPivotCh chan dataPack    // Channel receiving origin and pivot block
 
 	// State sync
 	pivotHeader *types.Header // Pivot block header to dynamically push the syncing state root
 	pivotLock   sync.RWMutex  // Lock protecting pivot header reads from updates
 
-	snapSync       bool         // Whether to run state sync over the snap protocol
 	SnapSyncer     *snap.Syncer // TODO(karalabe): make private! hack for now
 	stateSyncStart chan *stateSync
 

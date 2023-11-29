@@ -43,8 +43,7 @@ func TestBytesToString(t *testing.T) {
 }
 
 func TestBytesToUint8(t *testing.T) {
-	var msg uint8
-	msg = 255
+	var msg uint8 = 255
 	data, err := rlp.EncodeToBytes(msg)
 	assert.Nil(t, err)
 	dmsg := BytesToUint8(data)
@@ -52,8 +51,7 @@ func TestBytesToUint8(t *testing.T) {
 }
 
 func TestBytesToUint16(t *testing.T) {
-	var msg uint16
-	msg = 65535
+	var msg uint16 = 65535
 	data, err := rlp.EncodeToBytes(msg)
 	assert.Nil(t, err)
 	dmsg := BytesToUint16(data)
@@ -61,8 +59,7 @@ func TestBytesToUint16(t *testing.T) {
 }
 
 func TestBytesToUint32(t *testing.T) {
-	var msg uint32
-	msg = 4294967295
+	var msg uint32 = 4294967295
 	data, err := rlp.EncodeToBytes(msg)
 	assert.Nil(t, err)
 	dmsg := BytesToUint32(data)
@@ -70,8 +67,7 @@ func TestBytesToUint32(t *testing.T) {
 }
 
 func TestBytesToUint64(t *testing.T) {
-	var msg uint64
-	msg = 18446744073709551612
+	var msg uint64 = 18446744073709551612
 	data, err := rlp.EncodeToBytes(msg)
 	assert.Nil(t, err)
 	dmsg := BytesToUint64(data)

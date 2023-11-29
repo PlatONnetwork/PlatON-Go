@@ -86,14 +86,14 @@ func (h *GlogHandler) GetVerbosity() Lvl {
 //
 // For instance:
 //
-//  pattern="gopher.go=3"
-//   sets the V level to 3 in all Go files named "gopher.go"
+//	pattern="gopher.go=3"
+//	 sets the V level to 3 in all Go files named "gopher.go"
 //
-//  pattern="foo=3"
-//   sets V to 3 in all files of any packages whose import path ends in "foo"
+//	pattern="foo=3"
+//	 sets V to 3 in all files of any packages whose import path ends in "foo"
 //
-//  pattern="foo/*=3"
-//   sets V to 3 in all files of any packages whose import path contains "foo"
+//	pattern="foo/*=3"
+//	 sets V to 3 in all files of any packages whose import path contains "foo"
 func (h *GlogHandler) Vmodule(ruleset string) error {
 	var filter []pattern
 	for _, rule := range strings.Split(ruleset, ",") {

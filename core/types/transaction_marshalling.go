@@ -19,11 +19,11 @@ package types
 import (
 	"encoding/json"
 	"errors"
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 )
 
 // txJSON is the JSON representation of transactions.

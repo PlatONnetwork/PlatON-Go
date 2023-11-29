@@ -74,7 +74,7 @@ func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
 
 	//fmt.Println("prepair_sndb::::::", chain.CurrentHeader().ParentHash.Hex())
 	if err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
-		fmt.Println("prepair_sndb error:", err)
+		fmt.Println("prepare_sndb error:", err)
 	}
 
 	//prepare gc to run contract
@@ -870,7 +870,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareOtherVersion_Err
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
-	otherVersion := uint32(1<<16 | 3<<8 | 0)
+	otherVersion := uint32(1<<16 | 3<<8)
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
@@ -949,7 +949,7 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 	//vote new version
 	runGovContract(false, gc, buildVoteInput(0, defaultProposalID), t)
 
-	otherVersion := uint32(1<<16 | 3<<8 | 0)
+	otherVersion := uint32(1<<16 | 3<<8)
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
@@ -1321,7 +1321,7 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 
-	otherVersion := uint32(1<<16 | 3<<8 | 0)
+	otherVersion := uint32(1<<16 | 3<<8)
 	var sign common.VersionSign
 	sign.SetBytes(chandler.MustSign(otherVersion))
 
