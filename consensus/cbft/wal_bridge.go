@@ -40,11 +40,6 @@ var (
 	errNonContiguous = errors.New("non contiguous chain block state")
 )
 
-var (
-	viewChangeQCPrefix = []byte("qc") // viewChangeQCPrefix + epoch (uint64 big endian) + viewNumber (uint64 big endian) -> viewChangeQC
-	epochPrefix        = []byte("e")
-)
-
 // Bridge encapsulates functions required to update consensus state and consensus msg.
 // As a bridge layer for cbft and wal.
 type Bridge interface {
@@ -487,11 +482,6 @@ func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	// equalViewState
 	highestQCBlockBn, _ := cbft.HighestQCBlockBn()
 	return msg.BlockNumber() > highestQCBlockBn, nil
-}
-
-// equalViewState check if the msg view is equal with current.
-func (cbft *Cbft) equalViewState(msg protocols.WalMsg) bool {
-	return msg.Epoch() == cbft.state.Epoch() && msg.ViewNumber() == cbft.state.ViewNumber()
 }
 
 // lowerViewState check if the msg view is lower than current.

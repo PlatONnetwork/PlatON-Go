@@ -127,7 +127,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 		}
 		// Remove local forks that already exist.
 		filteredForkedBlocks := make([]*types.Block, 0)
-		filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
 		//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
 		localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
 
@@ -135,11 +134,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 			cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
 		}
 
-		for i, forkedBlock := range blockList.ForkedBlocks {
+		for _, forkedBlock := range blockList.ForkedBlocks {
 			for _, localForkedBlock := range localForkedBlocks {
 				if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
 					filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
-					filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
 					break
 				}
 			}

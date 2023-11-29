@@ -165,12 +165,11 @@ func TestJsonEncodeWithEIP55(t *testing.T) {
 func BenchmarkAddressString(b *testing.B) {
 	testAddr := MustBech32ToAddress("lat1x4w7852dxs69sy2mgf8w0s7tmvqx3cz2ydaxq4")
 	for n := 0; n < b.N; n++ {
-		testAddr.String()
+		b.Log(testAddr.String())
 	}
 }
 
 func TestMixedcaseAccount_Address(t *testing.T) {
-
 	// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md
 	// Note: 0X{checksum_addr} is not valid according to spec above
 
@@ -207,9 +206,7 @@ func TestMixedcaseAccount_Address(t *testing.T) {
 		if err := json.Unmarshal([]byte(r), &r2); err == nil {
 			t.Errorf("Expected failure, input %v", r)
 		}
-
 	}
-
 }
 
 func TestAddress_Scan(t *testing.T) {

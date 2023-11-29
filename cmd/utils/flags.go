@@ -1714,9 +1714,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
-	var engine consensus.Engine
 	//todo: Merge confirmation.
-	engine = consensus.NewFaker()
+	engine := consensus.NewFaker()
 
 	cache := &core.CacheConfig{
 		Disabled:        true,

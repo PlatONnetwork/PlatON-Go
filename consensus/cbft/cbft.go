@@ -412,11 +412,7 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 
 	hash := msg.Msg.MsgHash()
 	if _, ok := cbft.statQueues[hash]; ok {
-		if _, exists := cbft.statQueues[hash][msg.PeerID]; exists {
-			cbft.statQueues[hash][msg.PeerID]++
-		} else {
-			cbft.statQueues[hash][msg.PeerID] = 1
-		}
+		cbft.statQueues[hash][msg.PeerID] += 1
 	} else {
 		cbft.statQueues[hash] = map[string]int{
 			msg.PeerID: 1,
@@ -725,7 +721,7 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 	results := make(chan error, len(headers))
 
 	go func() {
-		for index, _ := range headers {
+		for index := range headers {
 			err := cbft.verifyHeaderWorker(chain, headers, index)
 
 			select {
@@ -1270,7 +1266,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	rtt := cbft.avgRTT()
-	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
+	if time.Until(cbft.state.Deadline()) <= rtt {
 		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", time.Until(cbft.state.Deadline()), "rtt", rtt)
 		result <- errors.New("not enough time to propagated block, stopped sealing")
 		return

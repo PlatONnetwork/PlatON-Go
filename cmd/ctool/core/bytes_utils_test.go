@@ -14,16 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInt32ToBytes(t *testing.T) {

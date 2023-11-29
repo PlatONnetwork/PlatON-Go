@@ -104,7 +104,6 @@ func generateAccount(size int, pkFile string) {
 	}
 	savePrivateKeyPool(pkFile)
 	saveAddrs(addrs, pkFile)
-
 }
 
 func savePrivateKeyPool(pkFile string) {

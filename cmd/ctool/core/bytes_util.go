@@ -34,7 +34,7 @@ func BytesToInt32(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var tmp int32
 	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
-	return int32(tmp)
+	return tmp
 }
 
 func Int64ToBytes(n int64) []byte {
@@ -121,5 +121,4 @@ func StringConverter(source string, t string) ([]byte, error) {
 	default:
 		return []byte(source), nil
 	}
-
 }

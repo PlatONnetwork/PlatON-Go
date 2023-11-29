@@ -18,7 +18,6 @@ package cbft
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -34,18 +33,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	cstate "github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
@@ -271,60 +265,6 @@ func testTimeout(t *testing.T, node, node2 *TestCBFT, timeout time.Duration) {
 	assert.Nil(t, node2.engine.OnViewChange(node.engine.config.Option.NodeID.TerminalString(), node.engine.state.AllViewChange()[0]))
 }
 
-func testExecuteBlock(t *testing.T) {
-	pk, sk, cbftnodes := GenerateCbftNode(4)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
-		assert.Nil(t, node.Start())
-
-		nodes = append(nodes, node)
-	}
-
-	result := make(chan *types.Block, 1)
-	complete := make(chan struct{}, 1)
-	parent := nodes[0].chain.Genesis()
-	for i := 0; i < 8; i++ {
-		block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-		assert.True(t, nodes[0].engine.state.HighestExecutedBlock().Hash() == block.ParentHash())
-		nodes[0].engine.OnSeal(block, result, nil, complete)
-		<-complete
-
-		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 4; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
-				assert.NotNil(t, pb)
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
-				time.Sleep(50 * time.Millisecond)
-				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
-				assert.Nil(t, nodes[1].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
-			}
-			parent = b
-		}
-	}
-	assert.Equal(t, uint64(8), nodes[0].engine.state.HighestQCBlock().NumberU64())
-	assert.Equal(t, uint64(8), nodes[1].engine.state.HighestQCBlock().NumberU64())
-
-	//assert.Equal(t, uint64(2), nodes[0].engine.state.ViewNumber())
-
-}
-
 func TestChangeView(t *testing.T) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
@@ -345,230 +285,25 @@ func TestChangeView(t *testing.T) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
-			}
-			parent = b
-		}
-	}
-	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
-}
-
-func testValidatorSwitch(t *testing.T) {
-	pk, sk, cbftnodes := GenerateCbftNode(4)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < 4; i++ {
-		node := MockValidator(pk[i], sk[i], cbftnodes, 1000000, 10)
-		assert.Nil(t, node.Start())
-
-		nodes = append(nodes, node)
-	}
-
-	switchNode, switchCbftNode := func() (*TestCBFT, params.CbftNode) {
-		pk, sk, ns := GenerateCbftNode(1)
-		node := MockValidator(pk[0], sk[0], cbftnodes, 1000000, 10)
-		assert.Nil(t, node.Start())
-		return node, ns[0]
-	}()
-
-	result := make(chan *types.Block, 1)
-	complete := make(chan struct{}, 1)
-
-	parent := nodes[0].chain.Genesis()
-	for i := 0; i < 4; i++ {
-		for j := 0; j < 10; j++ {
-			block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-			header := block.Header()
-			assert.Nil(t, nodes[i].engine.Prepare(nodes[i].chain, header))
-			if i == 1 && j == 0 {
-				tx, receipt, statedb := newUpdateValidatorTx(t, parent, header, cbftnodes, switchCbftNode, nodes[i])
-				block, _ = nodes[i].engine.Finalize(nodes[i].chain, header, statedb, []*types.Transaction{tx}, []*types.Receipt{receipt})
-				sealHash := block.Header().SealHash()
-				nodes[i].cache.WriteStateDB(sealHash, statedb, block.NumberU64())
-				nodes[i].cache.WriteReceipts(sealHash, []*types.Receipt{receipt}, block.NumberU64())
-			} else {
-				statedb, _ := nodes[i].cache.MakeStateDB(parent)
-				block, _ = nodes[i].engine.Finalize(nodes[i].chain, header, statedb, []*types.Transaction{}, []*types.Receipt{})
-				nodes[i].cache.WriteStateDB(block.Header().SealHash(), statedb, block.NumberU64())
-			}
-
-			nodes[i].engine.Seal(nodes[i].chain, block, result, nil, complete)
-			<-complete
-
-			_, qc := nodes[i].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-			select {
-			case b := <-result:
-				assert.NotNil(t, b)
-				assert.Equal(t, uint32(j-1), nodes[i].engine.state.MaxQCIndex())
-
-				for k := 0; k < 4; k++ {
-					if k == i {
-						continue
-					}
-					msg := &protocols.PrepareVote{
-						Epoch:          nodes[i].engine.state.Epoch(),
-						ViewNumber:     nodes[i].engine.state.ViewNumber(),
-						BlockIndex:     uint32(j),
-						BlockHash:      b.Hash(),
-						BlockNumber:    b.NumberU64(),
-						ValidatorIndex: uint32(k),
-						ParentQC:       qc,
-					}
-					assert.Nil(t, nodes[k].engine.signMsgByBls(msg))
-					assert.Nil(t, nodes[i].engine.OnPrepareVote(fmt.Sprintf("%d", i), msg))
-				}
-				parent = b
-				for ii := 0; ii < 4; ii++ {
-					if ii == i {
-						continue
-					}
-
-					qcBlock := nodes[i].engine.state.HighestQCBlock()
-					_, qqc := nodes[i].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-					assert.NotNil(t, qqc)
-					p := nodes[ii].engine.state.HighestQCBlock()
-					assert.Nil(t, nodes[ii].engine.blockCacheWriter.Execute(qcBlock, p), fmt.Sprintf("execute block error, parent: %d block: %d", p.NumberU64(), qcBlock.NumberU64()))
-					assert.Nil(t, nodes[ii].engine.OnInsertQCBlock([]*types.Block{qcBlock}, []*ctypes.QuorumCert{qqc}))
-				}
-
-				{
-					qcBlock := nodes[i].engine.state.HighestQCBlock()
-					_, qqc := nodes[i].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-					assert.NotNil(t, qqc)
-					p := switchNode.engine.state.HighestQCBlock()
-					assert.Nil(t, switchNode.engine.blockCacheWriter.Execute(qcBlock, p), fmt.Sprintf("execute block error, parent: %d block: %d", p.NumberU64(), qcBlock.NumberU64()))
-					assert.Nil(t, switchNode.engine.OnInsertQCBlock([]*types.Block{qcBlock}, []*ctypes.QuorumCert{qqc}))
-				}
-			}
-		}
-	}
-
-	assert.False(t, switchNode.engine.IsConsensusNode())
-
-	nodes = append(nodes, nodes[:3]...)
-	nodes = append(nodes, switchNode)
-
-	block := NewBlock(parent.Hash(), parent.NumberU64()+1)
-	header := block.Header()
-	assert.Nil(t, nodes[0].engine.Prepare(nodes[0].chain, header))
-	statedb, _ := nodes[0].cache.MakeStateDB(parent)
-	block, _ = nodes[0].engine.Finalize(nodes[0].chain, header, statedb, []*types.Transaction{}, []*types.Receipt{})
-	nodes[0].cache.WriteStateDB(block.Header().SealHash(), statedb, block.NumberU64())
-	nodes[0].engine.Seal(nodes[0].chain, block, result, nil, complete)
-	<-complete
-	_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-	select {
-	case b := <-result:
+		b := <-result
 		assert.NotNil(t, b)
-		//assert.Equal(t, , nodes[0].engine.state.MaxQCIndex())
-		for i := 1; i < 4; i++ {
-			if i == 2 {
-				continue
-			}
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
 			msg := &protocols.PrepareVote{
 				Epoch:          nodes[0].engine.state.Epoch(),
 				ViewNumber:     nodes[0].engine.state.ViewNumber(),
-				BlockIndex:     0,
+				BlockIndex:     uint32(i),
 				BlockHash:      b.Hash(),
 				BlockNumber:    b.NumberU64(),
-				ValidatorIndex: uint32(i),
+				ValidatorIndex: uint32(j),
 				ParentQC:       qc,
 			}
-			assert.Nil(t, nodes[i].engine.signMsgByBls(msg))
-			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number: %d", block.NumberU64()))
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
 		parent = b
 	}
-	qcBlock0, _ := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-
-	{
-		qcBlock := nodes[0].engine.state.HighestQCBlock()
-		_, qqc := nodes[0].engine.blockTree.FindBlockAndQC(qcBlock.Hash(), qcBlock.NumberU64())
-		assert.NotNil(t, qqc)
-		p := nodes[3].engine.state.HighestQCBlock()
-		assert.Nil(t, nodes[3].engine.blockCacheWriter.Execute(qcBlock, p), fmt.Sprintf("execute block error, parent: %d block: %d", p.NumberU64(), qcBlock.NumberU64()))
-		assert.Nil(t, nodes[3].engine.OnInsertQCBlock([]*types.Block{qcBlock}, []*ctypes.QuorumCert{qqc}))
-	}
-
-	qcBlock1, _ := nodes[3].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-	assert.NotNil(t, qcBlock0)
-	assert.Equal(t, qcBlock0.NumberU64(), block.NumberU64())
-	assert.Equal(t, qcBlock0.NumberU64(), qcBlock1.NumberU64())
-	assert.Equal(t, qcBlock0.Hash(), qcBlock1.Hash())
-	assert.True(t, nodes[3].engine.IsConsensusNode())
-}
-
-func newUpdateValidatorTx(t *testing.T, parent *types.Block, header *types.Header, nodes []params.CbftNode, switchNode params.CbftNode, mineNode *TestCBFT) (*types.Transaction, *types.Receipt, *cstate.StateDB) {
-	type Vd struct {
-		Index     uint          `json:"index"`
-		NodeID    enode.IDv0    `json:"nodeID"`
-		BlsPubKey bls.PublicKey `json:"blsPubKey"`
-	}
-	type VdList struct {
-		NodeList []*Vd `json:"validateNode"`
-	}
-
-	vdl := &VdList{
-		NodeList: make([]*Vd, 0),
-	}
-
-	for i := 0; i < 3; i++ {
-		vdl.NodeList = append(vdl.NodeList, &Vd{
-			Index:     uint(i),
-			NodeID:    nodes[i].Node.IDv0(),
-			BlsPubKey: nodes[i].BlsPubKey,
-		})
-	}
-	vdl.NodeList = append(vdl.NodeList, &Vd{
-		Index:     3,
-		NodeID:    switchNode.Node.IDv0(),
-		BlsPubKey: switchNode.BlsPubKey,
-	})
-
-	buf, _ := json.Marshal(vdl)
-
-	param := [][]byte{
-		common.Int64ToBytes(2000),
-		[]byte("UpdateValidators"),
-		buf,
-	}
-	data, err := rlp.EncodeToBytes(param)
-	assert.Nil(t, err)
-	signer := types.NewEIP155Signer(chainConfig.ChainID)
-	tx, err := types.SignTx(
-		types.NewTransaction(
-			0,
-			vm.ValidatorInnerContractAddr,
-			big.NewInt(1000),
-			3000*3000,
-			big.NewInt(3000),
-			data),
-		signer,
-		testKey)
-	assert.Nil(t, err)
-
-	gp := new(core.GasPool).AddGas(10000000000)
-
-	statedb, err := mineNode.cache.MakeStateDB(parent)
-	assert.Nil(t, err)
-	statedb.Prepare(tx.Hash(), 1)
-	receipt, err := core.ApplyTransaction(chainConfig, mineNode.chain, gp, statedb, header, tx, &header.GasUsed, cvm.Config{})
-	assert.Nil(t, err)
-	return tx, receipt, statedb
+	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
 }
 
 func TestCalc(t *testing.T) {
@@ -670,32 +405,30 @@ func TestInsertChain(t *testing.T) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
 
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			block, mqc := nodes[0].engine.blockTree.FindBlockAndQC(b.Hash(), b.NumberU64())
-
-			assert.NotNil(t, block)
-			qcBytes, _ := ctypes.EncodeExtra(cbftVersion, mqc)
-
-			hasQCBlock = append(hasQCBlock, block.WithBody(nil, qcBytes))
-			parent = b
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		block, mqc := nodes[0].engine.blockTree.FindBlockAndQC(b.Hash(), b.NumberU64())
+
+		assert.NotNil(t, block)
+		qcBytes, _ := ctypes.EncodeExtra(cbftVersion, mqc)
+
+		hasQCBlock = append(hasQCBlock, block.WithBody(nil, qcBytes))
+		parent = b
 	}
 	assert.Equal(t, uint64(1), nodes[0].engine.state.ViewNumber())
 

@@ -668,8 +668,7 @@ func (vp *ValidatorPool) VerifyAggSigByBA(epoch uint64, vSet *utils.BitArray, ms
 	}
 	vp.lock.RUnlock()
 
-	var pub bls.PublicKey
-	pub = *nodeList[0].BlsPubKey
+	pub := *nodeList[0].BlsPubKey
 	//pub.Deserialize(nodeList[0].BlsPubKey.Serialize())
 	for i := 1; i < len(nodeList); i++ {
 		pub.Add(nodeList[i].BlsPubKey)
