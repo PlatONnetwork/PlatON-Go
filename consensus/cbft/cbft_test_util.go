@@ -162,7 +162,7 @@ func (tv *testView) currentProposer(cbft *Cbft) *Cbft {
 		if err != nil {
 			panic("find proposer node failed")
 		}
-		if index == uint32(currentProposer) {
+		if index == currentProposer {
 			return c
 		}
 	}
@@ -378,7 +378,7 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 	for _, v := range votes {
 		vote = v
 	}
-	vSet := utils.NewBitArray(uint32(total))
+	vSet := utils.NewBitArray(total)
 	vSet.SetIndex(vote.NodeIndex(), true)
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {

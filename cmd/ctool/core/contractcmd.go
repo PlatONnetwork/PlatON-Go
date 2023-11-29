@@ -245,7 +245,6 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 	Judging whether a contract exists through platon_getCode
 */
 func getContractByAddress(addr string) bool {
-
 	params := []string{addr, "latest"}
 	r, err := Send(params, "platon_getCode")
 	if err != nil {

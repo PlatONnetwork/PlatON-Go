@@ -141,7 +141,6 @@ func saveAddrs(addrs []string, pkFile string) {
 }
 
 func PrepareAccount(size int, pkFile, value string) error {
-
 	if len(accountPool) == 0 {
 		generateAccount(size, pkFile)
 	}
@@ -251,7 +250,6 @@ func parsePkFile(pkFile string) {
 	if err2 != nil {
 		panic(err2)
 	}
-
 }
 
 func getAllAddress(pkFile string) []string {

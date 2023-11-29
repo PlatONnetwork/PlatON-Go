@@ -311,7 +311,6 @@ func (cs *CSMsgPool) GetPrepareVote(epoch, view uint64, blockIndex uint32, valid
 }
 
 func (cs *CSMsgPool) Purge(epoch, view uint64) {
-
 	for k, v := range cs.epochs {
 		if k < epoch {
 			delete(cs.epochs, k)

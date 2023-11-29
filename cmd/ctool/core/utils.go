@@ -178,5 +178,4 @@ func GetFuncNameAndParams(f string) (string, []string) {
 		}
 	}
 	return funcName, params
-
 }

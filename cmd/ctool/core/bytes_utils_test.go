@@ -30,7 +30,6 @@ func TestInt32ToBytes(t *testing.T) {
 	b := Int32ToBytes(i)
 	arr := []byte{0x00, 0x00, 0x00, 0x0c}
 	assert.Equal(t, b, arr, fmt.Sprintf("Expect: %v", arr))
-
 }
 
 func TestBytesToInt32(t *testing.T) {
