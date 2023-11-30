@@ -17,11 +17,12 @@
 package leveldb
 
 import (
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/dbtest"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
-	"testing"
 )
 
 func TestLevelDB(t *testing.T) {

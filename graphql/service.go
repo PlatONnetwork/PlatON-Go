@@ -18,8 +18,9 @@ package graphql
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"net/http"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/node"

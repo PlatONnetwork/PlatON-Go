@@ -19,13 +19,14 @@ package node
 import (
 	"bytes"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/testlog"
 

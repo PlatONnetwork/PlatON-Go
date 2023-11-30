@@ -1,30 +1,31 @@
-// Copyright 2021 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2021 The go-platon Authors
+// This file is part of the go-platon library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-platon library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-platon library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-platon library. If not, see <http://www.gnu.org/licenses/>.
 
 package gethclient
 
 import (
 	"bytes"
 	"context"
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"math/big"
+	"testing"
+
+	platon "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
-	"math/big"
-	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -59,7 +60,7 @@ func newTestBackend(t *testing.T) (*node.Node, []*types.Block) {
 	config := &ethconfig.Config{Genesis: genesis, BlockCacheLimit: 100, MaxFutureBlocks: 100}
 	ethservice, err := eth.New(n, config)
 	if err != nil {
-		t.Fatalf("can't create new ethereum service: %v", err)
+		t.Fatalf("can't create new platon service: %v", err)
 	}
 	filterSystem := filters.NewFilterSystem(ethservice.APIBackend, filters.Config{})
 	n.RegisterAPIs([]rpc.API{{
@@ -146,7 +147,7 @@ func TestGethClient(t *testing.T) {
 func testAccessList(t *testing.T, client *rpc.Client) {
 	ec := New(client)
 	// Test transfer
-	msg := ethereum.CallMsg{
+	msg := platon.CallMsg{
 		From:     testAddr,
 		To:       &common.Address{},
 		Gas:      21000,
@@ -167,7 +168,7 @@ func testAccessList(t *testing.T, client *rpc.Client) {
 		t.Fatalf("unexpected length of accesslist: %v", len(*al))
 	}
 	// Test reverting transaction
-	msg = ethereum.CallMsg{
+	msg = platon.CallMsg{
 		From:     testAddr,
 		To:       nil,
 		Gas:      100000,
@@ -229,7 +230,6 @@ func testGetProof(t *testing.T, client *rpc.Client) {
 	if proof.Key != testSlot.String() {
 		t.Fatalf("invalid storage proof key, want: %v, got: %v", testSlot.String(), proof.Key)
 	}
-
 }
 
 func testGCStats(t *testing.T, client *rpc.Client) {
@@ -307,7 +307,7 @@ func testSubscribePendingTransactions(t *testing.T, client *rpc.Client) {
 
 func testCallContract(t *testing.T, client *rpc.Client) {
 	ec := New(client)
-	msg := ethereum.CallMsg{
+	msg := platon.CallMsg{
 		From:     testAddr,
 		To:       &common.Address{},
 		Gas:      21000,

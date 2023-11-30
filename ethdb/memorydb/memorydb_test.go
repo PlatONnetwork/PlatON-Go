@@ -17,9 +17,10 @@
 package memorydb
 
 import (
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/dbtest"
-	"testing"
 )
 
 func TestMemoryDB(t *testing.T) {
