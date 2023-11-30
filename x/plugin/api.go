@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"context"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -50,6 +51,6 @@ func (p *PublicPPOSAPI) GetValidatorByBlockNumber(ctx context.Context, blockNumb
 	if nil != err || len(list) == 0 {
 		return ""
 	}
-	enVal, err := json.Marshal(list)
+	enVal, _ := json.Marshal(list)
 	return string(enVal)
 }

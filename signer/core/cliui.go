@@ -20,12 +20,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"os"
 	"strings"
-
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -60,9 +60,7 @@ func (ui *CommandlineUI) readString() string {
 }
 
 func (ui *CommandlineUI) OnInputRequired(info UserInputRequest) (UserInputResponse, error) {
-
 	fmt.Printf("## %s\n\n%s\n", info.Title, info.Prompt)
-	defer fmt.Println("-----------------------")
 	if info.IsPassword {
 		text, err := prompt.Stdin.PromptPassword("> ")
 		if err != nil {
@@ -148,7 +146,6 @@ func (ui *CommandlineUI) ApproveTx(request *SignTxRequest) (SignTxResponse, erro
 			fmt.Printf("  * %s : %s\n", m.Typ, m.Message)
 		}
 		fmt.Println()
-
 	}
 	fmt.Printf("\n")
 	showMetadata(request.Meta)
@@ -210,7 +207,6 @@ func (ui *CommandlineUI) ApproveListing(request *ListRequest) (ListResponse, err
 
 // ApproveNewAccount prompt the user for confirmation to create new Account, and reveal to caller
 func (ui *CommandlineUI) ApproveNewAccount(request *NewAccountRequest) (NewAccountResponse, error) {
-
 	ui.mu.Lock()
 	defer ui.mu.Unlock()
 
@@ -246,7 +242,6 @@ func (ui *CommandlineUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 }
 
 func (ui *CommandlineUI) OnSignerStartup(info StartupInfo) {
-
 	fmt.Printf("------- Signer info -------\n")
 	for k, v := range info.Info {
 		fmt.Printf("* %v : %v\n", k, v)

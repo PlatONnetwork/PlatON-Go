@@ -20,31 +20,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -161,10 +154,7 @@ func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId enode.IDv0) {
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
-	if thisYear < xcom.PlatONFoundationYear()-1 {
-		return true
-	}
-	return false
+	return thisYear < xcom.PlatONFoundationYear()-1
 }
 
 func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
@@ -176,10 +166,11 @@ func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, 
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 }
-func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
-	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
-}
+
+//func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+//	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
+//	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
+//}
 
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB, blockNumber uint64, blockHash common.Hash) error {
@@ -197,11 +188,10 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		tmp := new(big.Int).Mul(histIssuance, big.NewInt(int64(increaseIssuanceRatio)))
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
-		// Restore the cumulative issue at this year end
+		// Restore the cumulative issue at this year-end
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
-
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
@@ -221,7 +211,6 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 // AllocateStakingReward used for reward staking at the settle block
 func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) ([]*staking.Candidate, error) {
-
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", sreward)
 	verifierList, err := rmp.stakingPlugin.GetVerifierCandidateInfo(blockHash, blockNumber)
@@ -239,7 +228,6 @@ func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash 
 
 func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) error {
 	if amount.Cmp(common.Big0) > 0 {
-
 		DelegateRewardPool := state.GetBalance(vm.DelegateRewardPoolAddr)
 
 		if DelegateRewardPool.Cmp(amount) < 0 {
@@ -264,7 +252,6 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
 			}
 		} else {
-
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
 				log.Error("call handleDelegatePerReward fail AppendDelegateRewardPer", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
@@ -391,7 +378,6 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     (*hexutil.Big)(new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome)),
 		})
-
 	}
 	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "num", blockNum, "account", account, "nodes", nodes, "rewards", rewards, "perList", delegationInfoWithRewardPerList)
 
@@ -463,7 +449,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			return err
 		}
 		if cm.ShouldGiveDelegateReward() {
-			delegateReward := new(big.Int).SetUint64(0)
+			var delegateReward *big.Int
 			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
 
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)
@@ -479,7 +465,6 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 	}
 
 	if head.Coinbase != vm.RewardManagerPoolAddr {
-
 		log.Debug("allocate package reward,block reward", "blockNumber", head.Number, "blockHash", blockHash,
 			"coinBase", head.Coinbase.String(), "reward", reward)
 

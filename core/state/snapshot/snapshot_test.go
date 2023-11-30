@@ -17,6 +17,7 @@
 package snapshot
 
 import (
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -24,16 +25,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/VictoriaMetrics/fastcache"
 )
 
 // randomHash generates a random blob of data and returns it as a hash.
 func randomHash() common.Hash {
 	var hash common.Hash
-	if n, err := rand.Read(hash[:]); n != common.HashLength || err != nil {
+	if n, err := crand.Read(hash[:]); n != common.HashLength || err != nil {
 		panic(err)
 	}
 	return hash

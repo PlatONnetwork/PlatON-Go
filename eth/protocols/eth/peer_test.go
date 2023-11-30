@@ -21,9 +21,9 @@ package eth
 
 import (
 	"crypto/rand"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )

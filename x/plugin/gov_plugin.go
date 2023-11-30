@@ -18,18 +18,16 @@ package plugin
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -71,7 +69,7 @@ func (govPlugin *GovPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) err
 	return nil
 }
 
-// implement BasePlugin
+// BeginBlock implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call BeginBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -156,7 +154,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	return nil
 }
 
-// implement BasePlugin
+// EndBlock implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -207,7 +205,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				if tallyResult.Status == gov.PreActive && versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
 					govPlugin.chainConfig.SetPauliBlock(new(big.Int).SetUint64(versionProposal.ActiveBlock))
 				}
-
 			} else if votingProposal.GetProposalType() == gov.Cancel && isElection {
 				_, err := tallyCancel(votingProposal.(*gov.CancelProposal), blockHash, blockNumber, state)
 				if err != nil {
@@ -352,7 +349,6 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 			log.Error("call stk.ProposalPassedNotify failed", "proposalID", proposalID, "blockHash", blockHash, "newVersion", proposal.NewVersion, "activeList", activeList)
 			return nil, err
 		}
-
 	} else {
 		if err := gov.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockNumber", blockNumber, "blockHash", blockHash)
@@ -476,7 +472,6 @@ func tallyParam(pp *gov.ParamProposal, blockHash common.Hash, blockNumber uint64
 
 func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (pass bool, err error) {
 	//log.Debug("proposal tally", "proposalID", proposalID, "blockHash", blockHash, "blockNumber", blockNumber, "proposalID", proposalID)
-
 	verifierList, err := gov.ListAccuVerifier(blockHash, proposalID)
 	if err != nil {
 		return false, err
@@ -553,8 +548,4 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 
 	log.Debug("proposal tally result", "blockNumber", blockNumber, "blockHash", blockHash, "proposalID", proposalID, "tallyResult", tallyResult, "verifierList", verifierList)
 	return status == gov.Pass, nil
-}
-
-func Decimal(value float64) int {
-	return int(math.Floor(value * 1000))
 }

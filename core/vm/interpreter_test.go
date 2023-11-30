@@ -18,7 +18,6 @@ package vm
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"testing"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 var loopInterruptTests = []string{
@@ -77,5 +77,4 @@ func TestLoopInterrupt(t *testing.T) {
 			}
 		}
 	}
-
 }

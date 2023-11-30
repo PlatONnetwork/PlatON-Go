@@ -20,23 +20,23 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
-	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
-	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
 	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
+	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
+	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
 )
 
 // Used for testing
@@ -55,7 +55,6 @@ func (ui *headlessUi) RegisterUIServer(api *core.UIServerAPI)       {}
 func (ui *headlessUi) OnApprovedTx(tx ethapi.SignTransactionResult) {}
 
 func (ui *headlessUi) ApproveTx(request *core.SignTxRequest) (core.SignTxResponse, error) {
-
 	switch <-ui.approveCh {
 	case "Y":
 		return core.SignTxResponse{request.Transaction, true}, nil
@@ -125,8 +124,8 @@ func setup(t *testing.T) (*core.SignerAPI, *headlessUi) {
 	am := core.StartClefAccountManager(tmpDirName(t), true, true, "")
 	api := core.NewSignerAPI(am, 1337, true, ui, db, true, &storage.NoStorage{})
 	return api, ui
-
 }
+
 func createAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 	ui.approveCh <- "Y"
 	ui.inputCh <- "a_long_password"
@@ -139,7 +138,6 @@ func createAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 }
 
 func failCreateAccountWithPassword(ui *headlessUi, api *core.SignerAPI, password string, t *testing.T) {
-
 	ui.approveCh <- "Y"
 	// We will be asked three times to provide a suitable password
 	ui.inputCh <- password
@@ -169,7 +167,6 @@ func failCreateAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 func list(ui *headlessUi, api *core.SignerAPI, t *testing.T) ([]common.Address, error) {
 	ui.approveCh <- "A"
 	return api.List(context.Background())
-
 }
 
 func TestNewAcc(t *testing.T) {
@@ -318,5 +315,4 @@ func TestSignTx(t *testing.T) {
 	if bytes.Equal(res.Raw, res2.Raw) {
 		t.Error("Expected tx to be modified by UI")
 	}
-
 }

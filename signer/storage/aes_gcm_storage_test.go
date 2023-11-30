@@ -23,9 +23,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mattn/go-colorable"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/mattn/go-colorable"
 )
 
 func TestEncryption(t *testing.T) {
@@ -51,7 +52,6 @@ func TestEncryption(t *testing.T) {
 }
 
 func TestFileStorage(t *testing.T) {
-
 	a := map[string]storedCredential{
 		"secret": {
 			Iv:         common.Hex2Bytes("cdb30036279601aeee60f16b"),

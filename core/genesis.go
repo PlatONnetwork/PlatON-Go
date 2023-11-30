@@ -147,7 +147,6 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-
 	if genesis != nil && genesis.Config == nil {
 		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
@@ -420,7 +419,6 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
-
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 
@@ -589,7 +587,6 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-
 	generalAddr := common.MustBech32ToAddress("lat1sy6kxgpfgx7axrl86a368mj6r6fnagctqem69g")
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
@@ -618,7 +615,6 @@ func DefaultGenesisBlock() *Genesis {
 
 // DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
-
 	// TODO this should change
 	generalAddr := common.HexToAddress("0x99DD0a64d2809e3e293E43bDbF2704cFfD87aCEC")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)

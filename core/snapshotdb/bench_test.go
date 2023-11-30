@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -201,13 +200,6 @@ func (p *dbBench) close() {
 	p.baseDBkeys = nil
 	p.baseDBvalues = nil
 	runtime.GC()
-}
-
-func (p *dbBench) fill() {
-
-	//commit 100
-	//recongized 100
-	//unreconized 1
 }
 
 func BenchmarkDBPutUnrecognized(b *testing.B) {

@@ -11,6 +11,7 @@ run:
     - log/term/terminal_notwindows.go
     - params/version_history.go
     - accounts/usbwallet/trezor/trezor.go
+    - crypto/bls/mcl.go
   skip-dirs:
     - common/math
     - common/json

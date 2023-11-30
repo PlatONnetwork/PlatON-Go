@@ -20,7 +20,6 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math"
 	"math/big"
 	mrand "math/rand"
@@ -36,6 +35,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -167,7 +167,6 @@ func (hc *HeaderChain) writeHeaders(headers []*types.Header) (result *headerWrit
 		// If the header is already known, skip it, otherwise store
 		alreadyKnown := parentKnown && hc.HasHeader(hash, number)
 		if !alreadyKnown {
-
 			rawdb.WriteHeader(batch, header)
 			inserted = append(inserted, numberHash{number, hash})
 			hc.headerCache.Add(hash, header)

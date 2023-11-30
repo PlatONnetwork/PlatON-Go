@@ -490,7 +490,6 @@ func (t *expectEvents) expect(events ...*Event) {
 			}
 
 			switch expected.Type {
-
 			case EventTypeNode:
 				if event.Node == nil {
 					t.Fatal("expected event.Node to be set")
@@ -515,7 +514,6 @@ func (t *expectEvents) expect(events ...*Event) {
 				if event.Conn.Up != expected.Conn.Up {
 					t.Fatalf("expected conn event %d to have up=%t, got up=%t", i, expected.Conn.Up, event.Conn.Up)
 				}
-
 			}
 
 			i++

@@ -21,23 +21,23 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	types "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	types "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"golang.org/x/crypto/sha3"
 )
 
 func TestHashing(t *testing.T) {

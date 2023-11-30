@@ -27,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -38,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 
@@ -238,7 +239,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 			code: 200,
 		},
 	} {
-		resp, err := http.Post(fmt.Sprintf("%s/graphql", stack.HTTPEndpoint()), "application/json", strings.NewReader(tt.body))
+		resp, err := http.Post(fmt.Sprintf("%s/platon/graphql", stack.HTTPEndpoint()), "application/json", strings.NewReader(tt.body))
 		if err != nil {
 			t.Fatalf("could not post: %v", err)
 		}
