@@ -1,8 +1,6 @@
 package core
 
 import (
-	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -230,7 +228,6 @@ func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 
 				// Cumulate the miner's earnings
 				ctx.AddEarnings(resultList[idx].minerEarnings)
-
 			} else {
 				if resultList[idx].needRefundGasPool {
 					tx := ctx.GetTx(idx)
@@ -246,15 +243,4 @@ func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 			}
 		}
 	}
-}
-
-func (ctx *ParallelContext) txListInfo() string {
-	var buffer bytes.Buffer
-	if len(ctx.txList) > 0 {
-		for i, tx := range ctx.txList {
-			buffer.WriteString(fmt.Sprintf("index:%d, from:%s, to:%s, value:%s, nonce:%d, data:%s \n ",
-				i, tx.FromAddr(ctx.signer), tx.To(), tx.Value().String(), tx.Nonce(), common.Bytes2Hex(tx.Data())))
-		}
-	}
-	return buffer.String()
 }

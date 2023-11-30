@@ -37,7 +37,7 @@ func buildRestrictingPlanData() ([]byte, error) {
 	var epoch uint64
 	for index := 0; index < len(plans); index++ {
 		epoch = uint64(index + 1)
-		plan.Epoch = uint64(epoch)
+		plan.Epoch = epoch
 		plan.Amount = xcom.FloorMinimumRelease
 		plans[index] = plan
 	}
@@ -115,7 +115,6 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 			t.Log(string(result))
 		}
 	}
-
 }
 
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
@@ -150,13 +149,11 @@ func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
 	if result, err := contract.Run(input); err != nil {
 		t.Errorf("getRestrictingInfo returns error! error is: %s", err.Error())
 	} else {
-
 		t.Log(string(result))
 
 		var res xcom.Result
 		if err = json.Unmarshal(result, &res); err != nil {
 			t.Fatalf("failed to json unmarshal result of restricting info , error: %s", err.Error())
-
 		} else {
 			t.Logf("%v", res.Code)
 			t.Logf("%v", res.Ret)

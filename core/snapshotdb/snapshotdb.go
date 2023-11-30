@@ -20,30 +20,27 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/storage"
-	"golang.org/x/net/context"
 	"math/big"
 	"os"
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-
-	"github.com/syndtr/goleveldb/leveldb/filter"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"golang.org/x/net/context"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -478,7 +475,7 @@ func (s *snapshotDB) GetCurrent() *current {
 func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	v, err := s.getFromCommit(key)
 	if err == nil {
-		if v == nil || len(v) == 0 {
+		if len(v) == 0 {
 			return nil, ErrNotFound
 		}
 		return v, nil
@@ -754,7 +751,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	if err == nil {
-		if v == nil || len(v) == 0 {
+		if len(v) == 0 {
 			return nil, ErrNotFound
 		}
 		return v, nil
@@ -764,7 +761,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return nil, errFromCommit
 	}
 	if errFromCommit == nil {
-		if valueFromCommit == nil || len(valueFromCommit) == 0 {
+		if len(valueFromCommit) == 0 {
 			return nil, ErrNotFound
 		}
 		return valueFromCommit, nil

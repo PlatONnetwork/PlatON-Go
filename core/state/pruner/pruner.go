@@ -251,11 +251,11 @@ func (p *Pruner) Prune(root common.Hash) error {
 		log.Error("Invalid specified root", "specified root", root.TerminalString(), "expected root", p.headHeader.Root.TerminalString())
 		return fmt.Errorf("invalid specified root: specified:%s, expected:%s", root, p.headHeader.Root)
 	}
-	var layers []snapshot.Snapshot
+
 	// Retrieve all snapshot layers from the current HEAD.
 	// In theory there are 128 difflayers + 1 disk layer present,
 	// so 128 diff layers are expected to be returned.
-	layers = p.snaptree.Snapshots(p.headHeader.Root, snapshot.CapLayers, true)
+	var layers = p.snaptree.Snapshots(p.headHeader.Root, snapshot.CapLayers, true)
 	if len(layers) != snapshot.CapLayers {
 		// Reject if the accumulated diff layers are less than 128. It
 		// means in most of normal cases, there is no associated state

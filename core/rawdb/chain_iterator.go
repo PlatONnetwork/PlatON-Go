@@ -17,15 +17,16 @@
 package rawdb
 
 import (
+	"runtime"
+	"sync/atomic"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"runtime"
-	"sync/atomic"
-	"time"
 )
 
 // InitDatabaseFromFreezer reinitializes an empty database from a previous batch

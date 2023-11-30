@@ -2,6 +2,8 @@ package vm
 
 import (
 	"crypto/sha256"
+	"math/big"
+	"reflect"
 
 	"github.com/holiman/uint256"
 
@@ -15,9 +17,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"math/big"
-	"reflect"
 )
 
 type VMContext struct {
@@ -1705,7 +1704,6 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	topics := make([]common.Hash, 0)
 
 	if indexesLen != 0 {
-
 		indexes := make([]byte, indexesLen)
 		_, err := proc.ReadAt(indexes, int64(indexesPtr))
 		if nil != err {
@@ -1746,7 +1744,6 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 			topics = append(topics, common.BytesToHash(mem))
 			content = tail
 		}
-
 	}
 
 	input := make([]byte, argsLen)

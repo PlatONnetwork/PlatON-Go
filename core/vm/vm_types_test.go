@@ -35,5 +35,4 @@ func TestInterpSetBytes(t *testing.T) {
 	assert.EqualValues(t, EvmInterpOld, evminterpold)
 	assert.EqualValues(t, EvmInterpNew, evminterpnew)
 	assert.EqualValues(t, WasmInterp, wasminterp)
-
 }
