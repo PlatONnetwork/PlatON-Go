@@ -380,7 +380,6 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     (*hexutil.Big)(new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome)),
 		})
-
 	}
 	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "num", blockNum, "account", account, "nodes", nodes, "rewards", rewards, "perList", delegationInfoWithRewardPerList)
 

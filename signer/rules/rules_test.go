@@ -291,7 +291,6 @@ func TestMissingFunc(t *testing.T) {
 		t.Errorf("Expected missing method to cause non-approval")
 	}
 	t.Logf("Err %v", err)
-
 }
 
 func TestStorage(t *testing.T) {
@@ -343,7 +342,6 @@ func TestStorage(t *testing.T) {
 		t.Errorf("Unexpected data, expected '%v', got '%v'", exp, retval)
 	}
 	t.Logf("Err %v", err)
-
 }
 
 const ExampleTxWindow = `
@@ -543,7 +541,6 @@ func (d *dontCallMe) OnApprovedTx(tx ethapi.SignTransactionResult) {
 // if it does, that would be bad since developers may rely on that to store data,
 // instead of using the disk-based data storage
 func TestContextIsCleared(t *testing.T) {
-
 	js := `
 	function ApproveTx(){
 		if (typeof foobar == 'undefined') {
@@ -575,7 +572,6 @@ func TestContextIsCleared(t *testing.T) {
 }
 
 func TestSignData(t *testing.T) {
-
 	js := `function ApproveListing(){
     return "Approve"
 }

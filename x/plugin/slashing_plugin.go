@@ -170,7 +170,6 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					return err
 				}
 			}
-
 		}
 	}
 	return nil

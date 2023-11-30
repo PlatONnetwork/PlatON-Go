@@ -402,7 +402,6 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 			assert.Equal(t, 1, len(anList))
 			assert.Equal(t, nodeID, anList[0])
 		}
-
 	}
 
 	err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)

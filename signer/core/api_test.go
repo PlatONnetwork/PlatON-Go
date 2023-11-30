@@ -138,7 +138,6 @@ func createAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 }
 
 func failCreateAccountWithPassword(ui *headlessUi, api *core.SignerAPI, password string, t *testing.T) {
-
 	ui.approveCh <- "Y"
 	// We will be asked three times to provide a suitable password
 	ui.inputCh <- password
@@ -168,7 +167,6 @@ func failCreateAccount(ui *headlessUi, api *core.SignerAPI, t *testing.T) {
 func list(ui *headlessUi, api *core.SignerAPI, t *testing.T) ([]common.Address, error) {
 	ui.approveCh <- "A"
 	return api.List(context.Background())
-
 }
 
 func TestNewAcc(t *testing.T) {
