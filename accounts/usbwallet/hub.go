@@ -18,7 +18,6 @@ package usbwallet
 
 import (
 	"errors"
-	"github.com/karalabe/usb"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -27,6 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/karalabe/usb"
 )
 
 // LedgerScheme is the protocol scheme prefixing account and wallet URLs.

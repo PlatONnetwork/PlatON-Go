@@ -64,25 +64,23 @@ func testTryViewChange(t *testing.T, nodes []*TestCBFT, wait time.Duration) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			parent = b
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		parent = b
 	}
 	time.Sleep(wait)
 
@@ -230,25 +228,23 @@ func testRichViewChangeQCCase(t *testing.T, c testCase) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			parent = b
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		parent = b
 	}
 	if c.hadViewTimeout {
 		time.Sleep(3 * time.Second)
@@ -316,40 +312,38 @@ func TestViewChangeBySwitchPoint(t *testing.T) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			pb := &protocols.PrepareBlock{
-				Epoch:         nodes[0].engine.state.Epoch(),
-				ViewNumber:    nodes[0].engine.state.ViewNumber(),
-				Block:         b,
-				BlockIndex:    uint32(i),
-				ProposalIndex: uint32(0),
-			}
-			nodes[0].engine.signMsgByBls(pb)
-			nodes[1].engine.OnPrepareBlock("id", pb)
-			for j := 1; j < 4; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				if j == 1 {
-					nodes[1].engine.state.HadSendPrepareVote().Push(msg)
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				nodes[0].engine.OnPrepareVote("id", msg)
-				if i < 9 {
-					assert.Nil(t, nodes[1].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
-				}
-			}
-			parent = b
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		pb := &protocols.PrepareBlock{
+			Epoch:         nodes[0].engine.state.Epoch(),
+			ViewNumber:    nodes[0].engine.state.ViewNumber(),
+			Block:         b,
+			BlockIndex:    uint32(i),
+			ProposalIndex: uint32(0),
 		}
+		nodes[0].engine.signMsgByBls(pb)
+		nodes[1].engine.OnPrepareBlock("id", pb)
+		for j := 1; j < 4; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
+			}
+			if j == 1 {
+				nodes[1].engine.state.HadSendPrepareVote().Push(msg)
+			}
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			nodes[0].engine.OnPrepareVote("id", msg)
+			if i < 9 {
+				assert.Nil(t, nodes[1].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+			}
+		}
+		parent = b
 	}
 	// node-0 enough 10 block qc,change the epoch
 	assert.Equal(t, uint64(2), nodes[0].engine.state.Epoch())

@@ -15,6 +15,7 @@
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
 // Package utils contains internal helper functions for go-ethereum commands.
+
 package utils
 
 import (
@@ -30,19 +31,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/urfave/cli/v2"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/urfave/cli/v2"
 )
 
 const (

@@ -57,20 +57,18 @@ func TestUpdateChainState(t *testing.T) {
 		<-complete
 
 		// test newChainState
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i), node.engine.state.MaxQCIndex())
-			switch i {
-			case 0:
-				commit = block
-			case 1:
-				lock = block
-			case 2:
-				qc = block
-			}
-			parent = b
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i), node.engine.state.MaxQCIndex())
+		switch i {
+		case 0:
+			commit = block
+		case 1:
+			lock = block
+		case 2:
+			qc = block
 		}
+		parent = b
 	}
 
 	// test recoveryChainState
@@ -132,11 +130,9 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	<-complete
 
 	// test addQCState
-	select {
-	case b := <-result:
-		assert.NotNil(t, b)
-		appendQC = block
-	}
+	b := <-result
+	assert.NotNil(t, b)
+	appendQC = block
 
 	// test recoveryChainState
 	var chainState *protocols.ChainState
@@ -177,11 +173,9 @@ func TestRecordCbftMsg(t *testing.T) {
 		node.engine.OnSeal(block, result, nil, complete)
 		<-complete
 
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			parent = b
-		}
+		b := <-result
+		assert.NotNil(t, b)
+		parent = b
 	}
 	node.engine.bridge.SendViewChange(makeViewChange(epoch, viewNumber, parent, 9, uint32(0)))
 

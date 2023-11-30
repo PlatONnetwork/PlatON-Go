@@ -45,7 +45,6 @@ var (
 )
 
 func deploy(c *cli.Context) error {
-
 	abiPath := c.String("abi")
 	codePath := c.String("code")
 
@@ -109,7 +108,6 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 		fmt.Printf("get contract receipt timeout...more than 200 second.\n")
 	}
 	return err
-
 }
 
 func parseFileToBytes(file string) []byte {
@@ -152,7 +150,6 @@ func invoke(c *cli.Context) error {
 *
  */
 func InvokeContract(contractAddr string, abiPath string, funcParams string, txType int) error {
-
 	//Judging whether this contract exists or not
 	if !getContractByAddress(contractAddr) {
 		return fmt.Errorf("the contract address is not exist ...")
@@ -248,7 +245,6 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 	Judging whether a contract exists through platon_getCode
 */
 func getContractByAddress(addr string) bool {
-
 	params := []string{addr, "latest"}
 	r, err := Send(params, "platon_getCode")
 	if err != nil {

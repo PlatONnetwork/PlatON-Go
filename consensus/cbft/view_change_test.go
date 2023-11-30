@@ -48,7 +48,6 @@ func (suit *ViewChangeTestSuite) createEvPool(paths []string) {
 		pool, _ := evidence.NewBaseEvidencePool(path)
 		suit.view.allCbft[i].evPool = pool
 	}
-
 }
 
 func SetupViewChangeTestSuite(period uint64) *ViewChangeTestSuite {

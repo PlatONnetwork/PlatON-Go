@@ -60,7 +60,6 @@ func (suit *EvidenceTestSuite) createEvPool(paths []string) {
 		pool, _ := evidence.NewBaseEvidencePool(path)
 		suit.view.allCbft[i].evPool = pool
 	}
-
 }
 
 func (suit *EvidenceTestSuite) SetupTest() {

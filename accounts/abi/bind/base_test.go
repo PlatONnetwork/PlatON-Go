@@ -18,13 +18,15 @@ package bind_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"errors"
+
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
@@ -115,7 +117,6 @@ func (mc *mockPendingCaller) PendingCallContract(ctx context.Context, call ether
 }
 
 func TestPassingBlockNumber(t *testing.T) {
-
 	mc := &mockPendingCaller{
 		mockCaller: &mockCaller{
 			codeAtBytes: []byte{1, 2, 3},

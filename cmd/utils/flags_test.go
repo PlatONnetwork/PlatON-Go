@@ -15,6 +15,7 @@
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
 // Package utils contains internal helper functions for go-ethereum commands.
+
 package utils
 
 import (

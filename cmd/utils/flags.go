@@ -882,7 +882,6 @@ var (
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
-
 		if ctx.Bool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
@@ -1437,7 +1436,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 
 	// Override any default configs for hard coded networks.
 	switch {
-
 	// Test NetWork
 	case ctx.Bool(TestnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
@@ -1484,7 +1482,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.IsSet(VmTimeoutDuration.Name) {
 		cfg.VmTimeoutDuration = ctx.Uint64(VmTimeoutDuration.Name)
 	}
-
 }
 
 // SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
@@ -1535,7 +1532,6 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if ctx.IsSet(CbftBlacklistDeadlineFlag.Name) {
 		cfg.BlacklistDeadline = ctx.Int64(CbftBlacklistDeadlineFlag.Name)
 	}
-
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
@@ -1714,9 +1710,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
-	var engine consensus.Engine
 	//todo: Merge confirmation.
-	engine = consensus.NewFaker()
+	engine := consensus.NewFaker()
 
 	cache := &core.CacheConfig{
 		Disabled:        true,

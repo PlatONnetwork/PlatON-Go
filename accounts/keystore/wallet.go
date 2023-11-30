@@ -17,12 +17,12 @@
 package keystore
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // keystoreWallet implements the accounts.Wallet interface for the original
