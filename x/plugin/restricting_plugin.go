@@ -22,22 +22,17 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -140,7 +135,6 @@ func (rp *RestrictingPlugin) initEpochInfo(state xcom.StateDB, epoch uint64, acc
 	rp.storeNumber2ReleaseEpoch(state, releaseEpochKey, newEpochAccountIndex)
 
 	// step3: save account at target index
-
 	rp.storeAccount2ReleaseAccount(state, epoch, newEpochAccountIndex, account)
 
 	// step4: save restricting amount at target epoch
@@ -154,7 +148,6 @@ func (rp *RestrictingPlugin) transferAmount(state xcom.StateDB, from, to common.
 
 // update genesis restricting plans
 func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, stateDB xcom.StateDB) error {
-
 	if val, err := rlp.EncodeToBytes(plans); nil != err {
 		return fmt.Errorf("Failed to Store genesisAllowancePlans Info: rlp encodeing failed")
 	} else {
@@ -163,9 +156,8 @@ func (rp *RestrictingPlugin) updateGenesisRestrictingPlans(plans []*big.Int, sta
 	return nil
 }
 
-// init the genesis restricting plans
+// InitGenesisRestrictingPlans init the genesis restricting plans
 func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) error {
-
 	genesisAllowancePlans := []*big.Int{
 		new(big.Int).Mul(big.NewInt(55965742), big.NewInt(1e18)),
 		new(big.Int).Mul(big.NewInt(49559492), big.NewInt(1e18)),
@@ -195,7 +187,6 @@ func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) e
 
 // release genesis restricting plans
 func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Hash, statedb xcom.StateDB) error {
-
 	plansBytes := statedb.GetState(vm.RestrictingContractAddr, restricting.InitialFoundationRestricting)
 	var genesisAllowancePlans []*big.Int
 	if len(plansBytes) > 0 {
@@ -221,7 +212,6 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 	} else {
 		rp.log.Info("Genesis restricting plan had all been released")
 	}
-
 	return nil
 }
 
@@ -231,7 +221,6 @@ func (rp *RestrictingPlugin) releaseGenesisRestrictingPlans(blockHash common.Has
 // ReleaseAccount: the account on the index on the target epoch
 // ReleaseAmount: the amount of the account to be released on the target epoch
 func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, blockNum uint64, blockHash common.Hash, plans []restricting.RestrictingPlan, state xcom.StateDB, txhash common.Hash) error {
-
 	rp.log.Debug("Call AddRestrictingRecord begin", "sender", from, "account", account, "plans", plans)
 
 	if len(plans) == 0 || len(plans) > restricting.RestrictTxPlanSize {
@@ -318,7 +307,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 
 // AdvanceLockedFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) AdvanceLockedFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
-
 	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
@@ -351,7 +339,6 @@ func (rp *RestrictingPlugin) AdvanceLockedFunds(account common.Address, amount *
 
 // MixAdvanceLockedFunds transfer the money from the restricting contract account to the staking contract account,use restricting von first,if restricting not en
 func (rp *RestrictingPlugin) MixAdvanceLockedFunds(account common.Address, amount *big.Int, state xcom.StateDB) (*big.Int, *big.Int, error) {
-
 	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		if err == restricting.ErrAccountNotFound {
@@ -448,7 +435,6 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 
 // SlashingNotify modify Debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
-
 	restrictingKey, restrictInfo, err := rp.mustGetRestrictingInfoByDecode(state, account)
 	if err != nil {
 		return err
@@ -550,7 +536,6 @@ func (rp *RestrictingPlugin) storeAmount2ReleaseAmount(state xcom.StateDB, epoch
 
 // releaseRestricting will release restricting plans on target epoch
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
-
 	rp.log.Info("Call releaseRestricting begin", "epoch", epoch)
 	releaseEpochKey, numbers := rp.getReleaseEpochNumber(state, epoch)
 	if numbers == 0 {
@@ -615,9 +600,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 	// delete ReleaseEpoch
 	state.SetState(vm.RestrictingContractAddr, releaseEpochKey, []byte{})
-
 	rp.log.Info("Call releaseRestricting finish", "epoch", epoch, "records", numbers)
-
 	return nil
 }
 

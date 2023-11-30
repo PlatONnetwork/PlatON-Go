@@ -19,15 +19,16 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 	"os"
 	"strings"
 
+	"github.com/dop251/goja"
+
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
-	"github.com/dop251/goja"
 )
 
 // consoleOutput is an override for the console.log and console.error methods to

@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -110,7 +111,6 @@ func (l *AuditLogger) Version(ctx context.Context) (string, error) {
 	data, err := l.api.Version(ctx)
 	l.log.Info("Version", "type", "response", "data", data, "error", err)
 	return data, err
-
 }
 
 func NewAuditLogger(path string, api ExternalAPI) (*AuditLogger, error) {

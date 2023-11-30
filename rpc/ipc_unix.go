@@ -22,10 +22,11 @@ package rpc
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"net"
 	"os"
 	"path/filepath"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // ipcListen will create a Unix socket on the given endpoint.

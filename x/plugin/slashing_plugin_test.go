@@ -24,28 +24,20 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -252,7 +244,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 
 	epochArr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -309,7 +301,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}
 	startNumber++
 	header := &types.Header{
-		Number: new(big.Int).SetUint64(uint64(startNumber)),
+		Number: new(big.Int).SetUint64(startNumber),
 		Extra:  make([]byte, 97),
 	}
 	sk, err := crypto.GenerateKey()
