@@ -38,7 +38,6 @@ func TestSyncCache(t *testing.T) {
 	assert.Equal(t, 3, cache.Len())
 	cache.Purge()
 	assert.Equal(t, 0, cache.Len())
-
 }
 
 type mockCSMsg struct {
@@ -145,14 +144,12 @@ func TestCSMsgPool(t *testing.T) {
 	for i := uint32(0); i < 10; i++ {
 		pool.AddPrepareVote(i, i+1, defaultMsg)
 		pool.AddPrepareVote(i, i+2, defaultMsg)
-
 	}
 
 	for i := uint32(0); i < 10; i++ {
 		assert.NotNil(t, pool.GetPrepareVote(1, 1, i, i+1))
 		assert.NotNil(t, pool.GetPrepareVote(1, 1, i, i+2))
 	}
-
 }
 
 func TestCSMsgPoolInvalidEpoch(t *testing.T) {
@@ -178,7 +175,6 @@ func TestCSMsgPoolPurge(t *testing.T) {
 	pool.Purge(1, 2)
 	assert.Nil(t, pool.GetPrepareBlock(1, 1, 1))
 	assert.NotNil(t, pool.GetPrepareBlock(1, 2, 1))
-
 }
 
 func TestCSMsgPoolAdd(t *testing.T) {

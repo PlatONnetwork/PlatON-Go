@@ -137,12 +137,12 @@ type blockOrHeaderInject struct {
 }
 
 // number returns the block number of the injected object.
-func (inject *blockOrHeaderInject) number() uint64 {
+/*func (inject *blockOrHeaderInject) number() uint64 {
 	if inject.header != nil {
 		return inject.header.Number.Uint64()
 	}
 	return inject.block.NumberU64()
-}
+}*/
 
 // number returns the block hash of the injected object.
 func (inject *blockOrHeaderInject) hash() common.Hash {

@@ -17,18 +17,17 @@
 package vm
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
 	"reflect"
 	"testing"
 
-	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.

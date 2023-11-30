@@ -15,6 +15,7 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package evidence implements recording duplicate blocks and votes for cbft consensus.
+
 package evidence
 
 import (

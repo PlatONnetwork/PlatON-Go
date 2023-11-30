@@ -18,22 +18,21 @@ package fetcher
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 var (
@@ -49,7 +48,6 @@ var (
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
 func makeChain(n int, seed byte, parent *types.Block) ([]common.Hash, map[common.Hash]*types.Block) {
-
 	//ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 	//
 	//blocks, _ := core.GenerateChain(params.TestChainConfig, parent, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), testdb, n, func(i int, block *core.BlockGen) {
@@ -232,7 +230,7 @@ func (f *fetcherTester) makeBodyFetcher(peer string, blocks map[common.Hash]*typ
 }
 
 // verifyFetchingEvent verifies that one single event arrive on a fetching channel.
-func verifyFetchingEvent(t *testing.T, fetching chan []common.Hash, arrive bool) {
+/*func verifyFetchingEvent(t *testing.T, fetching chan []common.Hash, arrive bool) {
 	t.Helper()
 
 	if arrive {
@@ -248,10 +246,10 @@ func verifyFetchingEvent(t *testing.T, fetching chan []common.Hash, arrive bool)
 		case <-time.After(10 * time.Millisecond):
 		}
 	}
-}
+}*/
 
 // verifyCompletingEvent verifies that one single event arrive on an completing channel.
-func verifyCompletingEvent(t *testing.T, completing chan []common.Hash, arrive bool) {
+/*func verifyCompletingEvent(t *testing.T, completing chan []common.Hash, arrive bool) {
 	t.Helper()
 
 	if arrive {
@@ -267,7 +265,7 @@ func verifyCompletingEvent(t *testing.T, completing chan []common.Hash, arrive b
 		case <-time.After(10 * time.Millisecond):
 		}
 	}
-}
+}*/
 
 // verifyImportEvent verifies that one single event arrive on an import channel.
 func verifyImportEvent(t *testing.T, imported chan interface{}, arrive bool) {

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package rules
 
 import (
@@ -229,7 +228,7 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 		}
 		if isFirstBlock() {
 			if !isQCChild() && !isLockChild() {
-				return newCommonError(fmt.Sprintf("the first index block is not contiguous by local highestQC or highestLock"))
+				return newCommonError("the first index block is not contiguous by local highestQC or highestLock")
 			}
 			return acceptBlockTime()
 		}
@@ -399,7 +398,7 @@ func (r *baseSafetyRules) QCBlockRules(block *types.Block, qc *ctypes.QuorumCert
 	//}
 
 	if b := r.blockTree.FindBlockByHash(block.ParentHash()); b == nil {
-		return newError(fmt.Sprintf("not find parent qc block"))
+		return newError("not find parent qc block")
 	}
 	if (r.viewState.Epoch() == qc.Epoch && r.viewState.ViewNumber() < qc.ViewNumber) || (r.viewState.Epoch()+1 == qc.Epoch) {
 		return newViewError("need change view")

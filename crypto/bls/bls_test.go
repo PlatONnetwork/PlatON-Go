@@ -1,11 +1,10 @@
 package bls
 
 import (
-	"testing"
-
 	"bytes"
 	"fmt"
 	"strconv"
+	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -364,7 +363,6 @@ func test(t *testing.T, c int) {
 	testSchnorr_test(t, c)
 	testSchnorrNIZk(t, c)
 	//testProofText(t, c)
-
 }
 
 func TestNmain(t *testing.T) {
@@ -497,8 +495,7 @@ func testSchnorr_test(t *testing.T, cu int) {
 	r := v
 	r.Sub(&temp)
 	Pr := r.GetPublicKey()
-	var Pc PublicKey
-	Pc = *P
+	var Pc PublicKey = *P
 	Pc.Mul(&c)
 	Psum := Pr
 	Psum.Add(&Pc)
@@ -648,7 +645,6 @@ func BenchmarkBatchVerifyDistinctMsg(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-
 }
 
 func BenchmarkBatchVerifySameMsg(b *testing.B) {

@@ -40,7 +40,6 @@ func Send(params interface{}, action string) (string, error) {
 }
 
 func HttpPost(param JsonParam) (string, error) {
-
 	client := &http.Client{}
 	req, _ := json.Marshal(param)
 	reqNew := bytes.NewBuffer(req)

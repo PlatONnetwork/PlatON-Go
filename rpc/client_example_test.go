@@ -19,9 +19,9 @@ package rpc_test
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 

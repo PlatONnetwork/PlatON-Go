@@ -21,12 +21,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"golang.org/x/crypto/sha3"
-
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"golang.org/x/crypto/sha3"
 )
 
 // Account represents an Ethereum account located at a specific location defined
@@ -178,7 +177,8 @@ type Backend interface {
 // safely used to calculate a signature from.
 //
 // The hash is calculated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextHash(data []byte) []byte {
@@ -190,7 +190,8 @@ func TextHash(data []byte) []byte {
 // safely used to calculate a signature from.
 //
 // The hash is calculated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
+//
+//	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
 func TextAndHash(data []byte) ([]byte, string) {

@@ -18,12 +18,12 @@ package misc
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -68,8 +68,7 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 	// If the parent gasUsed is the same as the target, the baseFee remains unchanged.
 	if parent.GasUsed == parentGasTarget {
 		baseFee = new(big.Int).Set(parent.BaseFee)
-	}
-	if parent.GasUsed > parentGasTarget {
+	} else if parent.GasUsed > parentGasTarget {
 		// If the parent block used more gas than its target, the baseFee should increase.
 		gasUsedDelta := new(big.Int).SetUint64(parent.GasUsed - parentGasTarget)
 		x := new(big.Int).Mul(parent.BaseFee, gasUsedDelta)

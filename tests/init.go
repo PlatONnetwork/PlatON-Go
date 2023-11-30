@@ -29,8 +29,8 @@ var Forks = map[string]*params.ChainConfig{
 		ChainID: big.NewInt(1),
 	},
 	"EIP155": {
-		ChainID:        big.NewInt(1),
-		EIP155Block:    big.NewInt(0),
+		ChainID:     big.NewInt(1),
+		EIP155Block: big.NewInt(0),
 	},
 }
 

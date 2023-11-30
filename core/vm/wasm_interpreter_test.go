@@ -62,7 +62,6 @@ func TestWASMInterpreterRun(t *testing.T) {
 	ret, err = interp.Run(contract, buf, false)
 	assert.NotNil(t, err)
 	assert.Nil(t, ret)
-
 }
 
 func TestWASMInterpreterCanRun(t *testing.T) {

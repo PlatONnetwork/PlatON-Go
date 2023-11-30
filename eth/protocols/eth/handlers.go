@@ -21,13 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core"
 	"math/big"
 	"math/rand"
 
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -683,7 +683,6 @@ func ServiceGetPPOSStorageMsgQueryV2(chain *core.BlockChain, sdb snapshotdb.DB, 
 
 // handlePPosStorageMsg handles PPOS msg, collect the requested info and reply
 func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
-
 	peer.Log().Debug("Received a broadcast message[PposStorageMsg]")
 	var data PposStoragePacket
 	if err := msg.Decode(&data); err != nil {
@@ -695,7 +694,6 @@ func handlePPosStorageMsg(backend Backend, msg Decoder, peer *Peer) error {
 
 // handlePPosStorageMsg handles PPOS msg, collect the requested info and reply
 func handlePPosStorageV2Msg(backend Backend, msg Decoder, peer *Peer) error {
-
 	peer.Log().Debug("Received a broadcast message[PposStorageV2Msg]")
 	var data PposStorageV2Packet
 	if err := msg.Decode(&data); err != nil {
@@ -706,7 +704,6 @@ func handlePPosStorageV2Msg(backend Backend, msg Decoder, peer *Peer) error {
 }
 
 func handleGetOriginAndPivotMsg(backend Backend, msg Decoder, peer *Peer) error {
-
 	peer.Log().Info("[GetOriginAndPivotMsg]Received a broadcast message")
 	var query uint64
 	if err := msg.Decode(&query); err != nil {

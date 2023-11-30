@@ -19,6 +19,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"io"
+	"os"
+	"regexp"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common/compiler"
@@ -26,10 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/urfave/cli/v2"
-	"io"
-	"os"
-	"regexp"
-	"strings"
 )
 
 var (

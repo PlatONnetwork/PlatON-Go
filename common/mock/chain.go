@@ -416,7 +416,6 @@ func (s *MockStateDB) SubBalance(adr common.Address, amount *big.Int) {
 }
 
 func (s *MockStateDB) AddBalance(adr common.Address, amount *big.Int) {
-
 	if balance, ok := s.Balance[adr]; ok {
 		s.Journal.append(balanceChange{
 			account: &adr,
@@ -490,7 +489,6 @@ func (s *MockStateDB) GetNonce(addr common.Address) uint64 {
 	return nonce
 }
 func (s *MockStateDB) SetNonce(addr common.Address, nonce uint64) {
-
 	_, ok := s.Nonce[addr]
 	s.Journal.append(nonceChange{
 		account: &addr,
@@ -512,7 +510,6 @@ func (s *MockStateDB) GetCode(addr common.Address) []byte {
 	return s.Code[addr]
 }
 func (s *MockStateDB) SetCode(addr common.Address, code []byte) {
-
 	_, ok := s.Code[addr]
 
 	s.Journal.append(codeChange{
@@ -787,7 +784,6 @@ type ActiveVersionValue struct {
 }
 
 func (state *MockStateDB) GetCurrentActiveVersion() uint32 {
-
 	avListBytes := state.GetState(vm.GovContractAddr, []byte("ActVers"))
 	if len(avListBytes) == 0 {
 		panic("Cannot find active version list")
@@ -798,5 +794,4 @@ func (state *MockStateDB) GetCurrentActiveVersion() uint32 {
 	}
 
 	return avList[0].ActiveVersion
-
 }

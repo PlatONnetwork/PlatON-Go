@@ -23,16 +23,13 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -116,7 +113,7 @@ func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
 	}
 }
 
-// Get current active version record
+// GetCurrentActiveVersion Get current active version record
 func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
@@ -142,7 +139,7 @@ func GetCurrentActiveVersionList(state xcom.StateDB) ([]ActiveVersionValue, erro
 	return avList, nil
 }
 
-// submit a proposal
+// Submit submit a proposal
 func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
@@ -184,7 +181,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	return nil
 }
 
-// vote for a proposal
+// Vote for a proposal
 func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Vote", "from", from, "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID, "voteOption", vote.VoteOption, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign)
 	if vote.ProposalID == common.ZeroHash {
@@ -275,7 +272,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	return nil
 }
 
-// node declares it's version
+// DeclareVersion node declares it's version
 func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
@@ -407,7 +404,7 @@ func checkVerifier(from common.Address, nodeID enode.IDv0, blockHash common.Hash
 	return TxSenderIsNotVerifier
 }
 
-// query proposal list
+// ListProposal query proposal list
 func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
 	log.Debug("call ListProposal")
 	var proposalIDs []common.Hash
@@ -447,7 +444,7 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 	return proposals, nil
 }
 
-// list all proposal IDs at voting stage
+// ListVotingProposalID list all proposal IDs at voting stage
 func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	log.Debug("call ListVotingProposalID", "blockHash", blockHash)
 	idList, err := ListVotingProposal(blockHash)
@@ -458,7 +455,7 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	return idList, nil
 }
 
-// find a proposal at voting stage
+// FindVotingProposal find a proposal at voting stage
 func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
 	if len(proposalTypes) == 0 {
 		return nil, common.InvalidParameter
@@ -656,7 +653,6 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 
 // check if the node a candidate, and the caller address is same as the staking address
 func checkCandidate(from common.Address, nodeID enode.IDv0, blockHash common.Hash, blockNumber uint64, stk Staking) error {
-
 	_, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {
 		log.Error("parse nodeID error", "err", err)

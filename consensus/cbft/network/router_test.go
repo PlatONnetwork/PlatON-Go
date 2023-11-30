@@ -257,7 +257,6 @@ func Test_Router_KRandomNodes(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		t.Log(formatPeers(kRandomNodes(5, spec_peers, common.Hash{}, nil)))
 	}
-
 }
 
 func Test_Router_RepeatedCheck(t *testing.T) {

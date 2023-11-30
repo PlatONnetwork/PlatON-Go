@@ -18,6 +18,7 @@
 //
 // Keys are stored as encrypted JSON files according to the Web3 Secret Storage specification.
 // See https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition for more information.
+
 package keystore
 
 import (

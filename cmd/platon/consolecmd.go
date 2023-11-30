@@ -18,13 +18,14 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/urfave/cli/v2"
-	"strings"
 )
 
 var (

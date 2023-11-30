@@ -61,7 +61,6 @@ func (suit *PrepareBlockTestSuite) createEvPool(paths []string) {
 		pool, _ := evidence.NewBaseEvidencePool(path)
 		suit.view.allCbft[i].evPool = pool
 	}
-
 }
 
 func (suit *PrepareBlockTestSuite) waitVote() {
@@ -633,7 +632,6 @@ func TestPrepareBlockNotOneWithParentNotQC(t *testing.T) {
 	if 12 != suit.view.firstProposer().state.PendingPrepareVote().Votes[0].BlockNum() {
 		t.Fatal("fail")
 	}
-
 }
 
 // The number of blocks exceeds the limit of one round
@@ -738,7 +736,6 @@ func TestPrepareBlockNotOneWithBlockIndexErr(t *testing.T) {
 	} else {
 		fmt.Println(err.Error())
 	}
-
 }
 
 // The same BlockIndex block exists in this local block, but BlockHash, BlockNumber are not equal

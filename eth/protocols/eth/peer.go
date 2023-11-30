@@ -21,11 +21,12 @@ import (
 	"math/rand"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	mapset "github.com/deckarep/golang-set"
 )
 
 const (

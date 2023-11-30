@@ -19,10 +19,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-	"github.com/olekukonko/tablewriter"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -31,16 +27,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
 )
 

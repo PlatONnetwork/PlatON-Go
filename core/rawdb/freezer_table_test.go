@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -28,15 +27,13 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/quick"
-	"time"
+
+	"github.com/davecgh/go-spew/spew"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/stretchr/testify/require"
 )
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
 
 // TestFreezerBasics test initializing a freezertable from scratch, writing to the table,
 // and reading it back.

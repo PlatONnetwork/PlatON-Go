@@ -14,7 +14,6 @@ import (
 )
 
 func TestReadWriteEconomicModel(t *testing.T) {
-
 	chainDb := NewMemoryDatabase()
 	ec := ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.Nil(t, ec, "the ec is not nil")
@@ -28,7 +27,6 @@ func TestReadWriteEconomicModel(t *testing.T) {
 }
 
 func TestReadWriteChainConfig(t *testing.T) {
-
 	chainDb := NewMemoryDatabase()
 	config := ReadChainConfig(chainDb, common.ZeroHash)
 	assert.Nil(t, config, "the chainConfig is not nil")
@@ -36,7 +34,6 @@ func TestReadWriteChainConfig(t *testing.T) {
 	WriteChainConfig(chainDb, common.ZeroHash, params.MainnetChainConfig)
 	config = ReadChainConfig(chainDb, common.ZeroHash)
 	assert.NotNil(t, config, "the chainConfig is nil")
-
 }
 
 func TestReadWritePreimages(t *testing.T) {

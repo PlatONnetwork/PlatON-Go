@@ -27,7 +27,6 @@ import (
 	"time"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"

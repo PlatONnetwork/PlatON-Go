@@ -164,7 +164,6 @@ func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, p
 
 // CalcBlockDeadline is a fake interface, no need to implement.
 func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
-
 	now := time.Now()
 
 	if timePoint.Equal(now) || timePoint.Before(now) {
@@ -239,7 +238,6 @@ func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, sea
 			} else {
 				results <- nil
 			}
-
 		}
 	}()
 	return c, results
@@ -283,7 +281,6 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 // Note, the method returns immediately and will send the result async. More
 // than one result may also be returned depending on the consensus algorithm.
 func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
-
 	header := block.Header()
 	if block.NumberU64() == 0 {
 		return fmt.Errorf("unknown block")
@@ -369,7 +366,6 @@ func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 
 // GetBlockByHash is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
-
 	if index, ok := bm.blockIndexs[hash]; ok {
 		return bm.Blocks[index]
 	}

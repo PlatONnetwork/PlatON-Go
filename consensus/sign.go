@@ -18,6 +18,7 @@ package consensus
 
 import (
 	"errors"
+
 	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

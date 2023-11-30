@@ -175,15 +175,6 @@ func (v *viewCache) addVoteMetric(blockIndex uint32, validatorIndex uint32) {
 	}
 }
 
-func (v *viewCache) getVoteMetric(blockIndex uint32, validatorIndex uint32) uint32 {
-	if votes, ok := v.voteMetric[blockIndex]; ok {
-		if m, ok := votes[validatorIndex]; ok {
-			return m
-		}
-	}
-	return 0
-}
-
 type epochCache struct {
 	views map[uint64]*viewCache
 }
@@ -320,7 +311,6 @@ func (cs *CSMsgPool) GetPrepareVote(epoch, view uint64, blockIndex uint32, valid
 }
 
 func (cs *CSMsgPool) Purge(epoch, view uint64) {
-
 	for k, v := range cs.epochs {
 		if k < epoch {
 			delete(cs.epochs, k)

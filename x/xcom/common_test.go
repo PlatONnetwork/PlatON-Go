@@ -21,13 +21,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 )
 
 func setup(t *testing.T) *mock.Chain {
@@ -89,10 +87,10 @@ func TestCommon_StorageAvgPackTime(t *testing.T) {
 	StorageAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance(), uint64(3000))
 	//commit_sndb(chain)
 
-	avgPackTime, err = LoadAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance())
+	avgPackTime, _ = LoadAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance())
 	assert.Equal(t, uint64(3000), avgPackTime)
 
-	avgPackTime, err = LoadCurrentAvgPackTime()
+	avgPackTime, _ = LoadCurrentAvgPackTime()
 	assert.Equal(t, uint64(2000), avgPackTime)
 }
 
