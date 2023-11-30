@@ -18,16 +18,20 @@ package graphql
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"net/http"
 
+	graphqlEth "github.com/AlayaNetwork/graphql-go"
+	"github.com/graph-gophers/graphql-go"
+
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/graph-gophers/graphql-go"
 )
 
 type handler struct {
-	Schema *graphql.Schema
+	Schema    *graphql.Schema
+	SchemaEth *graphqlEth.Schema
 }
 
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,18 +45,33 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := h.Schema.Exec(r.Context(), params.Query, params.OperationName, params.Variables)
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if len(response.Errors) > 0 {
-		w.WriteHeader(http.StatusBadRequest)
-	}
+	if r.URL.Path == "/graphql" || r.URL.Path == "/graphql/" {
+		response := h.SchemaEth.Exec(r.Context(), params.Query, params.OperationName, params.Variables)
+		responseJSON, err := json2.Marshal(response)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if len(response.Errors) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(responseJSON)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(responseJSON)
+	} else {
+		response := h.Schema.Exec(r.Context(), params.Query, params.OperationName, params.Variables)
+		responseJSON, err := json.Marshal(response)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if len(response.Errors) > 0 {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(responseJSON)
+	}
 }
 
 // New constructs a new GraphQL service instance.
@@ -70,7 +89,11 @@ func newHandler(stack *node.Node, backend ethapi.Backend, filterSystem *filters.
 	if err != nil {
 		return nil, err
 	}
-	h := handler{Schema: s}
+	sEth, err := graphqlEth.ParseSchema(schema, &q)
+	if err != nil {
+		return nil, err
+	}
+	h := handler{Schema: s, SchemaEth: sEth}
 	handler := node.NewHTTPHandlerStack(h, cors, vhosts, nil)
 
 	stack.RegisterHandler("GraphQL UI", "/graphql/ui", GraphiQL{})
