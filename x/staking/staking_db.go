@@ -65,6 +65,7 @@ func (db *StakingDB) del(blockHash common.Hash, key []byte) error {
 func (db *StakingDB) ranking(blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
 	return db.db.Ranking(blockHash, prefix, ranges)
 }
+
 func (db *StakingDB) Del(blockHash common.Hash, key []byte) error {
 	return db.db.Del(blockHash, key)
 }
@@ -73,8 +74,7 @@ func (db *StakingDB) GetLastKVHash(blockHash common.Hash) []byte {
 	return db.db.GetLastKVHash(blockHash)
 }
 
-// about candidate ...
-
+// GetCandidateStore is about candidate
 func (db *StakingDB) GetCandidateStore(blockHash common.Hash, addr common.NodeAddress) (*Candidate, error) {
 	base, err := db.GetCanBaseStore(blockHash, addr)
 	if nil != err {
@@ -159,12 +159,9 @@ func (db *StakingDB) DelCandidateStore(blockHash common.Hash, addr common.NodeAd
 	return nil
 }
 
-// about canbase ...
-
+// GetCanBaseStore is about canBase
 func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.NodeAddress) (*CandidateBase, error) {
-
 	key := CanBaseKeyByAddr(addr)
-
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
@@ -175,7 +172,6 @@ func (db *StakingDB) GetCanBaseStore(blockHash common.Hash, addr common.NodeAddr
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
 	}
-
 	return &can, nil
 }
 
@@ -196,7 +192,6 @@ func (db *StakingDB) GetCanBaseStoreByIrr(addr common.NodeAddress) (*CandidateBa
 
 func (db *StakingDB) GetCanBaseStoreWithSuffix(blockHash common.Hash, suffix []byte) (*CandidateBase, error) {
 	key := CanBaseKeyBySuffix(suffix)
-
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
@@ -226,13 +221,11 @@ func (db *StakingDB) GetCanBaseStoreByIrrWithSuffix(suffix []byte) (*CandidateBa
 }
 
 func (db *StakingDB) SetCanBaseStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateBase) error {
-
 	key := CanBaseKeyByAddr(addr)
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
 	} else {
-
 		return db.put(blockHash, key, val)
 	}
 }
@@ -242,12 +235,9 @@ func (db *StakingDB) DelCanBaseStore(blockHash common.Hash, addr common.NodeAddr
 	return db.del(blockHash, key)
 }
 
-// about canmutable ...
-
+// GetCanMutableStore is about canMutable
 func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.NodeAddress) (*CandidateMutable, error) {
-
 	key := CanMutableKeyByAddr(addr)
-
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
@@ -258,7 +248,6 @@ func (db *StakingDB) GetCanMutableStore(blockHash common.Hash, addr common.NodeA
 	if err := rlp.DecodeBytes(canByte, &can); nil != err {
 		return nil, err
 	}
-
 	return &can, nil
 }
 
@@ -279,7 +268,6 @@ func (db *StakingDB) GetCanMutableStoreByIrr(addr common.NodeAddress) (*Candidat
 
 func (db *StakingDB) GetCanMutableStoreWithSuffix(blockHash common.Hash, suffix []byte) (*CandidateMutable, error) {
 	key := CanMutableKeyBySuffix(suffix)
-
 	canByte, err := db.get(blockHash, key)
 
 	if nil != err {
@@ -309,7 +297,6 @@ func (db *StakingDB) GetCanMutableStoreByIrrWithSuffix(suffix []byte) (*Candidat
 }
 
 func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeAddress, can *CandidateMutable) error {
-
 	key := CanMutableKeyByAddr(addr)
 
 	if val, err := rlp.EncodeToBytes(can); nil != err {
@@ -325,27 +312,20 @@ func (db *StakingDB) DelCanMutableStore(blockHash common.Hash, addr common.NodeA
 	return db.del(blockHash, key)
 }
 
-// about candidate power ...
-
+// SetCanPowerStore is about candidate power
 func (db *StakingDB) SetCanPowerStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
-
 	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
-
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore(blockHash common.Hash, can *Candidate) error {
-
 	key := TallyPowerKey(can.ProgramVersion, can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.NodeId)
 	return db.del(blockHash, key)
 }
 
-// about UnStakeItem ...
-
+// AddUnStakeItemStore is about UnStakeItem
 func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, canAddr common.NodeAddress, stakeBlockNumber uint64, recovery bool) error {
-
 	count_key := GetUnStakeCountKey(epoch)
-
 	val, err := db.get(blockHash, count_key)
 	var v uint64
 	switch {
@@ -378,7 +358,6 @@ func (db *StakingDB) AddUnStakeItemStore(blockHash common.Hash, epoch uint64, ca
 
 func (db *StakingDB) GetUnStakeCountStore(blockHash common.Hash, epoch uint64) (uint64, error) {
 	count_key := GetUnStakeCountKey(epoch)
-
 	val, err := db.get(blockHash, count_key)
 	if nil != err {
 		return 0, err
@@ -402,24 +381,20 @@ func (db *StakingDB) GetUnStakeItemStore(blockHash common.Hash, epoch, index uin
 
 func (db *StakingDB) DelUnStakeCountStore(blockHash common.Hash, epoch uint64) error {
 	count_key := GetUnStakeCountKey(epoch)
-
 	return db.del(blockHash, count_key)
 }
 
 func (db *StakingDB) DelUnStakeItemStore(blockHash common.Hash, epoch, index uint64) error {
 	item_key := GetUnStakeItemKey(epoch, index)
-
 	return db.del(blockHash, item_key)
 }
 
-// about epoch validates ...
-
+// SetEpochValIndex is about epoch validates
 func (db *StakingDB) SetEpochValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
 	value, err := rlp.EncodeToBytes(indexArr)
 	if nil != err {
 		return err
 	}
-
 	return db.put(blockHash, GetEpochIndexKey(), value)
 }
 
@@ -448,12 +423,10 @@ func (db *StakingDB) GetEpochValIndexByIrr() (ValArrIndexQueue, error) {
 }
 
 func (db *StakingDB) SetEpochValList(blockHash common.Hash, start, end uint64, valArr ValidatorQueue) error {
-
 	value, err := rlp.EncodeToBytes(valArr)
 	if nil != err {
 		return err
 	}
-
 	return db.put(blockHash, GetEpochValArrKey(start, end), value)
 }
 
@@ -484,18 +457,15 @@ func (db *StakingDB) GetEpochValListByBlockHash(blockHash common.Hash, start, en
 }
 
 func (db *StakingDB) DelEpochValListByBlockHash(blockHash common.Hash, start, end uint64) error {
-
 	return db.del(blockHash, GetEpochValArrKey(start, end))
 }
 
-// about round validators
-
+// SetRoundValIndex is about round validators
 func (db *StakingDB) SetRoundValIndex(blockHash common.Hash, indexArr ValArrIndexQueue) error {
 	value, err := rlp.EncodeToBytes(indexArr)
 	if nil != err {
 		return err
 	}
-
 	return db.put(blockHash, GetRoundIndexKey(), value)
 }
 
@@ -524,12 +494,10 @@ func (db *StakingDB) GetRoundValIndexByIrr() (ValArrIndexQueue, error) {
 }
 
 func (db *StakingDB) SetRoundValList(blockHash common.Hash, start, end uint64, valArr ValidatorQueue) error {
-
 	value, err := rlp.EncodeToBytes(valArr)
 	if nil != err {
 		return err
 	}
-
 	return db.put(blockHash, GetRoundValArrKey(start, end), value)
 }
 
@@ -560,18 +528,14 @@ func (db *StakingDB) GetRoundValListByBlockHash(blockHash common.Hash, start, en
 }
 
 func (db *StakingDB) DelRoundValListByBlockHash(blockHash common.Hash, start, end uint64) error {
-
 	return db.del(blockHash, GetRoundValArrKey(start, end))
 }
-
-// iterator ...
 
 func (db *StakingDB) IteratorCandidatePowerByBlockHash(blockHash common.Hash, ranges int) iterator.Iterator {
 	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
 }
 
-// about account staking reference count ...
-
+// AddAccountStakeRc is about account staking reference count
 func (db *StakingDB) AddAccountStakeRc(blockHash common.Hash, addr common.Address) error {
 	key := GetAccountStakeRcKey(addr)
 	val, err := db.get(blockHash, key)
@@ -637,8 +601,7 @@ func (db *StakingDB) HasAccountStakeRc(blockHash common.Hash, addr common.Addres
 	}
 }
 
-// about round validator's addrs ...
-
+// StoreRoundValidatorAddrs is about round validator's addrs
 func (db *StakingDB) StoreRoundValidatorAddrs(blockHash common.Hash, key []byte, arry []common.NodeAddress) error {
 	value, err := rlp.EncodeToBytes(arry)
 	if nil != err {

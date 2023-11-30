@@ -424,9 +424,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 	defer setup(t)()
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
-
 	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
-
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		t.Fatalf("submit proposal err: %s", err)
@@ -937,7 +935,6 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 }
 
 func TestGovPlugin_ListProposal(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -953,11 +950,9 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 	} else {
 		t.Logf("List all proposals success: %d", len(pList))
 	}
-
 }
 
 func TestGovPlugin_textProposalPassed(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -1014,7 +1009,6 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 }
 
 func TestGovPlugin_textProposalFailed(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -1067,7 +1061,6 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 }
 
 func TestGovPlugin_versionProposalPreActive(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -1149,7 +1142,6 @@ func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
 		ver := gov.GetPreActiveVersion(lastBlockHash)
 		assert.Equal(t, uint32(10), ver)
 	}
-
 }
 
 func TestGovPlugin_GetActiveVersion(t *testing.T) {
@@ -1165,7 +1157,6 @@ func TestGovPlugin_GetActiveVersion(t *testing.T) {
 }
 
 func TestGovPlugin_versionProposalActive(t *testing.T) {
-
 	defer setup(t)()
 
 	//submit version proposal
@@ -1183,7 +1174,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1221,7 +1212,6 @@ func TestGovPlugin_printVersion(t *testing.T) {
 	defer setup(t)()
 
 	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8|0))
-
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
@@ -1276,7 +1266,6 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 			t.Fatalf("unknown header extra data, elementCount= %d", len(extraData))
 		}
 	}
-
 }
 
 func TestGovPlugin_Test_version(t *testing.T) {
@@ -1285,7 +1274,6 @@ func TestGovPlugin_Test_version(t *testing.T) {
 }
 
 func TestGovPlugin_Test_genVersionSign(t *testing.T) {
-
 	ver := uint32(66048) //1.2.0
 	chandler := node.GetCryptoHandler()
 
@@ -1293,7 +1281,6 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
-
 }
 
 var (

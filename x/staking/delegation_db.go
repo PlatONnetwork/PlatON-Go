@@ -8,8 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-// about delegate ...
-
+// GetDelegateStore is about delegate ...
 func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) (*Delegation, error) {
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
@@ -91,7 +90,6 @@ func (db *StakingDB) GetDelegationLock(blockHash common.Hash, delAddr common.Add
 	}
 	dell.update(currentEpoch)
 	return dell, nil
-
 }
 
 func (db *StakingDB) PutDelegationLock(blockHash common.Hash, delAddr common.Address, infos *DelegationLock) error {

@@ -20,6 +20,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -27,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
-	"mime"
 )
 
 // sign receives a request and produces a signature

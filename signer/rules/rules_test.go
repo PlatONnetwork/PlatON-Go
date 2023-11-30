@@ -17,10 +17,11 @@ package rules
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"math/big"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -267,11 +268,8 @@ func TestForwarding(t *testing.T) {
 
 	expCalls := 6
 	if len(ui.calls) != expCalls {
-
 		t.Errorf("Expected %d forwarded calls, got %d: %s", expCalls, len(ui.calls), strings.Join(ui.calls, ","))
-
 	}
-
 }
 
 func TestMissingFunc(t *testing.T) {

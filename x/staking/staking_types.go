@@ -877,9 +877,7 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 					return compareVersionFunc(left, right)
 				}
 			}
-
 		}
-
 	}
 }
 
