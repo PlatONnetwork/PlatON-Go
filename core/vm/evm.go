@@ -124,7 +124,6 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:       evm,
 				}
 				return RunPlatONPrecompiledContract(delegateRewardContract, input, contract)
-
 			}
 		}
 	}

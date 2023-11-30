@@ -24,7 +24,6 @@ func (tasks *dialedTasks) InitRemoveConsensusPeerFn(removeConsensusPeerFn remove
 }
 
 func (tasks *dialedTasks) AddTask(task *dialTask) error {
-
 	// whether the task is already in the queue
 	// 1 if exists,remove task to the end of the queue;
 	// 2 if not exists(not exceeding the maximum limit),add new task directly to the end of the queue
@@ -50,7 +49,6 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 }
 
 func (tasks *dialedTasks) RemoveTask(NodeID enode.ID) error {
-
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
@@ -85,7 +83,7 @@ func (tasks *dialedTasks) offer(task *dialTask) {
 	return pollTask
 }*/
 
-// remove the specify index task in the queue
+// remove the task at the specified index in the queue
 func (tasks *dialedTasks) pollIndex(index int) *dialTask {
 	if tasks.isEmpty() {
 		log.Info("dialedTasks is empty!")

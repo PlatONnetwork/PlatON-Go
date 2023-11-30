@@ -261,7 +261,6 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		}
 	}
 	it2.Release()
-
 }
 
 func TestStateStorageValueCommit(t *testing.T) {
@@ -300,6 +299,9 @@ func TestStateStorageValueCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	s2, err := New(root, NewDatabase(db), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for addr, storage := range storages {
 		for key, value := range storage {
 			exp := s2.GetState(addr, []byte(key))
@@ -332,12 +334,14 @@ func TestStateStorageValueDelete(t *testing.T) {
 	}
 
 	s2, err := New(root, NewDatabase(db), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	exp := s2.GetState(addr, key1)
 	assert.Equal(t, exp, value1)
 
 	exp = s2.GetState(addr, key2)
 	assert.NotEqual(t, exp, value2)
-
 }
 
 func TestStateStorageRevert(t *testing.T) {

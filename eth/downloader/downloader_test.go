@@ -19,13 +19,6 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"os"
 	"sync"
@@ -35,17 +28,21 @@ import (
 
 	"github.com/syndtr/goleveldb/leveldb/storage"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	_ "github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -847,9 +844,8 @@ func testMultiProtoSync(t *testing.T, protocol uint, mode SyncMode) {
 //func TestEmptyShortCircuit64Full(t *testing.T) { testEmptyShortCircuit(t, 64, FullSync) }
 //func TestEmptyShortCircuit64Fast(t *testing.T) { testEmptyShortCircuit(t, 64, SnapSync) }
 
-//func TestEmptyShortCircuit64Light(t *testing.T) { testEmptyShortCircuit(t, 64, LightSync) }
-
-func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
+// func TestEmptyShortCircuit64Light(t *testing.T) { testEmptyShortCircuit(t, 64, LightSync) }
+/*func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
 	tester := newTester(t)
 	defer tester.terminate()
 
@@ -889,7 +885,7 @@ func testEmptyShortCircuit(t *testing.T, protocol uint, mode SyncMode) {
 	if int(receiptsHave) != receiptsNeeded {
 		t.Errorf("receipt retrieval count mismatch: have %v, want %v", receiptsHave, receiptsNeeded)
 	}
-}
+}*/
 
 // Tests that headers are enqueued continuously, preventing malicious nodes from
 // stalling the downloader by feeding gapped header chains.
@@ -1081,7 +1077,6 @@ func TestSyncProgress67Full(t *testing.T) { testSyncProgress(t, eth.ETH67, FullS
 func TestSyncProgress67Snap(t *testing.T) { testSyncProgress(t, eth.ETH67, SnapSync) }
 
 func testSyncProgress(t *testing.T, protocol uint, mode SyncMode) {
-
 	tester := newTester(t)
 	defer tester.terminate()
 

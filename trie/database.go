@@ -563,15 +563,15 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.dirties), "livesize", db.dirtiesSize)
 }
 
-func (db *Database) uselessTotal() int {
-	db.lock.RLock()
-	defer db.lock.RUnlock()
-	sum := 0
-	for _, m := range db.useless {
-		sum += len(m)
-	}
-	return sum
-}
+//func (db *Database) uselessTotal() int {
+//	db.lock.RLock()
+//	defer db.lock.RUnlock()
+//	sum := 0
+//	for _, m := range db.useless {
+//		sum += len(m)
+//	}
+//	return sum
+//}
 
 func (db *Database) UselessSize() int {
 	return len(db.useless)
@@ -598,7 +598,7 @@ func (db *Database) UselessGC(num int) {
 			break
 		}
 
-		for k, _ := range m {
+		for k := range m {
 			if db.dirties[common.BytesToHash([]byte(k))] == nil {
 				batch.Delete([]byte(k))
 			}

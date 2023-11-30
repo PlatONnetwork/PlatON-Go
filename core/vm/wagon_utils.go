@@ -3,13 +3,13 @@ package vm
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	wagonValidate "github.com/PlatONnetwork/wagon/validate"
 	"github.com/PlatONnetwork/wagon/wasm"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {

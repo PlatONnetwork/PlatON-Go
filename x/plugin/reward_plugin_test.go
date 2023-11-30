@@ -23,30 +23,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/reward"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -72,7 +64,6 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 		if val, err := rlp.EncodeToBytes(canTmp.CandidateBase); nil != err {
 			return nil, err
 		} else {
-
 			if err := sndb.PutBaseDB(canBaseKey, val); nil != err {
 				return nil, err
 			}
@@ -83,7 +74,6 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 		if val, err := rlp.EncodeToBytes(canTmp.CandidateMutable); nil != err {
 			return nil, err
 		} else {
-
 			if err := sndb.PutBaseDB(canMutableKey, val); nil != err {
 				return nil, err
 			}
@@ -321,17 +311,14 @@ func TestIncreaseIssuance(t *testing.T) {
 
 	if plugin.isLessThanFoundationYear(thisYear) {
 		mockDB.GetBalance(xcom.CDFAccount())
-
 	} else {
 		mockDB.GetBalance(xcom.CDFAccount())
 		mockDB.GetBalance(xcom.PlatONFundAccount())
 	}
-
 }
 
 func TestZeroIncreaseIssuance(t *testing.T) {
 	var plugin = RewardMgrInstance()
-
 	_, genesis, _ := newChainState()
 
 	mockDB := buildStateDB(t)
@@ -372,7 +359,6 @@ func TestZeroIncreaseIssuance(t *testing.T) {
 	tmp := new(big.Int).Sub(newIssue, lastIssue)
 	assert.Equal(t, increaseIssuanceRatio, uint16(0))
 	assert.Equal(t, tmp.Uint64(), uint64(0))
-
 }
 
 func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
@@ -403,7 +389,6 @@ func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
 	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
 	rewardpoolIncr := percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate))
 	assert.Equal(t, currCDFAccountBalance, new(big.Int).Sub(currIssue, rewardpoolIncr))
-
 }
 
 func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
@@ -438,7 +423,6 @@ func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
 	lessBalance := new(big.Int).Sub(currIssue, percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate)))
 	assert.Equal(t, currCDFAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearDeveloperRewardRate)))
 	assert.Equal(t, currPlatONFundAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearFoundRewardRate)))
-
 }
 
 func TestSaveRewardDelegateRewardPer(t *testing.T) {
@@ -512,7 +496,6 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 		return
 	}
 	for index, val := range list {
-
 		if val.Epoch != uint64(index) {
 			t.Error("epoch should be same ")
 		}
@@ -528,7 +511,6 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	}
 
 	if err := chain.AddBlockWithSnapDB(true, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-
 		receive := make([]reward.DelegateRewardReceipt, 0)
 		receive = append(receive, reward.DelegateRewardReceipt{Delegate: big.NewInt(2000000000), Epoch: 1})
 		if err := UpdateDelegateRewardPer(hash, delegateInfos2[0].nodeID, delegateInfos2[0].stakingNum, receive, sdb); err != nil {
@@ -676,7 +658,6 @@ func TestAllocatePackageBlock(t *testing.T) {
 	if chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr).Cmp(delegateReward) != 0 {
 		t.Error("reward must same", "delegateReward", delegateReward, "balance", chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr))
 	}
-
 }
 
 func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (staking.ValArrIndexQueue, staking.ValidatorQueue, staking.Candidate, staking.Delegation) {
@@ -783,7 +764,6 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 				return err
 			}
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
 				verifierList, err := rm.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
 				if err != nil {
 					return err
@@ -795,14 +775,12 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
 				}
-
 			}
 			return nil
 		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
-
 	}
 
 	re, err := rm.GetDelegateReward(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), delegateRewardAdd, nil, chain.StateDB)
@@ -814,7 +792,6 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 		chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr), "can address", chain.StateDB.GetBalance(can.BenefitAddress), "reward_pool",
 		chain.StateDB.GetBalance(vm.RewardManagerPoolAddr))
 	log.Debug("get", "re", re, "in", re[0].Reward.ToInt())
-
 }
 
 func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
@@ -864,5 +841,4 @@ func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
 }

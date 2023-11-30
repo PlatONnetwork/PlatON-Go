@@ -74,7 +74,6 @@ func (sc *SlashingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) error
 
 // Report the double signing behavior of the node
 func (sc *SlashingContract) reportDuplicateSign(dupType uint8, data string) ([]byte, error) {
-
 	txHash := sc.Evm.StateDB.TxHash()
 	blockNumber := sc.Evm.Context.BlockNumber
 	blockHash := sc.Evm.Context.BlockHash

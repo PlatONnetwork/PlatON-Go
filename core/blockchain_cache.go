@@ -260,7 +260,6 @@ func (bcc *BlockChainCache) ClearCache(block *types.Block) {
 		if number < baseNumber-1 {
 			sealHash := key.(common.Hash)
 			sh = append(sh, &sealHashNumber{number: number, hash: sealHash})
-
 		}
 		return true
 	})

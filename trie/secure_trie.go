@@ -18,6 +18,7 @@ package trie
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 

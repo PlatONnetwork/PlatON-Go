@@ -2,7 +2,6 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math/big"
 	"sync"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -108,11 +108,11 @@ func newTestChain(length int, genesis *types.Block) *testChain {
 }
 
 // makeFork creates a fork on top of the test chain.
-func (tc *testChain) makeFork(length int, heavy bool, seed byte) *testChain {
+/*func (tc *testChain) makeFork(length int, heavy bool, seed byte) *testChain {
 	fork := tc.copy(len(tc.blocks) + length)
 	fork.generate(length, seed, tc.blocks[len(tc.blocks)-1], heavy)
 	return fork
-}
+}*/
 
 // shorten creates a copy of the chain with the given length. It panics if the
 // length is longer than the number of available blocks.
@@ -164,7 +164,6 @@ var (
 
 type testBlockchain struct {
 	chain     *core.BlockChain
-	bcc       *core.BlockChainCache
 	gen       sync.Once
 	consensus consensus.Bft
 }

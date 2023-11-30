@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -612,7 +613,6 @@ func (t *Trie) DeepCopyTrie() *Trie {
 }
 
 func (t *Trie) copyNode(n node) {
-
 	//hash, dirty := n.cache()
 	switch n := n.(type) {
 	case *shortNode:
@@ -636,7 +636,6 @@ func (t *Trie) copyNode(n node) {
 		for i := 0; i < len(n.Children); i++ {
 			if n.Children[i] != nil {
 				if _, ok := n.Children[i].(valueNode); !ok {
-
 					if _, dirty := n.Children[i].cache(); !dirty {
 						if hash, _ := n.Children[i].cache(); len(hash) != 0 {
 							n.Children[i] = hash

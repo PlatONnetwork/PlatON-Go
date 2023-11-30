@@ -17,10 +17,9 @@
 package reward
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 const DelegateRewardPerLength = 1000
@@ -76,7 +75,7 @@ func DelegateRewardPerKeys(nodeID enode.IDv0, stakingNum, fromEpoch, toEpoch uin
 	delegateRewardPerPrefix := make([]byte, perKeyLength+common.AddressLength+lengthUint64)
 	n := copy(delegateRewardPerPrefix[:perKeyLength], delegateRewardPerKey)
 	n += copy(delegateRewardPerPrefix[n:n+common.AddressLength], add.Bytes())
-	n += copy(delegateRewardPerPrefix[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
+	copy(delegateRewardPerPrefix[n:n+lengthUint64], common.Uint64ToBytes(stakingNum))
 
 	keys := make([][]byte, 0)
 	for i := indexFrom; i <= indexTo; i++ {

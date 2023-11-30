@@ -17,9 +17,10 @@
 package fourbyte
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -53,7 +54,6 @@ func dummyTxArgs(t txtestcase) *apitypes.SendTxArgs {
 	if t.i != "" {
 		a := hexutil.Bytes(common.FromHex(t.i))
 		input = &a
-
 	}
 	return &apitypes.SendTxArgs{
 		From:     *from,

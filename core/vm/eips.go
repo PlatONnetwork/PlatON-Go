@@ -18,9 +18,11 @@ package vm
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/holiman/uint256"
 	"sort"
+
+	"github.com/holiman/uint256"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var activators = map[int]func(*JumpTable){

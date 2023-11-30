@@ -19,15 +19,14 @@ package state
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/VictoriaMetrics/fastcache"
 
 	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )

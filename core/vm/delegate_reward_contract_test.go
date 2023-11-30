@@ -158,7 +158,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 				return err
 			}
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
 				verifierList, err := contact.Plugin.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
 				if err != nil {
 					return err
@@ -170,14 +169,12 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
 				}
-
 			}
 			return nil
 		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
-
 	}
 
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
@@ -225,7 +222,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-
 }
 
 func newRewardContact(add common.Address, chain *mock.Chain, initGas uint64) *DelegateRewardContract {
@@ -372,7 +368,6 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 				return err
 			}
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
 				verifierList, err := contact.Plugin.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
 				if err != nil {
 					return err
@@ -384,14 +379,12 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
 				}
-
 			}
 			return nil
 		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
-
 	}
 
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")

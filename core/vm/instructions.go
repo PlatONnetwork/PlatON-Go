@@ -17,12 +17,14 @@
 package vm
 
 import (
+	"sync/atomic"
+
+	"github.com/holiman/uint256"
+	"golang.org/x/crypto/sha3"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/holiman/uint256"
-	"golang.org/x/crypto/sha3"
-	"sync/atomic"
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {

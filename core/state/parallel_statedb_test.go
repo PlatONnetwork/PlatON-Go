@@ -62,7 +62,6 @@ func TestParallelStateDB_justGetStateObjectCache(t *testing.T) {
 }
 
 func TestParallelStateDB_rlp(t *testing.T) {
-
 	db := rawdb.NewMemoryDatabase()
 	statedb, _ := New(common.Hash{}, NewDatabase(db), nil)
 
@@ -80,14 +79,12 @@ func TestParallelStateDB_rlp(t *testing.T) {
 
 	start := time.Now()
 	for i := 0; i < count; i++ {
-
 		if _, err := rlp.EncodeToBytes(objList[i].stateObject); err != nil {
 			t.Fatal("error")
 		}
 	}
 
 	t.Logf("cost %s", common.PrettyDuration(time.Since(start)))
-
 }
 
 func TestParallelStateDB_random(t *testing.T) {
@@ -97,5 +94,4 @@ func TestParallelStateDB_random(t *testing.T) {
 	for i := 0; i < 200; i++ {
 		t.Logf("random number: %d \n", rand.Int31n(int32(1000)))
 	}
-
 }

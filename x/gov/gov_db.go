@@ -21,16 +21,14 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -230,20 +228,19 @@ func GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, e
 		return nil, err
 	}
 	return &tallyResult, nil
-
 }
 
-// Set pre-active version
+// SetPreActiveVersion Set pre-active version
 func SetPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
 	return setPreActiveVersion(blockHash, preActiveVersion)
 }
 
-// Get pre-active version
+// GetPreActiveVersion Get pre-active version
 func GetPreActiveVersion(blockHash common.Hash) uint32 {
 	return getPreActiveVersion(blockHash)
 }
 
-// Set active version record
+// AddActiveVersion Set active version record
 func AddActiveVersion(activeVersion uint32, activeBlock uint64, state xcom.StateDB) error {
 	avList, err := ListActiveVersion(state)
 	if err != nil {
@@ -293,7 +290,7 @@ func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB
 	return nil
 }
 
-// Get voting proposal
+// ListVotingProposal Get voting proposal
 func ListVotingProposal(blockHash common.Hash) ([]common.Hash, error) {
 	value, err := getVotingIDList(blockHash)
 	if err != nil {
@@ -372,7 +369,6 @@ func remove(list []common.Hash, item common.Hash) []common.Hash {
 }
 
 func MoveVotingProposalIDToEnd(proposalID common.Hash, blockHash common.Hash) error {
-
 	voting, err := getVotingIDList(blockHash)
 	if err != nil {
 		return err
