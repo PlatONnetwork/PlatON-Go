@@ -21,21 +21,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/external"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"os"
 	"reflect"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-
+	"github.com/PlatONnetwork/PlatON-Go/accounts/external"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/naoina/toml"
@@ -187,7 +187,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 // makeFullNode loads platon configuration and creates the backend.
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
-
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
 

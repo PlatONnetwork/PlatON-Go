@@ -60,7 +60,6 @@ func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 		var j MessageSendViewChange
 		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
-
 		}
 		return j.Data, nil
 	case protocols.SendPrepareBlockMsg:
@@ -73,7 +72,6 @@ func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 		var j MessageSendPrepareVote
 		if err := rlp.DecodeBytes(pack, &j); err != nil {
 			return nil, err
-
 		}
 		return j.Data, nil
 	}

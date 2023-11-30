@@ -195,7 +195,7 @@ func (cbft *Cbft) OnViewTimeout() {
 		ViewNumber:     cbft.state.ViewNumber(),
 		BlockHash:      hash,
 		BlockNumber:    number,
-		ValidatorIndex: uint32(node.Index),
+		ValidatorIndex: node.Index,
 		PrepareQC:      qc,
 	}
 
@@ -209,7 +209,7 @@ func (cbft *Cbft) OnViewTimeout() {
 		cbft.bridge.SendViewChange(viewChange)
 	}
 
-	cbft.state.AddViewChange(uint32(node.Index), viewChange)
+	cbft.state.AddViewChange(node.Index, viewChange)
 	cbft.network.Broadcast(viewChange)
 	cbft.log.Info("Local add viewChange", "index", node.Index, "viewChange", viewChange.String(), "total", cbft.state.ViewChangeLen())
 

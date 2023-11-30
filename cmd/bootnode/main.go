@@ -131,7 +131,6 @@ func main() {
 			utils.Fatalf("%v", err)
 		}
 	} else {
-
 		if _, err := discover.ListenUDP(conn, ln, cfg); err != nil {
 			utils.Fatalf("%v", err)
 		}

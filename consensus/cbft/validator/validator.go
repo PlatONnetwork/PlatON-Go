@@ -451,7 +451,6 @@ func (vp *ValidatorPool) Update(blockNumber uint64, epoch uint64, eventMux *even
 					log.Trace("add to AddValidatorEvent", "nodeID", nodeID)
 				}
 			}
-
 		} else {
 			for nodeID, vnode := range vp.prevValidators.Nodes {
 				removes = append(removes, enode.NewV4(vnode.PubKey, nil, 0, 0))

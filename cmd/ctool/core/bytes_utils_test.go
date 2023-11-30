@@ -25,7 +25,6 @@ import (
 )
 
 func TestInt32ToBytes(t *testing.T) {
-
 	var i int32 = 12 // 00000000, 00000000, 00000000, 00001100
 	b := Int32ToBytes(i)
 	arr := []byte{0x00, 0x00, 0x00, 0x0c}
@@ -39,7 +38,6 @@ func TestBytesToInt32(t *testing.T) {
 }
 
 func TestInt64ToBytes(t *testing.T) {
-
 	var i int64 = 12
 	b := Int64ToBytes(i)
 	arr := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c}
@@ -58,7 +56,6 @@ func TestByteConvert(t *testing.T) {
 
 	result := BytesConverter(hash.Bytes(), "int32")
 	fmt.Printf("\nresult: %v\n", result)
-
 }
 
 func TestStringConverter(t *testing.T) {

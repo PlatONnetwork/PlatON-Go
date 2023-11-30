@@ -141,7 +141,6 @@ func TestSyncPrepareBlockErrData(t *testing.T) {
 		case <-suit.msgCh:
 		case <-time.After(time.Millisecond * 10):
 		}
-
 	}
 }
 

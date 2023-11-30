@@ -391,7 +391,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			if err != nil {
 				return err
 			}
-			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
+			cbft.state.AddViewChange(node.Index, m.ViewChange)
 		}
 
 	case *protocols.SendPrepareBlock:

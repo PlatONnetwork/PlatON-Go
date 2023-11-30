@@ -22,10 +22,8 @@ import (
 	"sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/core"
-
-	"github.com/urfave/cli/v2"
-
 	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/ppos"
+	"github.com/urfave/cli/v2"
 )
 
 var (

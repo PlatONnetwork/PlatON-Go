@@ -58,7 +58,6 @@ func TestThreshold(t *testing.T) {
 	assert.Equal(t, 4, f.threshold(5))
 	assert.Equal(t, 5, f.threshold(6))
 	assert.Equal(t, 5, f.threshold(7))
-
 }
 
 func TestBls(t *testing.T) {
@@ -160,7 +159,6 @@ func TestAgg(t *testing.T) {
 	for i := 0; i < num; i++ {
 		nodes[i].Node = enode.NewV4(&pk[i].PublicKey, nil, 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-
 	}
 
 	agency := validator.NewStaticAgency(nodes[0:num])
@@ -200,7 +198,6 @@ func testPrepareQC(t *testing.T, cnode []*Cbft) {
 	assert.Nil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
 	qc.ValidatorSet = nil
 	assert.NotNil(t, cnode[0].verifyPrepareQC(qc.BlockNumber, qc.BlockHash, qc))
-
 }
 
 func testViewChangeQC(t *testing.T, cnode []*Cbft) {

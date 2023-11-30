@@ -19,14 +19,13 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"os"
-
-	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/urfave/cli/v2"
 )
 
 type outputInspect struct {

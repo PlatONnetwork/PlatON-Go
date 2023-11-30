@@ -485,7 +485,6 @@ func (cbft *Cbft) LoadWal() (err error) {
 
 // receiveLoop receives all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
-
 	// Responsible for handling consensus message logic.
 	consensusMessageHandler := func(msg *ctypes.MsgInfo) {
 		if !cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
@@ -1073,7 +1072,6 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 
 // GetBlockByHash get the specified block by hash and number.
 func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
-
 	callBlock := func() *types.Block {
 		// First extract from the confirmed block.
 		block := cbft.blockTree.FindBlockByHash(hash)
@@ -1849,7 +1847,6 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 }
 
 func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
-
 	vcEpoch, _, _, _, _, _ := viewChangeQC.MaxBlock()
 
 	maxLimit := cbft.validatorPool.Len(vcEpoch)

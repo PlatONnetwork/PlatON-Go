@@ -144,7 +144,6 @@ func TestCSMsgPool(t *testing.T) {
 	for i := uint32(0); i < 10; i++ {
 		pool.AddPrepareVote(i, i+1, defaultMsg)
 		pool.AddPrepareVote(i, i+2, defaultMsg)
-
 	}
 
 	for i := uint32(0); i < 10; i++ {
@@ -176,7 +175,6 @@ func TestCSMsgPoolPurge(t *testing.T) {
 	pool.Purge(1, 2)
 	assert.Nil(t, pool.GetPrepareBlock(1, 1, 1))
 	assert.NotNil(t, pool.GetPrepareBlock(1, 2, 1))
-
 }
 
 func TestCSMsgPoolAdd(t *testing.T) {
