@@ -25,14 +25,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
-
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -42,6 +34,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -341,7 +337,6 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 	nodeId := waitSlashingNode.NodeId
 	// If the range of the time window is satisfied, and the number of zero blocks is satisfied, a penalty is imposed.
 	if diff := uint16(preRound - waitSlashingNode.Round + 1); diff == zeroProduceCumulativeTime {
-
 		// Count the number of flags
 		calcBitFunc := func(countBit uint64, number int) uint16 {
 			var compareValue uint64 = 1
@@ -467,7 +462,6 @@ func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Hea
 }
 
 func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash) error {
-
 	iter := sp.db.Ranking(blockHash, buildPrefixByRound(xutil.CalculateRound(blockNumber)-2), 0)
 	if err := iter.Error(); nil != err {
 		return err
@@ -487,7 +481,7 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 	return nil
 }
 
-// Get the consensus rate of all nodes in the previous round
+// GetPrePackAmount Get the consensus rate of all nodes in the previous round
 func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common.Hash) (map[enode.IDv0]uint32, error) {
 	result := make(map[enode.IDv0]uint32)
 	prefixKey := buildPrefixByRound(xutil.CalculateRound(blockNumber) - 1)
@@ -532,7 +526,6 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	blocksOfEpoch := xutil.CalcBlocksEachEpoch()
 	invalidNum := evidenceEpoch * blocksOfEpoch
 	if invalidNum < blockNumber {
-
 		evidenceAge, err := gov.GovernMaxEvidenceAge(blockNumber, blockHash)
 		if nil != err {
 			log.Error("Failed to Slash, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),

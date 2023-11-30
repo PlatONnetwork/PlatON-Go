@@ -21,19 +21,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -250,9 +246,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 		balance := mockDB.GetBalance(vm.RestrictingContractAddr)
 		assert.Equal(t, big.NewInt(2e18+2e17+2e18), balance)
-
 	})
-
 }
 
 type TestRestrictingPlugin struct {
@@ -425,7 +419,6 @@ func TestRestrictingPlugin_Compose(t *testing.T) {
 }
 
 func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
-
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
@@ -445,7 +438,6 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 	})
 
 	t.Run("restricting account exist", func(t *testing.T) {
-
 		chain := mock.NewChain()
 		chain.StateDB.AddBalance(addrArr[1], big.NewInt(8e18))
 
@@ -595,7 +587,6 @@ func TestNewRestrictingPlugin_MixAdvanceLockedFunds(t *testing.T) {
 	if _, _, err := plugin.MixAdvanceLockedFunds(to, new(big.Int).Mul(big.NewInt(1e18), big.NewInt(10)), mockDB); err == nil {
 		t.Error("should not success")
 	}
-
 }
 
 func TestRestrictingInstanceWithSlashing(t *testing.T) {

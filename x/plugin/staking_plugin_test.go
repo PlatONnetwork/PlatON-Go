@@ -191,7 +191,6 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 			t.Errorf("Failed to Store CandidateBase info: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
 		} else {
-
 			if err := sndb.PutBaseDB(canBaseKey, val); nil != err {
 				t.Errorf("Failed to Store CandidateBase info: PutBaseDB failed. error:%s", err.Error())
 				return nil, err
@@ -204,7 +203,6 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 			t.Errorf("Failed to Store CandidateMutable info: PutBaseDB failed. error:%s", err.Error())
 			return nil, err
 		} else {
-
 			if err := sndb.PutBaseDB(canMutableKey, val); nil != err {
 				t.Errorf("Failed to Store CandidateMutable info: PutBaseDB failed. error:%s", err.Error())
 				return nil, err
@@ -395,14 +393,12 @@ func getCandidate(blockHash common.Hash, index int) (*staking.Candidate, error) 
 	if can, err := StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
 		return nil, err
 	} else {
-
 		return can, nil
 	}
 }
 
 func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	can *staking.Candidate, typ uint16, index int, isEinstein bool) (*staking.Delegation, error) {
-
 	delAddr := addrArr[index+1]
 
 	// build delegate
@@ -549,7 +545,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			t.Errorf("Failed to Store Candidate Base info: PutBaseDB failed. error:%s", err.Error())
 			return
 		} else {
-
 			if err := sndb.PutBaseDB(canBaseKey, val); nil != err {
 				t.Errorf("Failed to Store Candidate Base info: PutBaseDB failed. error:%s", err.Error())
 				return
@@ -562,7 +557,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			t.Errorf("Failed to Store Candidate Mutable info: PutBaseDB failed. error:%s", err.Error())
 			return
 		} else {
-
 			if err := sndb.PutBaseDB(canMutableKey, val); nil != err {
 				t.Errorf("Failed to Store Candidate Mutable info: PutBaseDB failed. error:%s", err.Error())
 				return
@@ -583,7 +577,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			}
 			validatorQueue[j] = v
 		}
-
 	}
 
 	/**
@@ -866,7 +859,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			t.Errorf("Failed to Store Candidate Base info: PutBaseDB failed. error:%s", err.Error())
 			return
 		} else {
-
 			if err := sndb.PutBaseDB(canBaseKey, val); nil != err {
 				t.Errorf("Failed to Store Candidate Base info: PutBaseDB failed. error:%s", err.Error())
 				return
@@ -879,7 +871,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			t.Errorf("Failed to Store Candidate Mutable info: PutBaseDB failed. error:%s", err.Error())
 			return
 		} else {
-
 			if err := sndb.PutBaseDB(canMutableKey, val); nil != err {
 				t.Errorf("Failed to Store Candidate Mutable info: PutBaseDB failed. error:%s", err.Error())
 				return
@@ -1676,7 +1667,6 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 	var delegation *staking.Delegation
 
 	if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-
 		can, err := getCandidate(hash, index)
 		if err != nil {
 			return err
@@ -1688,7 +1678,6 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 		}
 		delegation = del
 		return nil
-
 	}, nil, nil); err != nil {
 		t.Error(err)
 	}
@@ -2052,7 +2041,6 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 }
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2148,7 +2136,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 }
 
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2169,20 +2156,15 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()
@@ -2326,13 +2308,10 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	}
 
 	err = StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
-
 	assert.Nil(t, err, fmt.Sprintf("Failed to ElectNextVerifierList: %v", err))
-
 }
 
 func TestStakingPlugin_Election(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2354,22 +2333,16 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
 			t.Errorf("Failed to generate random NodeId private key: %v", err)
@@ -2535,13 +2508,10 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}
 
 	err = StakingInstance().Election(blockHash2, header, state)
-
 	assert.Nil(t, err, fmt.Sprintf("Failed to Election: %v", err))
-
 }
 
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2565,22 +2535,16 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slashQueue := make(staking.CandidateQueue, 5)
 
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
 			t.Errorf("Failed to generate random NodeId private key: %v", err)
@@ -2854,7 +2818,6 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 }
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2878,7 +2841,6 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 	queue := make(staking.CandidateQueue, 0)
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
@@ -2976,14 +2938,11 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	*/
 	for i, can := range queue {
 		err = StakingInstance().DeclarePromoteNotify(blockHash2, blockNumber2.Uint64(), can.NodeId, promoteVersion)
-
 		assert.Nil(t, err, fmt.Sprintf("Failed to DeclarePromoteNotify, index: %d, err: %v", i, err))
 	}
-
 }
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2991,7 +2950,6 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	}
 
 	newPlugins()
-
 	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
@@ -3010,22 +2968,16 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 	nodeIdArr := make([]enode.IDv0, 0)
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
-
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
 			t.Errorf("Failed to generate random NodeId private key: %v", err)
@@ -3157,7 +3109,6 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3392,20 +3343,15 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 	nodeIdArr := make([]enode.IDv0, 0)
 
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()
@@ -3660,9 +3606,8 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	curve := crypto.S256()
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
-	currentNonce := crypto.Keccak256([]byte(string("nonce")))
+	currentNonce := crypto.Keccak256([]byte("nonce"))
 	for i := 0; i < int(xcom.MaxValidators()); i++ {
-
 		mrand.Seed(time.Now().UnixNano())
 		v1 := new(big.Int).SetInt64(time.Now().UnixNano())
 		v1.Mul(v1, new(big.Int).SetInt64(1e18))
@@ -3829,22 +3774,15 @@ func Test_IteratorCandidate(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
-		//t.Log("Create Staking num:", index)
-
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
-
 		ii := mrand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		privateKey, err := crypto.GenerateKey()

@@ -22,17 +22,13 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 const (
@@ -48,7 +44,6 @@ const (
 	LowRatioDel                               // 0001,0000: The lowRatio AND must delete
 	Withdrew                                  // 0010,0000: The Active withdrew
 	Valided       = 0                         // 0000: The current candidate is in force
-	NotExist      = 1 << 31                   // 1000,xxxx,... : The candidate is not exist
 )
 
 type CandidateStatus uint32
@@ -499,7 +494,6 @@ type Description struct {
 }
 
 func (desc *Description) CheckLength() error {
-
 	if len(desc.ExternalId) > MaxExternalIdLen {
 		return fmt.Errorf("ExternalId overflow, got len is: %d, max len is: %d", len(desc.ExternalId), MaxExternalIdLen)
 	}
@@ -677,7 +671,6 @@ func (arr ValidatorQueue) partition(removes NeedRemoveCans, left, right int,
 // 0: Left == Right
 // -1:Left < Right
 func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
-
 	compareTxIndexFunc := func(l, r *Validator) int {
 		switch {
 		case l.StakingTxIndex > r.StakingTxIndex:
@@ -690,7 +683,6 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareBlockNumberFunc := func(l, r *Validator) int {
-
 		switch {
 		case l.StakingBlockNum > r.StakingBlockNum:
 			return -1
@@ -702,7 +694,6 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	}
 
 	compareSharesFunc := func(l, r *Validator) int {
-
 		switch {
 		case l.Shares.Cmp(r.Shares) < 0:
 			return -1
@@ -721,7 +712,6 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 	} else if !leftOk && rightOk {
 		return 1
 	} else {
-
 		lversion := xutil.CalcVersion(left.ProgramVersion)
 		rversion := xutil.CalcVersion(right.ProgramVersion)
 
@@ -758,12 +748,9 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 // 0: Left == Right
 // -1:Left < Right
 func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
-
 	// some funcs
-
 	// Compare TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
-
 		switch {
 		case l.StakingTxIndex > r.StakingTxIndex:
 			return 1
@@ -788,7 +775,6 @@ func CompareForDel(removes NeedRemoveCans, left, right *Validator) int {
 
 	// Compare Shares
 	compareSharesFunc := func(l, r *Validator) int {
-
 		switch {
 		case l.Shares.Cmp(r.Shares) < 0:
 			return 1
@@ -990,7 +976,6 @@ func (vindex *ValArrIndex) String() string {
 type ValArrIndexQueue []*ValArrIndex
 
 func (queue ValArrIndexQueue) ConstantAppend(index *ValArrIndex, size int) (*ValArrIndex, ValArrIndexQueue) {
-
 	queue = append(queue, index)
 	if size < len(queue) {
 		return queue[0], queue[1:]
