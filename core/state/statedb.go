@@ -889,7 +889,6 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte
 }
 
 func (db *StateDB) MigrateStorage(from, to common.Address) {
-
 	fromObj := db.getStateObject(from)
 	toObj := db.getStateObject(to)
 	if nil != fromObj && nil != toObj {

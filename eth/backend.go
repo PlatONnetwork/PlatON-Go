@@ -20,50 +20,43 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 	"math/big"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -701,5 +694,4 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
 	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
-
 }

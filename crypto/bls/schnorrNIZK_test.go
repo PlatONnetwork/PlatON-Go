@@ -1,9 +1,8 @@
 package bls
 
 import (
-	"testing"
-
 	"fmt"
+	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -29,7 +28,6 @@ func TestSchnorrNIZK(t *testing.T) {
 }
 
 func TestSchnorrProofText(t *testing.T) {
-
 	// not support：
 	//		CurveFp382_1
 	//		CurveFp382_2

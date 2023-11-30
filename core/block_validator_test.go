@@ -200,7 +200,6 @@ func testHeaderConcurrentAbortion(t *testing.T, threads int) {
 }
 
 func TestCalcGasLimit1559(t *testing.T) {
-
 	for i, tc := range []struct {
 		pGasLimit uint64
 		max       uint64

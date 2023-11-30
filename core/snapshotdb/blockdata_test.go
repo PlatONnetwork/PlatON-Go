@@ -122,5 +122,4 @@ func TestBlockData_RevertToSnapshot(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
 }

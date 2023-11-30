@@ -21,17 +21,18 @@ package filters
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	lru "github.com/hashicorp/golang-lru"
 	"sync"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"

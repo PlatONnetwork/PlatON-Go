@@ -17,8 +17,9 @@
 package vm
 
 import (
-	"github.com/holiman/uint256"
 	"testing"
+
+	"github.com/holiman/uint256"
 )
 
 func TestMemorySha3(t *testing.T) {

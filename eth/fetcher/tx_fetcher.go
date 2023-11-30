@@ -24,13 +24,14 @@ import (
 	"sort"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	mapset "github.com/deckarep/golang-set"
 )
 
 const (

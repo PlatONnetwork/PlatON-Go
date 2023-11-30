@@ -122,11 +122,9 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 	params = append(params, proofRlp)
 
 	runContractSendTransaction(contract, params, "createStaking", t)
-
 }
 
 func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
-
 	chain := newMockChain()
 	defer chain.SnapDB.Clear()
 	newPlugins()
@@ -203,7 +201,6 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 	params = append(params, proofRlp)
 
 	runContractSendTransaction(contract, params, "createStaking", t)
-
 }
 
 func Test_CreateStake_RightVersion(t *testing.T) {
@@ -436,11 +433,9 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 	err = json.Unmarshal(res, &r2)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r2.Code)
-
 }
 
 func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -539,11 +534,9 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -631,11 +624,9 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	_, err = contract.Run(buf.Bytes())
 
 	assert.True(t, staking.ErrStakeVonTooLow == err)
-
 }
 
 func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -731,11 +722,9 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -832,7 +821,6 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
@@ -935,11 +923,9 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_CreateStake_by_FlowDescLen(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -1032,11 +1018,9 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_CreateStake_by_LowVersionSign(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()
@@ -1074,7 +1058,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
 
-	version := uint32(0<<16 | 9<<8 | 0)
+	version := uint32(0<<16 | 9<<8)
 
 	programVersion, _ := rlp.EncodeToBytes(version)
 
@@ -1132,11 +1116,9 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.NotEqual(t, common.OkCode, r.Code)
-
 }
 
 func Test_EditStake_by_RightParams(t *testing.T) {
-
 	chain := newMockChain()
 	defer func() {
 		chain.SnapDB.Clear()

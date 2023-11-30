@@ -17,12 +17,12 @@
 package logger
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math/big"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 // accessList is an accumulator for the set of accounts and storage slots an EVM

@@ -95,11 +95,6 @@ func (bc *testBlockChain) GetState(header *types.Header) (*state.StateDB, error)
 	return bc.statedb, nil
 }
 
-func newTestBlockChain(stateDB *state.StateDB) *testBlockChain {
-	testBlockChain := &testBlockChain{1000000, stateDB, new(event.Feed)}
-	return testBlockChain
-}
-
 func transaction(nonce uint64, gaslimit uint64, key *ecdsa.PrivateKey, chainId *big.Int) *types.Transaction {
 	return pricedTransaction(nonce, gaslimit, big.NewInt(1), key, chainId)
 }
@@ -387,7 +382,6 @@ func TestTransactionQueue2(t *testing.T) {
 	if pool.queue[from].Len() != 2 {
 		t.Error("expected len(queue) == 2, got", pool.queue[from].Len())
 	}
-
 }
 
 func TestTransactionNegativeValue(t *testing.T) {
@@ -674,7 +668,6 @@ func TestTransactionPostponing(t *testing.T) {
 	// Add a batch consecutive pending transactions for validation
 	txs := []*types.Transaction{}
 	for i, key := range keys {
-
 		for j := 0; j < 100; j++ {
 			var tx *types.Transaction
 			if (i+j)%2 == 0 {

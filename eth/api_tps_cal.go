@@ -12,9 +12,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	"github.com/tealeg/xlsx"
@@ -211,15 +209,16 @@ func (txg *TxGenAPI) CalBlockAnalyst(ctx context.Context, beginBn, endBn uint64,
 }
 
 /*
-	output parameter
-		diffTimestamp 				current epoch  produce block use time(ms)
-		diffTimestamp / diffNumber	Average block time（ms）
-		TopArray					The top 10 time-consuming blocks
-		TxCount						Total transactions
-		Tps							Tps
-		ViewCountMap	each view produce blocks
-		MissViewList	missing view
-		ViewBlockRate   view produce block rate
+output parameter
+
+	diffTimestamp 				current epoch  produce block use time(ms)
+	diffTimestamp / diffNumber	Average block time（ms）
+	TopArray					The top 10 time-consuming blocks
+	TxCount						Total transactions
+	Tps							Tps
+	ViewCountMap	each view produce blocks
+	MissViewList	missing view
+	ViewBlockRate   view produce block rate
 */
 func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *EthAPIBackend) (uint64, uint64, [][]uint64, uint64, uint64, ViewCountMap, []uint64, uint64, error) {
 	ctx := context.Background()
@@ -271,7 +270,6 @@ func AnalystProduceTimeAndView(beginNumber uint64, endNumber uint64, backend *Et
 		} else {
 			viewCountMap[qc.ViewNumber] = 1
 		}
-
 	}
 
 	diffTimestamp := endHeader.Time - beginHeader.Time

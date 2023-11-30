@@ -26,7 +26,6 @@ func (pfe SchnorrProofHex) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (pfe *SchnorrProofHex) UnmarshalText(text []byte) error {
-
 	var p SchnorrProofHex
 	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
 	if err != nil {
@@ -47,7 +46,6 @@ type SchnorrProof struct {
 // Serialize --
 func (pf *SchnorrProof) Serialize() []byte {
 	return append(pf.C.Serialize(), (pf.R.Serialize())...)
-
 }
 
 // Deserialize --
@@ -88,7 +86,6 @@ func (pf *SchnorrProof) DecodeRLP(s *rlp.Stream) error {
 }
 
 func (sec *SecretKey) MakeSchnorrNIZKP() (*SchnorrProof, error) {
-
 	P := sec.GetPublicKey()
 	var sk SecretKey
 	sk.SetByCSPRNG()
@@ -119,7 +116,6 @@ func (sec *SecretKey) MakeSchnorrNIZKP() (*SchnorrProof, error) {
 }
 
 func (sig *SchnorrProof) VerifySchnorrNIZK(pk PublicKey) error {
-
 	if !G2IsValid(&pk) {
 		return errors.New("P isnot valid")
 	}
@@ -127,8 +123,8 @@ func (sig *SchnorrProof) VerifySchnorrNIZK(pk PublicKey) error {
 	r := sig.R
 	G := GetGeneratorOfG2()
 	//V1 = G * r + A * c     c = H(G || pk || V’)
-	var Pr PublicKey
-	Pr = *G
+	var Pr PublicKey = *G
+
 	Pr.Mul(&r)
 	Pc := pk
 	Pc.Mul(&c)
@@ -152,5 +148,4 @@ func (sig *SchnorrProof) VerifySchnorrNIZK(pk PublicKey) error {
 		return errors.New("not same c = H(G || pk || V’)")
 	}
 	return nil
-
 }

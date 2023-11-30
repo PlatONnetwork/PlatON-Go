@@ -326,7 +326,6 @@ func TestEip2929Cases(t *testing.T) {
 	t.Skip("Test only useful for generating documentation")
 	id := 1
 	prettyPrint := func(comment string, code []byte) {
-
 		instrs := make([]string, 0)
 		it := asm.NewInstructionIterator(code)
 		for it.Next() {

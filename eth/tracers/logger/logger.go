@@ -26,13 +26,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/holiman/uint256"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/holiman/uint256"
 )
 
 // Storage represents a contract's storage.

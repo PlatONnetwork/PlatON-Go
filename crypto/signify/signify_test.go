@@ -20,7 +20,7 @@
 package signify
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"os"
 	"testing"
 
