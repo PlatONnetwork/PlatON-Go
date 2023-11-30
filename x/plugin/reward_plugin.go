@@ -20,10 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
@@ -161,10 +162,7 @@ func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId enode.IDv0) {
 }
 
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
-	if thisYear < xcom.PlatONFoundationYear()-1 {
-		return true
-	}
-	return false
+	return thisYear < xcom.PlatONFoundationYear()-1
 }
 
 func (rmp *RewardMgrPlugin) addPlatONFoundation(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
@@ -176,10 +174,11 @@ func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, 
 	developerFoundationIncr := percentageCalculation(currIssuance, uint64(allocateRate))
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 }
-func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
-	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
-}
+
+//func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+//	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
+//	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
+//}
 
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB, blockNumber uint64, blockHash common.Hash) error {
@@ -197,7 +196,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		tmp := new(big.Int).Mul(histIssuance, big.NewInt(int64(increaseIssuanceRatio)))
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
-		// Restore the cumulative issue at this year end
+		// Restore the cumulative issue at this year-end
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
@@ -463,7 +462,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			return err
 		}
 		if cm.ShouldGiveDelegateReward() {
-			delegateReward := new(big.Int).SetUint64(0)
+			var delegateReward *big.Int
 			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
 
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)

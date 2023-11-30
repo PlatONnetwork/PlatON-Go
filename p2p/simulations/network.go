@@ -248,7 +248,6 @@ func (net *Network) watchPeerEvents(id enode.ID, events chan *p2p.PeerEvent, sub
 
 			case p2p.PeerEventTypeMsgRecv:
 				net.DidReceive(peer, id, event.Protocol, *event.MsgCode)
-
 			}
 
 		case err := <-sub.Err():
@@ -928,7 +927,6 @@ func (net *Network) snapshot(addServices []string, removeServices []string) (*Sn
 				if !haveSvc {
 					cleanedServices = append(cleanedServices, svc)
 				}
-
 			}
 			snap.Nodes[i].Node.Config.Lifecycles = cleanedServices
 		}

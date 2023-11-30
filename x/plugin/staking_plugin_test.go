@@ -79,28 +79,18 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{})
 	defer events.Unsubscribe()
 
-	for {
-		select {
-		case ev := <-events.Chan():
-			if ev == nil {
-				t.Error("ev is nil, may be Server closing")
-				continue
-			}
+	for ev := range events.Chan() {
+		if ev == nil {
+			t.Error("ev is nil, may be Server closing")
+			continue
+		}
 
-			switch ev.Data.(type) {
-			case cbfttypes.AddValidatorEvent:
-				addEv, ok := ev.Data.(cbfttypes.AddValidatorEvent)
-				if !ok {
-					t.Error("Received add validator event type error")
-					continue
-				}
-
-				str, _ := json.Marshal(addEv)
-				t.Log("P2P Received the add validator is:", string(str))
-			default:
-				t.Error("Received unexcepted event")
-			}
-
+		switch data := ev.Data.(type) {
+		case cbfttypes.AddValidatorEvent:
+			str, _ := json.Marshal(data)
+			t.Log("P2P Received the add validator is:", string(str))
+		default:
+			t.Error("Received excepted event")
 		}
 	}
 }
@@ -361,7 +351,6 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 }
 
 func create_staking(state xcom.StateDB, blockNumber *big.Int, blockHash common.Hash, index int, typ uint16, t *testing.T) error {
-
 	balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 	var blsKey bls.SecretKey
 	blsKey.SetByCSPRNG()
@@ -440,7 +429,6 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
-
 	del, err := StakingInstance().GetDelegateInfo(blockHash, addrArr[index+1], nodeIdArr[index], stakingNum)
 	if nil != err {
 		t.Log("Failed to GetDelegateInfo:", err)
@@ -460,7 +448,6 @@ func TestStakingPlugin_BeginBlock(t *testing.T) {
 }
 
 func TestStakingPlugin_EndBlock(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -778,7 +765,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 }
 
 func TestStakingPlugin_Confirmed(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1059,7 +1045,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 }
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1088,7 +1073,6 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1131,7 +1115,6 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1179,7 +1162,6 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1225,7 +1207,6 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 }
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1303,7 +1284,6 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1377,7 +1357,6 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 }
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1446,7 +1425,6 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1575,12 +1553,11 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
 	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
 	assert.Nil(t, err)
-	recoveryCan2, err = getCandidate(blockHash2, index)
+	_, err = getCandidate(blockHash2, index)
 	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1774,7 +1751,6 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 }
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1894,8 +1870,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 
-	can, err = getCandidate(blockHash3, index)
-
+	can, _ = getCandidate(blockHash3, index)
 	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
 	assert.True(t, expectedBalance.Cmp(state.GetBalance(addrArr[index+1])) == 0)
 	t.Log("Get Candidate Info is:", can)
@@ -2023,8 +1998,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 		return
 	}
 
-	can, err = getCandidate(blockHash3, index)
-
+	can, _ = getCandidate(blockHash3, index)
 	assert.True(t, expectedIssueIncome.Cmp(issueIncome) == 0)
 	assert.True(t, expectedBalance.Cmp(state.GetBalance(addrArr[index+1])) == 0)
 	assert.True(t, expectedLockBalance.Cmp(returnLockReleased) == 0)
@@ -2033,7 +2007,6 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 }
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
-
 	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)

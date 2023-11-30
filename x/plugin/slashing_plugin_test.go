@@ -252,7 +252,7 @@ func buildStakingData(blockNumber uint64, blockHash common.Hash, pri *ecdsa.Priv
 
 	epochArr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -309,7 +309,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}
 	startNumber++
 	header := &types.Header{
-		Number: new(big.Int).SetUint64(uint64(startNumber)),
+		Number: new(big.Int).SetUint64(startNumber),
 		Extra:  make([]byte, 97),
 	}
 	sk, err := crypto.GenerateKey()

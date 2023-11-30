@@ -80,5 +80,4 @@ func TestSize(t *testing.T) {
 	length := len(key) + len(val)
 
 	log.Print("size of per", length*101/(1024*1024))
-
 }

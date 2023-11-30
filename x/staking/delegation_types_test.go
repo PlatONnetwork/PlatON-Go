@@ -1,10 +1,11 @@
 package staking
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var locks = []DelegationLockPeriod{

@@ -20,12 +20,12 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"os"
 	"strings"
-
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -60,9 +60,7 @@ func (ui *CommandlineUI) readString() string {
 }
 
 func (ui *CommandlineUI) OnInputRequired(info UserInputRequest) (UserInputResponse, error) {
-
 	fmt.Printf("## %s\n\n%s\n", info.Title, info.Prompt)
-	defer fmt.Println("-----------------------")
 	if info.IsPassword {
 		text, err := prompt.Stdin.PromptPassword("> ")
 		if err != nil {

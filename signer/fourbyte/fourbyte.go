@@ -25,8 +25,8 @@ import (
 	"os"
 )
 
-//go:embed 4byte.json
-var embeddedJSON []byte
+////go:embed 4byte.json
+//var embeddedJSON []byte
 
 // Database is a 4byte database with the possibility of maintaining an immutable
 // set (embedded) into the process and a mutable set (loaded and written to file).

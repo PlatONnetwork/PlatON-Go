@@ -19,11 +19,11 @@ package tests
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"reflect"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 )
 
 func TestState(t *testing.T) {

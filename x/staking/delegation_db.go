@@ -11,7 +11,6 @@ import (
 // about delegate ...
 
 func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) (*Delegation, error) {
-
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 
 	delByte, err := db.get(blockHash, key)
@@ -50,7 +49,6 @@ func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Addr
 
 func (db *StakingDB) SetDelegateStore(blockHash common.Hash, delAddr common.Address, nodeId enode.IDv0,
 	stakeBlockNumber uint64, del *Delegation, isEinstein bool) error {
-
 	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
 	if isEinstein {
 		delByte, err := encodeStoredDelegateRLP(del)

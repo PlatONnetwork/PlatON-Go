@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"math/rand"
 	"os"
@@ -28,6 +27,8 @@ import (
 	"testing"
 	"testing/quick"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -356,7 +357,6 @@ func TestRandomCases(t *testing.T) {
 		{op: 1, key: common.Hex2Bytes("fd"), value: common.Hex2Bytes("")},                                                                                               // step 25
 	}
 	runRandTest(rt)
-
 }
 
 // randTest performs random trie operations.
@@ -471,7 +471,6 @@ func TestNewFlag(t *testing.T) {
 	trie := &Trie{}
 	trie.newFlag()
 	trie.newFlag()
-
 }
 
 func TestRandom(t *testing.T) {

@@ -32,12 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-// Command line flags to configure the interpreters.
-var (
-	testEVM   = flag.String("vm.evm", "", "EVM configuration")
-	testEWASM = flag.String("vm.ewasm", "", "EWASM configuration")
-)
-
 func TestMain(m *testing.M) {
 	flag.Parse()
 	os.Exit(m.Run())
@@ -50,7 +44,6 @@ var (
 	legacyStateTestDir = filepath.Join(baseDir, "LegacyTests", "Constantinople", "GeneralStateTests")
 	transactionTestDir = filepath.Join(baseDir, "TransactionTests")
 	rlpTestDir         = filepath.Join(baseDir, "RLPTests")
-	difficultyTestDir  = filepath.Join(baseDir, "BasicTests")
 )
 
 func readJSON(reader io.Reader, value interface{}) error {

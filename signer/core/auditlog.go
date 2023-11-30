@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"

@@ -734,7 +734,6 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 			return compareSharesFunc(left, right)
 		}
 	}
-
 }
 
 // NOTE: These are sorted by priority that will be removed

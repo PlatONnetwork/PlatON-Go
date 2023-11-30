@@ -140,7 +140,6 @@ func (db *StakingDB) GetCandidateStoreByIrrWithSuffix(suffix []byte) (*Candidate
 }
 
 func (db *StakingDB) SetCandidateStore(blockHash common.Hash, addr common.NodeAddress, can *Candidate) error {
-
 	if err := db.SetCanBaseStore(blockHash, addr, can.CandidateBase); nil != err {
 		return err
 	}

@@ -153,8 +153,8 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
-	blockNumber3 = big.NewInt(3)
-	blockHash3   = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
+	//blockNumber3 = big.NewInt(3)
+	blockHash3 = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
 
 	lastBlockNumber uint64
 	lastBlockHash   common.Hash
@@ -252,9 +252,9 @@ var (
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
 		"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
-	specialCharList = []string{
-		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
-		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
+	//specialCharList = []string{
+	//	"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+	//	"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
 func TestVersion(t *testing.T) {
@@ -276,10 +276,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	//	evm.Context = context
 
 	//set a default active version
-
 	gov.AddActiveVersion(initProgramVersion, 0, state)
-
-	return
 }
 
 func newPlugins() {
@@ -602,7 +599,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -614,7 +611,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.ConsensusSize()),
+		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -657,13 +654,6 @@ func buildStateDB(t *testing.T) xcom.StateDB {
 	chain := mock.NewChain()
 
 	return chain.StateDB
-}
-
-type restrictingTest struct {
-	restrictingInfo restricting.RestrictingInfo
-	plans           []restricting.RestrictingPlan
-	account         common.Address
-	stateDB         xcom.StateDB
 }
 
 func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.StateDB) {
