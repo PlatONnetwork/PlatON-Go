@@ -20,10 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
@@ -1527,9 +1528,8 @@ func (s *TransactionAPI) GetTransactionCount(ctx context.Context, address common
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }
 
-// GetTransactionCount returns the number of transactions the given address has sent for the given block number
+// GetPoolNonce returns the number of transactions the given address has sent for the given block number
 func (s *TransactionAPI) GetPoolNonce(ctx context.Context, address common.Address) (*hexutil.Uint64, error) {
-
 	nonce, err := s.b.GetPoolNonce(ctx, address)
 
 	return (*hexutil.Uint64)(&nonce), err

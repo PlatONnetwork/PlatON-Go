@@ -22,7 +22,6 @@ import (
 
 	graphqlEth "github.com/AlayaNetwork/graphql-go"
 	"github.com/graph-gophers/graphql-go"
-
 	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"

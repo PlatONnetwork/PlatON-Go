@@ -166,7 +166,6 @@ func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base
 }
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
-
 	event := new(event.TypeMux)
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
 	core.NewExecutor(chainConfig, backend.chain, vm.Config{}, nil)
@@ -175,9 +174,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
 	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
 	go func() {
-
 		for obj := range bftResultSub.Chan() {
-
 			if obj == nil {
 				continue
 			}
@@ -201,7 +198,6 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 			// block write to BftMock engine chain
 			backend.engine.InsertChain(cbftResult.Block)
 		}
-
 	}()
 	return w, backend
 }
@@ -512,7 +508,6 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 
 	w.resubmitAdjustCh <- &intervalAdjust{inc: true, ratio: 0.8}
 	go func() {
-
 		select {
 		case <-progress:
 		case <-time.NewTimer(time.Second).C:

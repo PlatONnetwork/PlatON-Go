@@ -46,12 +46,10 @@ func minerStart(t *testing.T) *Miner {
 }
 
 func TestMiner_Start(t *testing.T) {
-
 	miner := minerStart(t)
 
 	assert.True(t, miner.Mining())
 	close(miner.worker.startCh)
-
 }
 
 func TestMiner_Stop(t *testing.T) {
@@ -91,12 +89,9 @@ func TestMiner_Close(t *testing.T) {
 
 		case <-time.After(2 * time.Second):
 			t.Error("Close miner and worker timeout")
-
 		}
 	}()
-
 	miner.Close()
-
 }
 
 func TestMiner_Pending(t *testing.T) {
@@ -126,5 +121,4 @@ func TestMiner_SetRecommitInterval(t *testing.T) {
 	}()
 
 	miner.SetRecommitInterval(interval)
-
 }

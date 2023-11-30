@@ -19,10 +19,11 @@ package ethapi
 
 import (
 	"context"
-	PlatON "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"math/big"
 	"time"
+
+	PlatON "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
