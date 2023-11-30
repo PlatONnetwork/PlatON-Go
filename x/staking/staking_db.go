@@ -302,7 +302,6 @@ func (db *StakingDB) SetCanMutableStore(blockHash common.Hash, addr common.NodeA
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		return err
 	} else {
-
 		return db.put(blockHash, key, val)
 	}
 }
@@ -571,10 +570,8 @@ func (db *StakingDB) SubAccountStakeRc(blockHash common.Hash, addr common.Addres
 	v--
 
 	if v == 0 {
-
 		return db.del(blockHash, key)
 	} else {
-
 		return db.put(blockHash, key, common.Uint64ToBytes(v))
 	}
 }

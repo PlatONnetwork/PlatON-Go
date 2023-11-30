@@ -24,28 +24,20 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -200,7 +192,6 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
-
 	}
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
 	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
@@ -220,7 +211,6 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 // AllocateStakingReward used for reward staking at the settle block
 func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) ([]*staking.Candidate, error) {
-
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", sreward)
 	verifierList, err := rmp.stakingPlugin.GetVerifierCandidateInfo(blockHash, blockNumber)

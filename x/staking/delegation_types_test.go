@@ -50,7 +50,6 @@ func TestDelegationLock_Add(t *testing.T) {
 	if dlock.Locks[2].Released.Cmp(new(big.Int).SetInt64(0)) != 0 {
 		t.Error("epoch 3 release should be same")
 	}
-
 }
 
 func TestDelegationLock_AdvanceLockedFunds(t *testing.T) {

@@ -152,7 +152,6 @@ func TestListRequest(t *testing.T) {
 }
 
 func TestSignTxRequest(t *testing.T) {
-
 	js := `
 	function ApproveTx(r){
 		console.log("transaction.from", r.transaction.from);
@@ -245,7 +244,6 @@ func (d *dummyUI) OnSignerStartup(info core.StartupInfo) {
 
 // TestForwarding tests that the rule-engine correctly dispatches requests to the next caller
 func TestForwarding(t *testing.T) {
-
 	js := ""
 	ui := &dummyUI{make([]string, 0)}
 	jsBackend := storage.NewEphemeralStorage()
@@ -295,8 +293,8 @@ func TestMissingFunc(t *testing.T) {
 	t.Logf("Err %v", err)
 
 }
-func TestStorage(t *testing.T) {
 
+func TestStorage(t *testing.T) {
 	js := `
 	function testStorage(){
 		storage.put("mykey", "myvalue")

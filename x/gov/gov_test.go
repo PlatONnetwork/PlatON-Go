@@ -21,21 +21,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
 	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -169,7 +164,6 @@ func clear(chain *mock.Chain, t *testing.T) {
 	if err := chain.SnapDB.Clear(); err != nil {
 		t.Error("clear chain.SnapDB error", err)
 	}
-
 }
 
 func setup(t *testing.T) *mock.Chain {
@@ -884,9 +878,6 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	//-------
-	//-------
-	//-------
 	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
 	} else {
@@ -899,7 +890,6 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		assert.Equal(t, 0, len(endList))
 	}
 
-	//-------
 	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
@@ -912,7 +902,6 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		assert.Equal(t, 1, len(avList))
 	}
 
-	//-------
 	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
@@ -924,16 +913,10 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		assert.Equal(t, 1, len(avList))
 	}
 
-	//------------------------------------------
-	//------------------------------------------
-	//------------------------------------------
 	if err := ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("ClearProcessingProposals, err", err)
 	}
 
-	//-------
-	//-------
-	//-------
 	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
 	} else {
@@ -946,7 +929,6 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		assert.Equal(t, 2, len(endList))
 	}
 
-	//-------
 	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
@@ -959,7 +941,6 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 		assert.Equal(t, 0, len(avList))
 	}
 
-	//-------
 	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {

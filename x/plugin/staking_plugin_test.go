@@ -53,10 +53,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-/*
-*
-test tool
-*/
+// test tool
 func Test_CleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
 	sndb.Clear()
@@ -3810,9 +3807,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 	assert.True(t, len(resultQueue) == len(vqList))
 }
 
-/**
-Expand test cases
-*/
+// Expand test cases
 func Test_IteratorCandidate(t *testing.T) {
 	state, genesis, err := newChainState()
 	if nil != err {
