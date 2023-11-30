@@ -54,6 +54,8 @@ func TestDeterministicNonce(t *testing.T) {
 	fmt.Printf("sk:%x\n", sk.D.Bytes())
 	msg := "hello"
 	k, err := ECVRF_nonce_generation(sk.D.Bytes(), []byte(msg))
+	if err != nil {
+		t.Fatal(err)
+	}
 	fmt.Printf("k:%x\n", k.D.Bytes())
-
 }
