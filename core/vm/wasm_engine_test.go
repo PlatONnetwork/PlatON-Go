@@ -7,15 +7,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 )
 
 func TestWasmRun(t *testing.T) {
-
 	// good deploy
 	engine := &wagonEngine{
 		evm: &EVM{Context: BlockContext{
@@ -192,7 +192,6 @@ func TestWasmRun(t *testing.T) {
 }
 
 func deployData(t *testing.T, funcName, filePath string) []byte {
-
 	buf, err := os.ReadFile(filePath)
 	assert.Nil(t, err)
 

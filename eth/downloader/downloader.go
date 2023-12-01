@@ -25,15 +25,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
-
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -591,7 +589,6 @@ func (d *Downloader) setFastSyncStatus(status uint16) error {
 }
 
 func (d *Downloader) fetchPPOSStorageV2(p *peerConnection, pivot *types.Header) (err error) {
-
 	p.log.Info("begin  fetchPPOSStorageV2  from remote peer", "pivot number", pivot.Number)
 
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
@@ -871,7 +868,6 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 			// Out of bounds delivery, ignore
 		}
 	}
-
 }
 
 // fetchHead retrieves the head header and prior pivot block (if available) from

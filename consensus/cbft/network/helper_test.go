@@ -249,7 +249,6 @@ func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, enode
 }
 
 func Test_InitializePeers(t *testing.T) {
-
 	// Randomly generated ID.
 	nodeIds := RandomID()
 

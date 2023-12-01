@@ -86,7 +86,6 @@ func TestIPCAttachWelcome(t *testing.T) {
 
 	waitForEndpoint(t, ipc, 3*time.Second) // Simple way to wait for the RPC endpoint to open
 	testAttachWelcome(t, platon, "ipc:"+ipc, ipcAPIs)
-
 }
 
 func TestHTTPAttachWelcome(t *testing.T) {
@@ -103,7 +102,6 @@ func TestHTTPAttachWelcome(t *testing.T) {
 	endpoint := "http://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
 	testAttachWelcome(t, platon, endpoint, httpAPIs)
-
 }
 
 func TestWSAttachWelcome(t *testing.T) {
@@ -121,7 +119,6 @@ func TestWSAttachWelcome(t *testing.T) {
 	endpoint := "ws://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
 	testAttachWelcome(t, platon, endpoint, httpAPIs)
-
 }
 
 func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) {

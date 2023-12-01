@@ -17,9 +17,10 @@
 package eth
 
 import (
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
-	"math/big"
 )
 
 // ethPeerInfo represents a short summary of the `eth` sub-protocol metadata known

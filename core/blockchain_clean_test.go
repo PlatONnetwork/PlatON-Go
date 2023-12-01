@@ -17,7 +17,6 @@
 package core
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math/big"
 	"os"
@@ -40,14 +39,8 @@ var (
 	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 
-	securePreifx = []byte("secure-key-")
+	//securePreifx = []byte("secure-key-")
 )
-
-func randBytes(n int) []byte {
-	r := make([]byte, n)
-	rand.Read(r)
-	return r
-}
 
 func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 	buf, err := os.ReadFile("../eth/downloader/testdata/platon.json")

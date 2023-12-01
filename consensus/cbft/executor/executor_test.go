@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package executor
 
 import (
@@ -22,13 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func NewBlock(parent common.Hash, number uint64) *types.Block {
@@ -61,17 +57,14 @@ func TestExecute(t *testing.T) {
 
 	success := 0
 loop:
-	for {
-		select {
-		case result := <-asyncExecutor.ExecuteStatus():
-			assert.Nil(t, result.Err)
-			b := executeBlocks[result.Number]
-			assert.NotNil(t, b)
-			assert.Equal(t, b.Hash(), result.Hash)
-			success = success + 1
-			if b.NumberU64() > uint64(len(executeBlocks)) {
-				break loop
-			}
+	for result := range asyncExecutor.ExecuteStatus() {
+		assert.Nil(t, result.Err)
+		b := executeBlocks[result.Number]
+		assert.NotNil(t, b)
+		assert.Equal(t, b.Hash(), result.Hash)
+		success = success + 1
+		if b.NumberU64() > uint64(len(executeBlocks)) {
+			break loop
 		}
 	}
 

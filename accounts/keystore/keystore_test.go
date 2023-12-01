@@ -17,7 +17,6 @@
 package keystore
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/rand"
 	"os"
 	"runtime"
@@ -27,6 +26,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -377,7 +378,6 @@ func TestImportExport(t *testing.T) {
 	if _, err = ks2.Import(json, "new", "new"); err == nil {
 		t.Errorf("importing a key twice succeeded")
 	}
-
 }
 
 // TestImportRace tests the keystore on races.
@@ -402,7 +402,6 @@ func TestImportRace(t *testing.T) {
 			if _, err := ks2.Import(json, "new", "new"); err != nil {
 				atomic.AddUint32(&atom, 1)
 			}
-
 		}()
 	}
 	wg.Wait()

@@ -117,4 +117,5 @@ The choice of null value can be made explicit with the "nilList" and "nilString"
 tags. Using these tags encodes/decodes a Go nil pointer value as the empty RLP value kind
 defined by the tag.
 */
+
 package rlp

@@ -44,7 +44,6 @@ func RandomID() []enode.ID {
 //
 // The number of simulated network nodes is fixed at four.
 func EnhanceEngineManager(ids []enode.ID, handlers []*EngineManager) {
-
 	// node 1 => 1 <--> 2 association.
 	rw1Node1_2, rw2Node1_2 := p2p.MsgPipe()
 	rw1Node1_3, rw2Node1_3 := p2p.MsgPipe()

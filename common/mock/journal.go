@@ -17,12 +17,12 @@
 package mock
 
 import (
-	"golang.org/x/crypto/sha3"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 type journalEntry interface {

@@ -332,7 +332,6 @@ func (x *G2) getPointer() (p *C.mclBnG2) {
 	return (*C.mclBnG2)(unsafe.Pointer(x))
 }
 
-
 // Clear --
 func (x *G2) Clear() {
 	// #nosec
@@ -649,4 +648,3 @@ func G2LagrangeInterpolation(out *G2, xVec []Fr, yVec []G2) error {
 	}
 	return nil
 }
-

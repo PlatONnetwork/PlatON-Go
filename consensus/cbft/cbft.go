@@ -412,11 +412,7 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 
 	hash := msg.Msg.MsgHash()
 	if _, ok := cbft.statQueues[hash]; ok {
-		if _, exists := cbft.statQueues[hash][msg.PeerID]; exists {
-			cbft.statQueues[hash][msg.PeerID]++
-		} else {
-			cbft.statQueues[hash][msg.PeerID] = 1
-		}
+		cbft.statQueues[hash][msg.PeerID] += 1
 	} else {
 		cbft.statQueues[hash] = map[string]int{
 			msg.PeerID: 1,
@@ -489,7 +485,6 @@ func (cbft *Cbft) LoadWal() (err error) {
 
 // receiveLoop receives all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
-
 	// Responsible for handling consensus message logic.
 	consensusMessageHandler := func(msg *ctypes.MsgInfo) {
 		if !cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
@@ -725,7 +720,7 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 	results := make(chan error, len(headers))
 
 	go func() {
-		for index, _ := range headers {
+		for index := range headers {
 			err := cbft.verifyHeaderWorker(chain, headers, index)
 
 			select {
@@ -1077,7 +1072,6 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 
 // GetBlockByHash get the specified block by hash and number.
 func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
-
 	callBlock := func() *types.Block {
 		// First extract from the confirmed block.
 		block := cbft.blockTree.FindBlockByHash(hash)
@@ -1270,7 +1264,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	rtt := cbft.avgRTT()
-	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
+	if time.Until(cbft.state.Deadline()) <= rtt {
 		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", time.Until(cbft.state.Deadline()), "rtt", rtt)
 		result <- errors.New("not enough time to propagated block, stopped sealing")
 		return
@@ -1853,7 +1847,6 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 }
 
 func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
-
 	vcEpoch, _, _, _, _, _ := viewChangeQC.MaxBlock()
 
 	maxLimit := cbft.validatorPool.Len(vcEpoch)

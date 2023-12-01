@@ -120,14 +120,12 @@ func (tt *TestCmd) Expect(tplsource string) {
 }
 
 func (tt *TestCmd) matchExactOutput(want []byte) error {
-
 	buf := make([]byte, len(want))
 	n := 0
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })
 	buf = buf[:n]
 	tt.Log(string(buf))
 	if n < len(want) || !bytes.Equal(buf, want) {
-
 		// Grab any additional buffered output in case of mismatch
 		// because it might help with debugging.
 		buf = append(buf, make([]byte, tt.stdout.Buffered())...)

@@ -51,7 +51,6 @@ func NewBizError(code uint32, text string) *BizError {
 
 func (be *BizError) Wrap(text string) *BizError {
 	return &BizError{Code: be.Code, Msg: be.Msg + ":" + text}
-
 }
 
 func (be *BizError) Wrapf(format string, a ...interface{}) *BizError {

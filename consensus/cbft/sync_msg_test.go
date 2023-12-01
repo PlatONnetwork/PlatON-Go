@@ -141,7 +141,6 @@ func TestSyncPrepareBlockErrData(t *testing.T) {
 		case <-suit.msgCh:
 		case <-time.After(time.Millisecond * 10):
 		}
-
 	}
 }
 
@@ -366,7 +365,6 @@ func TestOnGetQCBlockListDifNumber(t *testing.T) {
 // normal
 func TestOnGetPrepareVote(t *testing.T) {
 	suit := SetupSyncMsgTestTest(t)
-	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
 		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Node.ID())
 		if err != nil {
@@ -374,7 +372,6 @@ func TestOnGetPrepareVote(t *testing.T) {
 		}
 		vote := mockPrepareVote(node.config.Option.BlsPriKey, suit.epoch, suit.oldViewNumber,
 			0, index, suit.blockOne.Hash(), suit.blockOne.NumberU64(), nil)
-		votes = append(votes, vote)
 		suit.view.firstProposer().state.AddPrepareVote(index, vote)
 	}
 	unKnownSet := utils.NewBitArray(uint32(len(suit.view.allCbft)))

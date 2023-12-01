@@ -280,5 +280,4 @@ func expandHome(p string) string {
 // economic config
 func (*HandlerT) EconomicConfig() string {
 	return xcom.EconomicString()
-
 }

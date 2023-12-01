@@ -19,8 +19,9 @@ package node
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 

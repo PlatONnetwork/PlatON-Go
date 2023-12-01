@@ -19,6 +19,7 @@ package vm
 import (
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -47,13 +48,13 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet       = newFrontierInstructionSet()
-	homesteadInstructionSet      = newHomesteadInstructionSet()
-	byzantiumInstructionSet      = newByzantiumInstructionSet()
-	constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet       = newIstanbulInstructionSet()
-	berlinInstructionSet         = newBerlinInstructionSet()
-	londonInstructionSet         = newLondonInstructionSet()
+	//frontierInstructionSet       = newFrontierInstructionSet()
+	//homesteadInstructionSet      = newHomesteadInstructionSet()
+	//byzantiumInstructionSet      = newByzantiumInstructionSet()
+	//constantinopleInstructionSet = newConstantinopleInstructionSet()
+	istanbulInstructionSet = newIstanbulInstructionSet()
+	//berlinInstructionSet   = newBerlinInstructionSet()
+	londonInstructionSet = newLondonInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -197,7 +198,6 @@ func newSpuriousDragonInstructionSet() JumpTable {
 	instructionSet := newTangerineWhistleInstructionSet()
 	instructionSet[EXP].dynamicGas = gasExpEIP158
 	return validate(instructionSet)
-
 }
 
 // EIP 150 a.k.a Tangerine Whistle

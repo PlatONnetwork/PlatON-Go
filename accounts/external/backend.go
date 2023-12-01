@@ -18,9 +18,10 @@ package external
 
 import (
 	"fmt"
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"math/big"
 	"sync"
+
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"

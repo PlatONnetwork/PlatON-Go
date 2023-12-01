@@ -71,7 +71,7 @@ var (
 	//blockExecutionTimer  = metrics.NewRegisteredTimer("chain/execution", nil)
 	//blockWriteTimer = metrics.NewRegisteredTimer("chain/write", nil)
 
-	blockReorgMeter         = metrics.NewRegisteredMeter("chain/reorg/executes", nil)
+	//blockReorgMeter         = metrics.NewRegisteredMeter("chain/reorg/executes", nil)
 	blockReorgAddMeter      = metrics.NewRegisteredMeter("chain/reorg/add", nil)
 	blockReorgDropMeter     = metrics.NewRegisteredMeter("chain/reorg/drop", nil)
 	blockReorgInvalidatedTx = metrics.NewRegisteredMeter("chain/reorg/invalidTx", nil)
@@ -223,7 +223,7 @@ type BlockChain struct {
 	chainmu *syncx.ClosableMutex
 	procmu  sync.RWMutex // block processor lock
 
-	checkpoint       int          // checkpoint counts towards the new checkpoint
+	//checkpoint       int          // checkpoint counts towards the new checkpoint
 	currentBlock     atomic.Value // Current head of the block chain
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
@@ -363,7 +363,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if frozen, err := bc.db.Ancients(); err == nil && frozen > 0 {
 		var (
 			needRewind bool
-			low        uint64
+			//low        uint64
 		)
 		// The head full block may be rolled back to a very low height due to
 		// blockchain repair. If the head full block is even lower than the ancient
@@ -371,7 +371,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		fullBlock := bc.CurrentBlock()
 		if fullBlock != nil && fullBlock.Hash() != bc.genesisBlock.Hash() && fullBlock.NumberU64() < frozen-1 {
 			needRewind = true
-			low = fullBlock.NumberU64()
+			//low = fullBlock.NumberU64()
 		}
 		// In fast sync, it may happen that ancient data has been written to the
 		// ancient store, but the LastFastBlock has not been updated, truncate the
@@ -379,9 +379,9 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		fastBlock := bc.CurrentFastBlock()
 		if fastBlock != nil && fastBlock.NumberU64() < frozen-1 {
 			needRewind = true
-			if fastBlock.NumberU64() < low || low == 0 {
+			/*if fastBlock.NumberU64() < low || low == 0 {
 				low = fastBlock.NumberU64()
-			}
+			}*/
 		}
 		if needRewind {
 			return nil, errors.New("needRewind due to data error,please clean your data")
@@ -537,7 +537,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 // retaining chain consistency.
 //
 // The method returns the block number where the requested root cap was found.
-func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bool) (uint64, error) {
+/*func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bool) (uint64, error) {
 	if !bc.chainmu.TryLock() {
 		return 0, errChainStopped
 	}
@@ -676,12 +676,11 @@ func (bc *BlockChain) setHeadBeyondRoot(head uint64, root common.Hash, repair bo
 	bc.futureBlocks.Purge()
 
 	return rootNumber, bc.loadLastState()
-}
+}*/
 
 // SnapSyncCommitHead sets the current head block to the one defined by the hash
 // irrelevant what the chain contents were prior.
 func (bc *BlockChain) SnapSyncCommitHead(hash common.Hash) error {
-
 	// Make sure that both the block as well at its state trie exists
 	block := bc.GetBlockByHash(hash)
 	if block == nil {
@@ -760,7 +759,7 @@ func (bc *BlockChain) SetValidator(validator Validator) {
 //
 // This method only rolls back the current block. The current header and current
 // fast block are left intact.
-func (bc *BlockChain) repair(head **types.Block) error {
+/*func (bc *BlockChain) repair(head **types.Block) error {
 	for {
 		// Abort if we've rewound to a head block that does have associated state
 		if _, err := state.New((*head).Root(), bc.stateCache, bc.snaps); err == nil {
@@ -774,7 +773,7 @@ func (bc *BlockChain) repair(head **types.Block) error {
 		}
 		*head = block
 	}
-}
+}*/
 
 // Export writes the active chain to the given writer.
 func (bc *BlockChain) Export(w io.Writer) error {
@@ -980,8 +979,8 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	defer bc.wg.Done()
 
 	var (
-		ancientBlocks, liveBlocks     types.Blocks
-		ancientReceipts, liveReceipts []types.Receipts
+		ancientBlocks, liveBlocks types.Blocks
+		//ancientReceipts, liveReceipts []types.Receipts
 	)
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 0; i < len(blockChain); i++ {
@@ -994,9 +993,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			}
 		}
 		if blockChain[i].NumberU64() <= ancientLimit {
-			ancientBlocks, ancientReceipts = append(ancientBlocks, blockChain[i]), append(ancientReceipts, receiptChain[i])
+			ancientBlocks /*, ancientReceipts*/ = append(ancientBlocks, blockChain[i]) /*, append(ancientReceipts, receiptChain[i])*/
 		} else {
-			liveBlocks, liveReceipts = append(liveBlocks, blockChain[i]), append(liveReceipts, receiptChain[i])
+			liveBlocks /*, liveReceipts*/ = append(liveBlocks, blockChain[i]) /*, append(liveReceipts, receiptChain[i])*/
 		}
 	}
 
@@ -1412,10 +1411,10 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		rawdb.WriteTxLookupEntriesByBlock(batch, block)
 		rawdb.WritePreimages(batch, state.Preimages())
 
-		status = CanonStatTy
-	} else {
+		//status = CanonStatTy
+	} /*else {
 		status = SideStatTy
-	}
+	}*/
 
 	// Write the positional metadata for transaction/receipt lookups and preimages
 	rawdb.WriteTxLookupEntriesByBlock(batch, block)
@@ -1440,7 +1439,6 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		//if VC_POOL != nil {
 		//	VC_POOL.InjectTxs(block, receipts, bc, state)
 		//}
-
 	}
 	bc.futureBlocks.Remove(block.Hash())
 

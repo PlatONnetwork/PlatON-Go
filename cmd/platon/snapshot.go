@@ -19,13 +19,15 @@ package main
 import (
 	"bytes"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/core/state/pruner"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/state/pruner"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
+
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
