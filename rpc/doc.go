@@ -107,4 +107,5 @@ In any method handler, an instance of rpc.Client can be accessed through the
 ClientFromContext method. Using this client instance, server-to-client method calls can be
 performed on the RPC connection.
 */
+
 package rpc

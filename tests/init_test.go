@@ -133,6 +133,7 @@ func (tm *testMatcher) whitelist(pattern string) {
 }
 
 // config defines chain config for tests matching the pattern.
+//nolint:govet,goimports
 func (tm *testMatcher) config(pattern string, cfg params.ChainConfig) {
 	tm.configpat = append(tm.configpat, testConfig{regexp.MustCompile(pattern), cfg})
 }

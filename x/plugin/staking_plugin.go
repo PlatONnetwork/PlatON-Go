@@ -3710,9 +3710,6 @@ func (sk *StakingPlugin) storeRoundValidatorAddrs(blockNumber uint64, blockHash 
 		if snapshotdb.NonDbNotFoundErr(er) {
 			return er
 		}
-		if boundary == 0 && (invalidRound-1) >= 0 {
-			boundary = invalidRound - 1
-		}
 
 		// Clean all outside the boundarys of previous valAddrs
 		var count int

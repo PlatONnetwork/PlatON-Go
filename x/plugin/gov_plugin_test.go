@@ -398,7 +398,7 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 func TestGovPlugin_SubmitVersion_PIPID_empty(t *testing.T) {
 	defer setup(t)()
 
-	vp := buildVersionProposal(txHashArr[0], "", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		if err == gov.PIPIDEmpty {
@@ -413,7 +413,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 	defer setup(t)()
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
-	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		t.Fatalf("submit proposal err: %s", err)
@@ -427,7 +427,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 		t.Log("ListPIPID", "p", p)
 	}
 
-	vp2 := buildVersionProposal(txHashArr[1], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|3<<8|0))
+	vp2 := buildVersionProposal(txHashArr[1], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|3<<8))
 
 	err = gov.Submit(sender, vp2, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -1200,7 +1200,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 func TestGovPlugin_printVersion(t *testing.T) {
 	defer setup(t)()
 
-	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8|0))
+	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8))
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {

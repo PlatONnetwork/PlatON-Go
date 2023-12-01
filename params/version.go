@@ -28,6 +28,7 @@ const (
 	VersionMeta  = "unstable" // Version metadata to append to the version string
 
 	//CAUTION: DO NOT MODIFY THIS ONCE THE CHAIN HAS BEEN INITIALIZED!!!
+	//nolint:staticcheck
 	GenesisVersion = uint32(1<<16 | 0<<8 | 0)
 )
 
