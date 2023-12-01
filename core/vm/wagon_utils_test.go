@@ -5,8 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func TestReadWasmModule(t *testing.T) {
@@ -24,7 +25,6 @@ func TestReadWasmModule(t *testing.T) {
 }
 
 func TestDecodeFuncAndParams(t *testing.T) {
-
 	hash := fnv.New64()
 	hash.Write([]byte("init"))
 	initUint64 := hash.Sum64()
@@ -61,5 +61,4 @@ func TestDecodeFuncAndParams(t *testing.T) {
 	name2, _, err := decodeFuncAndParams(b2)
 	assert.NotNil(t, err)
 	assert.NotEqual(t, initUint64, name2)
-
 }

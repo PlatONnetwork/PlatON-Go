@@ -68,7 +68,6 @@ func TestSnapshotDB_NewBlockRepate(t *testing.T) {
 			t.Error(err)
 		}
 	})
-
 }
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
@@ -221,7 +220,6 @@ func TestSnapshotDB_Get(t *testing.T) {
 		if err := ch.insert(false, arr[3], newBlockUnRecognized); err != nil {
 			t.Error(err)
 		}
-
 	}
 
 	t.Run("UnRecognized", func(t *testing.T) {
@@ -310,7 +308,6 @@ func TestSnapshotDB_Get(t *testing.T) {
 					t.Error("must find key")
 				}
 			}
-
 		})
 	})
 }
@@ -494,7 +491,6 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 		}
 		i++
 	}
-
 }
 
 func TestSnapshotDB_Ranking2(t *testing.T) {
@@ -641,7 +637,6 @@ func TestSnapshotDB_Ranking5(t *testing.T) {
 			t.Errorf("not compare want %v,have %v", generatekvs[i+1].value, o[i].value)
 		}
 	}
-
 }
 
 //func TestSnapshotDB_RankingITR(t *testing.T) {
@@ -1067,5 +1062,4 @@ func TestCommit(t *testing.T) {
 	if _, ok := ch.db.unCommit.blocks[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
-
 }

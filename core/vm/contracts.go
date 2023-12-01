@@ -21,28 +21,24 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
-
-	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
+	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"golang.org/x/crypto/ripemd160"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -1156,7 +1152,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	}
 	currentBlockNum := v.Evm.Context.BlockNumber.Uint64()
 
-	if currentBlockNum < uint64(seedNum) {
+	if currentBlockNum < seedNum {
 		return nil, errVrfNonceNotEnough
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)

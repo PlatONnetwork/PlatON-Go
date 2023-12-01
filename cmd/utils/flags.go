@@ -18,8 +18,18 @@
 package utils
 
 import (
+	"math"
+	"math/big"
+	"os"
+	"path/filepath"
+	godebug "runtime/debug"
+	"strconv"
+	"strings"
+	"time"
+
 	"crypto/ecdsa"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -48,7 +58,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
@@ -57,14 +66,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	gopsutil "github.com/shirou/gopsutil/mem"
-	"math"
-	"math/big"
-	"os"
-	"path/filepath"
-	godebug "runtime/debug"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/urfave/cli/v2"
 )
@@ -881,7 +882,6 @@ var (
 // then a subdirectory of the specified datadir will be used.
 func MakeDataDir(ctx *cli.Context) string {
 	if path := ctx.String(DataDirFlag.Name); path != "" {
-
 		if ctx.Bool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
@@ -1334,12 +1334,6 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-func setMiner(ctx *cli.Context, cfg *miner.Config) {
-	if ctx.IsSet(MinerGasPriceFlag.Name) {
-		cfg.GasPrice = flags.GlobalBig(ctx, MinerGasPriceFlag.Name)
-	}
-}
-
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	// Avoid conflicting network flags
@@ -1442,7 +1436,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 
 	// Override any default configs for hard coded networks.
 	switch {
-
 	// Test NetWork
 	case ctx.Bool(TestnetFlag.Name):
 		if !ctx.IsSet(NetworkIdFlag.Name) {
@@ -1489,7 +1482,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.IsSet(VmTimeoutDuration.Name) {
 		cfg.VmTimeoutDuration = ctx.Uint64(VmTimeoutDuration.Name)
 	}
-
 }
 
 // SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
@@ -1540,7 +1532,6 @@ func SetCbft(ctx *cli.Context, cfg *types.OptionsConfig, nodeCfg *node.Config) {
 	if ctx.IsSet(CbftBlacklistDeadlineFlag.Name) {
 		cfg.BlacklistDeadline = ctx.Int64(CbftBlacklistDeadlineFlag.Name)
 	}
-
 }
 
 // RegisterEthService adds an Ethereum client to the stack.
@@ -1719,9 +1710,8 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if err := basedb.Close(); err != nil {
 		Fatalf("%v", err)
 	}
-	var engine consensus.Engine
 	//todo: Merge confirmation.
-	engine = consensus.NewFaker()
+	engine := consensus.NewFaker()
 
 	cache := &core.CacheConfig{
 		Disabled:        true,

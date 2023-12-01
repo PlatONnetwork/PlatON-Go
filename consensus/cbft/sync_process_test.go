@@ -65,46 +65,40 @@ func TestFetch(t *testing.T) {
 		fetchBlock = block
 		qcBlocks.Blocks = append(qcBlocks.Blocks, block)
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
-				assert.NotNil(t, pb)
-				execute := make(chan uint32, 1)
-				nodes[j].engine.executeFinishHook = func(index uint32) {
-					execute <- index
-				}
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
-
-				select {
-				//case <-timer.C:
-				//	t.Fatal("execute block timeout")
-				case n := <-execute:
-					log.Info("===================================", "n", n)
-				}
-				index, finish := nodes[j].engine.state.Executing()
-				if !(index == uint32(i) && finish) {
-					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			_, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
-			assert.NotNil(t, qc)
-			qcBlocks.QC = append(qcBlocks.QC, qc)
-			parent = b
+			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
+			assert.NotNil(t, pb)
+			execute := make(chan uint32, 1)
+			nodes[j].engine.executeFinishHook = func(index uint32) {
+				execute <- index
+			}
+			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
+
+			n := <-execute
+			log.Info("===================================", "n", n)
+			index, finish := nodes[j].engine.state.Executing()
+			if !(index == uint32(i) && finish) {
+				t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+			}
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		_, qc = nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+		assert.NotNil(t, qc)
+		qcBlocks.QC = append(qcBlocks.QC, qc)
+		parent = b
 	}
 	assert.Equal(t, uint64(3), nodes[0].engine.state.HighestQCBlock().NumberU64())
 	assert.Equal(t, uint64(0), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -131,7 +125,6 @@ SYNC:
 	case <-time.NewTimer(30 * time.Second).C:
 		//t.Fatal("fetch timeout")
 	case <-finish:
-
 	}
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
 }
@@ -160,49 +153,44 @@ func TestFetch_Serial(t *testing.T) {
 		fetchBlock = block
 		qcBlocks.Blocks = append(qcBlocks.Blocks, block)
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
-				assert.NotNil(t, pb)
-				execute := make(chan uint32, 1)
-				nodes[j].engine.executeFinishHook = func(index uint32) {
-					execute <- index
-				}
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
-
-				select {
-				case <-execute:
-
-				}
-				index, finish := nodes[j].engine.state.Executing()
-				if !(index == uint32(i) && finish) {
-					t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			_, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
-			assert.NotNil(t, qc)
-			if i == 2 {
-				// Deliberately mistake the qc of the third block
-				qc = qcBlocks.QC[len(qcBlocks.QC)-1]
+			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
+			assert.NotNil(t, pb)
+			execute := make(chan uint32, 1)
+			nodes[j].engine.executeFinishHook = func(index uint32) {
+				execute <- index
 			}
-			qcBlocks.QC = append(qcBlocks.QC, qc)
+			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			parent = b
+			<-execute
+			index, finish := nodes[j].engine.state.Executing()
+			if !(index == uint32(i) && finish) {
+				t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+			}
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		_, qc = nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+		assert.NotNil(t, qc)
+		if i == 2 {
+			// Deliberately mistake the qc of the third block
+			qc = qcBlocks.QC[len(qcBlocks.QC)-1]
+		}
+		qcBlocks.QC = append(qcBlocks.QC, qc)
+
+		parent = b
 	}
 	assert.Equal(t, uint64(3), nodes[0].engine.state.HighestQCBlock().NumberU64())
 	assert.Equal(t, uint64(0), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -229,7 +217,6 @@ SYNC:
 	select {
 	case <-time.NewTimer(5 * time.Second).C:
 	case <-finish:
-
 	}
 	assert.Equal(t, uint64(2), nodes[1].engine.state.HighestQCBlock().NumberU64())
 }
@@ -250,45 +237,42 @@ func TestSyncBlock(t *testing.T) {
 		fetchBlock = block
 		qcBlocks.Blocks = append(qcBlocks.Blocks, block)
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < 3; j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
-				assert.NotNil(t, pb)
-				execute := make(chan uint32, 1)
-				timer := time.NewTimer(500 * time.Millisecond)
-				nodes[j].engine.executeFinishHook = func(index uint32) {
-					execute <- index
-				}
-				assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), pb))
-
-				select {
-				case <-timer.C:
-					t.Fatal("execute block timeout")
-				case <-execute:
-
-				}
-				index, finish := nodes[j].engine.state.Executing()
-				assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.NodeID.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < 3; j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			_, qc := nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
-			assert.NotNil(t, qc)
-			qcBlocks.QC = append(qcBlocks.QC, qc)
-			parent = b
+			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
+			assert.NotNil(t, pb)
+			execute := make(chan uint32, 1)
+			timer := time.NewTimer(500 * time.Millisecond)
+			nodes[j].engine.executeFinishHook = func(index uint32) {
+				execute <- index
+			}
+			assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), pb))
+
+			select {
+			case <-timer.C:
+				t.Fatal("execute block timeout")
+			case <-execute:
+			}
+			index, finish := nodes[j].engine.state.Executing()
+			assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.NodeID.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		_, qc = nodes[0].engine.blockTree.FindBlockAndQC(block.Hash(), block.NumberU64())
+		assert.NotNil(t, qc)
+		qcBlocks.QC = append(qcBlocks.QC, qc)
+		parent = b
 	}
 	assert.Equal(t, uint64(3), nodes[0].engine.state.HighestQCBlock().NumberU64())
 	assert.Equal(t, uint64(0), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -317,7 +301,6 @@ func TestSyncBlock(t *testing.T) {
 	case <-time.NewTimer(30 * time.Second).C:
 		//t.Fatal("fetch timeout")
 	case <-finish:
-
 	}
 	//nodes[1].engine.syncMsgCh <- &types2.MsgInfo{PeerID: "id", Msg: qcBlocks}
 	//time.Sleep(1000 * time.Millisecond)
@@ -420,7 +403,6 @@ func TestFetchVoteRule(t *testing.T) {
 		t.Error("timeout")
 	case <-done:
 	}
-
 }
 
 func TestCbft_OnGetPrepareVote(t *testing.T) {
@@ -428,7 +410,6 @@ func TestCbft_OnGetPrepareVote(t *testing.T) {
 	done := make(chan struct{})
 	hook := func(msg *types2.MsgPackage) {
 		done <- struct{}{}
-
 	}
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	node := MockNode(pk[0], sk[0], cbftnodes, 1000000, 10)
@@ -492,9 +473,9 @@ func TestCbft_OnGetLatestStatus(t *testing.T) {
 			BlockNumber: v.reqBn,
 			LogicType:   v.reqType,
 		}
-		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, v.blockBn))
+		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, v.blockBn))
+		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, v.blockBn))
 		err := engine.OnGetLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.reqBn {
@@ -535,9 +516,9 @@ func TestCbft_OnLatestStatus(t *testing.T) {
 			BlockNumber: v.rspBn,
 			LogicType:   v.rspType,
 		}
-		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
-		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, uint64(v.blockBn)))
+		engine.state.SetHighestQCBlock(NewBlock(common.Hash{}, v.blockBn))
+		engine.state.SetHighestLockBlock(NewBlock(common.Hash{}, v.blockBn))
+		engine.state.SetHighestCommitBlock(NewBlock(common.Hash{}, v.blockBn))
 		err := engine.OnLatestStatus(peerID, message)
 		assert.Nil(t, err)
 		if v.blockBn < v.rspBn {

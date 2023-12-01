@@ -47,7 +47,6 @@ func TestStringToOp(t *testing.T) {
 	// test -> string
 	str := OpCode(0x00).String()
 	t.Log(str)
-
 }
 
 func TestOpCode_IsPush(t *testing.T) {

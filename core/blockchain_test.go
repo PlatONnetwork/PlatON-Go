@@ -127,7 +127,6 @@ func testHeaderChainImport(chain []*types.Header, blockchain *BlockChain) error 
 }
 
 func TestLastBlock(t *testing.T) {
-
 	var (
 		db = rawdb.NewMemoryDatabase()
 		//genesis = new(Genesis).MustCommit(db)
@@ -175,7 +174,6 @@ func testBrokenChain(t *testing.T, full bool) {
 		chain := makeHeaderChain(blockchain.CurrentHeader(), 5, engine, db, forkSeed)[1:]
 		blockchain.engine = engine
 		if err := testHeaderChainImport(chain, blockchain); err == nil {
-
 			t.Errorf("broken header chain not reported")
 		}
 	}
@@ -210,7 +208,6 @@ func TestReorgLongHeaders(t *testing.T) { testReorgLong(t, false) }
 //func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
 
 func testReorgLong(t *testing.T, full bool) {
-
 	testReorg(t, []int64{0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)
 }
 
@@ -230,9 +227,7 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 		b.OffsetTime(second[i])
 	})
 	if full {
-
 		for _, block := range easyBlocks {
-
 			if err := blockchain.engine.InsertChain(block); nil != err {
 				t.Fatalf("failed to insert easy chain: %v", err)
 			}
@@ -243,7 +238,6 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 				t.Fatalf("failed to insert difficult chain: %v", err)
 			}
 		}
-
 	} else {
 		easyHeaders := make([]*types.Header, len(easyBlocks))
 		for i, block := range easyBlocks {
@@ -265,7 +259,6 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 		prev := blockchain.engine.CurrentBlock()
 
 		for block := blockchain.engine.GetBlockByHash(prev.ParentHash()); block != nil; prev, block = block, blockchain.engine.GetBlockByHash(block.ParentHash()) {
-
 			//for block := blockchain.GetBlockByNumber(blockchain.CurrentBlock().NumberU64() - 1); block.NumberU64() != 0; prev, block = block, blockchain.GetBlockByNumber(block.NumberU64()-1) {
 			if prev.ParentHash() != block.Hash() {
 				t.Errorf("parent block hash mismatch: have %x, want %x", prev.ParentHash(), block.Hash())
@@ -279,7 +272,6 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 			}
 		}
 	}
-
 }
 
 // Tests chain insertions in the face of one entity containing an invalid nonce.
@@ -1530,7 +1522,6 @@ func TestEIP2718Transition(t *testing.T) {
 		vm.GasQuickStep*2 + params.WarmStorageReadCostEIP2929 + params.ColdSloadCostEIP2929
 	if block.GasUsed() != expected {
 		t.Fatalf("incorrect amount of gas spent: expected %d, got %d", expected, block.GasUsed())
-
 	}
 }
 

@@ -326,7 +326,6 @@ func TestEmptyByte(t *testing.T) {
 		fmt.Println(it.Key, it.Value)
 		fmt.Println(so.db.trie.GetKey(it.Value))
 	}
-
 }
 
 func TestForEachStorage(t *testing.T) {
@@ -364,7 +363,6 @@ func TestForEachStorage(t *testing.T) {
 }
 
 func TestMigrateStorage(t *testing.T) {
-
 	tmpDir, _ := os.MkdirTemp("", "platon")
 	defer os.Remove(tmpDir)
 	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)

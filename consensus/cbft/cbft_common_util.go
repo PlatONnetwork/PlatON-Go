@@ -119,14 +119,12 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	for i := 0; i < num; i++ {
 		nodes[i].Node = enode.NewV4(&pk[i].PublicKey, net.ParseIP("0.0.0.0"), 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-
 	}
 	return pk, sk, nodes
 }
 
 // CreateCBFT returns a new CBFT for testing.
 func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount uint32) *Cbft {
-
 	sysConfig := &params.CbftConfig{
 		Period:       period,
 		Amount:       amount,
@@ -167,7 +165,6 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 
 // CreateBackend returns a new Backend for testing.
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
 	var db = rawdb.NewMemoryDatabase()
 	chainConfig.SetPauliBlock(nil)
 	gspec, _ := CreateGenesis(db)

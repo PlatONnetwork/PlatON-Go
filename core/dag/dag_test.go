@@ -30,5 +30,4 @@ func TestDag(t *testing.T) {
 		ids := dag.Next()
 		fmt.Printf("ids:%+v", ids)
 	}
-
 }

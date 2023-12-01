@@ -97,7 +97,7 @@ func (cbft *Cbft) mockGenerateViewChangeQuorumCertWithViewNumber(qc *ctypes.Quor
 		ViewNumber:     qc.ViewNumber,
 		BlockHash:      qc.BlockHash,
 		BlockNumber:    qc.BlockNumber,
-		ValidatorIndex: uint32(node.Index),
+		ValidatorIndex: node.Index,
 		PrepareQC:      qc,
 	}
 	if err := cbft.signMsgByBls(v); err != nil {

@@ -18,19 +18,20 @@ package snapshot
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	"os"
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/sha3"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"golang.org/x/crypto/sha3"
 )
 
 func hashData(input []byte) common.Hash {

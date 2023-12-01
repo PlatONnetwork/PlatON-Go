@@ -218,5 +218,4 @@ func TestNewViewChanges(t *testing.T) {
 	assert.Equal(t, 10, viewState.ViewChangeLen())
 	assert.Equal(t, 10, len(viewState.AllViewChange()))
 	assert.Equal(t, uint32(9), viewState.ViewChangeByIndex(9).ValidatorIndex)
-
 }

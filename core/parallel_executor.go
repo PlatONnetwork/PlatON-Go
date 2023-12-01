@@ -1,29 +1,24 @@
 package core
 
 import (
-	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
 	"github.com/panjf2000/ants/v2"
 
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
-const (
-	// Number of contractAddress->bool associations to keep.
-	contractCacheSize = 100000
-)
+//const contractCacheSize = 100000 // Number of contractAddress->bool associations to keep.
 
 var (
 	executorOnce sync.Once
@@ -242,7 +237,6 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	toObj.AddBalance(msg.Value())
 
 	ctx.buildTransferSuccessResult(idx, fromObj, toObj, intrinsicGas, minerEarnings)
-	return
 }
 
 func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {

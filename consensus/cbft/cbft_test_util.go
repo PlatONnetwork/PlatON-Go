@@ -148,9 +148,6 @@ func (tv *testView) thirdProposer() *Cbft {
 	}
 	panic("find proposer node failed")
 }
-func (tv *testView) thirdProposerIndex() uint32 {
-	return 2
-}
 
 func (tv *testView) currentProposerInfo(cbft *Cbft) (uint32, uint64) {
 	blockNumber := cbft.state.HighestQCBlock().NumberU64()
@@ -165,7 +162,7 @@ func (tv *testView) currentProposer(cbft *Cbft) *Cbft {
 		if err != nil {
 			panic("find proposer node failed")
 		}
-		if index == uint32(currentProposer) {
+		if index == currentProposer {
 			return c
 		}
 	}
@@ -223,37 +220,10 @@ func (tv *testView) setBlockQC(number int, node *TestCBFT) {
 	}
 }
 
-func (tv *testView) ResetView(start bool, nodeNumber int) {
-	tv = newTestView(start, 10000)
-}
-
 func insertBlock(cbft *Cbft, block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.AddQCBlock(block, qc)
 	cbft.insertQCBlock(block, qc)
 }
-func mockNodeOfNumber(start bool, nodeNumber int) ([]*TestCBFT, []params.CbftNode) {
-	pk, sk, cbftnodes := GenerateCbftNode(nodeNumber)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < nodeNumber; i++ {
-		node := MockValidator(pk[i], sk[i], cbftnodes, testPeriod, testAmount)
-		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.NodeID().TerminalString())
-		if err := nodes[i].Start(); err != nil {
-			panic("cbft start fail")
-		}
-	}
-
-	netHandler, nodeids := NewEngineManager(nodes)
-
-	network.EnhanceEngineManager(nodeids, netHandler)
-	if start {
-		for i := 0; i < nodeNumber; i++ {
-			netHandler[i].Testing()
-		}
-	}
-	return nodes, cbftnodes
-}
-
 func mockNotConsensusNode(cbftnodes []params.CbftNode, number int, period uint64) []*TestCBFT {
 	pk, sk, _ := GenerateCbftNode(number)
 	nodes := make([]*TestCBFT, 0)
@@ -408,7 +378,7 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 	for _, v := range votes {
 		vote = v
 	}
-	vSet := utils.NewBitArray(uint32(total))
+	vSet := utils.NewBitArray(total)
 	vSet.SetIndex(vote.NodeIndex(), true)
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {

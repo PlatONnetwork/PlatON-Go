@@ -20,16 +20,15 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"encoding/binary"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	mrand "math/rand"
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 )
 
 func init() {

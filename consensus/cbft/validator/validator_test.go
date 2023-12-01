@@ -223,7 +223,6 @@ func genesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 	block, _ := gen.Commit(db, snapshotdb.Instance())
 	return block, gen.Config
-
 }
 
 func TestInnerAgency(t *testing.T) {
@@ -340,7 +339,6 @@ func TestInnerAgency(t *testing.T) {
 	assert.True(t, agency.GetLastNumber(160) == 160)
 	assert.True(t, agency.GetLastNumber(200) == 200)
 	assert.True(t, agency.GetLastNumber(201) == 240)
-
 }
 
 func newTestInnerAgency(nodes []params.CbftNode) consensus.Agency {

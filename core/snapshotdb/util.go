@@ -71,7 +71,7 @@ func randomString2(s string) []byte {
 }
 
 func generatekv(n int) kvs {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	kvs := make(kvs, n)
 	for i := 0; i < n; i++ {
 		kvs[i] = kv{
@@ -84,7 +84,7 @@ func generatekv(n int) kvs {
 }
 
 func generatekvWithPrefix(n int, p string) kvs {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	kvs := make(kvs, n)
 	for i := 0; i < n; i++ {
 		kvs[i] = kv{

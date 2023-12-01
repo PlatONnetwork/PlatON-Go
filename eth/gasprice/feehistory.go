@@ -21,12 +21,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math"
 	"math/big"
 	"sort"
 	"sync/atomic"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"

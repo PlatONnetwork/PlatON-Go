@@ -61,7 +61,6 @@ func (suit *PrepareVoteTestSuite) createEvPool(paths []string) {
 		pool, _ := evidence.NewBaseEvidencePool(path)
 		suit.view.allCbft[i].evPool = pool
 	}
-
 }
 
 func (suit *PrepareVoteTestSuite) waitVote() {
@@ -313,7 +312,6 @@ func TestPrepareVoteDu(t *testing.T) {
 		if len(reg.FindAllString(err.Error(), -1)) == 0 {
 			t.Fatal(err.Error())
 		}
-
 	}
 }
 
@@ -511,7 +509,6 @@ func (cbft *Cbft) generateErrPrepareQC(votes map[uint32]*protocols.PrepareVote) 
 			aggSig.Add(&sig)
 			vSet.SetIndex(i, true)
 		}
-
 	}
 	qc.Signature.SetBytes(aggSig.Serialize())
 	qc.ValidatorSet.Update(vSet)

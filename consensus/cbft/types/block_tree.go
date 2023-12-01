@@ -249,7 +249,6 @@ func (b *BlockTree) FindBlocksAndQCs(number uint64) ([]*types.Block, []*QuorumCe
 			qcs = append(qcs, v.QC)
 		}
 		return blocks, qcs
-
 	}
 	return nil, nil
 }

@@ -38,11 +38,6 @@ type rankingHeap struct {
 	hepMaxNum int
 }
 
-// the key is gt than or eq than   heap top
-func (r *rankingHeap) geMaxHeap(k []byte) bool {
-	return bytes.Compare(k, r.heap[0].key) > 0
-}
-
 func (r *rankingHeap) addHandledKey(key []byte) {
 	tmpKey := make([]byte, len(key))
 	copy(tmpKey, key)
@@ -93,7 +88,7 @@ func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
 }
 
 func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
-	condtion := v == nil || len(v) == 0
+	condtion := len(v) == 0
 	if !condtion {
 		//if r.hepMaxNum > 0 && r.heap.Len() >= r.hepMaxNum {
 		//	heap.Pop(&r.heap)
