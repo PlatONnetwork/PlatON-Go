@@ -624,7 +624,8 @@ func diffToDisk(bottom *diffLayer) *diskLayer {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write leftover snapshot", "err", err)
 	}
-	log.Info("Journalled disk layer", "root", bottom.root, "complete", base.genMarker == nil)
+	//TODO: 临时改为Error级，方便升级时判断快照是否已经生成
+	log.Error("Journalled disk layer", "root", bottom.root, "complete", base.genMarker == nil)
 	res := &diskLayer{
 		root:       bottom.root,
 		cache:      base.cache,
