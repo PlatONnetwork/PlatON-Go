@@ -1,11 +1,12 @@
 package core
 
 import (
-	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -93,15 +94,16 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 			if len(parallelTxIdxs) == 1 && txDag.IsContract(parallelTxIdxs[0]) {
 				exe.executeContractTransaction(ctx, parallelTxIdxs[0])
 				if blockNumber.Cmp(big.NewInt(58421521)) > 0 {
-					chainidForStatistic = ctx.GetTx(parallelTxIdxs[0]).ChainId()
-					log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber)
+					tx := ctx.GetTx(parallelTxIdxs[0])
+					chainidForStatistic = tx.ChainId()
+					log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber, "to", tx.To().String())
 				}
 			} else {
 				for _, originIdx := range parallelTxIdxs {
 					tx := ctx.GetTx(originIdx)
 					if blockNumber.Cmp(big.NewInt(58421521)) > 0 {
 						chainidForStatistic = tx.ChainId()
-						log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber)
+						log.Error("STATISTIC chainid", "chainid", chainidForStatistic, "blockNumber", blockNumber, "to", tx.To().String())
 					}
 					if ctx.packNewBlock {
 						if ctx.IsTimeout() {
