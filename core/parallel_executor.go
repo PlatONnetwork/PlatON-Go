@@ -1,11 +1,13 @@
 package core
 
 import (
-	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -13,6 +15,7 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -148,41 +151,62 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	return nil
 }
 
+// 并行交易执行前，需要对交易进行 preCheck
+// 由于并行交易模块和StateTransition模块相对独立，所以无法复用StateTransition的preCheck，后续两个模块的preCheck需要及时同步
 func (exe *Executor) preCheck(msg types.Message, fromObj *state.ParallelStateObject, baseFee *big.Int, gte150 bool) error {
 	// check nonce
-	if fromObj.GetNonce() < msg.Nonce() {
-		return ErrNonceTooHigh
-	} else if fromObj.GetNonce() > msg.Nonce() {
-		return ErrNonceTooLow
+	stNonce := fromObj.GetNonce()
+	if msgNonce := msg.Nonce(); stNonce < msgNonce {
+		return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
+			msg.From().Hex(), msgNonce, stNonce)
+	} else if stNonce > msgNonce {
+		return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
+			msg.From().Hex(), msgNonce, stNonce)
+	} else if stNonce+1 < stNonce {
+		return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
+			msg.From().Hex(), stNonce)
 	}
+
+	// Make sure the sender is an EOA
+	if codeHash := fromObj.GetCodeHash(); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
+		return fmt.Errorf("%w: address %v, codehash: %s", ErrSenderNoEOA,
+			msg.From().Hex(), codeHash)
+	}
+
 	// check balance
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(msg.Gas()), msg.GasPrice())
+	mgval := new(big.Int).SetUint64(msg.Gas())
+	mgval = mgval.Mul(mgval, msg.GasPrice())
 	balanceCheck := mgval
 	if gte150 {
 		balanceCheck = new(big.Int).SetUint64(msg.Gas())
 		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
 		balanceCheck.Add(balanceCheck, msg.Value())
 	}
-	if fromObj.GetBalance().Cmp(balanceCheck) < 0 {
-		return errInsufficientBalanceForGas
+	if have, want := fromObj.GetBalance(), balanceCheck; have.Cmp(want) < 0 {
+		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, msg.From().Hex(), have, want)
 	}
+
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
 	if gte150 {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
 		if !exe.vmCfg.NoBaseFee || msg.GasFeeCap().BitLen() > 0 || msg.GasTipCap().BitLen() > 0 {
-			if msg.GasFeeCap().BitLen() > 256 {
-				return ErrFeeCapVeryHigh
+			if l := msg.GasFeeCap().BitLen(); l > 256 {
+				return fmt.Errorf("%w: address %v, maxFeePerGas bit length: %d", ErrFeeCapVeryHigh,
+					msg.From().Hex(), l)
 			}
-			if msg.GasTipCap().BitLen() > 256 {
-				return ErrTipVeryHigh
+			if l := msg.GasTipCap().BitLen(); l > 256 {
+				return fmt.Errorf("%w: address %v, maxPriorityFeePerGas bit length: %d", ErrTipVeryHigh,
+					msg.From().Hex(), l)
 			}
 			if msg.GasFeeCap().Cmp(msg.GasTipCap()) < 0 {
-				return ErrTipAboveFeeCap
+				return fmt.Errorf("%w: address %v, maxPriorityFeePerGas: %s, maxFeePerGas: %s", ErrTipAboveFeeCap,
+					msg.From().Hex(), msg.GasTipCap(), msg.GasFeeCap())
 			}
 			// This will panic if baseFee is nil, but basefee presence is verified
 			// as part of header validation.
 			if msg.GasFeeCap().Cmp(baseFee) < 0 {
-				return ErrFeeCapTooLow
+				return fmt.Errorf("%w: address %v, maxFeePerGas: %s baseFee: %s", ErrFeeCapTooLow,
+					msg.From().Hex(), msg.GasFeeCap(), baseFee)
 			}
 		}
 	}
@@ -226,7 +250,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	log.Trace("Execute parallel tx", "baseFee", ctx.header.BaseFee, "gasTipCap", msg.GasTipCap(), "gasFeeCap", msg.GasFeeCap(), "gasPrice", msg.GasPrice(), "effectiveTip", effectiveTip, "intrinsicGas", intrinsicGas)
 	cost := new(big.Int).Add(msg.Value(), fee)
 	if fromObj.GetBalance().Cmp(cost) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
+		ctx.buildTransferFailedResult(idx, ErrInsufficientFunds, true)
 		return
 	}
 

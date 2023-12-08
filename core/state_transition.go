@@ -18,7 +18,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -37,10 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-var (
-	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
-	emptyCodeHash                = crypto.Keccak256Hash(nil)
-)
+var emptyCodeHash = crypto.Keccak256Hash(nil)
 
 /*
 The State Transitioning Model
