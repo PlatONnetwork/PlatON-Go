@@ -19,12 +19,14 @@ package main
 import (
 	"bytes"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/core/state/pruner"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"os"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/state/pruner"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -54,7 +56,7 @@ var (
 		Subcommands: []cli.Command{
 			{
 				Name:      "prune-state",
-				Usage:     "Prune stale ethereum state data based on the snapshot",
+				Usage:     "Prune stale PlatON state data based on the snapshot",
 				ArgsUsage: "<root>",
 				Action:    utils.MigrateFlags(pruneState),
 				Category:  "MISCELLANEOUS COMMANDS",
