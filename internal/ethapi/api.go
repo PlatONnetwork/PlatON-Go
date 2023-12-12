@@ -20,10 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
-	"math/big"
-	"time"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
@@ -31,7 +33,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 
-	"strings"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -48,7 +50,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum related information.
@@ -1660,6 +1661,10 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 
 // SubmitTransaction is a helper function that submits tx to txPool and logs a message.
 func SubmitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (common.Hash, error) {
+	head := b.CurrentHeader()
+	if !b.ChainConfig().IsPauli(head.Number) && tx.Type() != types.LegacyTxType {
+		return common.Hash{}, types.ErrTxTypeNotSupported
+	}
 	// If the transaction fee cap is already specified, ensure the
 	// fee of the given transaction is _reasonable_.
 	if err := checkTxFee(tx.GasPrice(), tx.Gas(), b.RPCTxFeeCap()); err != nil {
