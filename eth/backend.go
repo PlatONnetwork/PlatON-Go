@@ -20,12 +20,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
 	"math/big"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 
@@ -350,7 +351,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	if config.Miner.GasFloor > uint64(gasCeil) {
 		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.Miner.GasFloor, "gasCeil", gasCeil)
-		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
+		return nil, fmt.Errorf("the gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
 	}
 
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
