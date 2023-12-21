@@ -91,9 +91,12 @@ type TxGenAPI struct {
 // accountPath,Account configuration address
 // start, end ,Start and end account
 // max wait account receipt time,seconds.if not receive the account receipt ,will resend the tx
-func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, waitAccountReceiptTime uint) error {
+func (txg *TxGenAPI) Start(txType uint, normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, waitAccountReceiptTime uint) error {
 	if txg.start {
 		return errors.New("the tx maker is working")
+	}
+	if txType != types.DynamicFeeTxType && txType != types.LegacyTxType {
+		return errors.New("the tx type is wrong")
 	}
 
 	//make sure when the txGen is start ,the node will not receive txs from other node,
@@ -109,14 +112,14 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	txg.res = new(TxGenResData)
 	txg.res.TotalTxSend = 0
 	txg.res.Blocks = make([]BlockInfo, 0)
-	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
+	if err := txg.makeTransaction(txType, normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
 		return err
 	}
 	txg.start = true
 	return nil
 }
 
-func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
+func (txg *TxGenAPI) makeTransaction(txType uint, tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
 	state, err := txg.eth.blockchain.State()
 	if err != nil {
 		return err
@@ -268,7 +271,30 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
 
-					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
+					var inner types.TxData
+					if txType == types.DynamicFeeTxType {
+						inner = &types.DynamicFeeTx{
+							ChainID:   txg.eth.blockchain.Config().PIP7ChainID,
+							Nonce:     account.Nonce,
+							To:        &txReceive,
+							Gas:       gasLimit,
+							GasFeeCap: gasPrice,
+							GasTipCap: gasPrice,
+							Data:      txContractInputData,
+						}
+
+					} else if txType == types.LegacyTxType {
+						inner = &types.LegacyTx{
+							Nonce:    account.Nonce,
+							To:       &txReceive,
+							Value:    amount,
+							Gas:      gasLimit,
+							GasPrice: gasPrice,
+							Data:     txContractInputData,
+						}
+					}
+
+					tx := types.NewTx(inner)
 					signTxCh <- needSignTx{tx, account.Priv}
 					/*newTx, err := types.SignTx(tx, signer, account.Priv)
 					if err != nil {
