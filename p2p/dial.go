@@ -108,6 +108,7 @@ type dialScheduler struct {
 
 	addconsensus    chan *enode.Node
 	removeconsensus chan *enode.Node
+	clearConsensus  chan struct{}
 
 	// Everything below here belongs to loop and
 	// should only be accessed by code on the loop goroutine.
@@ -185,6 +186,7 @@ func newDialScheduler(config dialConfig, it enode.Iterator, setupFunc dialSetupF
 		remPeerCh:              make(chan *conn),
 		addconsensus:           make(chan *enode.Node),
 		removeconsensus:        make(chan *enode.Node),
+		clearConsensus:         make(chan struct{}),
 		updateConsensusPeersCh: make(chan int),
 		consensusPool:          NewDialedTasks(config.MaxConsensusPeers*2, nil),
 	}
@@ -235,6 +237,13 @@ func (d *dialScheduler) addConsensus(n *enode.Node) {
 func (d *dialScheduler) removeConsensus(n *enode.Node) {
 	select {
 	case d.removeconsensus <- n:
+	case <-d.ctx.Done():
+	}
+}
+
+func (d *dialScheduler) closeConsensusDial() {
+	select {
+	case d.clearConsensus <- struct{}{}:
 	case <-d.ctx.Done():
 	}
 }
@@ -346,6 +355,8 @@ loop:
 			d.consensusPool.AddTask(newDialTask(node, dynDialedConn|consensusDialedConn))
 		case node := <-d.removeconsensus:
 			d.consensusPool.RemoveTask(node.ID())
+		case <-d.clearConsensus:
+			d.consensusPool.clear()
 		case num := <-d.updateConsensusPeersCh:
 			d.log.Debug("update added consensus peers num", "num", num)
 			d.consensusPeers = num
