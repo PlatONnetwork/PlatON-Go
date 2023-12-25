@@ -277,6 +277,7 @@ func (txg *TxGenAPI) makeTransaction(txType uint, tx, evm, wasm uint, totalTxPer
 							ChainID:   txg.eth.blockchain.Config().PIP7ChainID,
 							Nonce:     account.Nonce,
 							To:        &txReceive,
+							Value:     amount,
 							Gas:       gasLimit,
 							GasFeeCap: gasPrice,
 							GasTipCap: gasPrice,
