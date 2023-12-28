@@ -18,9 +18,10 @@ package gov
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -31,7 +32,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -40,7 +40,7 @@ import (
 
 var (
 	sender = common.MustBech32ToAddress("lax1pmhjxvfqeccm87kzpkkr08djgvpp55355nr8j7")
-	nodeID = discover.MustHexID("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
+	nodeID = enode.MustHexIDv0("0x362003c50ed3a523cdede37a001803b8f0fed27cb402b3d6127a1a96661ec202318f68f4c76d9b0bfbabfd551a178d4335eaeaa9b7981a4df30dfc8c0bfe3384")
 
 	priKey = crypto.HexMustToECDSA("0c6ccec28e36dc5581ea3d8af1303c774b51523da397f55cdc4acd9d2b988132")
 
@@ -59,7 +59,7 @@ var (
 )
 
 type MockStaking struct {
-	DeclaeredVodes map[discover.NodeID]uint32
+	DeclaeredVodes map[enode.IDv0]uint32
 }
 
 func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
@@ -73,8 +73,8 @@ func (stk *MockStaking) GetVerifierList(blockHash common.Hash, blockNumber uint6
 	return []*staking.ValidatorEx{valEx}, nil
 }
 
-func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
-	return []discover.NodeID{nodeID}, nil
+func (stk *MockStaking) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]enode.IDv0, error) {
+	return []enode.IDv0{nodeID}, nil
 }
 
 func (stk *MockStaking) GetCanBaseList(blockHash common.Hash, blockNumber uint64) (staking.CandidateBaseQueue, error) {
@@ -99,15 +99,15 @@ func (stk *MockStaking) GetCanMutable(blockHash common.Hash, addr common.NodeAdd
 	can := &staking.CandidateMutable{Status: staking.Valided}
 	return can, nil
 }
-func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, programVersion uint32) error {
+func (stk *MockStaking) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId enode.IDv0, programVersion uint32) error {
 	if stk.DeclaeredVodes == nil {
-		stk.DeclaeredVodes = make(map[discover.NodeID]uint32)
+		stk.DeclaeredVodes = make(map[enode.IDv0]uint32)
 	}
 	stk.DeclaeredVodes[nodeID] = programVersion
 	return nil
 }
 
-func (stk *MockStaking) ListDeclaredNode() map[discover.NodeID]uint32 {
+func (stk *MockStaking) ListDeclaredNode() map[enode.IDv0]uint32 {
 	return stk.DeclaeredVodes
 }
 
@@ -554,7 +554,7 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	punishedVerifierMap := make(map[discover.NodeID]struct{})
+	punishedVerifierMap := make(map[enode.IDv0]struct{})
 	punishedVerifierMap[nodeID] = struct{}{}
 
 	if err := NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punishedVerifierMap, chain.StateDB); err != nil {
@@ -841,7 +841,7 @@ func TestGov_GovernMaxBlockGasLimit(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepair_sndb(chain)
-	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash()); err != nil {
+	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash(), chain.SnapDB); err != nil {
 		t.Error("GovernMaxBlockGasLimit, err", err)
 	} else {
 		assert.NotNil(t, threshold)
@@ -970,28 +970,4 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
-}
-
-func TestFork130EcHash(t *testing.T) {
-	chain := setup(t)
-	defer clear(chain, t)
-	if Gte130VersionState(chain.StateDB) {
-		if err := WriteEcHash130(chain.StateDB); nil != err {
-			t.Fatal(err)
-		}
-	}
-	pposHash := chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
-	assert.True(t, pposHash == nil)
-
-	if err := AddActiveVersion(params.FORKVERSION_1_3_0, 0, chain.StateDB); err != nil {
-		t.Error("AddActiveVersion, err", err)
-	}
-
-	if Gte130VersionState(chain.StateDB) {
-		if err := WriteEcHash130(chain.StateDB); nil != err {
-			t.Fatal(err)
-		}
-	}
-	pposHash = chain.StateDB.GetState(vm.StakingContractAddr, staking.GetPPOSHASHKey())
-	assert.True(t, pposHash != nil)
 }

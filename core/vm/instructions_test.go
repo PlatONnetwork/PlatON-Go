@@ -27,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/holiman/uint256"
 	"io/ioutil"
+	"math/big"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -109,7 +110,7 @@ func testTwoOperandOp(t *testing.T, tests []TwoOperandTestcase, opFn executionFu
 		expected := new(uint256.Int).SetBytes(common.Hex2Bytes(test.Expected))
 		stack.push(x)
 		stack.push(y)
-		opFn(&pc, evmInterpreter, &callCtx{nil, stack, rstack, nil})
+		opFn(&pc, evmInterpreter, &ScopeContext{nil, stack, rstack, nil})
 		if len(stack.data) != 1 {
 			t.Errorf("Expected one item on stack after %v, got %d: ", name, len(stack.data))
 		}
@@ -198,7 +199,7 @@ func TestAddMod(t *testing.T) {
 	var (
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
 		stack          = newstack()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.Config)
 		pc             = uint64(0)
 	)
 	tests := []struct {
@@ -224,7 +225,7 @@ func TestAddMod(t *testing.T) {
 		stack.push(z)
 		stack.push(y)
 		stack.push(x)
-		opAddmod(&pc, evmInterpreter, &callCtx{nil, stack, nil, nil})
+		opAddmod(&pc, evmInterpreter, &ScopeContext{nil, stack, nil, nil})
 		actual := stack.pop()
 		if actual.Cmp(expected) != 0 {
 			t.Errorf("Testcase %d, expected  %x, got %x", i, expected, actual)
@@ -246,7 +247,7 @@ func getResult(args []*twoOperandParams, opFn executionFunc) []TwoOperandTestcas
 		y := new(uint256.Int).SetBytes(common.Hex2Bytes(param.y))
 		stack.push(x)
 		stack.push(y)
-		opFn(&pc, interpreter, &callCtx{nil, stack, rstack, nil})
+		opFn(&pc, interpreter, &ScopeContext{nil, stack, rstack, nil})
 		actual := stack.pop()
 		result[i] = TwoOperandTestcase{param.x, param.y, fmt.Sprintf("%064x", actual)}
 	}
@@ -287,7 +288,7 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 	var (
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
 		stack, rstack  = newstack(), newReturnStack()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.Config)
 	)
 
 	env.interpreter = evmInterpreter
@@ -304,7 +305,7 @@ func opBenchmark(bench *testing.B, op executionFunc, args ...string) {
 			a.SetBytes(arg)
 			stack.push(a)
 		}
-		op(&pc, evmInterpreter, &callCtx{nil, stack, rstack, nil})
+		op(&pc, evmInterpreter, &ScopeContext{nil, stack, rstack, nil})
 		stack.pop()
 	}
 }
@@ -522,20 +523,22 @@ func TestOpMstore(t *testing.T) {
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
 		stack, rstack  = newstack(), newReturnStack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.Config)
 	)
 
 	env.interpreter = evmInterpreter
 	mem.Resize(64)
 	pc := uint64(0)
 	v := "abcdef00000000000000abba000000000deaf000000c0de00100000000133700"
-	stack.pushN(*new(uint256.Int).SetBytes(common.Hex2Bytes(v)), *new(uint256.Int))
-	opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+	stack.push(new(uint256.Int).SetBytes(common.Hex2Bytes(v)))
+	stack.push(new(uint256.Int))
+	opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, rstack, nil})
 	if got := common.Bytes2Hex(mem.GetCopy(0, 32)); got != v {
 		t.Fatalf("Mstore fail, got %v, expected %v", got, v)
 	}
-	stack.pushN(*new(uint256.Int).SetUint64(0x1), *new(uint256.Int))
-	opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+	stack.push(new(uint256.Int).SetUint64(0x1))
+	stack.push(new(uint256.Int))
+	opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, rstack, nil})
 	if common.Bytes2Hex(mem.GetCopy(0, 32)) != "0000000000000000000000000000000000000000000000000000000000000001" {
 		t.Fatalf("Mstore failed to overwrite previous value")
 	}
@@ -546,7 +549,7 @@ func BenchmarkOpMstore(bench *testing.B) {
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
 		stack, rstack  = newstack(), newReturnStack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.Config)
 	)
 
 	env.interpreter = evmInterpreter
@@ -557,27 +560,29 @@ func BenchmarkOpMstore(bench *testing.B) {
 
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		stack.pushN(*value, *memStart)
-		opMstore(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+		stack.push(value)
+		stack.push(memStart)
+		opMstore(&pc, evmInterpreter, &ScopeContext{mem, stack, rstack, nil})
 	}
 }
 
-func BenchmarkOpSHA3(bench *testing.B) {
+func BenchmarkOpKeccak256(bench *testing.B) {
 	var (
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
 		stack, rstack  = newstack(), newReturnStack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.vmConfig)
+		evmInterpreter = NewEVMInterpreter(env, env.Config)
 	)
 	env.interpreter = evmInterpreter
 	mem.Resize(32)
 	pc := uint64(0)
-	start := uint256.NewInt()
+	start := new(uint256.Int)
 
 	bench.ResetTimer()
 	for i := 0; i < bench.N; i++ {
-		stack.pushN(*uint256.NewInt().SetUint64(32), *start)
-		opSha3(&pc, evmInterpreter, &callCtx{mem, stack, rstack, nil})
+		stack.push(uint256.NewInt(32))
+		stack.push(start)
+		opKeccak256(&pc, evmInterpreter, &ScopeContext{mem, stack, rstack, nil})
 	}
 }
 
@@ -651,6 +656,39 @@ func TestCreate2Addreses(t *testing.T) {
 		expected := common.BytesToAddress(common.FromHex(tt.expected))
 		if !bytes.Equal(expected.Bytes(), address.Bytes()) {
 			t.Errorf("test %d: expected %s, got %s", i, expected.String(), address.String())
+		}
+	}
+}
+
+func TestRandom(t *testing.T) {
+	type testcase struct {
+		name   string
+		random common.Hash
+	}
+
+	for _, tt := range []testcase{
+		{name: "empty hash", random: common.Hash{}},
+		{name: "1", random: common.Hash{0}},
+		{name: "emptyCodeHash", random: emptyCodeHash},
+		{name: "hash(0x010203)", random: crypto.Keccak256Hash([]byte{0x01, 0x02, 0x03})},
+	} {
+		var (
+			env            = NewEVM(BlockContext{Random: &tt.random}, TxContext{}, nil, nil, params.TestChainConfig, Config{})
+			stack          = newstack()
+			pc             = uint64(0)
+			evmInterpreter = env.interpreter
+		)
+		opRandom(&pc, evmInterpreter.(*EVMInterpreter), &ScopeContext{nil, stack, nil, nil})
+		if len(stack.data) != 1 {
+			t.Errorf("Expected one item on stack after %v, got %d: ", tt.name, len(stack.data))
+		}
+		actual := stack.pop()
+		expected, overflow := uint256.FromBig(new(big.Int).SetBytes(tt.random.Bytes()))
+		if overflow {
+			t.Errorf("Testcase %v: invalid overflow", tt.name)
+		}
+		if actual.Cmp(expected) != 0 {
+			t.Errorf("Testcase %v: expected  %x, got %x", tt.name, expected, actual)
 		}
 	}
 }

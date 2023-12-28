@@ -56,7 +56,7 @@ func TestUpdateLeaks(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	//dir, _ := ioutil.TempDir("", "eth-core-bench")
 	//ethdb,err:= ethdb.NewLDBDatabase(dir,128,128)
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 
 	// Update it with some accounts
@@ -82,7 +82,7 @@ func TestUpdateLeaks(t *testing.T) {
 
 func TestClearParentReference(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 	count := 10000
 
 	for i := 0; i < count; i++ {
@@ -113,8 +113,8 @@ func TestNewStateDBAndCopy(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 	dbc := rawdb.NewMemoryDatabase()
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
-	s1c, _ := New(common.Hash{}, NewDatabase(dbc))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
+	s1c, _ := New(common.Hash{}, NewDatabase(dbc), nil)
 
 	modify := func(s1 *StateDB, s2 *StateDB, addr common.Address, i int) {
 		s1.AddBalance(addr, big.NewInt(int64(i)))
@@ -169,7 +169,7 @@ func TestNewStateDBAndCopy(t *testing.T) {
 
 	// test new statedb
 	st2 := s1.NewStateDB()
-	s1db, _ := New(s1.Root(), NewDatabase(dbc))
+	s1db, _ := New(s1.Root(), NewDatabase(dbc), nil)
 
 	st2.clearParentRef()
 	for addr, storage := range storages {
@@ -270,7 +270,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 	storages := make(map[common.Address]map[string]string)
 	db := rawdb.NewMemoryDatabase()
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	modify := func(s1 *StateDB, addr common.Address, i int) {
 		s1.AddBalance(addr, big.NewInt(int64(i)))
@@ -301,7 +301,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 	if err := s1.db.TrieDB().Commit(root, true, true); err != nil {
 		t.Fatal(err)
 	}
-	s2, err := New(root, NewDatabase(db))
+	s2, err := New(root, NewDatabase(db), nil)
 	for addr, storage := range storages {
 		for key, value := range storage {
 			exp := s2.GetState(addr, []byte(key))
@@ -313,7 +313,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 func TestStateStorageValueDelete(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	key1, value1, key2, value2 := []byte("key1"), []byte("value1"), []byte("key2"), []byte("value2")
 
@@ -333,7 +333,7 @@ func TestStateStorageValueDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s2, err := New(root, NewDatabase(db))
+	s2, err := New(root, NewDatabase(db), nil)
 	exp := s2.GetState(addr, key1)
 	assert.Equal(t, exp, value1)
 
@@ -345,7 +345,7 @@ func TestStateStorageValueDelete(t *testing.T) {
 func TestStateStorageRevert(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 	s1.Snapshot()
 	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
 
@@ -381,7 +381,7 @@ func TestStateStorageRevert(t *testing.T) {
 func TestStateStorageValueUpdate(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 	s1.Snapshot()
 	key1, value1, value2 := []byte("key1"), []byte("value1"), []byte("value2")
 
@@ -400,8 +400,8 @@ func TestIntermediateLeaks(t *testing.T) {
 	// Create two state databases, one transitioning to the final state, the other final from the beginning
 	transDb := rawdb.NewMemoryDatabase()
 	finalDb := rawdb.NewMemoryDatabase()
-	transState, _ := New(common.Hash{}, NewDatabase(transDb))
-	finalState, _ := New(common.Hash{}, NewDatabase(finalDb))
+	transState, _ := New(common.Hash{}, NewDatabase(transDb), nil)
+	finalState, _ := New(common.Hash{}, NewDatabase(finalDb), nil)
 
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 		state.SetBalance(addr, big.NewInt(int64(11*i)+int64(tweak)))
@@ -458,7 +458,7 @@ func TestIntermediateLeaks(t *testing.T) {
 // https://github.com/ethereum/go-ethereum/pull/15549.
 func TestCopy(t *testing.T) {
 	// Create a random state test to copy and modify "independently"
-	orig, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	orig, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	for i := byte(0); i < 255; i++ {
 		obj := orig.GetOrNewStateObject(common.BytesToAddress([]byte{i}))
@@ -692,7 +692,7 @@ func (test *snapshotTest) String() string {
 func (test *snapshotTest) run() bool {
 	// Run all actions and create snapshots.
 	var (
-		state, _     = New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+		state, _     = New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		snapshotRevs = make([]int, len(test.snapshots))
 		sindex       = 0
 	)
@@ -706,7 +706,7 @@ func (test *snapshotTest) run() bool {
 	// Revert all snapshots in reverse order. Each revert must yield a state
 	// that is equivalent to fresh state with all actions up the snapshot applied.
 	for sindex--; sindex >= 0; sindex-- {
-		checkstate, _ := New(common.Hash{}, state.Database())
+		checkstate, _ := New(common.Hash{}, state.Database(), nil)
 		for _, action := range test.actions[:test.snapshots[sindex]] {
 			action.fn(action, checkstate)
 		}
@@ -758,9 +758,9 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		return fmt.Errorf("got GetRefund() == %d, want GetRefund() == %d",
 			state.GetRefund(), checkstate.GetRefund())
 	}
-	if !reflect.DeepEqual(state.GetLogs(common.Hash{}), checkstate.GetLogs(common.Hash{})) {
+	if !reflect.DeepEqual(state.GetLogs(common.Hash{}, common.Hash{}), checkstate.GetLogs(common.Hash{}, common.Hash{})) {
 		return fmt.Errorf("got GetLogs(common.Hash{}) == %v, want GetLogs(common.Hash{}) == %v",
-			state.GetLogs(common.Hash{}), checkstate.GetLogs(common.Hash{}))
+			state.GetLogs(common.Hash{}, common.Hash{}), checkstate.GetLogs(common.Hash{}, common.Hash{}))
 	}
 	return nil
 }
@@ -786,7 +786,7 @@ func TestTouchDelete(t *testing.T) {
 // TestCopyOfCopy tests that modified objects are carried over to the copy, and the copy of the copy.
 // See https://github.com/ethereum/go-ethereum/pull/15225#issuecomment-380191512
 func TestCopyOfCopy(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	addr := common.HexToAddress("aaaa")
 	state.SetBalance(addr, big.NewInt(42))
 
@@ -803,7 +803,7 @@ func TestCopyOfCopy(t *testing.T) {
 //
 // See https://github.com/ethereum/go-ethereum/issues/20106.
 func TestCopyCommitCopy(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	// Create an account and check if the retrieved balance is correct
 	addr := common.HexToAddress("0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe")
@@ -875,7 +875,7 @@ func TestCopyCommitCopy(t *testing.T) {
 //
 // See https://github.com/ethereum/go-ethereum/issues/20106.
 func TestCopyCopyCommitCopy(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	// Create an account and check if the retrieved balance is correct
 	addr := common.HexToAddress("0xaffeaffeaffeaffeaffeaffeaffeaffeaffeaffe")
@@ -960,7 +960,7 @@ func TestGetAfterDelete(t *testing.T) {
 
 	addr := common.BigToAddress(big.NewInt(1))
 
-	s1, _ := New(common.Hash{}, NewDatabase(db))
+	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 	s1.SetNonce(addr, 1)
 	s1.SetState(addr, []byte("test"), []byte("value"))
 	_, err := s1.Commit(true)
@@ -998,9 +998,9 @@ func TestGetAfterDelete(t *testing.T) {
 // first, but the journal wiped the entire state object on create-revert.
 func TestDeleteCreateRevert(t *testing.T) {
 	// Create an initial state with a single contract
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
-	addr := toAddr([]byte("so"))
+	addr := common.BytesToAddress([]byte("so"))
 	state.SetBalance(addr, big.NewInt(1))
 
 	root, _ := state.Commit(false)
@@ -1034,7 +1034,7 @@ func TestStateDBAccessList(t *testing.T) {
 
 	memDb := rawdb.NewMemoryDatabase()
 	db := NewDatabase(memDb)
-	state, _ := New(common.Hash{}, db)
+	state, _ := New(common.Hash{}, db, nil)
 	state.accessList = newAccessList()
 
 	verifyAddrs := func(astrings ...string) {

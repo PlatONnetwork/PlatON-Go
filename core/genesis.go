@@ -67,6 +67,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	BaseFee    *big.Int    `json:"baseFeePerGas"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -89,6 +90,7 @@ type genesisSpecMarshaling struct {
 	GasLimit  math.HexOrDecimal64
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
+	BaseFee   *math.HexOrDecimal256
 	Alloc     map[common.Address]GenesisAccount
 }
 
@@ -182,7 +184,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// We have the genesis block in database(perhaps in ancient database)
 	// but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil)); err != nil {
+	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil), nil); err != nil {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
 		}
@@ -219,6 +221,10 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// Get the existing chain configuration.
 	// the main net may use default config
 	newcfg := genesis.configOrDefault(stored)
+	if err := newcfg.CheckConfigForkOrder(); err != nil {
+		return newcfg, common.Hash{}, err
+	}
+
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
@@ -398,7 +404,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 
 	genesisIssuance := new(big.Int)
 
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	statedb, e := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	if e != nil {
+		panic(e)
+	}
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
@@ -483,13 +492,20 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
+		BaseFee:    g.BaseFee,
 		Coinbase:   vm.RewardManagerPoolAddr,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-
+	if gov.Gte150Version(genesisVersion) {
+		if g.BaseFee != nil {
+			head.BaseFee = g.BaseFee
+		} else {
+			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+		}
+	}
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
@@ -528,7 +544,13 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
-
+	config := g.Config
+	if config == nil {
+		config = params.AllEthashProtocolChanges
+	}
+	if err := config.CheckConfigForkOrder(); err != nil {
+		return nil, err
+	}
 	log.Debug("Commit Hash", "hash", block.Hash().Hex(), "number", block.NumberU64())
 
 	rawdb.WriteBlock(db, block)
@@ -536,11 +558,6 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
 	rawdb.WriteHeadBlockHash(db, block.Hash())
 	rawdb.WriteHeadHeaderHash(db, block.Hash())
-
-	config := g.Config
-	if config == nil {
-		config = params.AllEthashProtocolChanges
-	}
 	rawdb.WriteChainConfig(db, block.Hash(), config)
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
@@ -563,7 +580,10 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
-	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
+	g := Genesis{
+		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	return g.MustCommit(db)
 }
 
@@ -624,7 +644,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 
 func DefaultGrapeGenesisBlock() *Genesis {
 	return &Genesis{
-		Config:    params.GrapeChainConfig,
+		Config:    params.TestChainConfig,
 		Timestamp: 1492009146,
 		ExtraData: hexutil.MustDecode("0xd782070186706c61746f6e86676f312e3131856c696e757800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		//GasLimit:  3150000000,

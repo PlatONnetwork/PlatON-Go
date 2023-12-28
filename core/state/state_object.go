@@ -20,6 +20,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"io"
 	"math/big"
 	"time"
@@ -67,7 +68,7 @@ func (self ValueStorage) Copy() ValueStorage {
 type stateObject struct {
 	address  common.Address
 	addrHash common.Hash // hash of ethereum address of the account
-	data     Account
+	data     types.StateAccount
 	db       *StateDB
 
 	// DB error.
@@ -102,37 +103,8 @@ func (s *stateObject) empty() bool {
 	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
 }
 
-// Account is the Ethereum consensus representation of accounts.
-// These objects are stored in the main account trie.
-type Account struct {
-	Nonce            uint64
-	Balance          *big.Int
-	Root             common.Hash // merkle root of the storage trie
-	CodeHash         []byte
-	StorageKeyPrefix []byte // A prefix added to the `key` to ensure that data between different accounts are not shared
-}
-
-func (self *Account) empty() bool {
-	if self.Nonce != 0 {
-		return false
-	}
-	if self.Balance.Cmp(common.Big0) != 0 {
-		return false
-	}
-	if self.Root != common.ZeroHash {
-		return false
-	}
-	if len(self.CodeHash) != 0 {
-		return false
-	}
-	if len(self.StorageKeyPrefix) != 0 {
-		return false
-	}
-	return true
-}
-
 // newObject creates a state object.
-func newObject(db *StateDB, address common.Address, data Account) *stateObject {
+func newObject(db *StateDB, address common.Address, data types.StateAccount) *stateObject {
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -155,7 +127,7 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 
 // EncodeRLP implements rlp.Encoder.
 func (s *stateObject) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, s.data)
+	return rlp.Encode(w, &s.data)
 }
 
 // setError remembers the first non-nil error it is called with.
@@ -257,15 +229,35 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 		return value
 	}
 
-	// Track the amount of time wasted on reading the storage trie
-	if metrics.EnabledExpensive {
-		defer func(start time.Time) { s.db.StorageReads += time.Since(start) }(time.Now())
+	// If no live objects are available, attempt to use snapshots
+	var (
+		enc []byte
+		err error
+	)
+	if s.db.snap != nil {
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.db.SnapshotStorageReads += time.Since(start) }(time.Now())
+		}
+		// If the object was destructed in *this* block (and potentially resurrected),
+		// the storage has been cleared out, and we should *not* consult the previous
+		// snapshot about any storage values. The only possible alternatives are:
+		//   1) resurrect happened, and new slot values were set -- those should
+		//      have been handles via pendingStorage above.
+		//   2) we don't have new values, and can deliver empty response back
+		if _, destructed := s.db.snapDestructs[s.addrHash]; destructed {
+			return []byte{}
+		}
+		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key[:]))
 	}
-	// Otherwise load the valueKey from trie
-	enc, err := s.getTrie(db).TryGet(key[:])
-	if err != nil {
-		s.setError(err)
-		return []byte{}
+	// If snapshot unavailable or reading from it failed, load from the database
+	if s.db.snap == nil || err != nil {
+		if metrics.EnabledExpensive {
+			defer func(start time.Time) { s.db.StorageReads += time.Since(start) }(time.Now())
+		}
+		if enc, err = s.getTrie(db).TryGet(key[:]); err != nil {
+			s.setError(err)
+			return []byte{}
+		}
 	}
 	value := make([]byte, 0)
 	if len(enc) > 0 {
@@ -370,15 +362,23 @@ func (s *stateObject) updateTrie(db Database) Trie {
 	if len(s.pendingStorage) == 0 {
 		return s.trie
 	}
-
-	// Insert all the pending updates into the trie
-	tr := s.getTrie(db)
 	// Track the amount of time wasted on updating the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageUpdates += time.Since(start) }(time.Now())
 	}
+	// Retrieve the snapshot storage map for the object
+	var storage map[common.Hash][]byte
+	if s.db.snap != nil {
+		// Retrieve the old storage map, if available, create a new one otherwise
+		storage = s.db.snapStorage[s.addrHash]
+		if storage == nil {
+			storage = make(map[common.Hash][]byte)
+			s.db.snapStorage[s.addrHash] = storage
+		}
+	}
+	// Insert all the pending updates into the trie
+	tr := s.getTrie(db)
 	for key, value := range s.pendingStorage {
-
 		// Skip noop changes, persist actual changes
 		oldValue := s.originStorage[key]
 		if bytes.Equal(value, oldValue) {
@@ -387,14 +387,20 @@ func (s *stateObject) updateTrie(db Database) Trie {
 
 		s.originStorage[key] = value
 
+		var v []byte
 		if len(value) == 0 {
 			s.setError(tr.TryDelete([]byte(key)))
-			continue
+			s.db.StorageDeleted += 1
+		} else {
+			// Encoding []byte cannot fail, ok to ignore the error.
+			v, _ = rlp.EncodeToBytes(value[:])
+			s.setError(tr.TryUpdate([]byte(key), v))
+			s.db.StorageUpdated += 1
 		}
-
-		// Encoding []byte cannot fail, ok to ignore the error.
-		v, _ := rlp.EncodeToBytes(value)
-		s.setError(tr.TryUpdate([]byte(key), v))
+		// If state snapshotting is active, cache the data til commit
+		if storage != nil {
+			storage[crypto.Keccak256Hash([]byte(key))] = v // v will be nil if it's deleted
+		}
 	}
 
 	if len(s.pendingStorage) > 0 {
@@ -421,25 +427,25 @@ func (s *stateObject) updateRoot(db Database) {
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
-func (s *stateObject) CommitTrie(db Database) error {
+func (s *stateObject) CommitTrie(db Database) (int, error) {
 	// If nothing changed, don't bother with hashing anything
 	if s.updateTrie(db) == nil {
-		return nil
+		return 0, nil
 	}
 	if s.dbErr != nil {
-		return s.dbErr
+		return 0, s.dbErr
 	}
 
 	// Track the amount of time wasted on committing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, err := s.trie.Commit(nil)
+	root, committed, err := s.trie.Commit(nil)
 
 	if err == nil {
 		s.data.Root = root
 	}
-	return err
+	return committed, err
 }
 
 // AddBalance adds amount to s's balance.
@@ -477,9 +483,6 @@ func (s *stateObject) SetBalance(amount *big.Int) {
 func (s *stateObject) setBalance(amount *big.Int) {
 	s.data.Balance = amount
 }
-
-// Return the gas back to the origin. Used by the Virtual machine or Closures
-func (s *stateObject) ReturnGas(gas *big.Int) {}
 
 func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject := newObject(db, s.address, s.data)

@@ -19,10 +19,13 @@ package staking
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"strings"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -30,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -169,7 +171,7 @@ func (can *Candidate) IsEmpty() bool {
 }
 
 type CandidateBase struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	// bls public key
 	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
@@ -403,7 +405,7 @@ func (can *CandidateMutable) IsInvalidWithdrew() bool {
 
 // Display amount field using 0x hex
 type CandidateHex struct {
-	NodeId               discover.NodeID
+	NodeId               enode.IDv0
 	BlsPubKey            bls.PublicKeyHex
 	StakingAddress       common.Address
 	BenefitAddress       common.Address
@@ -577,7 +579,7 @@ type Validator struct {
 	ValidatorTerm   uint32 // Validator's term in the consensus round
 	StakingBlockNum uint64
 	NodeAddress     common.NodeAddress
-	NodeId          discover.NodeID
+	NodeId          enode.IDv0
 	BlsPubKey       bls.PublicKeyHex
 	Shares          *big.Int
 }
@@ -622,9 +624,9 @@ func (queue ValidatorQueue) String() string {
 	return "[" + strings.Join(arr, ",") + "]"
 }
 
-type CandidateMap map[discover.NodeID]*Candidate
+type CandidateMap map[enode.IDv0]*Candidate
 
-type NeedRemoveCans map[discover.NodeID]*Candidate
+type NeedRemoveCans map[enode.IDv0]*Candidate
 
 func (arr ValidatorQueue) ValidatorSort(removes NeedRemoveCans,
 	compare func(slashs NeedRemoveCans, c, can *Validator) int) {
@@ -756,15 +758,12 @@ func CompareDefault(removes NeedRemoveCans, left, right *Validator) int {
 //
 // What is the invalid ?  That are DuplicateSign and lowRatio&invalid and lowVersion and withdrew&NotInEpochValidators
 //
-//
-//
 // Invalid Status: From invalid to valid
 // ProgramVersion: From small to big
 // validaotorTerm: From big to small
 // Shares： From small to big
 // BlockNumber: From big to small
 // TxIndex: From big to small
-//
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -922,7 +921,7 @@ func (v ValidatorArray) String() string {
 
 type ValidatorEx struct {
 	//NodeAddress common.Address
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	// bls public key
 	BlsPubKey bls.PublicKeyHex
 	// The account used to initiate the staking
@@ -1034,7 +1033,7 @@ func (queue ValArrIndexQueue) String() string {
 // An item that exists for slash
 type SlashNodeItem struct {
 	// the nodeId will be slashed
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	// the amount of von with slashed
 	Amount *big.Int
 	// slash type
@@ -1069,7 +1068,7 @@ func (queue SlashQueue) String() string {
 // For historical node records.
 // Store historical node information and participate in hash calculation.
 type HistoryValidator struct {
-	NodeId    discover.NodeID
+	NodeId    enode.IDv0
 	BlsPubKey bls.PublicKeyHex
 }
 
@@ -1131,7 +1130,7 @@ func (hvl HistoryValidatorList) Hash() (common.Hash, error) {
 // Structure returned to the external caller.
 type HistoryValidatorEx struct {
 	Address   common.NodeAddress
-	NodeId    discover.NodeID
+	NodeId    enode.IDv0
 	BlsPubKey bls.PublicKeyHex
 }
 

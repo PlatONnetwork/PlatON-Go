@@ -37,12 +37,18 @@ var (
 	ErrWriteProtection          = errors.New("write protection")
 	ErrReturnDataOutOfBounds    = errors.New("return data out of bounds")
 	ErrGasUintOverflow          = errors.New("gas uint64 overflow")
-	ErrInvalidRetsub            = errors.New("invalid retsub")
-	ErrReturnStackExceeded      = errors.New("return stack limit reached")
-	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
-	ErrAbort                    = errors.New("vm exec abort")
-	ErrExecBadContract          = errors.New("exec bad contract")
-	ErrUnderPrice               = errors.New("gas price is lower than minimum")
+	ErrInvalidCode              = errors.New("invalid code: must not begin with 0xef")
+	ErrNonceUintOverflow        = errors.New("nonce uint64 overflow")
+
+	// errStopToken is an internal token indicating interpreter loop termination,
+	// never returned to outside callers.
+	errStopToken               = errors.New("stop token")
+	ErrInvalidRetsub           = errors.New("invalid retsub")
+	ErrReturnStackExceeded     = errors.New("return stack limit reached")
+	ErrNoCompatibleInterpreter = errors.New("no compatible interpreter")
+	ErrAbort                   = errors.New("vm exec abort")
+	ErrExecBadContract         = errors.New("exec bad contract")
+	ErrUnderPrice              = errors.New("gas price is lower than minimum")
 )
 
 // ErrStackUnderflow wraps an evm error when the items on the stack less

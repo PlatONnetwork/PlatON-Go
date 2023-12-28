@@ -63,26 +63,27 @@ func returnCommitterToPool(c *committer) {
 }
 
 // commit collapses a node down into a hash node and inserts it into the database
-func (c *committer) commit(n node, db *Database, force bool) (node, node, error) {
+func (c *committer) commit(n node, db *Database, force bool) (node, node, int, error) {
 	// If we're not storing the node, just hashing, use available cached data
 	if hash, dirty := n.cache(); len(hash) != 0 {
 		if !dirty {
 			switch n.(type) {
 			case *fullNode, *shortNode:
-				return hash, hash, nil
+				return hash, hash, 0, nil
 			default:
-				return hash, n, nil
+				return hash, n, 0, nil
 			}
 		}
 	}
+	var committed int
 	// Trie not processed yet or needs storage, walk the children
-	collapsed, cached, err := c.commitChildren(n, db)
+	collapsed, cached, committed, err := c.commitChildren(n, db)
 	if err != nil {
-		return hashNode{}, n, err
+		return hashNode{}, n, 0, err
 	}
 	hashed, err := c.store(collapsed, db, force)
 	if err != nil {
-		return hashNode{}, n, err
+		return hashNode{}, n, 0, err
 	}
 	// Cache the hash of the node for later reuse and remove
 	// the dirty flag in commit mode. It's fine to assign these values directly
@@ -97,11 +98,15 @@ func (c *committer) commit(n node, db *Database, force bool) (node, node, error)
 		*cn.flags.hash = cachedHash
 		*cn.flags.dirty = false
 	}
-	return hashed, cached, nil
+	return hashed, cached, committed + 1, nil
 }
 
-func (c *committer) commitChildren(original node, db *Database) (node, node, error) {
-	var err error
+func (c *committer) commitChildren(original node, db *Database) (node, node, int, error) {
+	var (
+		err            error
+		committed      int
+		childCommitted int
+	)
 
 	switch n := original.(type) {
 	case *shortNode:
@@ -111,12 +116,12 @@ func (c *committer) commitChildren(original node, db *Database) (node, node, err
 		cached.Key = common.CopyBytes(n.Key)
 
 		if _, ok := n.Val.(valueNode); !ok {
-			collapsed.Val, cached.Val, err = c.commit(n.Val, db, false)
+			collapsed.Val, cached.Val, committed, err = c.commit(n.Val, db, false)
 			if err != nil {
-				return original, original, err
+				return original, original, 0, err
 			}
 		}
-		return collapsed, cached, nil
+		return collapsed, cached, committed, nil
 
 	case *fullNode:
 		// Hash the full node's children, caching the newly hashed subtrees
@@ -124,18 +129,19 @@ func (c *committer) commitChildren(original node, db *Database) (node, node, err
 
 		for i := 0; i < 16; i++ {
 			if n.Children[i] != nil {
-				collapsed.Children[i], cached.Children[i], err = c.commit(n.Children[i], db, false)
+				collapsed.Children[i], cached.Children[i], childCommitted, err = c.commit(n.Children[i], db, false)
 				if err != nil {
-					return original, original, err
+					return original, original, 0, err
 				}
+				committed += childCommitted
 			}
 		}
 		cached.Children[16] = n.Children[16]
-		return collapsed, cached, nil
+		return collapsed, cached, committed, nil
 
 	default:
 		// Value and hash nodes don't have children so they're left as were
-		return n, original, nil
+		return n, original, 0, nil
 	}
 }
 
@@ -172,12 +178,12 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 		switch n := n.(type) {
 		case *shortNode:
 			if child, ok := n.Val.(valueNode); ok {
-				c.onleaf(nil, child, hash2)
+				c.onleaf(nil, nil, child, hash2)
 			}
 		case *fullNode:
 			for i := 0; i < 16; i++ {
 				if child, ok := n.Children[i].(valueNode); ok {
-					c.onleaf(nil, child, hash2)
+					c.onleaf(nil, nil, child, hash2)
 				}
 			}
 		}
@@ -191,8 +197,8 @@ func (c *committer) store(n node, db *Database, force bool) (node, error) {
 //
 // All node encoding must be done like this:
 //
-//     node.encode(h.encbuf)
-//     enc := h.encodedBytes()
+//	node.encode(h.encbuf)
+//	enc := h.encodedBytes()
 //
 // This convention exists because node.encode can only be inlined/escape-analyzed when
 // called on a concrete receiver type.

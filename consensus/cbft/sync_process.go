@@ -248,7 +248,7 @@ func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) 
 func (cbft *Cbft) OnGetPrepareBlock(id string, msg *protocols.GetPrepareBlock) error {
 	if msg.Epoch == cbft.state.Epoch() && msg.ViewNumber == cbft.state.ViewNumber() {
 		prepareBlock := cbft.state.PrepareBlockByIndex(msg.BlockIndex)
-		if prepareBlock != nil {
+		if prepareBlock != nil && prepareBlock.Signature.NotEmpty() {
 			cbft.log.Debug("Send PrepareBlock", "peer", id, "prepareBlock", prepareBlock.String())
 			cbft.network.Send(id, prepareBlock)
 		}
@@ -802,9 +802,11 @@ func (cbft *Cbft) BlockExists(blockNumber uint64, blockHash common.Hash) error {
 			return
 		}
 		block := cbft.blockTree.FindBlockByHash(blockHash)
-		if block = cbft.blockChain.GetBlock(blockHash, blockNumber); block == nil {
-			result <- fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
-			return
+		if block == nil {
+			if block = cbft.blockChain.GetBlock(blockHash, blockNumber); block == nil {
+				result <- fmt.Errorf("not found block by hash:%s, number:%d", blockHash.TerminalString(), blockNumber)
+				return
+			}
 		}
 		if block.Hash() != blockHash || blockNumber != block.NumberU64() {
 			result <- fmt.Errorf("not match from block, hash:%s, number:%d, queriedHash:%s, queriedNumber:%d",
@@ -907,5 +909,4 @@ func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash c
 		cbft.network.Send(id, msg)
 		cbft.log.Debug("Send GetBlockQuorumCert", "peer", id, "msg", msg.String())
 	}
-
 }

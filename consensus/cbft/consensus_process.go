@@ -43,10 +43,6 @@ import (
 // Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	cbft.log.Debug("Receive PrepareBlock", "id", id, "msg", msg.String())
-	if err := cbft.VerifyHeader(nil, msg.Block.Header(), false); err != nil {
-		cbft.log.Error("Verify header fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
-		return err
-	}
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		blockCheckFailureMeter.Mark(1)
 
@@ -88,6 +84,11 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			cbft.log.Debug("Receive new view's block, change view", "newEpoch", msg.Epoch, "newView", msg.ViewNumber)
 			cbft.changeView(msg.Epoch, msg.ViewNumber, block, qc, msg.ViewChangeQC)
 		}
+	}
+
+	if err := cbft.VerifyHeader(cbft.blockChain, msg.Block.Header(), false); err != nil {
+		cbft.log.Error("Verify header fail", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", err)
+		return err
 	}
 
 	if _, err := cbft.verifyConsensusMsg(msg); err != nil {
@@ -220,10 +221,9 @@ func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCer
 	if len(blocks) != len(qcs) {
 		return fmt.Errorf("block qc is inconsistent")
 	}
-	//todo insert tree, update view
+
 	for i := 0; i < len(blocks); i++ {
 		block, qc := blocks[i], qcs[i]
-		//todo verify qc
 
 		if err := cbft.safetyRules.QCBlockRules(block, qc); err != nil {
 			if err.NewView() {
@@ -307,7 +307,7 @@ func (cbft *Cbft) insertPrepareQC(qc *ctypes.QuorumCert) {
 			return false
 		}
 		hasExecuted := func() bool {
-			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.NodeID) {
+			if cbft.validatorPool.IsValidator(qc.Epoch, cbft.config.Option.Node.ID()) {
 				return cbft.state.HadSendPrepareVote().Had(qc.BlockIndex) && linked(qc.BlockNumber)
 			} else if cbft.validatorPool.IsCandidateNode(cbft.config.Option.NodeID) {
 				blockIndex, finish := cbft.state.Executing()
@@ -337,7 +337,7 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 				if cbft.executeFinishHook != nil {
 					cbft.executeFinishHook(index)
 				}
-				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+				_, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 				if err != nil {
 					cbft.log.Debug("Current node is not validator,no need to sign block", "err", err, "hash", s.Hash, "number", s.Number)
 					return
@@ -361,7 +361,9 @@ func (cbft *Cbft) onAsyncExecuteStatus(s *executor.BlockExecuteStatus) {
 // Sign the block that has been executed
 // Every time try to trigger a send PrepareVote
 func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) error {
-	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	// parentQC added when sending
+	// Determine if the current consensus node is
+	node, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 	if err != nil {
 		return err
 	}
@@ -417,7 +419,7 @@ func (cbft *Cbft) trySendPrepareVote() {
 			p.ParentQC = qc
 			hadSend.Push(p)
 			//Determine if the current consensus node is
-			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+			node, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 			cbft.log.Info("Add local prepareVote", "vote", p.String())
 			cbft.state.AddPrepareVote(node.Index, p)
 			pending.Pop()

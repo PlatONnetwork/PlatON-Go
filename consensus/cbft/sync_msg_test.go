@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
@@ -358,7 +357,7 @@ func (suit *SyncMsgTestSuite) TestOnGetQCBlockListDifNumber() {
 func (suit *SyncMsgTestSuite) TestOnGetPrepareVote() {
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Node.ID())
 		if err != nil {
 			panic(err.Error())
 		}
@@ -392,7 +391,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotes() {
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Node.ID())
 		if err != nil {
 			panic(err.Error())
 		}
@@ -417,7 +416,7 @@ func (suit *SyncMsgTestSuite) TestOnPrepareVotesDup() {
 	suit.view.firstProposer().state.AddPrepareBlock(pb)
 	votes := make([]*protocols.PrepareVote, 0)
 	for _, node := range suit.view.allCbft {
-		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.NodeID)
+		index, err := node.validatorPool.GetIndexByNodeID(suit.epoch, node.config.Option.Node.ID())
 		if err != nil {
 			panic(err.Error())
 		}

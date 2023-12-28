@@ -23,7 +23,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -75,7 +76,7 @@ var (
 	// This is the content of the genesis block used by the benchmarks.
 	benchRootKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	benchRootAddr   = crypto.PubkeyToAddress(benchRootKey.PublicKey)
-	benchRootFunds  = math.BigPow(2, 100)
+	benchRootFunds  = math.BigPow(2, 200)
 )
 
 // genValueTx returns a block generator that includes a single
@@ -85,8 +86,20 @@ func genValueTx(nbytes int) func(int, *BlockGen) {
 	return func(i int, gen *BlockGen) {
 		toaddr := common.Address{}
 		data := make([]byte, nbytes)
-		gas, _ := IntrinsicGas(data, false, mock.NewMockStateDB())
-		tx, _ := types.SignTx(types.NewTransaction(gen.TxNonce(benchRootAddr), toaddr, big.NewInt(1), gas, nil, data), types.NewEIP155Signer(new(big.Int)), benchRootKey)
+		gas, _ := IntrinsicGas(data, nil, false)
+		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), false)
+		gasPrice := big.NewInt(0)
+		if gen.header.BaseFee != nil {
+			gasPrice = gen.header.BaseFee
+		}
+		tx, _ := types.SignNewTx(benchRootKey, signer, &types.LegacyTx{
+			Nonce:    gen.TxNonce(benchRootAddr),
+			To:       &toaddr,
+			Value:    big.NewInt(1),
+			Gas:      gas,
+			Data:     data,
+			GasPrice: gasPrice,
+		})
 		gen.AddTx(tx)
 	}
 }
@@ -110,24 +123,38 @@ func init() {
 // and fills the blocks with many small transactions.
 func genTxRing(naccounts int) func(int, *BlockGen) {
 	from := 0
+	availableFunds := new(big.Int).Set(benchRootFunds)
 	return func(i int, gen *BlockGen) {
 		block := gen.PrevBlock(i - 1)
-		gas := CalcGasLimit(block, block.GasLimit() /*, block.GasLimit()*/)
+		gas := block.GasLimit()
+		gasPrice := big.NewInt(0)
+		if gen.header.BaseFee != nil {
+			gasPrice = gen.header.BaseFee
+		}
+		signer := types.MakeSigner(gen.config, big.NewInt(int64(i)), false)
 		for {
 			gas -= params.TxGas
 			if gas < params.TxGas {
 				break
 			}
 			to := (from + 1) % naccounts
-			tx := types.NewTransaction(
-				gen.TxNonce(ringAddrs[from]),
-				ringAddrs[to],
-				benchRootFunds,
-				params.TxGas,
-				nil,
-				nil,
-			)
-			tx, _ = types.SignTx(tx, types.NewEIP155Signer(new(big.Int)), ringKeys[from])
+			burn := new(big.Int).SetUint64(params.TxGas)
+			burn.Mul(burn, gen.header.BaseFee)
+			availableFunds.Sub(availableFunds, burn)
+			if availableFunds.Cmp(big.NewInt(1)) < 0 {
+				panic("not enough funds")
+			}
+			tx, err := types.SignNewTx(ringKeys[from], signer,
+				&types.LegacyTx{
+					Nonce:    gen.TxNonce(ringAddrs[from]),
+					To:       &ringAddrs[to],
+					Value:    availableFunds,
+					Gas:      params.TxGas,
+					GasPrice: gasPrice,
+				})
+			if err != nil {
+				panic(err)
+			}
 			gen.AddTx(tx)
 			from = to
 		}
@@ -136,17 +163,16 @@ func genTxRing(naccounts int) func(int, *BlockGen) {
 
 func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Create the database in memory or in a temporary directory.
-	// TODO test
-	/*var db ethdb.Database
+	var db ethdb.Database
 	if !disk {
-		db = ethdb.NewMemDatabase()
+		db = rawdb.NewMemoryDatabase()
 	} else {
 		dir, err := ioutil.TempDir("", "eth-core-bench")
 		if err != nil {
 			b.Fatalf("cannot create temporary directory: %v", err)
 		}
 		defer os.RemoveAll(dir)
-		db, err = ethdb.NewLDBDatabase(dir, 128, 128)
+		db, err = rawdb.NewLevelDBDatabase(dir, 128, 128, "", false)
 		if err != nil {
 			b.Fatalf("cannot create temporary database: %v", err)
 		}
@@ -164,13 +190,13 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 
 	// Time the insertion of the new chain.
 	// State and blocks are stored in the same DB.
-	chainman, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vm.Config{}, nil)
+	chainman, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vm.Config{}, nil, nil)
 	defer chainman.Stop()
 	b.ReportAllocs()
 	b.ResetTimer()
 	if i, err := chainman.InsertChain(chain); err != nil {
 		b.Fatalf("insert error (block %d): %v\n", i, err)
-	}*/
+	}
 }
 
 func BenchmarkChainRead_header_10k(b *testing.B) {
@@ -231,6 +257,7 @@ func makeChainForBench(db ethdb.Database, full bool, count uint64) {
 			block := types.NewBlockWithHeader(header)
 			rawdb.WriteBody(db, hash, n, block.Body())
 			rawdb.WriteReceipts(db, hash, n, nil)
+			rawdb.WriteHeadBlockHash(db, hash)
 		}
 	}
 }
@@ -241,7 +268,7 @@ func benchWriteChain(b *testing.B, full bool, count uint64) {
 		if err != nil {
 			b.Fatalf("cannot create temporary directory: %v", err)
 		}
-		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "")
+		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
@@ -252,29 +279,29 @@ func benchWriteChain(b *testing.B, full bool, count uint64) {
 }
 
 func benchReadChain(b *testing.B, full bool, count uint64) {
-	// TODO test
-	/*dir, err := ioutil.TempDir("", "eth-chain-bench")
+	dir, err := ioutil.TempDir("", "eth-chain-bench")
 	if err != nil {
 		b.Fatalf("cannot create temporary directory: %v", err)
 	}
 	defer os.RemoveAll(dir)
 
-	db, err := ethdb.NewLDBDatabase(dir, 128, 1024)
+	db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
 	if err != nil {
 		b.Fatalf("error opening database at %v: %v", dir, err)
 	}
 	makeChainForBench(db, full, count)
 	db.Close()
+	cacheConfig := *defaultCacheConfig
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		db, err := ethdb.NewLDBDatabase(dir, 128, 1024)
+		db, err := rawdb.NewLevelDBDatabase(dir, 128, 1024, "", false)
 		if err != nil {
 			b.Fatalf("error opening database at %v: %v", dir, err)
 		}
-		chain, err := NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFaker(), vm.Config{}, nil)
+		chain, err := NewBlockChain(db, &cacheConfig, params.TestChainConfig, consensus.NewFaker(), vm.Config{}, nil, nil)
 		if err != nil {
 			b.Fatalf("error creating chain: %v", err)
 		}
@@ -284,10 +311,10 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 			if full {
 				hash := header.Hash()
 				rawdb.ReadBody(db, hash, n)
-				rawdb.ReadReceipts(db, hash, n)
+				rawdb.ReadReceipts(db, hash, n, chain.Config())
 			}
 		}
 		chain.Stop()
 		db.Close()
-	}*/
+	}
 }

@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -32,7 +34,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -57,7 +58,7 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 			return nil, err
 		}
 		addr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 		canTmp := &staking.Candidate{
 			CandidateBase: &staking.CandidateBase{
 				NodeId:         nodeId,
@@ -453,7 +454,7 @@ func TestSaveRewardDelegateRewardPer(t *testing.T) {
 	}, nil, nil)
 
 	type delegateInfo struct {
-		nodeID                                            discover.NodeID
+		nodeID                                            enode.IDv0
 		stakingNum                                        uint64
 		currentReward, totalDelegateReward, totalDelegate *big.Int
 	}
@@ -574,7 +575,7 @@ func TestAllocatePackageBlock(t *testing.T) {
 		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, gov.Gte130VersionState(chain.StateDB)); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, true); err != nil {
 			return err
 		}
 		return nil
@@ -690,7 +691,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	if nil != err {
 		panic(err)
 	}
-	nodeID, add := discover.PubkeyID(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
+	nodeID, add := enode.PublicKeyToIDv0(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
 	canBase.BenefitAddress = add
 	canBase.NodeId = nodeID
 	canBase.StakingBlockNum = 100
@@ -751,7 +752,7 @@ func TestRewardMgrPlugin_GetDelegateReward(t *testing.T) {
 		if err := stkDB.SetCanMutableStore(hash, queue[0].NodeAddress, can.CandidateMutable); err != nil {
 			return err
 		}
-		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, gov.Gte130VersionState(chain.StateDB)); err != nil {
+		if err := stkDB.SetDelegateStore(hash, delegateRewardAdd, can.CandidateBase.NodeId, can.CandidateBase.StakingBlockNum, &delegate, true); err != nil {
 			return err
 		}
 		return nil

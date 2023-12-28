@@ -8,7 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/wagon/exec"
-	"github.com/PlatONnetwork/wagon/validate"
+	wagonValidate "github.com/PlatONnetwork/wagon/validate"
 	"github.com/PlatONnetwork/wagon/wasm"
 )
 
@@ -25,7 +25,7 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 	}
 
 	if verify {
-		err = validate.VerifyModule(m)
+		err = wagonValidate.VerifyModule(m)
 		if err != nil {
 			return nil, err
 		}

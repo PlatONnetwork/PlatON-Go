@@ -318,7 +318,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
-	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, gov.Gte120VersionState(state), gov.Gte140VersionState(state)), block)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, block.Number(), gov.Gte150VersionState(state)), block)
 	if err != nil {
 		return errors.New("execute block error")
 	}
@@ -328,7 +328,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 	t := time.Now()
 	//to execute
 	receipts, err := bcc.ProcessDirectly(block, state, parent)
-	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(),
+	log.Debug("Execute block", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Root().String(),
 		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
@@ -336,6 +336,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
 		bcc.WriteStateDB(sealHash, state, block.NumberU64())
 		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
+		state.UpdateSnaps()
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
@@ -369,7 +370,7 @@ func (bcc *BlockChainCache) WriteBlock(block *types.Block) error {
 	// Commit block and state to database.
 	//block.SetExtraData(extraData)
 	log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
-	_, err := bcc.WriteBlockWithState(block, _receipts, nil, state, true)
+	_, err := bcc.WriteBlockWithState(block, _receipts, nil, state, true, nil)
 	if err != nil {
 		log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
 		return fmt.Errorf("failed writing block to chain, number:%d, hash:%s, err:%s", block.NumberU64(), block.Hash().String(), err.Error())

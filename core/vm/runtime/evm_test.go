@@ -44,7 +44,7 @@ func TestEVMCallError(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		vmenv  = NewEVMWithCtx(cfg)
@@ -64,7 +64,7 @@ func baseConfig(cfg *Config) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -175,7 +175,7 @@ func TestCreate(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
@@ -204,7 +204,7 @@ func TestCreate(t *testing.T) {
 		code,
 		cfg.GasLimit,
 		cfg.Value,
-		uint256.NewInt().SetBytes(cfg.Value.Bytes()),
+		new(uint256.Int).SetBytes(cfg.Value.Bytes()),
 	)
 	vmenv.Create(
 		sender,
@@ -281,7 +281,7 @@ func TestOthers(t *testing.T) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		vmenv = NewEVMWithCtx(cfg)

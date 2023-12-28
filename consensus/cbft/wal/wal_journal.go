@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package wal
 
 import (
@@ -156,14 +155,14 @@ func (journal *journal) mainLoop(syncLoopDuration time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
+			journal.mu.Lock()
 			if journal.writer != nil {
 				log.Trace("Rotate timer trigger")
-				journal.mu.Lock()
 				if err := journal.rotate(journalLimitSize); err != nil {
 					log.Error("Failed to rotate cbft journal", "err", err)
 				}
-				journal.mu.Unlock()
 			}
+			journal.mu.Unlock()
 
 		case <-journal.exitCh:
 			return

@@ -19,8 +19,11 @@ package node
 import (
 	"crypto/ecdsa"
 	"encoding/hex"
-	"golang.org/x/crypto/sha3"
 	"sync"
+
+	"golang.org/x/crypto/sha3"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
@@ -28,7 +31,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -71,13 +73,13 @@ func (chandler *CryptoHandler) MustSign(data interface{}) []byte {
 	return sig
 }
 
-func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeID discover.NodeID) bool {
+func (chandler *CryptoHandler) IsSignedByNodeID(data interface{}, sig []byte, nodeID enode.IDv0) bool {
 	pubKey, err := crypto.SigToPub(RlpHash(data).Bytes(), sig)
 	if err != nil {
 		log.Error("Check if the signature is signed by a node", "err", err)
 		return false
 	}
-	id := discover.PubkeyID(pubKey)
+	id := enode.PublicKeyToIDv0(pubKey)
 
 	if id == nodeID {
 		return true

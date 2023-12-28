@@ -19,6 +19,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -63,11 +64,13 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
 	var (
-		receipts types.Receipts
-		usedGas  = new(uint64)
-		header   = block.Header()
-		allLogs  []*types.Log
-		gp       = new(GasPool).AddGas(block.GasLimit())
+		receipts    types.Receipts
+		usedGas     = new(uint64)
+		header      = block.Header()
+		blockHash   = block.Hash()
+		blockNumber = block.Number()
+		allLogs     []*types.Log
+		gp          = new(GasPool).AddGas(block.GasLimit())
 	)
 	blockContext := NewEVMBlockContext(header, p.bc)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, p.config, cfg)
@@ -82,14 +85,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
-		msg, err := tx.AsMessage(types.MakeSigner(p.config, gov.Gte120VersionState(statedb), gov.Gte140VersionState(statedb)))
+		msg, err := tx.AsMessage(types.MakeSigner(p.config, header.Number, gov.Gte150VersionState(statedb)), header.BaseFee)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, 0, fmt.Errorf("could not apply tx %d [%v]: %w", i, tx.Hash().Hex(), err)
 		}
-		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		//preUsedGas := uint64(0)
-
-		receipt, err := applyTransaction(msg, p.config, p.bc, gp, statedb, header, tx, usedGas, vmenv)
+		statedb.Prepare(tx.Hash(), i)
+		receipt, err := applyTransaction(msg, p.config, p.bc, gp, statedb, blockNumber, blockHash, tx, usedGas, vmenv)
 		if err != nil {
 			log.Error("Failed to execute tx on StateProcessor", "blockNumber", block.Number(),
 				"blockHash", block.Hash().TerminalString(), "txHash", tx.Hash().String(), "err", err)
@@ -115,35 +116,40 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	return receipts, allLogs, *usedGas, nil
 }
 
-func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {
-	// Create a new context to be used in the EVM environment
+func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {
+	// Create a new context to be used in the EVM environment.
 	txContext := NewEVMTxContext(msg)
-	// Add addresses to access list if applicable
-	log.Trace("execute tx start", "blockNumber", header.Number, "txHash", tx.Hash().String())
-
-	// Update the evm with the new transaction context.
 	evm.Reset(txContext, statedb)
-	// Apply the transaction to the current state (included in the env)
+
+	// Apply the transaction to the current state (included in the env).
 	result, err := ApplyMessage(evm, msg, gp)
 	if err != nil {
 		return nil, err
 	}
-	// Update the state with pending changes
+
+	// Update the state with pending changes.
 	statedb.Finalise(true)
 
 	var root []byte
 	*usedGas += result.UsedGas
 
-	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
-	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := types.NewReceipt(root, result.Failed(), *usedGas)
+	// Create a new receipt for the transaction, storing the intermediate root and gas used
+	// by the tx.
+	receipt := &types.Receipt{Type: tx.Type(), PostState: root, CumulativeGasUsed: *usedGas}
+	if result.Failed() {
+		receipt.Status = types.ReceiptStatusFailed
+	} else {
+		receipt.Status = types.ReceiptStatusSuccessful
+	}
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
-	// if the transaction created a contract, store the creation address in the receipt.
+
+	// If the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())
 	}
-	// Set the receipt logs
+
+	// Set the receipt logs and create the bloom filter.
 	if result.Failed() {
 		if bizError, ok := result.Err.(*common.BizError); ok {
 			buf := new(bytes.Buffer)
@@ -153,23 +159,23 @@ func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainCon
 				return nil, err
 			}
 			receipt.Logs = []*types.Log{
-				&types.Log{
+				{
 					Address:     *msg.To(),
 					Topics:      nil,
 					Data:        buf.Bytes(),
-					BlockNumber: header.Number.Uint64(),
+					BlockNumber: blockNumber.Uint64(),
 				},
 			}
 		} else {
-			receipt.Logs = statedb.GetLogs(tx.Hash())
+			receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
 		}
 	} else {
-		receipt.Logs = statedb.GetLogs(tx.Hash())
+		receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
 	}
-	//create a bloom for filtering
+	// create a bloom for filtering
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	receipt.BlockHash = statedb.BlockHash()
-	receipt.BlockNumber = header.Number
+	receipt.BlockHash = blockHash
+	receipt.BlockNumber = blockNumber
 	receipt.TransactionIndex = uint(statedb.TxIndex())
 	return receipt, err
 }
@@ -179,12 +185,12 @@ func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainCon
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
 func ApplyTransaction(config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
-	msg, err := tx.AsMessage(types.MakeSigner(config, gov.Gte120VersionState(statedb), gov.Gte140VersionState(statedb)))
+	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number, gov.Gte150VersionState(statedb)), header.BaseFee)
 	if err != nil {
 		return nil, err
 	}
 	// Create a new context to be used in the EVM environment
 	blockContext := NewEVMBlockContext(header, bc)
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, config, cfg)
-	return applyTransaction(msg, config, bc, gp, statedb, header, tx, usedGas, vmenv)
+	return applyTransaction(msg, config, bc, gp, statedb, header.Number, header.Hash(), tx, usedGas, vmenv)
 }

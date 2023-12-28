@@ -19,6 +19,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -51,6 +52,7 @@ type Database interface {
 	CopyTrie(Trie) Trie
 
 	NewTrie(t Trie) Trie
+
 	// ContractCode retrieves a particular contract's code.
 	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
 
@@ -64,9 +66,13 @@ type Database interface {
 // Trie is a Ethereum Merkle Trie.
 type Trie interface {
 	TryGet(key []byte) ([]byte, error)
+
+	// TryUpdateAccount abstract an account write in the trie.
+	TryUpdateAccount(key []byte, account *types.StateAccount) error
+
 	TryUpdate(key, value []byte) error
 	TryDelete(key []byte) error
-	Commit(onleaf trie.LeafCallback) (common.Hash, error)
+	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
@@ -74,9 +80,8 @@ type Trie interface {
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
-// concurrent use and retains cached trie nodes in memory. The pool is an optional
-// intermediate trie-node memory pool between the low level storage layer and the
-// high level trie abstraction.
+// concurrent use and retains a few recent expanded trie nodes in memory. To keep
+// more historical state in memory, use the NewDatabaseWithCache constructor.
 func NewDatabase(db ethdb.Database) Database {
 	return NewDatabaseWithConfig(db, nil)
 }
@@ -96,7 +101,7 @@ type cachingDB struct {
 	codeCache     *fastcache.Cache
 }
 
-//OpenTrie opens the main account trie.
+// OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	return trie.NewSecure(root, db.db)
 }

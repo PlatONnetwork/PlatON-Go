@@ -171,7 +171,7 @@ type Backend interface {
 // TextHash is a helper function that calculates a hash for the given message that can be
 // safely used to calculate a signature from.
 //
-// The hash is calulcated as
+// The hash is calculated as
 //
 //	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
@@ -184,7 +184,7 @@ func TextHash(data []byte) []byte {
 // TextAndHash is a helper function that calculates a hash for the given message that can be
 // safely used to calculate a signature from.
 //
-// The hash is calulcated as
+// The hash is calculated as
 //
 //	keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //

@@ -19,7 +19,7 @@ package node
 import (
 	"crypto/ecdsa"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 var FakeNetEnable bool = false
@@ -38,9 +38,9 @@ var indexMock = map[int][]int{
 }
 
 // MockDiscoveryNode returns to a specific network topology.
-func MockDiscoveryNode(privateKey *ecdsa.PrivateKey, nodes []*discover.Node) []*discover.Node {
-	selfNodeID := discover.PubkeyID(&privateKey.PublicKey)
-	mockNodes := make([]*discover.Node, 0)
+func MockDiscoveryNode(privateKey *ecdsa.PrivateKey, nodes []*enode.Node) []*enode.Node {
+	selfNodeID := enode.PubkeyToIDV4(&privateKey.PublicKey)
+	mockNodes := make([]*enode.Node, 0)
 	ok, idxs := needAdd(selfNodeID, nodes)
 	for idx, n := range nodes {
 		if idxs == nil {
@@ -57,10 +57,10 @@ func MockDiscoveryNode(privateKey *ecdsa.PrivateKey, nodes []*discover.Node) []*
 }
 
 // mock
-func needAdd(self discover.NodeID, nodes []*discover.Node) (bool, []int) {
+func needAdd(self enode.ID, nodes []*enode.Node) (bool, []int) {
 	selfIndex := -1
 	for idx, n := range nodes {
-		if n.ID.TerminalString() == self.TerminalString() {
+		if n.ID().TerminalString() == self.TerminalString() {
 			selfIndex = idx
 			break
 		}
