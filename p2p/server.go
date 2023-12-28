@@ -395,6 +395,11 @@ func (srv *Server) RemoveConsensusPeer(node *enode.Node) {
 	}
 }
 
+func (srv *Server) CloseConsensusDial() {
+	srv.dialsched.closeConsensusDial()
+	srv.log.Info("close consensus Dial")
+}
+
 // AddTrustedPeer adds the given node to a reserved whitelist which allows the
 // node to always connect, even if the slot are full.
 func (srv *Server) AddTrustedPeer(node *enode.Node) {
