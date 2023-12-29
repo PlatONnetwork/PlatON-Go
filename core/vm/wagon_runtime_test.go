@@ -186,7 +186,7 @@ var testCase = []*Case{
 		},
 		funcName: "platon_caller_test",
 		init: func(self *Case, t *testing.T) {
-			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_0_11_0, ActiveBlock: 1}
+			curAv := gov.ActiveVersionValue{ActiveVersion: params.FORKVERSION_1_1_0, ActiveBlock: 1}
 			avList := []gov.ActiveVersionValue{curAv}
 			avListBytes, _ := json.Marshal(avList)
 			self.ctx.evm.StateDB.SetState(vm.GovContractAddr, gov.KeyActiveVersions(), avListBytes)
@@ -846,7 +846,6 @@ var testCase = []*Case{
 				StateDB: &mock.MockStateDB{
 					Thash:   common.Hash{1, 1, 1, 1},
 					TxIndex: 1,
-					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
 						addr1: big.NewInt(2000),
 						addr2: big.NewInt(1000),
@@ -870,7 +869,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
@@ -916,7 +915,6 @@ var testCase = []*Case{
 				StateDB: &mock.MockStateDB{
 					Thash:   common.Hash{1, 1, 1, 1},
 					TxIndex: 1,
-					Bhash:   common.Hash{2, 2, 2, 2},
 					Balance: map[common.Address]*big.Int{
 						addr1: big.NewInt(2000),
 						addr2: big.NewInt(1000),
@@ -940,7 +938,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}

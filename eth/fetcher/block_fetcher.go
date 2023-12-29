@@ -19,9 +19,10 @@ package fetcher
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"math/rand"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -38,7 +39,7 @@ const (
 )
 
 const (
-	maxUncleDist = 7   // Maximum allowed backward distance from the chain head
+	minQueueDist = 0   // minimum allowed distance from the chain head to queue
 	maxQueueDist = 32  // Maximum allowed distance from the chain head to queue
 	hashLimit    = 256 // Maximum number of unique blocks a peer may have announced
 	blockLimit   = 64  // Maximum number of unique blocks a peer may have delivered
@@ -342,7 +343,7 @@ func (f *BlockFetcher) loop() {
 				break
 			}
 			// Otherwise if fresh and still unknown, try and import
-			if number+maxUncleDist < height || f.getBlock(hash) != nil {
+			if number+minQueueDist <= height || f.getBlock(hash) != nil {
 				f.forgetBlock(hash)
 				continue
 			}
@@ -364,9 +365,12 @@ func (f *BlockFetcher) loop() {
 				blockAnnounceDOSMeter.Mark(1)
 				break
 			}
+			if notification.number == 0 {
+				break
+			}
 			// If we have a valid block number, check that it's potentially useful
 			if notification.number > 0 {
-				if dist := int64(notification.number) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+				if dist := int64(notification.number) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
 					log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
 					blockAnnounceDropMeter.Mark(1)
 					break
@@ -554,50 +558,51 @@ func (f *BlockFetcher) loop() {
 				return
 			}
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
-
 			blocks := []*types.Block{}
-			for i := 0; i < len(task.transactions) && i < len(task.extraData); i++ {
-				// Match up a body to any possible completion request
-				matched := false
+			// abort early if there's nothing explicitly requested
+			if len(f.completing) > 0 {
+				for i := 0; i < len(task.transactions) && i < len(task.extraData); i++ {
+					// Match up a body to any possible completion request
+					matched := false
 
-				for hash, announce := range f.completing {
-					if f.queued[hash] == nil {
-						equalExtra := func() bool {
-							if len(task.extraData[i]) == 0 {
-								return true
+					for hash, announce := range f.completing {
+						if f.queued[hash] == nil {
+							equalExtra := func() bool {
+								if len(task.extraData[i]) == 0 {
+									return true
+								}
+								bh, _, err := f.decodeExtra(task.extraData[i])
+								return err == nil && hash == bh
+							}()
+
+							if !equalExtra {
+								continue
 							}
-							bh, _, err := f.decodeExtra(task.extraData[i])
-							return err == nil && hash == bh
-						}()
 
-						if !equalExtra {
-							continue
-						}
+							txnHash := types.DeriveSha(types.Transactions(task.transactions[i]), new(trie.Trie))
+							if txnHash == announce.header.TxHash && announce.origin == task.peer {
+								// Mark the body matched, reassemble if still unknown
+								matched = true
 
-						txnHash := types.DeriveSha(types.Transactions(task.transactions[i]), new(trie.Trie))
-						if txnHash == announce.header.TxHash && announce.origin == task.peer {
-							// Mark the body matched, reassemble if still unknown
-							matched = true
+								if f.getBlock(hash) == nil {
+									block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i])
+									block.ReceivedAt = task.time
 
-							if f.getBlock(hash) == nil {
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i])
-								block.ReceivedAt = task.time
-
-								blocks = append(blocks, block)
-							} else {
-								f.forgetHash(hash)
+									blocks = append(blocks, block)
+								} else {
+									f.forgetHash(hash)
+								}
 							}
 						}
 					}
-				}
-				if matched {
-					task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
-					task.extraData = append(task.extraData[:i], task.extraData[i+1:]...)
-					i--
-					continue
+					if matched {
+						task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
+						task.extraData = append(task.extraData[:i], task.extraData[i+1:]...)
+						i--
+						continue
+					}
 				}
 			}
-
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
 			select {
 			case task.result <- task:
@@ -660,7 +665,7 @@ func (f *BlockFetcher) enqueue(peer string, block *types.Block) {
 		return
 	}
 	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < -maxUncleDist || dist > maxQueueDist {
+	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
 		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
 		blockBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
@@ -738,20 +743,22 @@ func (f *BlockFetcher) insert(peer string, block *types.Block) {
 // internal state.
 func (f *BlockFetcher) forgetHash(hash common.Hash) {
 	// Remove all pending announces and decrement DOS counters
-	for _, announce := range f.announced[hash] {
-		f.announces[announce.origin]--
-		if f.announces[announce.origin] == 0 {
-			delete(f.announces, announce.origin)
+	if announceMap, ok := f.announced[hash]; ok {
+		for _, announce := range announceMap {
+			f.announces[announce.origin]--
+			if f.announces[announce.origin] <= 0 {
+				delete(f.announces, announce.origin)
+			}
 		}
-	}
-	delete(f.announced, hash)
-	if f.announceChangeHook != nil {
-		f.announceChangeHook(hash, false)
+		delete(f.announced, hash)
+		if f.announceChangeHook != nil {
+			f.announceChangeHook(hash, false)
+		}
 	}
 	// Remove any pending fetches and decrement the DOS counters
 	if announce := f.fetching[hash]; announce != nil {
 		f.announces[announce.origin]--
-		if f.announces[announce.origin] == 0 {
+		if f.announces[announce.origin] <= 0 {
 			delete(f.announces, announce.origin)
 		}
 		delete(f.fetching, hash)
@@ -760,7 +767,7 @@ func (f *BlockFetcher) forgetHash(hash common.Hash) {
 	// Remove any pending completion requests and decrement the DOS counters
 	for _, announce := range f.fetched[hash] {
 		f.announces[announce.origin]--
-		if f.announces[announce.origin] == 0 {
+		if f.announces[announce.origin] <= 0 {
 			delete(f.announces, announce.origin)
 		}
 	}
@@ -769,7 +776,7 @@ func (f *BlockFetcher) forgetHash(hash common.Hash) {
 	// Remove any pending completions and decrement the DOS counters
 	if announce := f.completing[hash]; announce != nil {
 		f.announces[announce.origin]--
-		if f.announces[announce.origin] == 0 {
+		if f.announces[announce.origin] <= 0 {
 			delete(f.announces, announce.origin)
 		}
 		delete(f.completing, hash)

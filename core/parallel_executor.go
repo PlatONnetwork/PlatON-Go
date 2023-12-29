@@ -1,10 +1,13 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
 	"time"
+
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -12,6 +15,7 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -27,16 +31,12 @@ const (
 var (
 	executorOnce sync.Once
 	executor     Executor
-	EIP155Signer types.Signer
-	PIP7Signer   types.Signer
-	PIP11Signer  types.Signer
 )
 
 type Executor struct {
 	chainContext ChainContext
 	chainConfig  *params.ChainConfig
 	vmCfg        vm.Config
-	signer       types.Signer
 
 	workerPool *ants.PoolWithFunc
 	txpool     *TxPool
@@ -62,10 +62,7 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		})
 		executor.chainConfig = chainConfig
 		executor.chainContext = chainContext
-		EIP155Signer = types.MakeSigner(chainConfig, false, false)
-		PIP7Signer = types.MakeSigner(chainConfig, true, false)
-		PIP11Signer = types.MakeSigner(chainConfig, true, true)
-		executor.signer = EIP155Signer
+
 		executor.vmCfg = vmCfg
 		executor.txpool = txpool
 	})
@@ -75,25 +72,9 @@ func GetExecutor() *Executor {
 	return &executor
 }
 
-func (exe *Executor) MakeSigner(stateDB *state.StateDB) types.Signer {
-	gte140 := gov.Gte140VersionState(stateDB)
-	if gte140 {
-		exe.signer = PIP11Signer
-	} else if gov.Gte120VersionState(stateDB) {
-		exe.signer = PIP7Signer
-	} else {
-		exe.signer = EIP155Signer
-	}
-	return exe.signer
-}
-
-func (exe *Executor) Signer() types.Signer {
-	return exe.signer
-}
-
 func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	if len(ctx.txList) > 0 {
-		txDag := NewTxDag(exe.Signer())
+		txDag := NewTxDag(ctx.signer)
 		start := time.Now()
 		// load tx fromAddress from txpool by txHash
 		if err := txDag.MakeDagGraph(ctx, exe); err != nil {
@@ -121,14 +102,14 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 							break
 						}
 
-						from := tx.FromAddr(exe.Signer())
+						from := tx.FromAddr(ctx.signer)
 						if _, popped := ctx.poppedAddresses[from]; popped {
 							log.Debug("Address popped", "from", from.Bech32())
 							continue
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), false, nil)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue
@@ -170,13 +151,75 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 	return nil
 }
 
+// 并行交易执行前，需要对交易进行 preCheck
+// 由于并行交易模块和StateTransition模块相对独立，所以无法复用StateTransition的preCheck，后续两个模块的preCheck需要及时同步
+func (exe *Executor) preCheck(msg types.Message, fromObj *state.ParallelStateObject, baseFee *big.Int, gte150 bool) error {
+	// check nonce
+	stNonce := fromObj.GetNonce()
+	if msgNonce := msg.Nonce(); stNonce < msgNonce {
+		return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooHigh,
+			msg.From().Hex(), msgNonce, stNonce)
+	} else if stNonce > msgNonce {
+		return fmt.Errorf("%w: address %v, tx: %d state: %d", ErrNonceTooLow,
+			msg.From().Hex(), msgNonce, stNonce)
+	} else if stNonce+1 < stNonce {
+		return fmt.Errorf("%w: address %v, nonce: %d", ErrNonceMax,
+			msg.From().Hex(), stNonce)
+	}
+
+	// Make sure the sender is an EOA
+	if codeHash := fromObj.GetCodeHash(); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
+		return fmt.Errorf("%w: address %v, codehash: %s", ErrSenderNoEOA,
+			msg.From().Hex(), codeHash)
+	}
+
+	// check balance
+	mgval := new(big.Int).SetUint64(msg.Gas())
+	mgval = mgval.Mul(mgval, msg.GasPrice())
+	balanceCheck := mgval
+	if gte150 {
+		balanceCheck = new(big.Int).SetUint64(msg.Gas())
+		balanceCheck = balanceCheck.Mul(balanceCheck, msg.GasFeeCap())
+		balanceCheck.Add(balanceCheck, msg.Value())
+	}
+	if have, want := fromObj.GetBalance(), balanceCheck; have.Cmp(want) < 0 {
+		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, msg.From().Hex(), have, want)
+	}
+
+	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
+	if gte150 {
+		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
+		if !exe.vmCfg.NoBaseFee || msg.GasFeeCap().BitLen() > 0 || msg.GasTipCap().BitLen() > 0 {
+			if l := msg.GasFeeCap().BitLen(); l > 256 {
+				return fmt.Errorf("%w: address %v, maxFeePerGas bit length: %d", ErrFeeCapVeryHigh,
+					msg.From().Hex(), l)
+			}
+			if l := msg.GasTipCap().BitLen(); l > 256 {
+				return fmt.Errorf("%w: address %v, maxPriorityFeePerGas bit length: %d", ErrTipVeryHigh,
+					msg.From().Hex(), l)
+			}
+			if msg.GasFeeCap().Cmp(msg.GasTipCap()) < 0 {
+				return fmt.Errorf("%w: address %v, maxPriorityFeePerGas: %s, maxFeePerGas: %s", ErrTipAboveFeeCap,
+					msg.From().Hex(), msg.GasTipCap(), msg.GasFeeCap())
+			}
+			// This will panic if baseFee is nil, but basefee presence is verified
+			// as part of header validation.
+			if msg.GasFeeCap().Cmp(baseFee) < 0 {
+				return fmt.Errorf("%w: address %v, maxFeePerGas: %s baseFee: %s", ErrFeeCapTooLow,
+					msg.From().Hex(), msg.GasFeeCap(), baseFee)
+			}
+		}
+	}
+	return nil
+}
+
 func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicGas uint64) {
 	if ctx.IsTimeout() {
 		return
 	}
 	tx := ctx.GetTx(idx)
 
-	msg, err := tx.AsMessage(exe.Signer())
+	msg, err := tx.AsMessage(ctx.signer, ctx.header.BaseFee)
 	if err != nil {
 		//gas pool is subbed
 		ctx.buildTransferFailedResult(idx, err, true)
@@ -188,34 +231,30 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 		return
 	}
 
-	start := time.Now()
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
-	if start.Add(30 * time.Millisecond).Before(time.Now()) {
-		log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
-	}
-
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
-	if fromObj.GetBalance().Cmp(mgval) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
+	// preCheck
+	pauli := gov.Gte150VersionState(ctx.state)
+	if err := exe.preCheck(msg, fromObj, ctx.header.BaseFee, pauli); err != nil {
+		ctx.buildTransferFailedResult(idx, err, true)
 		return
 	}
 
-	if fromObj.GetNonce() < msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooHigh, true)
-		return
-	} else if fromObj.GetNonce() > msg.Nonce() {
-		ctx.buildTransferFailedResult(idx, ErrNonceTooLow, true)
+	// miner tip
+	effectiveTip := msg.GasPrice()
+	if pauli {
+		effectiveTip = cmath.BigMin(msg.GasTipCap(), new(big.Int).Sub(msg.GasFeeCap(), ctx.header.BaseFee))
+	}
+	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), effectiveTip)
+	// sender fee
+	fee := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
+	log.Trace("Execute parallel tx", "baseFee", ctx.header.BaseFee, "gasTipCap", msg.GasTipCap(), "gasFeeCap", msg.GasFeeCap(), "gasPrice", msg.GasPrice(), "effectiveTip", effectiveTip, "intrinsicGas", intrinsicGas)
+	cost := new(big.Int).Add(msg.Value(), fee)
+	if fromObj.GetBalance().Cmp(cost) < 0 {
+		ctx.buildTransferFailedResult(idx, ErrInsufficientFunds, true)
 		return
 	}
 
-	minerEarnings := new(big.Int).Mul(new(big.Int).SetUint64(intrinsicGas), msg.GasPrice())
-	subTotal := new(big.Int).Add(msg.Value(), minerEarnings)
-	if fromObj.GetBalance().Cmp(subTotal) < 0 {
-		ctx.buildTransferFailedResult(idx, errInsufficientBalanceForGas, true)
-		return
-	}
-
-	fromObj.SubBalance(subTotal)
+	fromObj.SubBalance(cost)
 	fromObj.SetNonce(fromObj.GetNonce() + 1)
 
 	var toObj *state.ParallelStateObject
@@ -238,7 +277,7 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	tx := ctx.GetTx(idx)
 
 	//log.Debug("execute contract", "txHash", tx.Hash(), "txIdx", idx, "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas())
-	ctx.GetState().Prepare(tx.Hash(), ctx.GetBlockHash(), int(ctx.GetState().TxIdx()))
+	ctx.GetState().Prepare(tx.Hash(), int(ctx.GetState().TxIdx()))
 	receipt, err := ApplyTransaction(exe.chainConfig, exe.chainContext, ctx.GetGasPool(), ctx.GetState(), ctx.GetHeader(), tx, ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
 		log.Warn("Execute contract transaction failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())
@@ -248,19 +287,19 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	ctx.AddPackedTx(tx)
 	ctx.GetState().IncreaseTxIdx()
 	ctx.AddReceipt(receipt)
-	log.Debug("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
+	log.Trace("Execute contract transaction success", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash().Hex(), "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "gasUsed", receipt.GasUsed)
 }
 
 func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx *ParallelContext) bool {
 	address := tx.To()
 	if address == nil { // create contract
-		contractAddress := crypto.CreateAddress(tx.FromAddr(exe.Signer()), tx.Nonce())
+		contractAddress := crypto.CreateAddress(tx.FromAddr(ctx.signer), tx.Nonce())
 		ctx.tempContractCache[contractAddress] = struct{}{}
 		return true
 	}
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address, gov.Gte120VersionState(state), gov.Gte140VersionState(state)) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address, exe.chainConfig.Rules(ctx.header.Number), gov.Gte150VersionState(state)) || state.GetCodeSize(*address) > 0
 	return isContract
 }

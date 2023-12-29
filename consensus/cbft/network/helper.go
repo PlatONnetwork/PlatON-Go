@@ -14,25 +14,25 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
 	"crypto/rand"
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // ============================ simulation network ============================
 
 // RandomID returns a list of NodeID by random.
-func RandomID() []discover.NodeID {
-	ids := make([]discover.NodeID, 0)
+func RandomID() []enode.ID {
+	ids := make([]enode.ID, 0)
 	for i := 0; i < 4; i++ {
-		var id discover.NodeID
+		var id enode.ID
 		rand.Read(id[:])
 		ids = append(ids, id)
 	}
@@ -43,7 +43,7 @@ func RandomID() []discover.NodeID {
 // simulate the test environment.
 //
 // The number of simulated network nodes is fixed at four.
-func EnhanceEngineManager(ids []discover.NodeID, handlers []*EngineManager) {
+func EnhanceEngineManager(ids []enode.ID, handlers []*EngineManager) {
 
 	// node 1 => 1 <--> 2 association.
 	rw1Node1_2, rw2Node1_2 := p2p.MsgPipe()
@@ -100,7 +100,7 @@ func SetSendQueueHook(engine *EngineManager, hook func(msg *types.MsgPackage)) {
 }
 
 // FillEngineManager populates the peer for the specified Handle.
-func FillEngineManager(ids []discover.NodeID, handler *EngineManager) {
+func FillEngineManager(ids []enode.ID, handler *EngineManager) {
 	write, read := p2p.MsgPipe()
 	for _, v := range ids {
 		peer := newPeer(CbftProtocolVersion, p2p.NewPeer(v, v.TerminalString(), nil), write)

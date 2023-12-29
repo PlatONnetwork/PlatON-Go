@@ -37,8 +37,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
-var toAddr = common.BytesToAddress
-
 type stateTest struct {
 	db    ethdb.Database
 	state *StateDB
@@ -46,21 +44,21 @@ type stateTest struct {
 
 func newStateTest() *stateTest {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabase(db))
+	sdb, _ := New(common.Hash{}, NewDatabase(db), nil)
 	return &stateTest{db: db, state: sdb}
 }
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil))
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil), nil)
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
-	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
+	obj1 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))
-	obj2 := s.state.GetOrNewStateObject(toAddr([]byte{0x01, 0x02}))
+	obj2 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x01, 0x02}))
 	obj2.SetCode(crypto.Keccak256Hash([]byte{3, 3, 3, 3, 3, 3, 3}), []byte{3, 3, 3, 3, 3, 3, 3})
-	obj3 := s.state.GetOrNewStateObject(toAddr([]byte{0x02}))
+	obj3 := s.state.GetOrNewStateObject(common.BytesToAddress([]byte{0x02}))
 	obj3.SetBalance(big.NewInt(44))
 
 	// write some of them to the trie
@@ -124,7 +122,7 @@ func TestNull(t *testing.T) {
 }
 
 func TestSnapshot(t *testing.T) {
-	stateobjaddr := toAddr([]byte("aa"))
+	stateobjaddr := common.BytesToAddress([]byte("aa"))
 	var storageaddr common.Hash
 	data1 := common.BytesToHash([]byte{42})
 	data2 := common.BytesToHash([]byte{43})
@@ -164,10 +162,10 @@ func TestSnapshotEmpty(t *testing.T) {
 }
 
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
-	stateobjaddr0 := toAddr([]byte("so0"))
-	stateobjaddr1 := toAddr([]byte("so1"))
+	stateobjaddr0 := common.BytesToAddress([]byte("so0"))
+	stateobjaddr1 := common.BytesToAddress([]byte("so1"))
 	var storageaddr common.Address
 
 	data0 := common.BytesToHash([]byte{17})
@@ -275,8 +273,8 @@ func TestEmptyByte(t *testing.T) {
 		t.Fatalf("failed to create temp freezer dir: %v", err)
 	}
 	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "")
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
@@ -335,12 +333,12 @@ func TestEmptyByte(t *testing.T) {
 func TestForEachStorage(t *testing.T) {
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
 	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(address)
@@ -370,12 +368,12 @@ func TestMigrateStorage(t *testing.T) {
 
 	tmpDir, _ := ioutil.TempDir("", "platon")
 	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon")
+	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
 	if err != nil {
 		t.Fatalf("Failed to reopen persistent database: %v", err)
 	}
 	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 
 	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
 	state.CreateAccount(from)
@@ -434,15 +432,4 @@ func TestMigrateStorage(t *testing.T) {
 
 		//fmt.Println("key:", string(key), "value:", string(value))
 	}
-}
-
-func Bytes2Bits(data []byte) []int {
-	dst := make([]int, 0)
-	for _, v := range data {
-		for i := 0; i < 8; i++ {
-			move := uint(7 - i)
-			dst = append(dst, int((v>>move)&1))
-		}
-	}
-	return dst
 }

@@ -19,21 +19,20 @@
 // Here is an example of creating a 2 node network with the first node
 // connected to the second:
 //
-//     $ p2psim node create
-//     Created node01
+//	$ p2psim node create
+//	Created node01
 //
-//     $ p2psim node start node01
-//     Started node01
+//	$ p2psim node start node01
+//	Started node01
 //
-//     $ p2psim node create
-//     Created node02
+//	$ p2psim node create
+//	Created node02
 //
-//     $ p2psim node start node02
-//     Started node02
+//	$ p2psim node start node02
+//	Started node02
 //
-//     $ p2psim node connect node01 node02
-//     Connected node01 to node02
-//
+//	$ p2psim node connect node01 node02
+//	Connected node01 to node02
 package main
 
 import (
@@ -45,13 +44,15 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
+	"gopkg.in/urfave/cli.v1"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var client *simulations.Client
@@ -285,7 +286,7 @@ func createNode(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		config.ID = discover.PubkeyID(&privKey.PublicKey)
+		config.ID = enode.PubkeyToIDV4(&privKey.PublicKey)
 		config.PrivateKey = privKey
 	}
 	if services := ctx.String("services"); services != "" {

@@ -21,25 +21,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"os"
 	"reflect"
 	"strings"
 	"unicode"
 
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 
-	cli "gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/naoina/toml"
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -69,7 +70,12 @@ var tomlSettings = toml.Config{
 		return field
 	},
 	MissingField: func(rt reflect.Type, field string) error {
-		link := ""
+		id := fmt.Sprintf("%s.%s", rt.String(), field)
+		if deprecated(id) {
+			log.Warn("Config field is deprecated and won't have an effect", "name", id)
+			return nil
+		}
+		var link string
 		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
 			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
 		}
@@ -84,8 +90,10 @@ type statsConfig struct {
 }
 
 type platonConfig struct {
-	Eth  eth.Config
-	Node node.Config
+	Eth      ethconfig.Config
+	Node     node.Config
+	Ethstats ethstatsConfig
+	Metrics  metrics.Config
 	//Ethstats ethstatsConfig
 	Stats statsConfig
 }
@@ -134,8 +142,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	// Load defaults.
 	cfg := platonConfig{
-		Eth:  eth.DefaultConfig,
-		Node: defaultNodeConfig(),
+		Eth:     ethconfig.Defaults,
+		Node:    defaultNodeConfig(),
+		Metrics: metrics.DefaultConfig,
 	}
 
 	// Load config file.
@@ -147,16 +156,16 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 			utils.Fatalf("%v", err)
 		}
 	}
-
-	// Current version only supports full syncmode
-	// ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
-
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
 	utils.SetCbft(ctx, &cfg.Eth.CbftConfig, &cfg.Node)
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
+	}
+	// Node doesn't by default populate account manager backends
+	if err := setAccountManagerBackends(stack); err != nil {
+		utils.Fatalf("Failed to set account manager backends: %v", err)
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
@@ -172,9 +181,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	//	cfg.Eth.CbftConfig = *cbftConfig
 	//}
 
-	/*if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
-	}*/
+	//if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
+	//	cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
+	//}
 
 	if ctx.GlobalIsSet(utils.StatsFlag.Name) {
 		statsConfig := ctx.GlobalString(utils.StatsFlag.Name)
@@ -188,6 +197,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 		}
 	}
 	//utils.SetShhConfig(ctx, stack, &cfg.Shh)
+
+	applyMetricConfig(ctx, &cfg)
+
 	return stack, cfg
 }
 
@@ -206,9 +218,9 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		utils.RegisterGraphQLService(stack, backend, cfg.Node)
 	}
 
-	// Add the PlatON Stats daemon if requested.
-	if len(cfg.Stats.URL) > 0 {
-		utils.RegisterStatsService(stack, backend, cfg.Stats.URL, cfg.Stats.BlockTopic, cfg.Stats.Dsn, cfg.Node.DataDir)
+	// Add the Ethereum Stats daemon if requested.
+	if cfg.Ethstats.URL != "" {
+		utils.RegisterEthStatsService(stack, backend, cfg.Ethstats.URL)
 	}
 	return stack, backend
 }
@@ -229,5 +241,74 @@ func dumpConfig(ctx *cli.Context) error {
 	}
 	io.WriteString(os.Stdout, comment)
 	os.Stdout.Write(out)
+	return nil
+}
+
+func applyMetricConfig(ctx *cli.Context, cfg *platonConfig) {
+	if ctx.GlobalIsSet(utils.MetricsEnabledFlag.Name) {
+		cfg.Metrics.Enabled = ctx.GlobalBool(utils.MetricsEnabledFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsEnabledExpensiveFlag.Name) {
+		cfg.Metrics.EnabledExpensive = ctx.GlobalBool(utils.MetricsEnabledExpensiveFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsHTTPFlag.Name) {
+		cfg.Metrics.HTTP = ctx.GlobalString(utils.MetricsHTTPFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsPortFlag.Name) {
+		cfg.Metrics.Port = ctx.GlobalInt(utils.MetricsPortFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsEnableInfluxDBFlag.Name) {
+		cfg.Metrics.EnableInfluxDB = ctx.GlobalBool(utils.MetricsEnableInfluxDBFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBEndpointFlag.Name) {
+		cfg.Metrics.InfluxDBEndpoint = ctx.GlobalString(utils.MetricsInfluxDBEndpointFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBDatabaseFlag.Name) {
+		cfg.Metrics.InfluxDBDatabase = ctx.GlobalString(utils.MetricsInfluxDBDatabaseFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBUsernameFlag.Name) {
+		cfg.Metrics.InfluxDBUsername = ctx.GlobalString(utils.MetricsInfluxDBUsernameFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBPasswordFlag.Name) {
+		cfg.Metrics.InfluxDBPassword = ctx.GlobalString(utils.MetricsInfluxDBPasswordFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBTagsFlag.Name) {
+		cfg.Metrics.InfluxDBTags = ctx.GlobalString(utils.MetricsInfluxDBTagsFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsEnableInfluxDBV2Flag.Name) {
+		cfg.Metrics.EnableInfluxDBV2 = ctx.GlobalBool(utils.MetricsEnableInfluxDBV2Flag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBTokenFlag.Name) {
+		cfg.Metrics.InfluxDBToken = ctx.GlobalString(utils.MetricsInfluxDBTokenFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBBucketFlag.Name) {
+		cfg.Metrics.InfluxDBBucket = ctx.GlobalString(utils.MetricsInfluxDBBucketFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBOrganizationFlag.Name) {
+		cfg.Metrics.InfluxDBOrganization = ctx.GlobalString(utils.MetricsInfluxDBOrganizationFlag.Name)
+	}
+}
+
+func deprecated(field string) bool {
+	return false
+}
+
+func setAccountManagerBackends(stack *node.Node) error {
+	conf := stack.Config()
+	am := stack.AccountManager()
+	keydir := stack.KeyStoreDir()
+	scryptN := keystore.StandardScryptN
+	scryptP := keystore.StandardScryptP
+	if conf.UseLightweightKDF {
+		scryptN = keystore.LightScryptN
+		scryptP = keystore.LightScryptP
+	}
+
+	// For now, we're using EITHER external signer OR local signers.
+	// If/when we implement some form of lockfile for USB and keystore wallets,
+	// we can have both, but it's very confusing for the user to see the same
+	// accounts in both externally and locally, plus very racey.
+	am.AddBackend(keystore.NewKeyStore(keydir, scryptN, scryptP))
+
 	return nil
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -48,7 +49,8 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		tempContractCache := make(map[common.Address]struct{})
-		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, GetExecutor().MakeSigner(statedb), tempContractCache)
+		signer := types.MakeSigner(p.config, block.Number(), gov.Gte150VersionState(statedb))
+		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, signer, tempContractCache)
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
 
@@ -63,7 +65,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 					txHaveCal = txHaveCal + txs
 					tasks--
 				case <-timeout.C:
-					log.Warn("Parallel cal tx from time out", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
+					log.Warn("Parallel cal tx from timeout", "num", block.Number(), "left_task", tasks, "total_task", cap(block.CalTxFromCH), "txcal", txHaveCal)
 					tasks = 0
 				}
 			}

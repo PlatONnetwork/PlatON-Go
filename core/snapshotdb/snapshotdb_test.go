@@ -593,11 +593,11 @@ func TestSnapshotDB_Ranking4(t *testing.T) {
 		itr.Release()
 		return o
 	}
-	v := f(common.ZeroHash, "aaa", 1000)
+	v := f(ch.db.current.highest.Hash, "aaa", 1000)
 	if err := v.compareWithkvs(generatekvs); err != nil {
 		t.Error(err)
 	}
-	v2 := f(common.ZeroHash, "aaa", 0)
+	v2 := f(ch.db.current.highest.Hash, "aaa", 0)
 	if err := v2.compareWithkvs(generatekvs); err != nil {
 		t.Error(err)
 	}
@@ -755,8 +755,8 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	t.Run("kv should compare", func(t *testing.T) {
 		var kvGetFromWalk kvs
 		f := func(num *big.Int, iter iterator.Iterator) error {
-			if num.Int64() != 2 {
-				return fmt.Errorf("basenum is wrong:%v,should be 2", num)
+			if num.Int64() != 1 {
+				return fmt.Errorf("basenum is wrong:%v,should be 1", num)
 			}
 			for iter.Next() {
 				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
@@ -858,7 +858,7 @@ func TestSnapshotDB_Compaction_del(t *testing.T) {
 	}
 	delkey := baseDBkv[0].key
 	delVal := baseDBkv[0].value
-	v, err := ch.db.GetBaseDB(delkey)
+	v, err := ch.db.Get(ch.db.current.highest.Hash, delkey)
 	if err != nil {
 		t.Error(err)
 		return
@@ -872,7 +872,7 @@ func TestSnapshotDB_Compaction_del(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = ch.db.GetBaseDB(delkey)
+	_, err = ch.db.Get(ch.db.current.highest.Hash, delkey)
 	if err != ErrNotFound {
 		t.Error(err)
 		return

@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math"
 	"math/big"
 	"time"
@@ -45,6 +46,7 @@ type Config struct {
 	Value       *big.Int
 	Debug       bool
 	EVMConfig   vm.Config
+	BaseFee     *big.Int
 
 	State     *state.StateDB
 	GetHashFn func(n uint64) common.Hash
@@ -83,6 +85,9 @@ func setDefaults(cfg *Config) {
 			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
 		}
 	}
+	if cfg.BaseFee == nil {
+		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
+	}
 }
 
 // Execute executes the code using the input as call data during the execution.
@@ -97,13 +102,16 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		address = common.BytesToAddress([]byte("contract"))
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
 	)
+	if gov.Gte150VersionState(cfg.State) {
+		cfg.State.PrepareAccessList(cfg.Origin, &address, vm.ActivePrecompiles(cfg.State), nil)
+	}
 	vmenv.Context.Ctx = context.TODO()
 	cfg.State.CreateAccount(address)
 	// set the receiver's (the executing contract) code for execution.
@@ -129,12 +137,16 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	setDefaults(cfg)
 
 	if cfg.State == nil {
-		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
+		cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	}
 	var (
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
 	)
+	vmenv.Context.Ctx = context.TODO()
+	if gov.Gte150VersionState(cfg.State) {
+		cfg.State.PrepareAccessList(cfg.Origin, nil, vm.ActivePrecompiles(cfg.State), nil)
+	}
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, err := vmenv.Create(
@@ -155,8 +167,15 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
+	vmenv.Context.Ctx = context.TODO()
 
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
+	statedb := cfg.State
+
+	if gov.Gte150VersionState(cfg.State) {
+		statedb.PrepareAccessList(cfg.Origin, &address, vm.ActivePrecompiles(statedb), nil)
+	}
+
 	// Call the code with the given configuration.
 	ret, leftOverGas, err := vmenv.Call(
 		vm.InvokedByTx,

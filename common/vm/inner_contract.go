@@ -28,6 +28,7 @@ var (
 	DelegateRewardPoolAddr     = common.HexToAddress("0x1000000000000000000000000000000000000006") // The PlatON Precompiled contract addr for delegate reward
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 	VrfInnerContractAddr       = common.HexToAddress("0x3000000000000000000000000000000000000001") // The PlatON Precompiled contract addr for vrf inner
+	BlsVerifyContractAddr      = common.HexToAddress("0x3000000000000000000000000000000000000002") // The PlatON Precompiled contract addr for bls verify
 	TempContractAddr           = common.HexToAddress("0x0000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 )
 

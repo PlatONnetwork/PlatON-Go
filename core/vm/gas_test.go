@@ -25,9 +25,9 @@ import (
 
 func TestCallGas(t *testing.T) {
 
-	_, err := callGas(100, 2, uint256.NewInt().SetUint64(10))
+	_, err := callGas(100, 2, new(uint256.Int).SetUint64(10))
 	assert.Nil(t, err)
 
-	_, err = callGas(100, 2, uint256.NewInt().SetUint64(1000000000000000))
+	_, err = callGas(100, 2, new(uint256.Int).SetUint64(1000000000000000))
 	assert.Nil(t, err)
 }

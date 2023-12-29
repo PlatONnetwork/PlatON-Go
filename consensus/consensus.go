@@ -20,12 +20,13 @@ package consensus
 import (
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
@@ -80,7 +81,7 @@ type Engine interface {
 	// VerifyHeader checks whether a header conforms to the consensus rules of a
 	// given engine. Verifying the seal may be done optionally here, or explicitly
 	// via the VerifySeal method.
-	VerifyHeader(chain ChainReader, header *types.Header, seal bool) error
+	VerifyHeader(chain ChainReader, header *types.Header, async bool) error
 
 	// VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 	// concurrently. The method returns a quit channel to abort the operations and
@@ -165,7 +166,7 @@ type Agency interface {
 	VerifyHeader(header *types.Header, stateDB *state.StateDB) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
-	IsCandidateNode(nodeID discover.NodeID) bool
+	IsCandidateNode(nodeID enode.IDv0) bool
 	OnCommit(block *types.Block) error
 }
 
@@ -177,7 +178,9 @@ type Bft interface {
 	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
-	ConsensusNodes() ([]discover.NodeID, error)
+	ConsensusNodes() ([]enode.ID, error)
+
+	ConsensusValidators() []*cbfttypes.ValidateNode
 
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime time.Time) (bool, error)
@@ -199,5 +202,5 @@ type Bft interface {
 	TracingSwitch(flag int8)
 
 	// NodeID is temporary.
-	NodeID() discover.NodeID
+	Node() *enode.Node
 }

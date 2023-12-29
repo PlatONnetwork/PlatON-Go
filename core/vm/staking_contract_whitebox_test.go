@@ -23,6 +23,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -30,8 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -45,7 +44,8 @@ import (
 This is a white test cases for staking_contract
 */
 
-/**
+/*
+*
 susccess test case
 */
 func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
@@ -66,7 +66,7 @@ func Test_CreateStake_HighThreshold_by_freeVon(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -147,7 +147,7 @@ func Test_CreateStake_HighThreshold_by_restrictplanVon(t *testing.T) {
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -226,7 +226,7 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -284,7 +284,8 @@ func Test_CreateStake_RightVersion(t *testing.T) {
 	runContractSendTransaction(contract, params, "createStaking", t)
 }
 
-/**
+/*
+*
 failure test case
 */
 func Test_CreateStake_RepeatStake(t *testing.T) {
@@ -307,7 +308,7 @@ func Test_CreateStake_RepeatStake(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -459,7 +460,7 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	// reset sender balance
 	chain.StateDB.SubBalance(sender, chain.StateDB.GetBalance(sender))
@@ -562,7 +563,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -659,7 +660,7 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -759,7 +760,7 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -854,7 +855,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -867,7 +868,7 @@ func Test_CreateStake_by_InvalidNodeId(t *testing.T) {
 	//
 	//0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 	//0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-	nid := discover.MustHexID("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	nid := enode.MustHexIDv0("0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 
 	nodeId, _ := rlp.EncodeToBytes(nid)
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -958,7 +959,7 @@ func Test_CreateStake_by_FlowDescLen(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1055,7 +1056,7 @@ func Test_CreateStake_by_LowVersionSign(t *testing.T) {
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index], blockHash, index+1)
+	chain.StateDB.Prepare(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1146,13 +1147,13 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], blockHash, 0)
+	chain.StateDB.Prepare(txHashArr[0], 0)
 
 	contract := create_staking(blockNumber, blockHash, chain, 1, t)
 
 	index := 1
 
-	chain.StateDB.Prepare(txHashArr[index+1], blockHash, index+2)
+	chain.StateDB.Prepare(txHashArr[index+1], index+2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1193,5 +1194,4 @@ func Test_EditStake_by_RightParams(t *testing.T) {
 	err = json.Unmarshal(res, &r)
 	assert.True(t, nil == err)
 	assert.Equal(t, common.OkCode, r)
-
 }

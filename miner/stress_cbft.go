@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build none
 // +build none
 
 // This file contains a miner stress test based on the cbft consensus engine.
@@ -23,6 +24,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -187,7 +189,6 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 			NoDiscovery: true,
 			MaxPeers:    25,
 		},
-		NoUSB:       true,
 		KeyStoreDir: "D:\\goprojects\\data\\keystore",
 	}
 	// Start the node and configure a full Ethereum node on it
@@ -196,14 +197,14 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 		return nil, err
 	}
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		return eth.New(ctx, &eth.Config{
+		return eth.New(ctx, &ethconfig.Config{
 			Genesis:         genesis,
 			NetworkId:       genesis.Config.ChainID.Uint64(),
 			SyncMode:        downloader.FullSync,
 			DatabaseCache:   256,
 			DatabaseHandles: 256,
 			TxPool:          core.DefaultTxPoolConfig,
-			GPO:             eth.DefaultConfig.GPO,
+			GPO:             ethconfig.Defaults.GPO,
 			MinerGasFloor:   genesis.GasLimit * 9 / 10,
 			MinerGasCeil:    genesis.GasLimit * 21 / 10,
 			MinerGasPrice:   big.NewInt(1),

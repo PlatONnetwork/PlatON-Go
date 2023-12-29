@@ -19,9 +19,10 @@ package gov
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -95,7 +96,7 @@ type Proposal interface {
 	GetPIPID() string
 	GetSubmitBlock() uint64
 	GetEndVotingBlock() uint64
-	GetProposer() discover.NodeID
+	GetProposer() enode.IDv0
 	GetTallyResult() TallyResult
 	Verify(blockNumber uint64, blockHash common.Hash, state xcom.StateDB) error
 	String() string
@@ -107,7 +108,7 @@ type TextProposal struct {
 	PIPID          string
 	SubmitBlock    uint64
 	EndVotingBlock uint64
-	Proposer       discover.NodeID
+	Proposer       enode.IDv0
 	Result         TallyResult `json:"-"`
 }
 
@@ -131,7 +132,7 @@ func (tp *TextProposal) GetEndVotingBlock() uint64 {
 	return tp.EndVotingBlock
 }
 
-func (tp *TextProposal) GetProposer() discover.NodeID {
+func (tp *TextProposal) GetProposer() enode.IDv0 {
 	return tp.Proposer
 }
 
@@ -176,7 +177,7 @@ type VersionProposal struct {
 	SubmitBlock     uint64
 	EndVotingRounds uint64
 	EndVotingBlock  uint64
-	Proposer        discover.NodeID
+	Proposer        enode.IDv0
 	Result          TallyResult `json:"-"`
 	NewVersion      uint32
 	ActiveBlock     uint64
@@ -202,7 +203,7 @@ func (vp *VersionProposal) GetEndVotingBlock() uint64 {
 	return vp.EndVotingBlock
 }
 
-func (vp *VersionProposal) GetProposer() discover.NodeID {
+func (vp *VersionProposal) GetProposer() enode.IDv0 {
 	return vp.Proposer
 }
 
@@ -292,7 +293,7 @@ type CancelProposal struct {
 	SubmitBlock     uint64
 	EndVotingRounds uint64
 	EndVotingBlock  uint64
-	Proposer        discover.NodeID
+	Proposer        enode.IDv0
 	TobeCanceled    common.Hash
 	Result          TallyResult `json:"-"`
 }
@@ -317,7 +318,7 @@ func (cp *CancelProposal) GetEndVotingBlock() uint64 {
 	return cp.EndVotingBlock
 }
 
-func (cp *CancelProposal) GetProposer() discover.NodeID {
+func (cp *CancelProposal) GetProposer() enode.IDv0 {
 	return cp.Proposer
 }
 
@@ -388,7 +389,7 @@ type ParamProposal struct {
 	PIPID          string
 	SubmitBlock    uint64
 	EndVotingBlock uint64
-	Proposer       discover.NodeID
+	Proposer       enode.IDv0
 	Result         TallyResult `json:"-"`
 	Module         string
 	Name           string
@@ -415,7 +416,7 @@ func (pp *ParamProposal) GetEndVotingBlock() uint64 {
 	return pp.EndVotingBlock
 }
 
-func (pp *ParamProposal) GetProposer() discover.NodeID {
+func (pp *ParamProposal) GetProposer() enode.IDv0 {
 	return pp.Proposer
 }
 
@@ -511,7 +512,7 @@ func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB) error {
 		return ProposalIDEmpty
 	}
 
-	if p.GetProposer() == discover.ZeroNodeID {
+	if p.GetProposer() == enode.ZeroIDv0 {
 		return ProposerEmpty
 	}
 

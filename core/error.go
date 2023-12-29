@@ -16,20 +16,63 @@
 
 package core
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+)
 
 var (
 	// ErrKnownBlock is returned when a block to import is already known locally.
 	ErrKnownBlock = errors.New("block already known")
 
+	errSideChainReceipts = errors.New("side blocks can't be accepted as ancient chain data")
+)
+
+// List of evm-call-message pre-checking errors. All state transition messages will
+// be pre-checked before execution. If any invalidation detected, the corresponding
+// error should be returned which is defined here.
+//
+// - If the pre-checking happens in the miner, then the transaction won't be packed.
+// - If the pre-checking happens in the block processing procedure, then a "BAD BLOCk"
+// error should be emitted.
+var (
+	// ErrNonceTooHigh is returned if the nonce of a transaction is higher than the
+	// next one expected based on the local chain.
+	ErrNonceTooHigh = errors.New("nonce too high")
+
+	// ErrNonceMax is returned if the nonce of a transaction sender account has
+	// maximum allowed value and would become invalid if incremented.
+	ErrNonceMax = errors.New("nonce has max value")
+
 	// ErrGasLimitReached is returned by the gas pool if the amount of gas required
 	// by a transaction is higher than what's left in the block.
 	ErrGasLimitReached = errors.New("gas limit reached")
 
-	// ErrBlacklistedHash is returned if a block to import is on the blacklist.
-	ErrBlacklistedHash = errors.New("blacklisted hash")
+	// ErrInsufficientFundsForTransfer is returned if the transaction sender doesn't
+	// have enough funds for transfer(topmost call only).
+	ErrInsufficientFundsForTransfer = errors.New("insufficient funds for transfer")
 
-	// ErrNonceTooHigh is returned if the nonce of a transaction is higher than the
-	// next one expected based on the local chain.
-	ErrNonceTooHigh = errors.New("nonce too high")
+	// ErrTxTypeNotSupported is returned if a transaction is not supported in the
+	// current network configuration.
+	ErrTxTypeNotSupported = types.ErrTxTypeNotSupported
+
+	// ErrTipAboveFeeCap is a sanity error to ensure no one is able to specify a
+	// transaction with a tip higher than the total fee cap.
+	ErrTipAboveFeeCap = errors.New("max priority fee per gas higher than max fee per gas")
+
+	// ErrTipVeryHigh is a sanity error to avoid extremely big numbers specified
+	// in the tip field.
+	ErrTipVeryHigh = errors.New("max priority fee per gas higher than 2^256-1")
+
+	// ErrFeeCapVeryHigh is a sanity error to avoid extremely big numbers specified
+	// in the fee cap field.
+	ErrFeeCapVeryHigh = errors.New("max fee per gas higher than 2^256-1")
+
+	// ErrFeeCapTooLow is returned if the transaction fee cap is less than the
+	// the base fee of the block.
+	ErrFeeCapTooLow = errors.New("max fee per gas less than block base fee")
+
+	// ErrSenderNoEOA is returned if the sender of a transaction is a contract.
+	ErrSenderNoEOA = errors.New("sender not an eoa")
 )

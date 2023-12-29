@@ -18,11 +18,9 @@ package p2p
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"runtime"
-	"strings"
 	"testing"
 	"time"
 )
@@ -140,24 +138,4 @@ func TestEOFSignal(t *testing.T) {
 		t.Error("unexpected EOF signal")
 	default:
 	}
-}
-
-func unhex(str string) []byte {
-	r := strings.NewReplacer("\t", "", " ", "", "\n", "")
-	b, err := hex.DecodeString(r.Replace(str))
-	if err != nil {
-		panic(fmt.Sprintf("invalid hex string: %q", str))
-	}
-	return b
-}
-
-func TestMsgCode(t *testing.T) {
-	fmt.Printf("%x\n", 456)
-
-	msg := Msg{Code: 0x0a}
-
-	x := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
-
-	fmt.Println(x)
-
 }

@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -62,7 +61,8 @@ func (ec *Client) Close() {
 }
 
 // Blockchain Access
-// ChainId retrieves the current chain ID for transaction replay protection.
+
+// ChainID retrieves the current chain ID for transaction replay protection.
 func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 	var result hexutil.Big
 	err := ec.c.CallContext(ctx, &result, "platon_chainId")
@@ -75,7 +75,7 @@ func (ec *Client) ChainID(ctx context.Context) (*big.Int, error) {
 // BlockByHash returns the given full block.
 //
 // Note that loading full blocks requires two requests. Use HeaderByHash
-// if you don't need all transactions.
+// if you don't need all transactions or uncle headers.
 func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
 	return ec.getBlock(ctx, "platon_getBlockByHash", hash, true)
 }
@@ -84,7 +84,7 @@ func (ec *Client) BlockByHash(ctx context.Context, hash common.Hash) (*types.Blo
 // latest known block is returned.
 //
 // Note that loading full blocks requires two requests. Use HeaderByNumber
-// if you don't need all transactions.
+// if you don't need all transactions or uncle headers.
 func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error) {
 	return ec.getBlock(ctx, "platon_getBlockByNumber", toBlockNumArg(number), true)
 }
@@ -204,6 +204,7 @@ func (ec *Client) TransactionSender(ctx context.Context, tx *types.Transaction, 
 	if err == nil {
 		return sender, nil
 	}
+	// It was not found in cache, ask the server.
 	var meta struct {
 		Hash common.Hash
 		From common.Address
@@ -253,13 +254,6 @@ func (ec *Client) TransactionReceipt(ctx context.Context, txHash common.Hash) (*
 		}
 	}
 	return r, err
-}
-
-func toBlockNumArg(number *big.Int) string {
-	if number == nil {
-		return "latest"
-	}
-	return hexutil.EncodeBig(number)
 }
 
 type rpcProgress struct {
@@ -429,8 +423,6 @@ func (ec *Client) PendingTransactionCount(ctx context.Context) (uint, error) {
 	return uint(num), err
 }
 
-// TODO: SubscribePendingTransactions (needs server side)
-
 // Contract Calling
 
 // CallContract executes a message call transaction, which is directly executed in the VM
@@ -442,6 +434,17 @@ func (ec *Client) PendingTransactionCount(ctx context.Context) (uint, error) {
 func (ec *Client) CallContract(ctx context.Context, msg platon.CallMsg, blockNumber *big.Int) ([]byte, error) {
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(ctx, &hex, "platon_call", toCallArg(msg), toBlockNumArg(blockNumber))
+	if err != nil {
+		return nil, err
+	}
+	return hex, nil
+}
+
+// CallContractAtHash is almost the same as CallContract except that it selects
+// the block by block hash instead of block height.
+func (ec *Client) CallContractAtHash(ctx context.Context, msg platon.CallMsg, blockHash common.Hash) ([]byte, error) {
+	var hex hexutil.Bytes
+	err := ec.c.CallContext(ctx, &hex, "platon_call", toCallArg(msg), rpc.BlockNumberOrHashWithHash(blockHash, false))
 	if err != nil {
 		return nil, err
 	}
@@ -469,6 +472,16 @@ func (ec *Client) SuggestGasPrice(ctx context.Context) (*big.Int, error) {
 	return (*big.Int)(&hex), nil
 }
 
+// SuggestGasTipCap retrieves the currently suggested gas tip cap after 1559 to
+// allow a timely execution of a transaction.
+func (ec *Client) SuggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	var hex hexutil.Big
+	if err := ec.c.CallContext(ctx, &hex, "eth_maxPriorityFeePerGas"); err != nil {
+		return nil, err
+	}
+	return (*big.Int)(&hex), nil
+}
+
 // EstimateGas tries to estimate the gas needed to execute a specific transaction based on
 // the current pending state of the backend blockchain. There is no guarantee that this is
 // the true gas limit requirement as other transactions may be added or removed by miners,
@@ -487,11 +500,22 @@ func (ec *Client) EstimateGas(ctx context.Context, msg platon.CallMsg) (uint64, 
 // If the transaction was a contract creation use the TransactionReceipt method to get the
 // contract address after the transaction has been mined.
 func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	data, err := rlp.EncodeToBytes(tx)
+	data, err := tx.MarshalBinary()
 	if err != nil {
 		return err
 	}
 	return ec.c.CallContext(ctx, nil, "platon_sendRawTransaction", hexutil.Encode(data))
+}
+
+func toBlockNumArg(number *big.Int) string {
+	if number == nil {
+		return "latest"
+	}
+	pending := big.NewInt(-1)
+	if number.Cmp(pending) == 0 {
+		return "pending"
+	}
+	return hexutil.EncodeBig(number)
 }
 
 func (ec *Client) GetSchnorrNIZKProve(ctx context.Context) (string, error) {

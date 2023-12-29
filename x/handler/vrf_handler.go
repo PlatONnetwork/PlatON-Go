@@ -24,12 +24,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -85,7 +85,7 @@ func (vh *VrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash comm
 		if len(value) > 0 {
 			log.Info("Generate vrf proof Success", "blockNumber", currentBlockNumber.Uint64(),
 				"parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value),
-				"nodeId", discover.PubkeyID(&vh.privateKey.PublicKey).String())
+				"nodeId", enode.PublicKeyToIDv0(&vh.privateKey.PublicKey).String())
 			return value, nil
 		}
 	}
@@ -97,7 +97,7 @@ func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	// Verify VRF Proof
 	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
 		"current hash", blockHash, "parentHash", parentBlockHash,
-		"proof", hex.EncodeToString(proof), "nodeId", discover.PubkeyID(pk).String())
+		"proof", hex.EncodeToString(proof), "nodeId", enode.PublicKeyToIDv0(pk).String())
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentBlockHash)
 	if nil != err {
 		return err

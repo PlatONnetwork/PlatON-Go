@@ -22,9 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	PlatON "github.com/PlatONnetwork/PlatON-Go"
 	"math/big"
 	"net/http"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -36,8 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	ethproto "github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
@@ -66,7 +65,7 @@ type backend interface {
 	CurrentHeader() *types.Header
 	HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error)
 	Stats() (pending int, queued int)
-	Downloader() *downloader.Downloader
+	SyncProgress() PlatON.SyncProgress
 }
 
 // fullNodeBackend encompasses the functionality necessary for a full node
@@ -76,7 +75,7 @@ type fullNodeBackend interface {
 	Miner() *miner.Miner
 	BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error)
 	CurrentBlock() *types.Block
-	SuggestPrice(ctx context.Context) (*big.Int, error)
+	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
 }
 
 // Service implements an Ethereum netstats reporting daemon that pushes local
@@ -92,19 +91,23 @@ type Service struct {
 
 	pongCh chan struct{} // Pong notifications are fed into this channel
 	histCh chan []uint64 // History request block numbers are fed into this channel
+
+	headSub event.Subscription
+	txSub   event.Subscription
 }
 
 // connWrapper is a wrapper to prevent concurrent-write or concurrent-read on the
 // websocket.
 //
 // From Gorilla websocket docs:
-//   Connections support one concurrent reader and one concurrent writer.
-//   Applications are responsible for ensuring that no more than one goroutine calls the write methods
-//     - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
-//   concurrently and that no more than one goroutine calls the read methods
-//     - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
-//   concurrently.
-//   The Close and WriteControl methods can be called concurrently with all other methods.
+//
+//	Connections support one concurrent reader and one concurrent writer.
+//	Applications are responsible for ensuring that no more than one goroutine calls the write methods
+//	  - NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel
+//	concurrently and that no more than one goroutine calls the read methods
+//	  - NextReader, SetReadDeadline, ReadMessage, ReadJSON, SetPongHandler, SetPingHandler
+//	concurrently.
+//	The Close and WriteControl methods can be called concurrently with all other methods.
 type connWrapper struct {
 	conn *websocket.Conn
 
@@ -139,21 +142,43 @@ func (w *connWrapper) Close() error {
 	return w.conn.Close()
 }
 
+// parseEthstatsURL parses the netstats connection url.
+// URL argument should be of the form <nodename:secret@host:port>
+// If non-erroring, the returned slice contains 3 elements: [nodename, pass, host]
+func parseEthstatsURL(url string) (parts []string, err error) {
+	err = fmt.Errorf("invalid netstats url: \"%s\", should be nodename:secret@host:port", url)
+
+	hostIndex := strings.LastIndex(url, "@")
+	if hostIndex == -1 || hostIndex == len(url)-1 {
+		return nil, err
+	}
+	preHost, host := url[:hostIndex], url[hostIndex+1:]
+
+	passIndex := strings.LastIndex(preHost, ":")
+	if passIndex == -1 {
+		return []string{preHost, "", host}, nil
+	}
+	nodename, pass := preHost[:passIndex], ""
+	if passIndex != len(preHost)-1 {
+		pass = preHost[passIndex+1:]
+	}
+
+	return []string{nodename, pass, host}, nil
+}
+
 // New returns a monitoring service ready for stats reporting.
 func New(node *node.Node, backend backend, engine consensus.Engine, url string) error {
-	// Parse the netstats connection url
-	re := regexp.MustCompile("([^:@]*)(:([^@]*))?@(.+)")
-	parts := re.FindStringSubmatch(url)
-	if len(parts) != 5 {
-		return fmt.Errorf("invalid netstats url: \"%s\", should be nodename:secret@host:port", url)
+	parts, err := parseEthstatsURL(url)
+	if err != nil {
+		return err
 	}
 	ethstats := &Service{
 		backend: backend,
 		engine:  engine,
 		server:  node.Server(),
-		node:    parts[1],
-		pass:    parts[3],
-		host:    parts[4],
+		node:    parts[0],
+		pass:    parts[1],
+		host:    parts[2],
 		pongCh:  make(chan struct{}),
 		histCh:  make(chan []uint64, 1),
 	}
@@ -164,7 +189,12 @@ func New(node *node.Node, backend backend, engine consensus.Engine, url string) 
 
 // Start implements node.Lifecycle, starting up the monitoring and reporting daemon.
 func (s *Service) Start() error {
-	go s.loop()
+	// Subscribe to chain events to execute updates on
+	chainHeadCh := make(chan core.ChainHeadEvent, chainHeadChanSize)
+	s.headSub = s.backend.SubscribeChainHeadEvent(chainHeadCh)
+	txEventCh := make(chan core.NewTxsEvent, txChanSize)
+	s.txSub = s.backend.SubscribeNewTxsEvent(txEventCh)
+	go s.loop(chainHeadCh, txEventCh)
 
 	log.Info("Stats daemon started")
 	return nil
@@ -172,22 +202,15 @@ func (s *Service) Start() error {
 
 // Stop implements node.Lifecycle, terminating the monitoring and reporting daemon.
 func (s *Service) Stop() error {
+	s.headSub.Unsubscribe()
+	s.txSub.Unsubscribe()
 	log.Info("Stats daemon stopped")
 	return nil
 }
 
 // loop keeps trying to connect to the netstats server, reporting chain events
 // until termination.
-func (s *Service) loop() {
-	// Subscribe to chain events to execute updates on
-	chainHeadCh := make(chan core.ChainHeadEvent, chainHeadChanSize)
-	headSub := s.backend.SubscribeChainHeadEvent(chainHeadCh)
-	defer headSub.Unsubscribe()
-
-	txEventCh := make(chan core.NewTxsEvent, txChanSize)
-	txSub := s.backend.SubscribeNewTxsEvent(txEventCh)
-	defer txSub.Unsubscribe()
-
+func (s *Service) loop(chainHeadCh chan core.ChainHeadEvent, txEventCh chan core.NewTxsEvent) {
 	// Start a goroutine that exhausts the subscriptions to avoid events piling up
 	var (
 		quitCh = make(chan struct{})
@@ -220,9 +243,9 @@ func (s *Service) loop() {
 				}
 
 			// node stopped
-			case <-txSub.Err():
+			case <-s.txSub.Err():
 				break HandleLoop
-			case <-headSub.Err():
+			case <-s.headSub.Err():
 				break HandleLoop
 			}
 		}
@@ -285,11 +308,11 @@ func (s *Service) loop() {
 			}
 			// Keep sending status updates until the connection breaks
 			fullReport := time.NewTicker(15 * time.Second)
-			defer fullReport.Stop()
 
 			for err == nil {
 				select {
 				case <-quitCh:
+					fullReport.Stop()
 					// Make sure the connection is closed
 					conn.Close()
 					return
@@ -315,6 +338,7 @@ func (s *Service) loop() {
 					}
 				}
 			}
+			fullReport.Stop()
 
 			// Close the current connection and establish a new one
 			conn.Close()
@@ -328,7 +352,7 @@ func (s *Service) loop() {
 // it, if they themselves are requests it initiates a reply, and lastly it drops
 // unknown packets.
 func (s *Service) readLoop(conn *connWrapper) {
-	// If the read loop exists, close the connection
+	// If the read loop exits, close the connection
 	defer conn.Close()
 
 	for {
@@ -440,12 +464,16 @@ func (s *Service) login(conn *connWrapper) error {
 	// Construct and send the login authentication
 	infos := s.server.NodeInfo()
 
-	var network, protocol string
-	if info := infos.Protocols["platon"]; info != nil {
-		network = fmt.Sprintf("%d", info.(*eth.NodeInfo).Network)
-		protocol = fmt.Sprintf("platon/%d", eth.ProtocolVersions[0])
+	var protocols []string
+	for _, proto := range s.server.Protocols {
+		protocols = append(protocols, fmt.Sprintf("%s/%d", proto.Name, proto.Version))
+	}
+
+	var network string
+	if info := infos.Protocols["eth"]; info != nil {
+		network = fmt.Sprintf("%d", info.(*ethproto.NodeInfo).Network)
 	} else {
-		return errors.New("not les")
+		return errors.New("les not supported")
 	}
 	auth := &authMsg{
 		ID: s.node,
@@ -454,7 +482,7 @@ func (s *Service) login(conn *connWrapper) error {
 			Node:     infos.Name,
 			Port:     infos.Ports.Listener,
 			Network:  network,
-			Protocol: protocol,
+			Protocol: strings.Join(protocols, ", "),
 			API:      "No",
 			Os:       runtime.GOOS,
 			OsVer:    runtime.GOARCH,
@@ -542,6 +570,8 @@ type blockStats struct {
 	Miner      common.Address `json:"miner"`
 	GasUsed    uint64         `json:"gasUsed"`
 	GasLimit   uint64         `json:"gasLimit"`
+	Diff       string         `json:"difficulty"`
+	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
 	TxHash     common.Hash    `json:"transactionsRoot"`
 	Root       common.Hash    `json:"stateRoot"`
@@ -550,6 +580,17 @@ type blockStats struct {
 // txStats is the information to report about individual transactions.
 type txStats struct {
 	Hash common.Hash `json:"hash"`
+}
+
+// uncleStats is a custom wrapper around an uncle array to force serializing
+// empty arrays instead of returning null for them.
+type uncleStats []*types.Header
+
+func (s uncleStats) MarshalJSON() ([]byte, error) {
+	if uncles := ([]*types.Header)(s); len(uncles) > 0 {
+		return json.Marshal(uncles)
+	}
+	return []byte("[]"), nil
 }
 
 // reportBlock retrieves the current chain head and reports it to the stats server.
@@ -592,7 +633,7 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 			txs[i].Hash = tx.Hash()
 		}
 	} else {
-		// Light nodes would need on-demand lookups for transactions, skip
+		// Light nodes would need on-demand lookups for transactions/uncles, skip
 		if block != nil {
 			header = block.Header()
 		} else {
@@ -612,6 +653,8 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		Miner:      author,
 		GasUsed:    header.GasUsed,
 		GasLimit:   header.GasLimit,
+		Diff:       "0",
+		TotalDiff:  "0",
 		Txs:        txs,
 		TxHash:     header.TxHash,
 		Root:       header.Root,
@@ -705,6 +748,7 @@ type nodeStats struct {
 	Active   bool `json:"active"`
 	Syncing  bool `json:"syncing"`
 	Mining   bool `json:"mining"`
+	Hashrate int  `json:"hashrate"`
 	Peers    int  `json:"peers"`
 	GasPrice int  `json:"gasPrice"`
 	Uptime   int  `json:"uptime"`
@@ -716,6 +760,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 	// Gather the syncing and mining infos from the local miner instance
 	var (
 		mining   bool
+		hashrate int
 		syncing  bool
 		gasprice int
 	)
@@ -724,13 +769,16 @@ func (s *Service) reportStats(conn *connWrapper) error {
 	if ok {
 		mining = fullBackend.Miner().Mining()
 
-		sync := fullBackend.Downloader().Progress()
+		sync := fullBackend.SyncProgress()
 		syncing = fullBackend.CurrentHeader().Number.Uint64() >= sync.HighestBlock
 
-		price, _ := fullBackend.SuggestPrice(context.Background())
+		price, _ := fullBackend.SuggestGasTipCap(context.Background())
 		gasprice = int(price.Uint64())
+		if basefee := fullBackend.CurrentHeader().BaseFee; basefee != nil {
+			gasprice += int(basefee.Uint64())
+		}
 	} else {
-		sync := s.backend.Downloader().Progress()
+		sync := s.backend.SyncProgress()
 		syncing = s.backend.CurrentHeader().Number.Uint64() >= sync.HighestBlock
 	}
 	// Assemble the node stats and send it to the server
@@ -741,6 +789,7 @@ func (s *Service) reportStats(conn *connWrapper) error {
 		"stats": &nodeStats{
 			Active:   true,
 			Mining:   mining,
+			Hashrate: hashrate,
 			Peers:    s.server.PeerCount(),
 			GasPrice: gasprice,
 			Syncing:  syncing,
