@@ -140,12 +140,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	snapshotdb.SetDBOptions(config.DatabaseCache, config.DatabaseHandles)
 
-	hDB, error := stack.OpenDatabase("historydata",config.DatabaseCache, config.DatabaseHandles, "eth/db/historydata/" )
+	hDB, error := stack.OpenDatabase("historydata", config.DatabaseCache, config.DatabaseHandles, "eth/db/historydata/", false)
 	if error != nil {
 		return nil, error
 	}
 	xplugin.STAKING_DB = &xplugin.StakingDB{
-		HistoryDB:  hDB,
+		HistoryDB: hDB,
 	}
 	snapshotBaseDB, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
 	if err != nil {
@@ -290,7 +290,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			TrieCleanRejournal: config.TrieCleanCacheRejournal,
 			DBGCInterval:       config.DBGCInterval, DBGCTimeout: config.DBGCTimeout,
 			DBGCMpt: config.DBGCMpt, DBGCBlock: config.DBGCBlock,
-			DBDisabledCache:config.DBDisabledCache,DBCacheEpoch:config.DBCacheEpoch,
+			DBDisabledCache: config.DBDisabledCache, DBCacheEpoch: config.DBCacheEpoch,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,

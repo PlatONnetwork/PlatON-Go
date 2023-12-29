@@ -21,9 +21,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	math2 "math"
 	"math/big"
@@ -35,18 +35,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
@@ -389,22 +386,29 @@ func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error 
 			return err
 		}
 
-		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
-		if nil != err {
-			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
-				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
-			return err
-		}
+		//current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		//if nil != err {
+		//	log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
+		//		"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
+		//	return err
+		//}
 
 		diff := make(staking.ValidatorQueue, 0)
 		var isCurr, isNext bool
 
-		currMap := make(map[enode.IDv0]struct{})
-		for _, v := range current.Arr {
-			currMap[v.NodeId] = struct{}{}
-			if nodeId == v.NodeId {
-				isCurr = true
-			}
+		//currMap := make(map[enode.IDv0]struct{})
+		//for _, v := range current.Arr {
+		//	currMap[v.NodeId] = struct{}{}
+		//	if nodeId == v.NodeId {
+		//		isCurr = true
+		//	}
+		//}
+
+		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
+		isCurr, currMap, err := sk.SetValidator(block, numStr, nodeId)
+		if nil != err {
+			log.Error("Failed to SetValidator on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
 		}
 
 		for _, v := range next.Arr {
@@ -1728,7 +1732,6 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return queue, nil
 }
 
-func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId enode.IDv0, isCommit bool) (bool, error) {
 func (sk *StakingPlugin) GetHistoryVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.ValidatorExQueue, error) {
 
 	i := uint64(0)
@@ -1858,7 +1861,7 @@ func (sk *StakingPlugin) GetTransData(blockHash common.Hash, blockNumber uint64)
 	return transDataQuene, nil
 }
 
-func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, isCommit bool) (bool, error) {
+func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId enode.IDv0, isCommit bool) (bool, error) {
 
 	verifierList, err := sk.getVerifierList(blockHash, blockNumber, isCommit)
 	if nil != err {
@@ -4469,9 +4472,9 @@ func (sk *StakingPlugin) SetReward(block *types.Block, numStr string) error {
 	return nil
 }
 
-func (sk *StakingPlugin) SetValidator(block *types.Block, numStr string, nodeId discover.NodeID) (bool, map[discover.NodeID]struct{}, error) {
+func (sk *StakingPlugin) SetValidator(block *types.Block, numStr string, nodeId enode.IDv0) (bool, map[enode.IDv0]struct{}, error) {
 	var isCurr bool
-	currMap := make(map[discover.NodeID]struct{})
+	currMap := make(map[enode.IDv0]struct{})
 	current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",

@@ -32,8 +32,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
@@ -1219,14 +1217,14 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 }
 
 // rpcMarshalHeader uses the generalized output filler, then adds the total difficulty field, which requires
-func RPCMarshalBlockTransaction(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
+func RPCMarshalBlockTransaction(b *types.Block, inclTx bool, fullTx bool, config *params.ChainConfig) ([]interface{}, error) {
 
 	formatTx := func(tx *types.Transaction) (interface{}, error) {
 		return tx.Hash(), nil
 	}
 	if fullTx {
 		formatTx = func(tx *types.Transaction) (interface{}, error) {
-			return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
+			return newRPCTransactionFromBlockHash(b, tx.Hash(), config), nil
 		}
 	}
 	txs := b.Transactions()
@@ -1268,7 +1266,7 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullT
 // rpcOutputBlock uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
 func (s *PublicTransactionPoolAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
-	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx)
+	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx, s.b.ChainConfig())
 	if err != nil {
 		return nil, err
 	}

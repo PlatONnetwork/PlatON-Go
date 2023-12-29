@@ -675,7 +675,7 @@ func (rp *RestrictingPlugin) GetRestrictingBalance(account common.Address, state
 	}
 
 	// 设置委托锁定金
-	if gov.Gte130VersionState(state) {
+	if gov.Gte130Version(gov.GetCurrentActiveVersion(state)) {
 		var (
 			dLock  restricting.DelegationLockPeriodResult
 			dLocks []restricting.DelegationLockPeriodResult

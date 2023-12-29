@@ -30,8 +30,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
@@ -218,14 +216,14 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// then the penalty is directly
 			if len(slashQueue) != 0 {
 				var slashNodeQueue staking.SlashNodeQueue
-				for _, slashItem := range slashQueue  {
+				for _, slashItem := range slashQueue {
 					snData := &staking.SlashNodeData{
-						NodeId          : slashItem.NodeId,
-						Amount : slashItem.Amount,
+						NodeId: slashItem.NodeId,
+						Amount: slashItem.Amount,
 					}
 					slashNodeQueue = append(slashNodeQueue, snData)
 				}
-				sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
+				sp.setSlashData(header.Number.Uint64(), slashNodeQueue)
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
@@ -798,9 +796,9 @@ func calcSlashBlockRewards(db snapshotdb.DB, hash common.Hash, blockRewardAmount
 	return new(big.Int).Mul(newBlockReward, new(big.Int).SetUint64(blockRewardAmount)), nil
 }
 
-func (sp *SlashingPlugin)setSlashData(num uint64,snQueue staking.SlashNodeQueue) {
-	log.Debug("setSlashData","num", num,"len(snQueue)",len(snQueue))
-	if snQueue == nil || len(snQueue) == 0{
+func (sp *SlashingPlugin) setSlashData(num uint64, snQueue staking.SlashNodeQueue) {
+	log.Debug("setSlashData", "num", num, "len(snQueue)", len(snQueue))
+	if snQueue == nil || len(snQueue) == 0 {
 		return
 	}
 	log.Debug("setSlashData,su", snQueue)

@@ -29,8 +29,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 
-	lru "github.com/hashicorp/golang-lru"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -199,14 +197,11 @@ type BlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
-	db     ethdb.Database // Low level persistent database to store final content in
-	snaps  *snapshot.Tree // Snapshot tree for fast trie leaf access
-	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
+	db              ethdb.Database // Low level persistent database to store final content in
+	snaps           *snapshot.Tree // Snapshot tree for fast trie leaf access
+	triegc          *prque.Prque   // Priority queue mapping block numbers to tries to gc
+	gcproc          time.Duration  // Accumulates canonical block processing for trie dumping
 	vrfStatisticsDB ethdb.Database
-
-	triegc *prque.Prque  // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration // Accumulates canonical block processing for trie dumping
 
 	// txLookupLimit is the maximum number of blocks from head whose tx indices
 	// are reserved:
@@ -284,19 +279,18 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			Journal:   cacheConfig.TrieCleanJournal,
 			Preimages: cacheConfig.Preimages,
 		}),
-		quit:           make(chan struct{}),
-		chainmu:        syncx.NewClosableMutex(),
-		shouldPreserve: shouldPreserve,
-		bodyCache:      bodyCache,
-		bodyRLPCache:   bodyRLPCache,
-		receiptsCache:  receiptsCache,
-		blockCache:     blockCache,
-		txLookupCache:  txLookupCache,
-		futureBlocks:   futureBlocks,
-		engine:         engine,
-		vmConfig:       vmConfig,
+		quit:            make(chan struct{}),
+		chainmu:         syncx.NewClosableMutex(),
+		shouldPreserve:  shouldPreserve,
+		bodyCache:       bodyCache,
+		bodyRLPCache:    bodyRLPCache,
+		receiptsCache:   receiptsCache,
+		blockCache:      blockCache,
+		txLookupCache:   txLookupCache,
+		futureBlocks:    futureBlocks,
+		engine:          engine,
+		vmConfig:        vmConfig,
 		vrfStatisticsDB: rawdb.NewTable(db, vrfstatistics.Prefix),
-		badBlocks:       badBlocks,
 	}
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
