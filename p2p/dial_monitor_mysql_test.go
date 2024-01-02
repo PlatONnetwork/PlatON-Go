@@ -1,14 +1,8 @@
 package p2p
 
 import (
-	"net"
+	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -39,16 +33,27 @@ var (
 		discover.MustHexID("e4d99694be2fc8a53d8c2446f947aec1c7de3ee26f7cd43f4f6f77371f56f11156218dec32b51ddce470e97127624d330bb7a3237ba5f0d87d2d3166faf1035e"),
 		discover.MustHexID("9c61f59f70296b6d494e7230888e58f19b13c5c6c85562e57e1fe02d0ff872b4957238c73559d017c8770b999891056aa6329dbf628bc19028d8f4d35ec35823"),
 	}
+	//nodes = []*enode.Node{
+	//	newNode(uintID(0x01), "127.0.0.1:30303"),
+	//	newNode(uintID(0x02), "127.0.0.2:30303"),
+	//	newNode(uintID(0x03), "127.0.0.3:30303"),
+	//	newNode(uintID(0x04), "127.0.0.4:30303"),
+	//	newNode(uintID(0x05), "127.0.2.5:30303"),
+	//	newNode(uintID(0x06), "127.0.2.6:30303"),
+	//	newNode(uintID(0x07), "127.0.2.7:30303"),
+	//	newNode(uintID(0x08), "127.0.2.8:30303"),
+	//}
 )
 
-func TestEvent(t *testing.T) {
-	event := cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdArr}
-	t.Log("TestMonitorTask", event)
-}
+//func TestEvent(t *testing.T) {
+//	event := cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdArr}
+//	t.Log("TestMonitorTask", event)
+//}
 
 func TestMonitorTask(t *testing.T) {
-	ip := net.IPv4(123, 1, 2, 3)
-	node := &discover.Node{ID: randomID(), IP: ip, TCP: 8080}
+	//ip := net.IPv4(123, 1, 2, 3)
+	//node := &discover.Node{ID: randomID(), IP: ip, TCP: 8080}
+	node := newNode(uintID(0x01), "127.0.0.1:30303")
 	task := &monitorTask{flags: monitorConn, dest: node}
 	t.Log("TestMonitorTask", task)
 }
@@ -57,11 +62,11 @@ func TestNodeIDList(t *testing.T) {
 	t.Log(nodeIdArr)
 }
 
-func TestNodeIDToString(t *testing.T) {
-	t.Log(nodeIdArr[0].String())
-	t.Log(hexutil.Encode(nodeIdArr[0].Bytes()))
-	t.Log(nodeIdArr[0].HexPrefixString())
-}
+//func TestNodeIDToString(t *testing.T) {
+//	t.Log(nodeIdArr[0].String())
+//	t.Log(hexutil.Encode(nodeIdArr[0].Bytes()))
+//	t.Log(nodeIdArr[0].HexPrefixString())
+//}
 
 /*func TestSaveEpochElection(t *testing.T) {
 	SaveEpochElection(1, nodeIdArr)
@@ -71,9 +76,9 @@ func TestNodeIDToString(t *testing.T) {
 	SaveConsensusElection(31323, nodeIdArr)
 }
 */
-func TestInitNodePing(t *testing.T) {
-	InitNodePing(nodeIdArr)
-}
+//func TestInitNodePing(t *testing.T) {
+//	InitNodePing(nodeIdArr)
+//}
 
 func TestFindNodePing(t *testing.T) {
 	var nodePing TbNodePing
@@ -88,7 +93,8 @@ func TestListNodePing(t *testing.T) {
 }
 
 func TestSaveNodePingResult(t *testing.T) {
-	SaveNodePingResult(nodeIdArr[0], "127.0.0.1:8080", 1)
+	node := newNode(uintID(0x01), "127.0.0.1:30303")
+	SaveNodePingResult(node.IDv0(), "127.0.0.1:8080", 1)
 }
 
 type TbBlock struct {

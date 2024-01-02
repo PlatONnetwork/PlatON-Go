@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	mrand "math/rand"
 	"net"
 	"sync"
@@ -130,6 +129,7 @@ type dialScheduler struct {
 	consensusPeers         int
 	updateConsensusPeersCh chan int
 	consensusPool          *dialedTasks
+	monitorTasks           *monitorScheduler
 
 	// The dial history keeps recently dialed nodes. Members of history are not dialed.
 	history          expHeap
@@ -193,6 +193,7 @@ func newDialScheduler(config dialConfig, it enode.Iterator, setupFunc dialSetupF
 		clearConsensus:         make(chan struct{}),
 		updateConsensusPeersCh: make(chan int),
 		consensusPool:          NewDialedTasks(config.MaxConsensusPeers*2, nil),
+		monitorTasks:           MonitorScheduler(),
 	}
 	d.lastStatsLog = d.clock.Now()
 	d.ctx, d.cancel = context.WithCancel(context.Background())
@@ -657,57 +658,18 @@ func cleanupDialErr(err error) error {
 	return err
 }
 
-type discoverTable interface {
-	Self() *discover.Node
-	Close()
-	Resolve(target discover.NodeID) *discover.Node
-	Lookup(target discover.NodeID) []*discover.Node
-	ReadRandomNodes([]*discover.Node) int
+func (s *dialScheduler) clearMonitorScheduler() {
+	s.monitorTasks.ClearMonitorScheduler()
 }
 
-// the dial history remembers recent dials.
-type dialHistory []pastDial
-
-// pastDial is an entry in the dial history.
-type pastDial struct {
-	id  discover.NodeID
-	exp time.Time
-}
-
-// dialstate schedules dials and discovery lookups.
-// it get's a chance to compute new tasks on every iteration
-// of the main loop in Server.run.
-type dialstate struct {
-	maxDynDials int
-	ntab        discoverTable
-	netrestrict *netutil.Netlist
-
-	lookupRunning bool
-	dialing       map[discover.NodeID]connFlag
-	lookupBuf     []*discover.Node // current discovery lookup results
-	randomNodes   []*discover.Node // filled from Table
-	static        map[discover.NodeID]*dialTask
-	//consensus     map[discover.NodeID]*dialTask
-	consensus    *dialedTasks
-	monitorTasks *monitorScheduler
-	hist         *dialHistory
-
-	start     time.Time        // time when the dialer was first used
-	bootnodes []*discover.Node // default dials when there are no peers
-}
-
-func (s *dialstate) addMonitorTask(node *enode.Node) {
+func (s *dialScheduler) addMonitorTask(node *enode.Node) {
 	s.monitorTasks.AddMonitorTask(&monitorTask{flags: monitorConn, dest: node})
 }
 
-func (s *dialstate) removeMonitorTask(node *enode.Node) {
+func (s *dialScheduler) removeMonitorTask(node *enode.Node) {
 	s.monitorTasks.RemoveMonitorTask(*node)
 }
 
-func (s *dialstate) initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
+func (s *dialScheduler) initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
 	s.monitorTasks.InitMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
-}
-
-func (s *dialstate) clearMonitorScheduler() {
-	s.monitorTasks.ClearMonitorScheduler()
 }

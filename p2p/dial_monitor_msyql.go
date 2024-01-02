@@ -1,12 +1,11 @@
 package p2p
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
