@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"net"
 	"strings"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -29,11 +29,12 @@ type monitorScheduler struct {
 }
 
 type monitorTask struct {
-	flags        connFlag
-	dest         *discover.Node
-	lastResolved time.Time
-	resolveDelay time.Duration
-	err          error
+	staticPoolIndex int
+	flags           connFlag
+	dest            *enode.Node
+	lastResolved    time.Time
+	resolveDelay    time.Duration
+	err             error
 }
 
 func (t *monitorTask) String() string {
@@ -67,11 +68,11 @@ func (tasks *monitorScheduler) ClearMonitorScheduler() {
 func (tasks *monitorScheduler) AddMonitorTask(task *monitorTask) {
 	tasks.queue = append(tasks.queue, task)
 }
-func (tasks *monitorScheduler) RemoveMonitorTask(nodeId discover.NodeID) {
+func (tasks *monitorScheduler) RemoveMonitorTask(nodeId enode.Node) {
 	log.Info("before RemoveMonitorTask", "nodeId", nodeId, "task queue length", len(tasks.queue), "task queue", tasks.description())
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
-			if t.dest.ID == nodeId {
+			if t.dest.IDv0() == nodeId.IDv0() {
 				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
 				break
 			}
@@ -84,10 +85,10 @@ func (tasks *monitorScheduler) ListTask() []*monitorTask {
 	return tasks.queue
 }
 
-func (tasks *monitorScheduler) RemoveTask(NodeID discover.NodeID) {
+func (tasks *monitorScheduler) RemoveTask(NodeID enode.Node) {
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
-			if t.dest.ID == NodeID {
+			if t.dest.IDv0() == NodeID.IDv0() {
 				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
 				break
 			}
@@ -98,7 +99,7 @@ func (tasks *monitorScheduler) RemoveTask(NodeID discover.NodeID) {
 func (tasks *monitorScheduler) description() string {
 	var description []string
 	for _, t := range tasks.queue {
-		description = append(description, fmt.Sprintf("%x", t.dest.ID[:8]))
+		description = append(description, fmt.Sprintf("%x", t.dest.IDv0()))
 	}
 	return strings.Join(description, ",")
 }
@@ -123,7 +124,7 @@ func (t *monitorTask) Do(srv *Server) {
 	t.err = err
 }
 
-//monitorTask任务结束后的后续操作（保存NodePing结果，从监控任务列表删除任务）
+// monitorTask任务结束后的后续操作（保存NodePing结果，从监控任务列表删除任务）
 func (t *monitorTask) MonitorTaskDoneFurther() bool {
 	log.Info("monitorTask.MonitorTaskDoneFurther", "id", t.dest)
 	return MonitorScheduler().monitorTaskDoneFurtherFn(t.dest)
@@ -140,7 +141,7 @@ func (t *monitorTask) resolve(srv *Server) bool {
 	if time.Since(t.lastResolved) < t.resolveDelay {
 		return false
 	}
-	resolved := srv.ntab.Resolve(t.dest.ID)
+	resolved := srv.ntab.Resolve(t.dest)
 	t.lastResolved = time.Now()
 	if resolved == nil {
 		t.resolveDelay *= 2
@@ -153,18 +154,18 @@ func (t *monitorTask) resolve(srv *Server) bool {
 	// The node was found.
 	t.resolveDelay = initialResolveDelay
 	t.dest = resolved
-	log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)})
+	log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP(), Port: t.dest.TCP()})
 
 	return true
 }
 
 // dial performs the actual connection attempt.
-func (t *monitorTask) dial(srv *Server, dest *discover.Node) error {
-	fd, err := srv.Dialer.Dial(dest)
+func (t *monitorTask) dial(srv *Server, dest *enode.Node) error {
+	fd, err := srv.Dialer.Dial(srv.dialsched.ctx, dest)
 	if err != nil {
 		return &dialError{err}
 	}
-	mfd := newMeteredConn(fd, false)
+	mfd := newMeteredConn(fd, false, &net.TCPAddr{IP: dest.IP(), Port: dest.TCP()})
 	return srv.SetupConn(mfd, t.flags, dest)
 }
 
@@ -172,8 +173,6 @@ type Downloading interface {
 	HighestBlock() uint64
 }
 
-//
-//
 // param: eventMux
 // param: blockNumber, 选举块高，结算周期末，选出下一个结算周期的备选101节点
 // param: epoch 结算周期。从1开始计算。创世块可以认为是0
@@ -228,13 +227,13 @@ func ConvertToNodeIdStringList(verifierList []*staking.Validator) []string {
 	return nodeIdStringList
 }
 
-func ConvertToNodeIdList(verifierList []*staking.Validator) []discover.NodeID {
-	nodeIdList := make([]discover.NodeID, len(verifierList))
-	for i, verifier := range verifierList {
-		nodeIdList[i] = verifier.NodeId
-	}
-	return nodeIdList
-}
+//func ConvertToNodeIdList(verifierList []*staking.Validator) []enode.Node {
+//	nodeIdList := make([]enode.Node, len(verifierList))
+//	for i, verifier := range verifierList {
+//		nodeIdList[i] = verifier.NodeId
+//	}
+//	return nodeIdList
+//}
 
 func ConvertToCommonNodeIdList(verifierList []*staking.Validator) []common.NodeID {
 	nodeIdList := make([]common.NodeID, len(verifierList))

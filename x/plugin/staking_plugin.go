@@ -29,7 +29,6 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
@@ -42,6 +41,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -1150,11 +1150,12 @@ func (sk *StakingPlugin) AdvanceDelegationLockedFunds(blockHash common.Hash, acc
 	log.Debug("Call AdvanceDelegationLockedFunds finished", "blockHash", blockHash, "lockRestrictingHes", lockRestrictingHes, "lockReleasedHes", lockReleasedHes, "delegationLock", d)
 	return lockReleasedHes, lockRestrictingHes, nil
 }
+
 // stats:撤回委托，可以部分撤回。
 // 0.15.0之前，委托用户可以撤销委托，马上到账。待赎回委托：委托的节点如果撤销质押了，委托用户需自己赎回委托，这种委托，成为待赎回委托。
 // 0.15.0之后，委托用户撤销委托，要先发撤回委托交易，委托进入冻结状态，冻结期满；委托进入待赎回状态，委托用户再发赎回委托才能到账；委托的节点如果撤销质押了，委托用户需要自己发送撤回委托交易，待冻结结满，再发赎回交易。待赎回委托：处于冻结期的委托。
 func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, txHash common.Hash, amount *big.Int,
-		delAddr common.Address, nodeId enode.IDv0, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer, isEinstein bool) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
+	delAddr common.Address, nodeId enode.IDv0, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer, isEinstein bool) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	issueIncome, returnReleased, returnRestrictingPlan, returnLockReleased, returnLockRestrictingPlan := new(big.Int), new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -1733,7 +1734,8 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return queue, nil
 }
 
-/**
+/*
+*
 判断 nodeId 是否是101备选节点之一
 */
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, blockNumber uint64, nodeId enode.IDv0, isCommit bool) (bool, error) {
@@ -2149,9 +2151,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	needRMLowVersionLen := 0
 	invalidLen := 0 // the num that the can need to remove
 
-	invalidCan := make(map[enode.IDv0]struct{})
 	// 收集 失效的 can集合 (被惩罚的 + 主动解除质押的 + 版本号低的)
-	invalidCan := make(map[discover.NodeID]struct{})
+	invalidCan := make(map[enode.IDv0]struct{})
 	// 收集需要被优先移除的 can集合 (被惩罚的 + 版本号低的 + 主动撤销且不在当前101人中的<一般是处于跨epoch时处理>)
 	removeCans := make(staking.NeedRemoveCans) // the candidates need to remove
 
@@ -2159,10 +2160,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 	//
 	// 收集 主动解除质押 (但 没有被 惩罚过的， 主要用来做 过滤的， 使之继续保留在 当前epoch 101人中)
 	withdrewCans := make(staking.CandidateMap) // the candidates had withdrew
-
-	withdrewQueue := make([]enode.IDv0, 0)
 	// 其实 和 withdrewCans 是对应的 (可以考虑合成一个)
-	withdrewQueue := make([]discover.NodeID, 0)
+	withdrewQueue := make([]enode.IDv0, 0)
 
 	// 收集 低出块率的  (现有的 代码逻辑 基本不会进入这个,  最后为 空)
 	lowRatioValidAddrs := make([]common.NodeAddress, 0)                 // The addr of candidate that need to clean lowRatio status
@@ -2190,9 +2189,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return errors.New("Failed to get CurrentActiveVersion")
 	}*/
 
-	currMap := make(map[enode.IDv0]*big.Int, len(curr.Arr))
 	// 收集当前的  (验证人Id => Power)
-	currMap := make(map[discover.NodeID]*big.Int, len(curr.Arr))
+	currMap := make(map[enode.IDv0]*big.Int, len(curr.Arr))
 	// 验证人信息  (基本上和  curr.Arr 一致)
 	currqueen := make([]*staking.Validator, 0)
 	for _, v := range curr.Arr {
@@ -2542,7 +2540,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	return resultQueue, nil
 }
 
-//stats:开始处理被惩罚的节点
+// stats:开始处理被惩罚的节点
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
@@ -2583,7 +2581,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-//stats:执行处罚节点的动作
+// stats:执行处罚节点的动作
 func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem) (bool, error) {
 
 	log.Debug("Call SlashCandidates: call toSlash", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
@@ -3238,7 +3236,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-//计算委托奖励
+// 计算委托奖励
 func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceipt {
 	if del.IsEmpty() {
 		return nil
@@ -3809,7 +3807,8 @@ func (sk *StakingPlugin) setRoundValListByIndex(blockNumber uint64, blockHash co
 	return nil
 }
 
-/**
+/*
+*
 列出备选节点列表（101）
 */
 func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (*staking.ValidatorArray, error) {

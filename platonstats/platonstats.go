@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -37,6 +38,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -58,8 +60,8 @@ func (nonce Nonce) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fmt.Sprintf("0x%x", nonce))
 }
 
-func jsonBlock(block *types.Block) (map[string]interface{}, error) {
-	fields, err := ethapi.RPCMarshalBlock(block, true, true)
+func jsonBlock(block *types.Block, config *params.ChainConfig) (map[string]interface{}, error) {
+	fields, err := ethapi.RPCMarshalBlock(block, true, true, config)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +230,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	brief := collectBrief(block)
 	contractList := s.filterDistinctContract(block.NumberU64(), block.Transactions())
 
-	blockJsonMapping, err := jsonBlock(block)
+	blockJsonMapping, err := jsonBlock(block, s.BlockChain().ChainConfig())
 	if err != nil {
 		log.Error("marshal block to json string error")
 		return err
@@ -315,7 +317,7 @@ func (s *PlatonStatsService) filterDistinctContract(blockNumber uint64, txs type
 	contractAddrMap := make(map[common.Address]interface{})
 	for _, tx := range txs {
 		if tx.To() != nil {
-			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats), gov.Gte140VersionState(stats)) && !vm.IsPlatONPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats)) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
+			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), s.BlockChain().ChainConfig().Rules(new(big.Int).SetUint64(blockNumber)), gov.Gte150VersionState(stats)) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
 				contractAddrMap[*tx.To()] = nil
 			}
 		}

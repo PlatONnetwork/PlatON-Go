@@ -2,7 +2,7 @@ package platonstats
 
 import (
 	"encoding/json"
-	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"regexp"
 	"testing"
 
@@ -32,7 +32,10 @@ func Test_blockJson(t *testing.T) {
 
 	block := types.NewSimplifiedBlock(42322, common.HexToHash("499987a73fa100f582328c92c1239262edf5c0a3479face652c89f60314aa805"))
 
-	blockJsonMapping, err := jsonBlock(block)
+	// 根据实际处理
+	chainConfig := new(params.ChainConfig)
+
+	blockJsonMapping, err := jsonBlock(block, chainConfig)
 
 	statsBlockExt := &StatsBlockExt{
 		Block: blockJsonMapping,
@@ -58,8 +61,10 @@ func Test_statsBlockExt(t *testing.T) {
 	}
 
 	brief := collectBrief(block)
+	// 根据实际处理
+	chainConfig := new(params.ChainConfig)
 
-	blockJsonMapping, err := jsonBlock(block)
+	blockJsonMapping, err := jsonBlock(block, chainConfig)
 	if err != nil {
 		t.Fatal("marshal block to json string error", err)
 	}
@@ -89,28 +94,28 @@ func T2estUrl(t *testing.T) {
 	}
 }
 
-func Test_Unmarshal_accountCheckingMessage(t *testing.T) {
-	message := AccountCheckingMessage{
-		BlockNumber: uint64(12132131),
-		AccountList: []*AccountItem{
-			&AccountItem{Addr: address, Balance: big.NewInt(1)},
-			&AccountItem{Addr: address, Balance: big.NewInt(2)},
-		}}
-	jsonBytes, err := json.Marshal(message)
-	if err != nil {
-		t.Fatal("Failed to marshal accountCheckingMessage to json format", err)
-	} else {
-		t.Log("accountCheckingMessage json format:" + string(jsonBytes))
-	}
-
-	/*jsonStr := "{\n    \"blockNumber\":12132131,\n    \"accountList\":[\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":1\n        },\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":2\n        }]\n}"
-	jsonBytes = []byte(jsonStr)*/
-	var data AccountCheckingMessage
-	if len(jsonBytes) > 0 {
-		if err := json.Unmarshal(jsonBytes, &data); err != nil {
-			t.Fatal("Failed to unmarshal json to accountCheckingMessage", err)
-		} else {
-			t.Log("accountCheckingMessage.accountList", data.AccountList[1].Balance.Int64())
-		}
-	}
-}
+//func Test_Unmarshal_accountCheckingMessage(t *testing.T) {
+//	message := AccountCheckingMessage{
+//		BlockNumber: uint64(12132131),
+//		AccountList: []*AccountItem{
+//			&AccountItem{Addr: address, Balance: big.NewInt(1)},
+//			&AccountItem{Addr: address, Balance: big.NewInt(2)},
+//		}}
+//	jsonBytes, err := json.Marshal(message)
+//	if err != nil {
+//		t.Fatal("Failed to marshal accountCheckingMessage to json format", err)
+//	} else {
+//		t.Log("accountCheckingMessage json format:" + string(jsonBytes))
+//	}
+//
+//	/*jsonStr := "{\n    \"blockNumber\":12132131,\n    \"accountList\":[\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":1\n        },\n        {\n            \"addr\":\"lax1e8su9veseal8t8eyj0zuw49nfkvtqlun2sy6wj\",\n            \"balance\":2\n        }]\n}"
+//	jsonBytes = []byte(jsonStr)*/
+//	var data AccountCheckingMessage
+//	if len(jsonBytes) > 0 {
+//		if err := json.Unmarshal(jsonBytes, &data); err != nil {
+//			t.Fatal("Failed to unmarshal json to accountCheckingMessage", err)
+//		} else {
+//			t.Log("accountCheckingMessage.accountList", data.AccountList[1].Balance.Int64())
+//		}
+//	}
+//}

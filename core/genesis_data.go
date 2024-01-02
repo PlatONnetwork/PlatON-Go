@@ -23,11 +23,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//stats
+// stats
 func ConvertToCommonNodeIdList(verifierList []params.CbftNode) []common.NodeID {
 	nodeIdList := make([]common.NodeID, len(verifierList))
 	for i, verifier := range verifierList {
-		nodeIdList[i] = common.NodeID(verifier.Node.ID)
+		nodeIdList[i] = common.NodeID(verifier.Node.IDv0())
 	}
 	return nodeIdList
 }

@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	mrand "math/rand"
 	"net"
 	"sync"
@@ -51,8 +52,8 @@ const (
 
 type removeConsensusPeerFn func(node *enode.Node)
 
-//断开监控节点peer时的回调函数
-type monitorTaskDoneFurtherFn func(node *discover.Node) bool
+// 断开监控节点peer时的回调函数
+type monitorTaskDoneFurtherFn func(node *enode.Node) bool
 
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests.
@@ -60,107 +61,8 @@ type NodeDialer interface {
 	Dial(context.Context, *enode.Node) (net.Conn, error)
 }
 
-// TCPDialer implements the NodeDialer interface by using a net.Dialer to
-// create TCP connections to nodes in the network
-type TCPDialer struct {
-	*net.Dialer
-}
-
-// Dial creates a TCP connection to the node
-func (t TCPDialer) Dial(dest *discover.Node) (net.Conn, error) {
-	addr := &net.TCPAddr{IP: dest.IP, Port: int(dest.TCP)}
-	return t.Dialer.Dial("tcp", addr.String())
-}
-
-// dialstate schedules dials and discovery lookups.
-// it get's a chance to compute new tasks on every iteration
-// of the main loop in Server.run.
-type dialstate struct {
-	maxDynDials int
-	ntab        discoverTable
-	netrestrict *netutil.Netlist
-
-	lookupRunning bool
-	dialing       map[discover.NodeID]connFlag
-	lookupBuf     []*discover.Node // current discovery lookup results
-	randomNodes   []*discover.Node // filled from Table
-	static        map[discover.NodeID]*dialTask
-	//consensus     map[discover.NodeID]*dialTask
-	consensus *dialedTasks
-	monitorTasks  *monitorScheduler
-	hist      *dialHistory
-
-	start     time.Time        // time when the dialer was first used
-	bootnodes []*discover.Node // default dials when there are no peers
-}
-
-type discoverTable interface {
-	Self() *discover.Node
-	Close()
-	Resolve(target discover.NodeID) *discover.Node
-	Lookup(target discover.NodeID) []*discover.Node
-	ReadRandomNodes([]*discover.Node) int
-}
-
-// the dial history remembers recent dials.
-type dialHistory []pastDial
-
-// pastDial is an entry in the dial history.
-type pastDial struct {
-	id  discover.NodeID
-	exp time.Time
-}
-
-type task interface {
-	Do(*Server)
-}
-
-// A dialTask is generated for each node that is dialed. Its
-// fields cannot be accessed while the task is running.
-// 一个拨号任务负责拨通一个目标节点，建立TCP连接。
-type dialTask struct {
-	flags        connFlag
-	dest         *discover.Node
-	lastResolved time.Time
-	resolveDelay time.Duration
-}
-
-// discoverTask runs discovery table operations.
-// Only one discoverTask is active at any time.
-// discoverTask.Do performs a random lookup.
-type discoverTask struct {
-	results []*discover.Node
-}
-
-// A waitExpireTask is generated if there are no other tasks
-// to keep the loop in Server.run ticking.
-type waitExpireTask struct {
-	time.Duration
-}
-
 type nodeResolver interface {
 	Resolve(*enode.Node) *enode.Node
-}
-
-func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist, maxConsensusPeers int) *dialstate {
-	s := &dialstate{
-		maxDynDials: maxdyn,
-		ntab:        ntab,
-		netrestrict: netrestrict,
-		static:      make(map[discover.NodeID]*dialTask),
-		//consensus:	 make(map[discover.NodeID]*dialTask),
-		consensus:   NewDialedTasks(maxConsensusPeers*2, nil),
-		monitorTasks: MonitorScheduler(),
-		dialing:     make(map[discover.NodeID]connFlag),
-		bootnodes:   make([]*discover.Node, len(bootnodes)),
-		randomNodes: make([]*discover.Node, maxdyn/2),
-		hist:        new(dialHistory),
-	}
-	copy(s.bootnodes, bootnodes)
-	for _, n := range static {
-		s.addStatic(n)
-	}
-	return s
 }
 
 // tcpDialer implements NodeDialer using real TCP connections.
@@ -753,4 +655,59 @@ func cleanupDialErr(err error) error {
 		return netErr.Err
 	}
 	return err
+}
+
+type discoverTable interface {
+	Self() *discover.Node
+	Close()
+	Resolve(target discover.NodeID) *discover.Node
+	Lookup(target discover.NodeID) []*discover.Node
+	ReadRandomNodes([]*discover.Node) int
+}
+
+// the dial history remembers recent dials.
+type dialHistory []pastDial
+
+// pastDial is an entry in the dial history.
+type pastDial struct {
+	id  discover.NodeID
+	exp time.Time
+}
+
+// dialstate schedules dials and discovery lookups.
+// it get's a chance to compute new tasks on every iteration
+// of the main loop in Server.run.
+type dialstate struct {
+	maxDynDials int
+	ntab        discoverTable
+	netrestrict *netutil.Netlist
+
+	lookupRunning bool
+	dialing       map[discover.NodeID]connFlag
+	lookupBuf     []*discover.Node // current discovery lookup results
+	randomNodes   []*discover.Node // filled from Table
+	static        map[discover.NodeID]*dialTask
+	//consensus     map[discover.NodeID]*dialTask
+	consensus    *dialedTasks
+	monitorTasks *monitorScheduler
+	hist         *dialHistory
+
+	start     time.Time        // time when the dialer was first used
+	bootnodes []*discover.Node // default dials when there are no peers
+}
+
+func (s *dialstate) addMonitorTask(node *enode.Node) {
+	s.monitorTasks.AddMonitorTask(&monitorTask{flags: monitorConn, dest: node})
+}
+
+func (s *dialstate) removeMonitorTask(node *enode.Node) {
+	s.monitorTasks.RemoveMonitorTask(*node)
+}
+
+func (s *dialstate) initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
+	s.monitorTasks.InitMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
+}
+
+func (s *dialstate) clearMonitorScheduler() {
+	s.monitorTasks.ClearMonitorScheduler()
 }

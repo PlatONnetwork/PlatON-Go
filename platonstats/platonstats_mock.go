@@ -96,7 +96,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 	brief := collectBrief(block)
 
-	blockJsonMapping, err := jsonBlock(block)
+	blockJsonMapping, err := jsonBlock(block, s.blockChain.Config())
 	if err != nil {
 		log.Error("marshal block to json string error")
 		return err

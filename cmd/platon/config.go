@@ -89,6 +89,10 @@ type statsConfig struct {
 	Dsn        string `toml:",omitempty"`
 }
 
+type ethstatsConfig struct {
+	URL string `toml:",omitempty"`
+}
+
 type platonConfig struct {
 	Eth      ethconfig.Config
 	Node     node.Config

@@ -24,10 +24,10 @@ import (
 	"net"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
 
 // node represents a host on the network.
@@ -97,10 +97,10 @@ func (n *node) String() string {
 	return n.Node.String()
 }
 
-func ExtractNode(sealhash common.Hash, sign []byte) (NodeID, common.NodeAddress, error) {
+func ExtractNode(sealhash common.Hash, sign []byte) (enode.IDv0, common.NodeAddress, error) {
 	pk, err := crypto.SigToPub(sealhash.Bytes(), sign)
 	if err != nil {
-		return ZeroNodeID, common.ZeroNodeAddr, err
+		return enode.ZeroIDv0, common.ZeroNodeAddr, err
 	}
-	return PubkeyID(pk), crypto.PubkeyToNodeAddress(*pk), nil
+	return enode.PublicKeyToIDv0(pk), crypto.PubkeyToNodeAddress(*pk), nil
 }

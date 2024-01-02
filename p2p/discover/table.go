@@ -66,8 +66,7 @@ const (
 // itself up-to-date by verifying the liveness of neighbors and requesting their node
 // records when announcements of a new record version are received.
 type Table struct {
-	mutex sync.Mutex // protects buckets, bucket content, nursery, rand
-	//K桶，buckets[0]是最近的
+	mutex   sync.Mutex        // protects buckets, bucket content, nursery, rand
 	buckets [nBuckets]*bucket // index of known nodes by distance
 	nursery []*node           // bootstrap nodes
 	rand    *mrand.Rand       // source of randomness, periodically reseeded
@@ -95,14 +94,9 @@ type transport interface {
 
 // bucket contains nodes, ordered by their last activity. the entry
 // that was most recently active is the first element in entries.
-//节点可以在 entries 和 replacements 互相转化，一个 entries 节点如果 Validate 失败，那么它会被原本将一个原本在 replacements 数组的节点替换。
 type bucket struct {
 	entries      []*node // live entries, sorted by time of last contact
 	replacements []*node // recently seen nodes to be used if revalidation fails
-	//一个K桶中有多个节点，他们到本节点的距离相同，按最近联系时间排序,entries[0]是最新联系过的。
-	entries []*Node // live entries, sorted by time of last contact
-	//数组中保存候补节点，如果 entries 数组数量满了，之后的节点会被加入该数组
-	replacements []*Node // recently seen nodes to be used if revalidation fails
 	ips          netutil.DistinctNetSet
 }
 
@@ -211,118 +205,6 @@ func (tab *Table) isInitDone() bool {
 	}
 }
 
-// Resolve searches for a specific node with the given ID.
-// It returns nil if the node could not be found.
-func (tab *Table) Resolve(targetID NodeID) *Node {
-	// If the node is present in the local table, no
-	// network interaction is required.
-	hash := crypto.Keccak256Hash(targetID[:])
-	tab.mutex.Lock()
-	cl := tab.closest(hash, 1)
-	tab.mutex.Unlock()
-	if len(cl.entries) > 0 && cl.entries[0].ID == targetID {
-		return cl.entries[0]
-	}
-	// Otherwise, do a network lookup.
-	result := tab.Lookup(targetID)
-	for _, n := range result {
-		if n.ID == targetID {
-			return n
-		}
-	}
-	return nil
-}
-
-// Lookup performs a network search for nodes close
-// to the given target. It approaches the target by querying
-// nodes that are closer to it on each iteration.
-// The given target does not need to be an actual node
-// identifier.
-//实现节点查找目标节点，它的实现就是 Kademlia 协议，通过节点间的接力，一步一步接近目标。
-func (tab *Table) Lookup(targetID NodeID) []*Node {
-	return tab.lookup(targetID, true)
-}
-
-func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
-	var (
-		target         = crypto.Keccak256Hash(targetID[:])
-		asked          = make(map[NodeID]bool)
-		seen           = make(map[NodeID]bool)
-		reply          = make(chan []*Node, alpha)
-		pendingQueries = 0
-		result         *nodesByDistance
-	)
-	// don't query further if we hit ourself.
-	// unlikely to happen often in practice.
-	asked[tab.self.ID] = true
-
-	for {
-		tab.mutex.Lock()
-		// generate initial result set
-		result = tab.closest(target, bucketSize)
-		tab.mutex.Unlock()
-		if len(result.entries) > 0 || !refreshIfEmpty {
-			//找到了最近邻居，或者refreshIfEmpty=false,不要求刷新本地table的K桶
-			break
-		}
-		// The result set is empty, all nodes were dropped, refresh.
-		// We actually wait for the refresh to complete here. The very
-		// first query will hit this case and run the bootstrapping
-		// logic.
-		<-tab.refresh()
-		refreshIfEmpty = false
-	}
-
-	for {
-		// ask the alpha closest nodes that we haven't asked yet
-		for i := 0; i < len(result.entries) && pendingQueries < alpha; i++ {
-			n := result.entries[i]
-			if !asked[n.ID] {
-				asked[n.ID] = true
-				pendingQueries++
-				go tab.findnode(n, targetID, reply)
-			}
-		}
-		if pendingQueries == 0 {
-			// we have asked all closest nodes, stop the search
-			break
-		}
-		// wait for the next reply
-		for _, n := range <-reply {
-			if n != nil && !seen[n.ID] {
-				seen[n.ID] = true
-				result.push(n, bucketSize)
-			}
-		}
-		pendingQueries--
-	}
-	return result.entries
-}
-
-func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
-	fails := tab.db.findFails(n.ID)
-	r, err := tab.net.findnode(n.ID, n.addr(), targetID)
-	if len(r) == 0 {
-		fails++
-		tab.db.updateFindFails(n.ID, fails)
-		log.Trace("Findnode failed", "id", n.ID, "failcount", fails, "err", err)
-		if fails >= maxFindnodeFailures {
-			log.Trace("Too many findnode failures, dropping", "id", n.ID, "failcount", fails)
-			tab.delete(n)
-		}
-	} else if fails > 0 {
-		tab.db.updateFindFails(n.ID, fails-1)
-	}
-
-	// Grab as many nodes as possible. Some of them might not be alive anymore, but we'll
-	// just remove those again during revalidation.
-	for _, n := range r {
-		log.Debug("Findnode list", "nodeIP", n.addr(), "nodeID", n.ID)
-		tab.add(n)
-	}
-	reply <- r
-}
-
 func (tab *Table) refresh() <-chan struct{} {
 	done := make(chan struct{})
 	select {
@@ -397,20 +279,16 @@ loop:
 
 // doRefresh performs a lookup for a random target to keep buckets full. seed nodes are
 // inserted if the table is empty (initial bootstrap or discarded faulty peers).
-//更新邻居关系
 func (tab *Table) doRefresh(done chan struct{}) {
 	defer close(done)
 
 	// Load nodes from the database and insert
 	// them. This should yield a few previously seen nodes that are
 	// (hopefully) still alive.
-	//加载种子节点
 	tab.loadSeedNodes()
 
 	// Run self lookup to discover new neighbor nodes.
 	tab.net.lookupSelf()
-	//查找本节点的最近邻居
-	tab.lookup(tab.self.ID, false)
 
 	// The Kademlia paper specifies that the bucket refresh should
 	// perform a lookup in the least recently used bucket. We cannot
@@ -418,7 +296,6 @@ func (tab *Table) doRefresh(done chan struct{}) {
 	// (not hash-sized) and it is not easily possible to generate a
 	// sha3 preimage that falls into a chosen bucket.
 	// We perform a few lookups with a random target instead.
-	//查找3个随机节点的最近邻居
 	for i := 0; i < 3; i++ {
 		tab.net.lookupRandom()
 	}
@@ -437,16 +314,6 @@ func (tab *Table) loadSeedNodes() {
 
 // doRevalidate checks that the last node in a random bucket is still live and replaces or
 // deletes the node if it isn't.
-// doRevalidate checks that the last node in a random bucket is still live
-// and replaces or deletes the node if it isn't.
-//有效性检测就是利用 ping 消息进行探活操作。 Table.loop() 启动了一个定时器（0~10s），定期随机选择一个bucket，向其 entries 中末尾的节点发送 ping 消息，如果对方回应了 pong ，则探活成功。
-//
-//举个栗子，假设某个bucket， entries 最多保存2个节点， replacements 最多保存4个节点。
-//初始情况下 entries =[A, B], replacements = [C, D, E]，
-//如果此时节点F加入网络， bond 通过，由于 entries 已满，只能加入到 replacements = [C, D, E, F]。
-//此时Revalidate定时器到期，则会对 B进行检测，如果通过，则 entries =[B, A]，
-//如果不通过，则将随机选择 replacements 中的一项（假设为D）替换B的位置，最终 entries =[A, D]， replacements = [C, E, F]
-//
 func (tab *Table) doRevalidate(done chan<- struct{}) {
 	defer func() { done <- struct{}{} }()
 

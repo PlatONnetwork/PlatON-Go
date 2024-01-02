@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"sync"
 	"time"
@@ -8,8 +9,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -83,7 +82,7 @@ func MonitorDB() *gorm.DB {
 	return db
 }
 
-func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
+func SaveEpochElection(epoch uint64, nodeIdList []enode.IDv0) {
 	log.Info("SaveEpochElection", "epoch", epoch, "nodeIdList", nodeIdList)
 	epochList := make([]TbEpoch, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
@@ -94,7 +93,7 @@ func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
 	}
 }
 
-func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
+func SaveConsensusElection(consensusNo uint64, nodeIdList []enode.IDv0) {
 	log.Info("SaveConsensusElection", "consensusNo", consensusNo, "nodeIdList", nodeIdList)
 	consensusList := make([]TbConsensus, len(nodeIdList))
 	for idx, nodeId := range nodeIdList {
@@ -127,7 +126,7 @@ func InitNodePing(nodeIdList []common.NodeID) {
 	}
 }
 
-func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
+func SaveNodePingResult(nodeId enode.IDv0, addr string, status int8) {
 	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, "status", status)
 
 	var nodePing TbNodePing

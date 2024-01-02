@@ -209,6 +209,9 @@ type Server struct {
 	delpeer                 chan peerDrop
 	checkpointPostHandshake chan *conn
 	checkpointAddPeer       chan *conn
+	addstatic               chan *enode.Node
+	removestatic            chan *enode.Node
+	rescheduleNodeMonitor   chan []common.NodeID
 
 	// State of run loop and listenLoop.
 	inboundHistory expHeap
@@ -787,24 +790,26 @@ func (srv *Server) run() {
 		trusted[n.ID()] = true
 	}
 
-	monitorTaskDoneFurtherFn := func(node *discover.Node) bool {
-		srv.log.Trace("disconnect monitor node from ", "node", node)
-		dialstate.removeMonitorTask(node)
-		if p, ok := peers[node.ID]; ok {
-			//关闭仅是monitor的连接
-			//MONITOR：记录
-			SaveNodePingResult(node.ID, p.RemoteAddr().String(), 1)
-			if p.rw.is(monitorConn) && !p.rw.is(staticDialedConn|trustedConn|consensusDialedConn|inboundConn) {
-				log.Info("disconnect monitor node from, node is only for monitor purpose", "node", node)
-				p.Disconnect(DiscRequested)
-				return true
-			}
-		} else {
-			SaveNodePingResult(node.ID, "nil", 2)
-		}
-		return false
-	}
-	dialstate.initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
+	//monitorTaskDoneFurtherFn := func(node *enode.Node) bool {
+	//	srv.log.Trace("disconnect monitor node from ", "node", node)
+	//	// TODO
+	//	//dialstate.removeMonitorTask(new(dialstate),node)
+	//	if p, ok := peers[node.ID()]; ok {
+	//		//关闭仅是monitor的连接
+	//		//MONITOR：记录
+	//		SaveNodePingResult(node.IDv0(), p.RemoteAddr().String(), 1)
+	//		if p.rw.is(monitorConn) && !p.rw.is(staticDialedConn|trustedConn|consensusDialedConn|inboundConn) {
+	//			log.Info("disconnect monitor node from, node is only for monitor purpose", "node", node)
+	//			p.Disconnect(DiscRequested)
+	//			return true
+	//		}
+	//	} else {
+	//		SaveNodePingResult(node.IDv0(), "nil", 2)
+	//	}
+	//	return false
+	//}
+	// TODO
+	//dialstate.initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
 running:
 	for {
 		select {
@@ -853,15 +858,16 @@ running:
 		case nodeIdList := <-srv.rescheduleNodeMonitor:
 			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
 			log.Info("p2p.server.rescheduleNodeMonitor", "nodeIdList", nodeIdList)
-			dialstate.clearMonitorScheduler()
-			for _, nodeId := range nodeIdList {
-				node := discover.NewNode(discover.NodeID(nodeId), nil, 0, 0)
-				dialstate.addMonitorTask(node)
-				monitorNodes[node.ID] = true
-				if p, ok := peers[node.ID]; ok {
-					p.rw.set(monitorConn, true)
-				}
-			}
+			// TODO
+			//dialstate.clearMonitorScheduler()
+			//for _, nodeId := range nodeIdList {
+			//	node := discover.NewNode(discover.NodeID(nodeId), nil, 0, 0)
+			//	dialstate.addMonitorTask(node)
+			//	monitorNodes[node.ID] = true
+			//	if p, ok := peers[node.ID]; ok {
+			//		p.rw.set(monitorConn, true)
+			//	}
+			//}
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add a node
 			// to the trusted node set.
@@ -897,9 +903,9 @@ running:
 				c.set(consensusDialedConn, true)
 			}
 
-			if monitorNodes[c.id] {
-				c.flags |= monitorConn
-			}
+			//if monitorNodes[c.id] {
+			//	c.flags |= monitorConn
+			//}
 
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
 			c.cont <- srv.postHandshakeChecks(peers, inboundCount, c)
@@ -1377,4 +1383,12 @@ func (srv *Server) watching() {
 			return
 		}
 	}
+}
+
+type dialer interface {
+	clearMonitorScheduler()
+	//rescheduleNodeMonitor([]discover.NodeID)
+	addMonitorTask(*enode.Node)
+	removeMonitorTask(*enode.Node)
+	initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn)
 }
