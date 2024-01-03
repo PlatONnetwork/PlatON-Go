@@ -1632,8 +1632,10 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	nodeIdList := p2p.ConvertToCommonNodeIdList(queue)
 	//stats
 	common.CollectEpochElection(blockNumber, nodeIdList)
+
+	nodeIDv0List := p2p.NodeIdList(queue)
 	//monitor, 发送事件，需要监控的备选节点列表
-	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, nodeIdList, downloading)
+	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, nodeIdList, nodeIDv0List, downloading)
 
 	log.Debug("Call ElectNextVerifierList  Next verifiers", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"list length", len(queue), "list", newVerifierArr)

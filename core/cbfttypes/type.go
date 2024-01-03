@@ -223,7 +223,7 @@ func (vs *Validators) sort() {
 }
 
 type ElectNextEpochVerifierEvent struct {
-	NodeIdList []common.NodeID
+	NodeIdList []enode.IDv0
 }
 
 func (event ElectNextEpochVerifierEvent) String2() string {

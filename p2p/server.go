@@ -217,7 +217,7 @@ type Server struct {
 	consensus             bool
 	addconsensus          chan *enode.Node
 	removeconsensus       chan *enode.Node
-	rescheduleNodeMonitor chan []common.NodeID
+	rescheduleNodeMonitor chan []enode.IDv0
 }
 
 type peerOpFunc func(map[enode.ID]*Peer)
@@ -521,7 +521,7 @@ func (srv *Server) Start() (err error) {
 	srv.addconsensus = make(chan *enode.Node)
 	srv.removeconsensus = make(chan *enode.Node)
 
-	srv.rescheduleNodeMonitor = make(chan []common.NodeID)
+	srv.rescheduleNodeMonitor = make(chan []enode.IDv0)
 
 	if err := srv.setupLocalNode(); err != nil {
 		return err
@@ -921,20 +921,17 @@ running:
 			log.Info("p2p.server.rescheduleNodeMonitor", "nodeIdList", nodeIdList)
 			srv.dialsched.clearMonitorScheduler()
 			for _, node := range nodeIdList {
-				//TODO 如何通过common.NodeID转成 *enode.Node  begin
-				key, err := crypto.GenerateKey()
+				pub, err := node.Pubkey()
 				if err != nil {
-					log.Info("test")
+					log.Error("dial monitor get node public key fail", "err", err)
 				}
-				log.Info("============", node)
-				toaddr := &net.UDPAddr{IP: net.ParseIP("1.2.3.4"), Port: 2222}
-				node := enode.NewV4(&key.PublicKey, toaddr.IP, 0, toaddr.Port)
-				srv.dialsched.addMonitorTask(node)
+				node := enode.NewV4(pub, nil, 0, 0)
+				resolveNode := srv.dialsched.resolver().Resolve(node)
+				srv.dialsched.addMonitorTask(resolveNode)
 				monitorNodes[node.ID()] = true
 				if p, ok := peers[node.ID()]; ok {
 					p.rw.set(monitorConn, true)
 				}
-				//TODO 如何通过common.NodeID转成 *enode.Node  end
 			}
 		}
 	}
@@ -1389,7 +1386,7 @@ func (srv *Server) watching() {
 	}
 }
 
-func (srv *Server) MonitorNodeIdList(nodeIdList []common.NodeID) {
+func (srv *Server) MonitorNodeIdList(nodeIdList []enode.IDv0) {
 	select {
 	case srv.rescheduleNodeMonitor <- nodeIdList:
 	case <-srv.quit:

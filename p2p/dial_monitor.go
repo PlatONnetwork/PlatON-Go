@@ -178,7 +178,7 @@ type Downloading interface {
 // param: epoch 结算周期。从1开始计算。创世块可以认为是0
 // param: verifierList
 // param: downloading
-func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, nodeIdList []common.NodeID, downloading Downloading) {
+func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, nodeIdList []common.NodeID, nodeIDv0List []enode.IDv0, downloading Downloading) {
 	//nodeIdList := ConvertToNodeIdList(verifierList)
 	//nodeIdStringList := xcom.ConvertToNodeIdStringList(verifierList)
 	//MONITOR，保存这一轮结算周期的新101名单
@@ -190,7 +190,7 @@ func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uin
 		log.Info("current block is genesis block")
 
 		InitNodePing(nodeIdList)
-		if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+		if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIDv0List}); err != nil {
 			log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
 		}
 
@@ -200,7 +200,7 @@ func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uin
 			//说明区块是共识协议得到的，需要执行monitor任务
 			//MONITOR，保存新101名单
 			InitNodePing(nodeIdList)
-			if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+			if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIDv0List}); err != nil {
 				log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
 			}
 		} else {
@@ -209,7 +209,7 @@ func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uin
 			if chainEpoch == epoch && epoch != 1 { //epoch=1 第一个epoch的 监控信息，已经有创世块写入。
 				log.Info("current block is downloaded block and epoch is same as chain")
 				InitNodePing(nodeIdList)
-				if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
+				if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIDv0List}); err != nil {
 					log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
 				}
 			} else {
@@ -239,6 +239,14 @@ func ConvertToCommonNodeIdList(verifierList []*staking.Validator) []common.NodeI
 	nodeIdList := make([]common.NodeID, len(verifierList))
 	for i, verifier := range verifierList {
 		nodeIdList[i] = common.NodeID(verifier.NodeId)
+	}
+	return nodeIdList
+}
+
+func NodeIdList(verifierList []*staking.Validator) []enode.IDv0 {
+	nodeIdList := make([]enode.IDv0, len(verifierList))
+	for i, verifier := range verifierList {
+		nodeIdList[i] = verifier.NodeId
 	}
 	return nodeIdList
 }
