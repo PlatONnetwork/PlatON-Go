@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
@@ -47,8 +47,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/stretchr/testify/assert"
+
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
 const (
@@ -273,7 +274,7 @@ func TestPB03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareBlockEvidence)
 		if ok {
 			assert.Equal(t, lockBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
+			assert.Equal(t, enode.PublicKeyToIDv0(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -500,7 +501,7 @@ func TestVT02(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicatePrepareVoteEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
+			assert.Equal(t, enode.PublicKeyToIDv0(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}
@@ -613,7 +614,7 @@ func TestVC03(t *testing.T) {
 		_, ok = evds[0].(evidence.DuplicateViewChangeEvidence)
 		if ok {
 			assert.Equal(t, qcBlock.NumberU64()+1, evds[0].BlockNumber())
-			assert.Equal(t, discover.PubkeyID(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
+			assert.Equal(t, enode.PublicKeyToIDv0(&nodes[0].engine.config.Option.NodePriKey.PublicKey), evds[0].NodeID())
 			assert.Nil(t, evds[0].Validate())
 		}
 	}

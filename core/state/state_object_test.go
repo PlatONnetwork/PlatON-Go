@@ -18,6 +18,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -46,7 +47,7 @@ func BenchmarkCutCustomTrim(b *testing.B) {
 }
 
 func TestStateObject(t *testing.T) {
-	x := Account{
+	x := types.StateAccount{
 		Root: common.HexToHash("0x1000000000000000000000000000000000000001"),
 	}
 	x2 := newObject(nil, common.HexToAddress("0x1000000000000000000000000000000000000001"), x)
@@ -61,7 +62,7 @@ func TestStateObjectValuePrefix(t *testing.T) {
 	addr := common.HexToAddress("0x1000000000000000000000000000000000000001")
 	key := []byte("key")
 	value := []byte("value")
-	x2 := newObject(nil, addr, Account{
+	x2 := newObject(nil, addr, types.StateAccount{
 		Root:             hash,
 		StorageKeyPrefix: addr.Bytes(),
 	})

@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -44,7 +45,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -61,7 +61,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 	if nil != err {
 		panic(err)
 	}
-	nodeID, add := discover.PubkeyID(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
+	nodeID, add := enode.PublicKeyToIDv0(&privateKey.PublicKey), crypto.PubkeyToAddress(privateKey.PublicKey)
 	canBase.BenefitAddress = add
 	canBase.NodeId = nodeID
 	canBase.StakingBlockNum = 100
@@ -190,7 +190,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash)[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 			return err
 		}
 		var code string
@@ -263,7 +263,7 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 	}
 
 	var m [][]byte
-	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash)[0].Data, &m); err != nil {
+	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 		t.Error(err)
 		return
 	}
@@ -403,7 +403,7 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash)[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, hash)[0].Data, &m); err != nil {
 			return err
 		}
 		var code string

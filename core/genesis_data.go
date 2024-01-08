@@ -90,7 +90,7 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 		}
 
 		base := &staking.CandidateBase{
-			NodeId:          node.Node.ID,
+			NodeId:          node.Node.IDv0(),
 			BlsPubKey:       keyHex,
 			StakingAddress:  xcom.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,

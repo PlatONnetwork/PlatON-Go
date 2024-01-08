@@ -21,8 +21,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -33,12 +36,11 @@ import (
 // BlockGen creates blocks for testing.
 // See GenerateChain for a detailed explanation.
 type BlockGen struct {
-	i           int
-	parent      *types.Block
-	chain       []*types.Block
-	chainReader consensus.ChainReader
-	header      *types.Header
-	statedb     *state.StateDB
+	i       int
+	parent  *types.Block
+	chain   []*types.Block
+	header  *types.Header
+	statedb *state.StateDB
 
 	gasPool  *GasPool
 	txs      []*types.Transaction
@@ -46,6 +48,10 @@ type BlockGen struct {
 
 	config *params.ChainConfig
 	engine consensus.Engine
+}
+
+func (b *BlockGen) SetActiveVersion(version uint32) {
+	gov.AddActiveVersion(version, 0, b.statedb)
 }
 
 // SetCoinbase sets the coinbase of the generated block.
@@ -95,7 +101,7 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	if b.gasPool == nil {
 		b.SetCoinbase(common.Address{})
 	}
-	b.statedb.Prepare(tx.Hash(), common.Hash{}, len(b.txs))
+	b.statedb.Prepare(tx.Hash(), len(b.txs))
 	receipt, err := ApplyTransaction(b.config, bc, b.gasPool, b.statedb, b.header, tx, &b.header.GasUsed, vm.Config{})
 	if err != nil {
 		panic(err)
@@ -104,9 +110,9 @@ func (b *BlockGen) AddTxWithChain(bc *BlockChain, tx *types.Transaction) {
 	b.receipts = append(b.receipts, receipt)
 }
 
-// Number returns the block number of the block being generated.
-func (b *BlockGen) Number() *big.Int {
-	return new(big.Int).Set(b.header.Number)
+// GetBalance returns the balance of the given address at the generated block.
+func (b *BlockGen) GetBalance(addr common.Address) *big.Int {
+	return b.statedb.GetBalance(addr)
 }
 
 // AddUncheckedTx forcefully adds a transaction to the block without any
@@ -116,6 +122,16 @@ func (b *BlockGen) Number() *big.Int {
 // chain processing. This is best used in conjunction with raw block insertion.
 func (b *BlockGen) AddUncheckedTx(tx *types.Transaction) {
 	b.txs = append(b.txs, tx)
+}
+
+// Number returns the block number of the block being generated.
+func (b *BlockGen) Number() *big.Int {
+	return new(big.Int).Set(b.header.Number)
+}
+
+// BaseFee returns the EIP-1559 base fee of the block being generated.
+func (b *BlockGen) BaseFee() *big.Int {
+	return new(big.Int).Set(b.header.BaseFee)
 }
 
 // AddUncheckedReceipt forcefully adds a receipts to the block without a
@@ -141,7 +157,7 @@ func (b *BlockGen) TxNonce(addr common.Address) uint64 {
 // For index -1, PrevBlock returns the parent block given to GenerateChain.
 func (b *BlockGen) PrevBlock(index int) *types.Block {
 	if index >= b.i {
-		panic("block index out of range")
+		panic(fmt.Errorf("block index %d out of range (%d,%d)", index, -1, b.i))
 	}
 	if index == -1 {
 		return b.parent
@@ -175,15 +191,12 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	if config == nil {
 		config = params.TestChainConfig
 	}
+	config.PauliBlock = big.NewInt(1)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
-		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
-		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
-		blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{}, nil, nil)
-		defer blockchain.Stop()
-
-		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
-		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
 
 		// Execute any user modifications to the block
 		if gen != nil {
@@ -191,7 +204,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
 			// Write state changes to db
 			root, err := statedb.Commit(true)
@@ -206,7 +219,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		return nil, nil
 	}
 	for i := 0; i < n; i++ {
-		statedb, err := state.New(parent.Root(), state.NewDatabase(db))
+		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
+		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 1, statedb)
 		if err != nil {
 			panic(err)
 		}
@@ -234,11 +248,12 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		DBGCInterval:    86400,
 		DBGCTimeout:     time.Minute,
 	}
+	chainreader := &fakeChainReader{config: config}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
-		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
-		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
 
 		// Execute any user modifications to the block
 		if gen != nil {
@@ -246,9 +261,9 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -272,6 +287,48 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 	return blockchain
 }
 
+func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) *BlockChain {
+	if config == nil {
+		config = params.TestChainConfig
+	}
+	chainreader := &fakeChainReader{config: config}
+	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
+		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
+
+		// Execute any user modifications to the block
+		if gen != nil {
+			gen(i, b)
+		}
+		if b.engine != nil {
+			// Finalize and seal the block
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+
+			_, err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
+			if err != nil {
+				panic(err)
+			}
+			return block, b.receipts
+		}
+		return nil, nil
+	}
+	for i := 0; i < n; i++ {
+		statedb, err := chain.StateAt(parent.Root())
+		if err != nil {
+			panic(err)
+		}
+		block, receipt := genblock(i, parent, statedb)
+		errCh := make(chan error, 1)
+		errCh <- engine.InsertChain(block)
+		<-errCh
+		blocks[i] = block
+		receipts[i] = receipt
+		parent = block
+	}
+	return chain
+}
+
 func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
 	if config == nil {
 		config = params.TestChainConfig
@@ -288,11 +345,12 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		DBGCInterval:    86400,
 		DBGCTimeout:     time.Minute,
 	}
+	chainreader := &fakeChainReader{config: config}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
-		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
-		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
 
 		// Execute any user modifications to the block
 		if gen != nil {
@@ -300,9 +358,9 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
 
-			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false)
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
 				panic(err)
 			}
@@ -330,15 +388,26 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		time = parent.Time() + 10 // block time is fixed at 10 seconds
 	}
 
-	return &types.Header{
+	header := &types.Header{
 		Root:       state.IntermediateRoot(true),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		GasLimit:   CalcGasLimit(parent, parent.GasLimit() /*, parent.GasLimit()*/),
+		GasLimit:   parent.GasLimit(),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
 		Extra:      make([]byte, 65),
 	}
+
+	if chain.Config().IsPauli(header.Number) {
+		header.BaseFee = misc.CalcBaseFee(chain.Config(), parent.Header())
+		parentGasLimit := parent.GasLimit()
+		if !chain.Config().IsPauli(parent.Number()) {
+			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+		}
+		header.GasLimit = CalcGasLimit1559(parentGasLimit, parentGasLimit)
+	}
+
+	return header
 }
 
 // makeHeaderChain creates a deterministic chain of headers rooted at parent.
@@ -360,3 +429,20 @@ func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethd
 
 	return blocks
 }
+
+type fakeChainReader struct {
+	config  *params.ChainConfig
+	genesis *types.Block
+}
+
+// Config returns the chain configuration.
+func (cr *fakeChainReader) Config() *params.ChainConfig {
+	return cr.config
+}
+
+func (cr *fakeChainReader) CurrentHeader() *types.Header                            { return nil }
+func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header           { return nil }
+func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
+func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
+func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
+func (cr *fakeChainReader) CurrentBlock() *types.Block                              { return nil }

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -26,6 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -35,7 +36,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 func Test_NewPeer(t *testing.T) {
@@ -142,7 +142,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 	// Init the node of peerSet.
 	ps := NewPeerSet()
 	var peers []*peer
-	var ids []discover.NodeID
+	var ids []enode.ID
 	for i := 0; i < 11; i++ {
 		p, id := newTestPeer(1, fmt.Sprintf("%d", i))
 		peers = append(peers, p)
@@ -195,7 +195,7 @@ func Test_PeerSet_Peers(t *testing.T) {
 func Test_Peer_Handshake(t *testing.T) {
 	exec := func(close chan<- struct{}, inStatus, outStatus *protocols.CbftStatusData, wantErr error) {
 		in, out := p2p.MsgPipe()
-		var id discover.NodeID
+		var id enode.ID
 		rand.Read(id[:])
 		me := newPeer(1, p2p.NewPeer(id, "me", nil), in)
 		you := newPeer(1, p2p.NewPeer(id, "you", nil), out)

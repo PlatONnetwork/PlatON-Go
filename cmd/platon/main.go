@@ -19,19 +19,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
-	"math"
 	"os"
 	"runtime"
-	godebug "runtime/debug"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
+
+	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/panjf2000/ants/v2"
 	"gopkg.in/urfave/cli.v1"
@@ -48,7 +48,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 
-	gopsutil "github.com/shirou/gopsutil/mem"
+	// Force-load the tracer engines to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 const (
@@ -60,7 +62,7 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -71,8 +73,8 @@ var (
 		//	utils.BootnodesV5Flag,
 		utils.DataDirFlag,
 		utils.AncientFlag,
+		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
-		utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -86,13 +88,17 @@ var (
 		utils.TxPoolLifetimeFlag,
 		utils.TxPoolCacheSizeFlag,
 		utils.SyncModeFlag,
+		utils.SnapshotFlag,
 		utils.TxLookupLimitFlag,
 		utils.LightKDFFlag,
+		utils.BloomFilterSizeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
+		utils.CacheTrieFlag,
 		utils.CacheTrieJournalFlag,
 		utils.CacheTrieRejournalFlag,
 		utils.CacheGCFlag,
+		utils.CacheSnapshotFlag,
 		utils.CacheTrieDBFlag,
 		utils.CachePreimagesFlag,
 		utils.ListenPortFlag,
@@ -106,18 +112,19 @@ var (
 		utils.NetrestrictFlag,
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
-		utils.DeveloperPeriodFlag,
+		//	utils.DNSDiscoveryFlag,
 		utils.MainFlag,
 		utils.TestnetFlag,
 		utils.NetworkIdFlag,
 		//utils.EthStatsURLFlag,
 		utils.StatsFlag,
-		utils.NoCompactionFlag,
+		//utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
 		utils.LegacyGpoBlocksFlag,
 		utils.GpoPercentileFlag,
 		utils.LegacyGpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
+		utils.GpoIgnoreGasPriceFlag,
 		configFileFlag,
 	}
 
@@ -127,17 +134,12 @@ var (
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
 		utils.HTTPVirtualHostsFlag,
-		utils.LegacyRPCEnabledFlag,
-		utils.LegacyRPCListenAddrFlag,
-		utils.LegacyRPCPortFlag,
-		utils.LegacyRPCCORSDomainFlag,
-		utils.LegacyRPCVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
 		utils.GraphQLCORSDomainFlag,
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
+		utils.HTTPPathPrefixFlag,
 		utils.HTTPEnabledEthCompatibleFlag,
-		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
 		utils.LegacyWSListenAddrFlag,
@@ -146,11 +148,13 @@ var (
 		utils.WSApiFlag,
 		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
+		utils.WSPathPrefixFlag,
 		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
+		utils.RPCGlobalEVMTimeoutFlag,
 		utils.RPCGlobalTxFeeCapFlag,
 		utils.AllowUnprotectedTxs,
 	}
@@ -166,6 +170,10 @@ var (
 		utils.MetricsInfluxDBUsernameFlag,
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
+		utils.MetricsEnableInfluxDBV2Flag,
+		utils.MetricsInfluxDBTokenFlag,
+		utils.MetricsInfluxDBBucketFlag,
+		utils.MetricsInfluxDBOrganizationFlag,
 	}
 
 	cbftFlags = []cli.Flag{
@@ -195,7 +203,7 @@ func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -203,11 +211,9 @@ func init() {
 		//exportCommand,
 		importPreimagesCommand,
 		exportPreimagesCommand,
-		copydbCommand,
 		removedbCommand,
 		dumpCommand,
 		dumpGenesisCommand,
-		inspectCommand,
 		// See accountcmd.go:
 		accountCommand,
 		// See consolecmd.go:
@@ -218,8 +224,12 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		// see dbcmd.go
+		dbCommand,
 		// See cmd/utils/flags_legacy.go
 		utils.ShowDeprecated,
+		// See snapshot.go
+		snapshotCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
@@ -227,7 +237,6 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, debug.DeprecatedFlags...)
 	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
@@ -251,27 +260,6 @@ func init() {
 		if err := debug.SetupWasmLog(ctx); err != nil {
 			return err
 		}
-
-		// Cap the cache allowance and tune the garbage collector
-		mem, err := gopsutil.VirtualMemory()
-		if err == nil {
-			if 32<<(^uintptr(0)>>63) == 32 && mem.Total > 2*1024*1024*1024 {
-				log.Warn("Lowering memory allowance on 32bit arch", "available", mem.Total/1024/1024, "addressable", 2*1024)
-				mem.Total = 2 * 1024 * 1024 * 1024
-			}
-			allowance := int(mem.Total / 1024 / 1024 / 3)
-			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
-				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
-				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
-			}
-		}
-
-		// Ensure Go's GC ignores the database cache for trigger percentage
-		cache := ctx.GlobalInt(utils.CacheFlag.Name)
-		gogc := math.Max(20, math.Min(100, 100/(float64(cache)/1024)))
-
-		log.Debug("Sanitizing Go's GC trigger", "percent", int(gogc))
-		godebug.SetGCPercent(int(gogc))
 
 		// Start metrics export if enabled
 		utils.SetupMetrics(ctx)
@@ -306,7 +294,7 @@ func platon(ctx *cli.Context) error {
 	}
 	stack, backend := makeFullNode(ctx)
 	defer stack.Close()
-	startNode(ctx, stack, backend)
+	startNode(ctx, stack, backend, false)
 	stack.Wait()
 	return nil
 }
@@ -314,11 +302,11 @@ func platon(ctx *cli.Context) error {
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
-func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
+func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
-	utils.StartNode(stack)
+	utils.StartNode(ctx, stack, isConsole)
 
 	// Unlock any account specifically requested
 	unlockAccounts(ctx, stack)

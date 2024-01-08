@@ -46,7 +46,7 @@ var (
 	blockGasLimit        = uint64(500000000000)
 
 	gasPrice = big.NewInt(15000)
-	signer   = types.NewEIP155Signer(chainConfig.ChainID)
+	signer   = types.LatestSignerForChainID(chainConfig.PIP7ChainID)
 
 	//blockchain *BlockChain
 	//stateDb *state2.StateDB
@@ -157,7 +157,7 @@ func initTx(fromAccountList []*account, contractAccountList []*account) types.Tr
 
 func initChain(fromAccountList []*account, toAccountList []*account, contractAccountList []*account) (*BlockChain, *state2.StateDB, *types.Header) {
 	db := rawdb.NewMemoryDatabase()
-	stateDb, _ := state2.New(common.Hash{}, state2.NewDatabase(db))
+	stateDb, _ := state2.New(common.Hash{}, state2.NewDatabase(db), nil)
 
 	nodePriKey := crypto.HexMustToECDSA("1191dc5317d5930beb77848f416ee023921fa4452f4d783384f35352409c0ad0")
 	nodeID := crypto.PubkeyToAddress(nodePriKey.PublicKey)
@@ -304,10 +304,11 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 
 func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header, tempContractCache map[common.Address]struct{}) *types.Block {
 	//initState := stateDb.Copy()
+
 	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
-	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, nil, tempContractCache)
+	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, types.MakeSigner(chainConfig, header.Number, true), tempContractCache)
 	ctx.SetBlockDeadline(time.Now().Add(200 * time.Second))
 	ctx.SetBlockGasUsedHolder(&header.GasUsed)
 	ctx.SetTxList(testTxList)
@@ -358,7 +359,7 @@ func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockCh
 	txs := types.Transactions{}
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
-		stateDb.Prepare(tx.Hash(), common.Hash{}, idx)
+		stateDb.Prepare(tx.Hash(), idx)
 		receipt, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
 
 		if err != nil {

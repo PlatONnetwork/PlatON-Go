@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 // Package network implements  a concrete consensus engines.
 package network
 
@@ -25,7 +24,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -38,10 +37,10 @@ import (
 // the number of nodes selected per broadcast.
 const DefaultFanOut = 5
 
-type unregisterFunc func(id string) error                 // Unregister peer from peerSet.
-type getByIDFunc func(id string) (*peer, error)           // Get peer based on ID.
-type consensusNodesFunc func() ([]discover.NodeID, error) // Get a list of consensus nodes.
-type peersFunc func() ([]*peer, error)                    // Get a list of all neighbor nodes.
+type unregisterFunc func(id string) error          // Unregister peer from peerSet.
+type getByIDFunc func(id string) (*peer, error)    // Get peer based on ID.
+type consensusNodesFunc func() ([]enode.ID, error) // Get a list of consensus nodes.
+type peersFunc func() ([]*peer, error)             // Get a list of all neighbor nodes.
 
 // Router implements the message protocol of gossip.
 //
@@ -141,9 +140,12 @@ func (r *router) SendMessage(m *types.MsgPackage) {
 // 1.Some message types return all consensus nodes.
 // 2.Some message types return random consensus nodes.
 // The following types return all consensus nodes:
-//   PrepareVoteMsg/PrepareBlockMsg/ViewChangeMsg/BlockQuorumCertMsg
+//
+//	PrepareVoteMsg/PrepareBlockMsg/ViewChangeMsg/BlockQuorumCertMsg
+//
 // The following types return a consensus node with non-consensus:
-//   PrepareBlockHashMsg
+//
+//	PrepareBlockHashMsg
 func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*peer, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
@@ -313,7 +315,7 @@ func formatPeers(peers []*peer) string {
 }
 
 // FormatNodes is used to print the information about peerID.
-func FormatNodes(ids []discover.NodeID) string {
+func FormatNodes(ids []enode.ID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())

@@ -19,10 +19,9 @@ package params
 import (
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -77,11 +76,15 @@ var (
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(100),
-		PIP7ChainID: big.NewInt(210425),
-		AddressHRP:  "lat",
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:         big.NewInt(100),
+		PIP7ChainID:     big.NewInt(210425),
+		AddressHRP:      "lat",
+		EmptyBlock:      "on",
+		EIP155Block:     big.NewInt(1),
+		CopernicusBlock: big.NewInt(10304521),
+		NewtonBlock:     big.NewInt(28770011),
+		EinsteinBlock:   big.NewInt(45531841),
+		HubbleBlock:     big.NewInt(58421521),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
@@ -102,11 +105,16 @@ var (
 
 	// TestnetChainConfig is the chain parameters to run a node on the test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:     big.NewInt(104),
-		PIP7ChainID: big.NewInt(210429),
-		AddressHRP:  "lat",
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(1),
+		ChainID:         big.NewInt(104),
+		PIP7ChainID:     big.NewInt(210429),
+		AddressHRP:      "lat",
+		EmptyBlock:      "on",
+		EIP155Block:     big.NewInt(1),
+		CopernicusBlock: big.NewInt(1),
+		NewtonBlock:     big.NewInt(1),
+		EinsteinBlock:   big.NewInt(1),
+		HubbleBlock:     big.NewInt(1),
+		PauliBlock:      big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
@@ -125,25 +133,28 @@ var (
 		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
 	}
 
-	GrapeChainConfig = &ChainConfig{
-		AddressHRP:  "lat",
-		ChainID:     big.NewInt(304),
-		PIP7ChainID: big.NewInt(210425),
-		EmptyBlock:  "on",
-		EIP155Block: big.NewInt(3),
+	TestChainConfig = &ChainConfig{
+		ChainID:         big.NewInt(1337),
+		PIP7ChainID:     PrivatePIP7ChainID,
+		AddressHRP:      "lat",
+		EmptyBlock:      "on",
+		EIP155Block:     big.NewInt(0),
+		CopernicusBlock: big.NewInt(0),
+		NewtonBlock:     big.NewInt(0),
+		EinsteinBlock:   big.NewInt(0),
+		HubbleBlock:     big.NewInt(0),
+		PauliBlock:      big.NewInt(0),
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
-		GenesisVersion: GenesisVersion,
+		GenesisVersion: CodeVersion(),
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, nil, GenesisVersion}
-
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), "lat", "", big.NewInt(0), big.NewInt(0), nil, new(CbftConfig), GenesisVersion}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -170,57 +181,40 @@ type ChainConfig struct {
 	PIP7ChainID *big.Int `json:"pip7ChainId,omitempty"` // chainId identifies the current chain and is used for replay protection
 	AddressHRP  string   `json:"addressHRP"`
 	EmptyBlock  string   `json:"emptyBlock"`
-	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
-	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
+
+	EIP155Block     *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
+	EWASMBlock      *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
+	CopernicusBlock *big.Int `json:"copernicusBlock,omitempty"`
+	NewtonBlock     *big.Int `json:"newtonBlock,omitempty"`
+	EinsteinBlock   *big.Int `json:"einsteinBlock,omitempty"`
+	HubbleBlock     *big.Int `json:"hubbleBlock,omitempty"`
+	PauliBlock      *big.Int `json:"pauliBlock,omitempty"`
+
 	// Various consensus engines
-	Clique *CliqueConfig `json:"clique,omitempty"`
-	Cbft   *CbftConfig   `json:"cbft,omitempty"`
+	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	GenesisVersion uint32 `json:"genesisVersion"`
-}
-
-type CbftNode struct {
-	Node      discover.Node `json:"node"`
-	BlsPubKey bls.PublicKey `json:"blsPubKey"`
-}
-
-type initNode struct {
-	Enode     string
-	BlsPubkey string
-}
-
-type CbftConfig struct {
-	Period        uint64     `json:"period,omitempty"`        // Number of seconds between blocks to enforce
-	Amount        uint32     `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
-	InitialNodes  []CbftNode `json:"initialNodes,omitempty"`  //Genesis consensus node
-	ValidatorMode string     `json:"validatorMode,omitempty"` //Validator mode for easy testing
-}
-
-// CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
-type CliqueConfig struct {
-	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
-	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
-}
-
-// String implements the stringer interface, returning the consensus engine details.
-func (c *CliqueConfig) String() string {
-	return "clique"
+	sync.RWMutex
 }
 
 // String implements the fmt.Stringer interface.
 func (c *ChainConfig) String() string {
 	var engine interface{}
 	switch {
-	case c.Clique != nil:
-		engine = c.Clique
 	case c.Cbft != nil:
 		engine = c.Cbft
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v EIP155: %v Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Pauli: %v Engine: %v }",
 		c.ChainID,
+		c.PIP7ChainID,
 		c.EIP155Block,
+		c.CopernicusBlock,
+		c.NewtonBlock,
+		c.EinsteinBlock,
+		c.HubbleBlock,
+		c.PauliBlock,
 		engine,
 	)
 }
@@ -236,11 +230,87 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 	return isForked(c.EWASMBlock, num)
 }
 
+// version 1.1.0
+func (c *ChainConfig) IsCopernicus(num *big.Int) bool {
+	return isForked(c.CopernicusBlock, num)
+}
+
+// version 1.2.0
+func (c *ChainConfig) IsNewton(num *big.Int) bool {
+	return isForked(c.NewtonBlock, num)
+}
+
+// version 1.3.0
+func (c *ChainConfig) IsEinstein(num *big.Int) bool {
+	return isForked(c.EinsteinBlock, num)
+}
+
+// version 1.4.0
+func (c *ChainConfig) IsHubble(num *big.Int) bool {
+	return isForked(c.HubbleBlock, num)
+}
+
+// version 1.5.0
+func (c *ChainConfig) IsPauli(num *big.Int) bool {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return isForked(c.PauliBlock, num)
+}
+
+func (c *ChainConfig) GetPauliBlock() *big.Int {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return c.PauliBlock
+}
+
+func (c *ChainConfig) SetPauliBlock(block *big.Int) {
+	c.RWMutex.Lock()
+	defer c.RWMutex.Unlock()
+	c.PauliBlock = block
+}
+
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
 //
 // The returned GasTable's fields shouldn't, under any circumstances, be changed.
 func (c *ChainConfig) GasTable(num *big.Int) GasTable {
 	return GasTableConstantinople
+}
+
+// CheckConfigForkOrder checks that we don't "skip" any forks, geth isn't pluggable enough
+// to guarantee that forks can be implemented in a different order than on official networks
+func (c *ChainConfig) CheckConfigForkOrder() error {
+	type fork struct {
+		name     string
+		block    *big.Int
+		optional bool // if true, the fork may be nil and next fork is still allowed
+	}
+	var lastFork fork
+	for _, cur := range []fork{
+		{name: "eip155Block", block: c.EIP155Block},
+		{name: "copernicusBlock", block: c.CopernicusBlock},
+		{name: "newtonBlock", block: c.NewtonBlock},
+		{name: "einsteinBlock", block: c.EinsteinBlock},
+		{name: "hubbleBlock", block: c.HubbleBlock},
+	} {
+		if lastFork.name != "" {
+			// Next one must be higher number
+			if lastFork.block == nil && cur.block != nil {
+				return fmt.Errorf("unsupported fork ordering: %v not enabled, but %v enabled at %v",
+					lastFork.name, cur.name, cur.block)
+			}
+			if lastFork.block != nil && cur.block != nil {
+				if lastFork.block.Cmp(cur.block) > 0 {
+					return fmt.Errorf("unsupported fork ordering: %v enabled at %v, but %v enabled at %v",
+						lastFork.name, lastFork.block, cur.name, cur.block)
+				}
+			}
+		}
+		// If it was optional and not set, then ignore it
+		if !cur.optional || cur.block != nil {
+			lastFork = cur
+		}
+	}
+	return nil
 }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
@@ -268,6 +338,20 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.EWASMBlock, newcfg.EWASMBlock, head) {
 		return newCompatError("ewasm fork block", c.EWASMBlock, newcfg.EWASMBlock)
 	}
+	if isForkIncompatible(c.CopernicusBlock, newcfg.CopernicusBlock, head) {
+		return newCompatError("copernicus fork block", c.CopernicusBlock, newcfg.CopernicusBlock)
+	}
+	if isForkIncompatible(c.NewtonBlock, newcfg.NewtonBlock, head) {
+		return newCompatError("newton fork block", c.NewtonBlock, newcfg.NewtonBlock)
+	}
+	if isForkIncompatible(c.EinsteinBlock, newcfg.EinsteinBlock, head) {
+		return newCompatError("einstein fork block", c.EinsteinBlock, newcfg.EinsteinBlock)
+	}
+
+	if isForkIncompatible(c.HubbleBlock, newcfg.HubbleBlock, head) {
+		return newCompatError("hubble fork block", c.HubbleBlock, newcfg.HubbleBlock)
+	}
+
 	return nil
 }
 
@@ -326,25 +410,29 @@ func (err *ConfigCompatError) Error() string {
 	return fmt.Sprintf("mismatching %s in database (have %d, want %d, rewindto %d)", err.What, err.StoredConfig, err.NewConfig, err.RewindTo)
 }
 
-func ConvertNodeUrl(initialNodes []initNode) []CbftNode {
-	bls.Init(bls.BLS12_381)
-	NodeList := make([]CbftNode, 0, len(initialNodes))
-	for _, n := range initialNodes {
+// Rules wraps ChainConfig and is merely syntactic sugar or can be used for functions
+// that do not have or require information about the block.
+//
+// Rules is a one time interface meaning that it shouldn't be used in between transition
+// phases.
+type Rules struct {
+	ChainID                                                         *big.Int
+	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
+}
 
-		cbftNode := new(CbftNode)
-
-		if node, err := discover.ParseNode(n.Enode); nil == err {
-			cbftNode.Node = *node
-		}
-
-		if n.BlsPubkey != "" {
-			var blsPk bls.PublicKey
-			if err := blsPk.UnmarshalText([]byte(n.BlsPubkey)); nil == err {
-				cbftNode.BlsPubKey = blsPk
-			}
-		}
-
-		NodeList = append(NodeList, *cbftNode)
+// Rules ensures c's ChainID is not nil.
+func (c *ChainConfig) Rules(num *big.Int) Rules {
+	chainID := c.ChainID
+	if chainID == nil {
+		chainID = new(big.Int)
 	}
-	return NodeList
+	return Rules{
+		ChainID:      new(big.Int).Set(chainID),
+		IsEIP155:     c.IsEIP155(num),
+		IsCopernicus: c.IsCopernicus(num),
+		IsNewton:     c.IsNewton(num),
+		IsEinstein:   c.IsEinstein(num),
+		IsHubble:     c.IsHubble(num),
+		IsPauli:      c.IsPauli(num),
+	}
 }

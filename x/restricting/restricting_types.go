@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package restricting
 
 import (
@@ -25,12 +24,16 @@ import (
 )
 
 // for genesis and plugin test
-//每个锁仓账户，都只有一个这样的对象，记录当前最新的状态。
+// 每个账户，作为锁仓计划的资金释放目标对象，都可以有且只有一个这样的对象，记录当前的锁仓计划状态
 type RestrictingInfo struct {
-	NeedRelease     *big.Int //欠释放金额，到了结算周期需要释放却因为质押而无法释放的金额
-	AdvanceAmount   *big.Int //用于质押和委托的金额
-	CachePlanAmount *big.Int //最新可用的锁仓金额 = 当前可用锁仓金额 - 以前已释放的（这次需要释放的） - 被惩罚的
-	ReleaseList     []uint64 // ReleaseList representation which epoch will release restricting
+	//欠释放金额，到了结算周期需要释放却因为质押而无法释放的金额
+	NeedRelease *big.Int
+	// 用于质押和委托的金额
+	AdvanceAmount *big.Int
+	// 可用的锁仓金额 = 可用锁仓金额 - 已释放的（需要释放的） - 被惩罚的(用于质押而被处罚)
+	CachePlanAmount *big.Int
+
+	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
 }
 
 func (r *RestrictingInfo) RemoveEpoch(epoch uint64) {

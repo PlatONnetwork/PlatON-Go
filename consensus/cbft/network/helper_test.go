@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -25,6 +24,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -32,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
@@ -239,7 +239,7 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 	app, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id enode.ID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
@@ -256,11 +256,11 @@ func newFakePeer(name string, version int, pm *EngineManager, shake bool) (*fake
 }
 
 // Create a new peer for testing, return peer and ID.
-func newTestPeer(version int, name string) (*peer, discover.NodeID) {
+func newTestPeer(version int, name string) (*peer, enode.ID) {
 	_, net := p2p.MsgPipe()
 
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id enode.ID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
@@ -269,9 +269,9 @@ func newTestPeer(version int, name string) (*peer, discover.NodeID) {
 	return peer, id
 }
 
-func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, discover.NodeID) {
+func newLinkedPeer(rw p2p.MsgReadWriter, version int, name string) (*peer, enode.ID) {
 	// Generate a random id and create the peer.
-	var id discover.NodeID
+	var id enode.ID
 	rand.Read(id[:])
 
 	// Create a peer that belonging to cbft.
@@ -323,15 +323,15 @@ func Test_InitializePeers(t *testing.T) {
 }
 
 type mockCbft struct {
-	consensusNodes []discover.NodeID
-	peerID         discover.NodeID
+	consensusNodes []enode.ID
+	peerID         enode.ID
 }
 
-func (s *mockCbft) NodeID() discover.NodeID {
-	return s.peerID
+func (s *mockCbft) Node() *enode.Node {
+	return nil
 }
 
-func (s *mockCbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (s *mockCbft) ConsensusNodes() ([]enode.ID, error) {
 	return s.consensusNodes, nil
 }
 

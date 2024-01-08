@@ -24,11 +24,11 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-func NodeId2Addr(nodeId discover.NodeID) (common.NodeAddress, error) {
+func NodeId2Addr(nodeId enode.IDv0) (common.NodeAddress, error) {
 	if pk, err := nodeId.Pubkey(); nil != err {
 		return common.ZeroNodeAddr, err
 	} else {
@@ -155,7 +155,7 @@ func CalculateRound(blockNumber uint64) uint64 {
 	return round
 }
 
-func InNodeIDList(nodeID discover.NodeID, nodeIDList []discover.NodeID) bool {
+func InNodeIDList(nodeID enode.IDv0, nodeIDList []enode.IDv0) bool {
 	for _, v := range nodeIDList {
 		if nodeID == v {
 			return true

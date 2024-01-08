@@ -25,6 +25,9 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -82,7 +85,7 @@ func (api *PrivateAdminAPI) ExportChain(file string, first *uint64, last *uint64
 		last = &head
 	}
 	if _, err := os.Stat(file); err == nil {
-		// File already exists. Allowing overwrite could be a DoS vecotor,
+		// File already exists. Allowing overwrite could be a DoS vector,
 		// since the 'file' may point to arbitrary paths on the drive
 		return false, errors.New("location would overwrite an existing file")
 	}
@@ -251,22 +254,29 @@ type BadBlockArgs struct {
 // GetBadBlocks returns a list of the last 'bad blocks' that the client has seen on the network
 // and returns them as a JSON list of block-hashes
 func (api *PrivateDebugAPI) GetBadBlocks(ctx context.Context) ([]*BadBlockArgs, error) {
-	blocks := api.eth.BlockChain().BadBlocks()
-	results := make([]*BadBlockArgs, len(blocks))
-
-	var err error
-	for i, block := range blocks {
-		results[i] = &BadBlockArgs{
-			Hash: block.Hash(),
-		}
+	var (
+		err     error
+		blocks  = rawdb.ReadAllBadBlocks(api.eth.chainDb)
+		results = make([]*BadBlockArgs, 0, len(blocks))
+	)
+	for _, block := range blocks {
+		var (
+			blockRlp  string
+			blockJSON map[string]interface{}
+		)
 		if rlpBytes, err := rlp.EncodeToBytes(block); err != nil {
-			results[i].RLP = err.Error() // Hacky, but hey, it works
+			blockRlp = err.Error() // Hacky, but hey, it works
 		} else {
-			results[i].RLP = fmt.Sprintf("0x%x", rlpBytes)
+			blockRlp = fmt.Sprintf("0x%x", rlpBytes)
 		}
-		if results[i].Block, err = ethapi.RPCMarshalBlock(block, true, true); err != nil {
-			results[i].Block = map[string]interface{}{"error": err.Error()}
+		if blockJSON, err = ethapi.RPCMarshalBlock(block, true, true, api.eth.APIBackend.ChainConfig()); err != nil {
+			blockJSON = map[string]interface{}{"error": err.Error()}
 		}
+		results = append(results, &BadBlockArgs{
+			Hash:  block.Hash(),
+			RLP:   blockRlp,
+			Block: blockJSON,
+		})
 	}
 	return results, nil
 }
@@ -280,61 +290,59 @@ type AccountRangeResult struct {
 	Next     common.Hash                     `json:"next"`
 }
 
-func accountRange(st state.Trie, start *common.Hash, maxResults int) (AccountRangeResult, error) {
-	if start == nil {
-		start = &common.Hash{0}
-	}
-	it := trie.NewIterator(st.NodeIterator(start.Bytes()))
-	result := AccountRangeResult{Accounts: make(map[common.Hash]*common.Address), Next: common.Hash{}}
-
-	if maxResults > AccountRangeMaxResults {
-		maxResults = AccountRangeMaxResults
-	}
-
-	for i := 0; i < maxResults && it.Next(); i++ {
-		if preimage := st.GetKey(it.Key); preimage != nil {
-			addr := &common.Address{}
-			addr.SetBytes(preimage)
-			result.Accounts[common.BytesToHash(it.Key)] = addr
-		} else {
-			result.Accounts[common.BytesToHash(it.Key)] = nil
-		}
-	}
-
-	if it.Next() {
-		result.Next = common.BytesToHash(it.Key)
-	}
-
-	return result, nil
-}
-
 // AccountRangeMaxResults is the maximum number of results to be returned per call
 const AccountRangeMaxResults = 256
 
-// AccountRange enumerates all accounts in the latest state
-func (api *PrivateDebugAPI) AccountRange(ctx context.Context, start *common.Hash, maxResults int) (AccountRangeResult, error) {
-	var statedb *state.StateDB
+// AccountRange enumerates all accounts in the given block and start point in paging request
+func (api *PrivateDebugAPI) AccountRange(blockNrOrHash rpc.BlockNumberOrHash, start hexutil.Bytes, maxResults int, nocode, nostorage, incompletes bool) (state.IteratorDump, error) {
+	var stateDb *state.StateDB
 	var err error
-	block := api.eth.blockchain.CurrentBlock()
 
-	if len(block.Transactions()) == 0 {
-		statedb, err = api.computeStateDB(block, defaultTraceReexec)
+	if number, ok := blockNrOrHash.Number(); ok {
+		if number == rpc.PendingBlockNumber {
+			// If we're dumping the pending state, we need to request
+			// both the pending block as well as the pending state from
+			// the miner and operate on those
+			_, stateDb = api.eth.miner.Pending()
+		} else {
+			var block *types.Block
+			if number == rpc.LatestBlockNumber {
+				block = api.eth.blockchain.CurrentBlock()
+			} else {
+				block = api.eth.blockchain.GetBlockByNumber(uint64(number))
+			}
+			if block == nil {
+				return state.IteratorDump{}, fmt.Errorf("block #%d not found", number)
+			}
+			stateDb, err = api.eth.BlockChain().StateAt(block.Root())
+			if err != nil {
+				return state.IteratorDump{}, err
+			}
+		}
+	} else if hash, ok := blockNrOrHash.Hash(); ok {
+		block := api.eth.blockchain.GetBlockByHash(hash)
+		if block == nil {
+			return state.IteratorDump{}, fmt.Errorf("block %s not found", hash.Hex())
+		}
+		stateDb, err = api.eth.BlockChain().StateAt(block.Root())
 		if err != nil {
-			return AccountRangeResult{}, err
+			return state.IteratorDump{}, err
 		}
 	} else {
-		_, _, statedb, err = api.computeTxEnv(block, len(block.Transactions())-1, 0)
-		if err != nil {
-			return AccountRangeResult{}, err
-		}
+		return state.IteratorDump{}, errors.New("either block number or block hash must be specified")
 	}
 
-	trie, err := statedb.Database().OpenTrie(block.Header().Root)
-	if err != nil {
-		return AccountRangeResult{}, err
+	opts := &state.DumpConfig{
+		SkipCode:          nocode,
+		SkipStorage:       nostorage,
+		OnlyWithAddresses: !incompletes,
+		Start:             start,
+		Max:               uint64(maxResults),
 	}
-
-	return accountRange(trie, start, maxResults)
+	if maxResults > AccountRangeMaxResults || maxResults <= 0 {
+		opts.Max = AccountRangeMaxResults
+	}
+	return stateDb.IteratorDump(opts), nil
 }
 
 // StorageRangeResult is the result of a debug_storageRangeAt API call.
@@ -351,13 +359,13 @@ type storageEntry struct {
 }
 
 // StorageRangeAt returns the storage at the given block height and transaction index.
-func (api *PrivateDebugAPI) StorageRangeAt(ctx context.Context, blockHash common.Hash, txIndex int, contractAddress common.Address, keyStart hexutil.Bytes, maxResult int) (StorageRangeResult, error) {
+func (api *PrivateDebugAPI) StorageRangeAt(blockHash common.Hash, txIndex int, contractAddress common.Address, keyStart hexutil.Bytes, maxResult int) (StorageRangeResult, error) {
 	// Retrieve the block
 	block := api.eth.blockchain.GetBlockByHash(blockHash)
 	if block == nil {
 		return StorageRangeResult{}, fmt.Errorf("block %#x not found", blockHash)
 	}
-	_, _, statedb, err := api.computeTxEnv(block, txIndex, 0)
+	_, _, statedb, err := api.eth.stateAtTransaction(block, txIndex, 0)
 	if err != nil {
 		return StorageRangeResult{}, err
 	}
@@ -472,4 +480,65 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		dirty = append(dirty, common.BytesToAddress(key))
 	}
 	return dirty, nil
+}
+
+// GetAccessibleState returns the first number where the node has accessible
+// state on disk. Note this being the post-state of that block and the pre-state
+// of the next block.
+// The (from, to) parameters are the sequence of blocks to search, which can go
+// either forwards or backwards
+func (api *PrivateDebugAPI) GetAccessibleState(from, to rpc.BlockNumber) (uint64, error) {
+	db := api.eth.ChainDb()
+	var pivot uint64
+	if p := rawdb.ReadLastPivotNumber(db); p != nil {
+		pivot = *p
+		log.Info("Found fast-sync pivot marker", "number", pivot)
+	}
+	var resolveNum = func(num rpc.BlockNumber) (uint64, error) {
+		// We don't have state for pending (-2), so treat it as latest
+		if num.Int64() < 0 {
+			block := api.eth.blockchain.CurrentBlock()
+			if block == nil {
+				return 0, fmt.Errorf("current block missing")
+			}
+			return block.NumberU64(), nil
+		}
+		return uint64(num.Int64()), nil
+	}
+	var (
+		start   uint64
+		end     uint64
+		delta   = int64(1)
+		lastLog time.Time
+		err     error
+	)
+	if start, err = resolveNum(from); err != nil {
+		return 0, err
+	}
+	if end, err = resolveNum(to); err != nil {
+		return 0, err
+	}
+	if start == end {
+		return 0, fmt.Errorf("from and to needs to be different")
+	}
+	if start > end {
+		delta = -1
+	}
+	for i := int64(start); i != int64(end); i += delta {
+		if time.Since(lastLog) > 8*time.Second {
+			log.Info("Finding roots", "from", start, "to", end, "at", i)
+			lastLog = time.Now()
+		}
+		if i < int64(pivot) {
+			continue
+		}
+		h := api.eth.BlockChain().GetHeaderByNumber(uint64(i))
+		if h == nil {
+			return 0, fmt.Errorf("missing header %d", i)
+		}
+		if ok, _ := api.eth.ChainDb().Has(h.Root[:]); ok {
+			return uint64(i), nil
+		}
+	}
+	return 0, fmt.Errorf("No state found")
 }

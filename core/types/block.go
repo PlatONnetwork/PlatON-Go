@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -42,7 +41,9 @@ import (
 )
 
 var (
-	EmptyRootHash = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+	EmptyRootHash  = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+	EmptyUncleHash = rlpHash([]*Header(nil))
+
 	// Extra field in the block header, maximum length
 	ExtraMaxSize      = 97
 	HttpEthCompatible = false
@@ -125,6 +126,9 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
+	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
+	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+
 	// caches
 	sealHash  atomic.Value `json:"-" rlp:"-"`
 	hash      atomic.Value `json:"-" rlp:"-"`
@@ -136,38 +140,41 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 	if HttpEthCompatible {
 		type Header struct {
 			ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-			Coinbase    common.Address `json:"miner"            gencodec:"required"`
+			UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
+			Coinbase    common.Address `json:"miner"`
 			Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
 			TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
 			ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
 			Bloom       Bloom          `json:"logsBloom"        gencodec:"required"`
+			Difficulty  *hexutil.Big   `json:"difficulty"       gencodec:"required"`
 			Number      *hexutil.Big   `json:"number"           gencodec:"required"`
 			GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
 			GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
 			Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 			Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
-			Nonce       ETHBlockNonce  `json:"nonce"            gencodec:"required"`
+			MixDigest   common.Hash    `json:"mixHash"`
+			Nonce       ETHBlockNonce  `json:"nonce"`
+			BaseFee     *hexutil.Big   `json:"baseFeePerGas" rlp:"optional"`
 			Hash        common.Hash    `json:"hash"`
-
-			UncleHash  common.Hash  `json:"sha3Uncles"       gencodec:"required"`
-			Difficulty *hexutil.Big `json:"difficulty"       gencodec:"required"`
 		}
 		var enc Header
 		enc.ParentHash = h.ParentHash
+		enc.UncleHash = common.ZeroHash
 		enc.Coinbase = h.Coinbase
 		enc.Root = h.Root
 		enc.TxHash = h.TxHash
 		enc.ReceiptHash = h.ReceiptHash
 		enc.Bloom = h.Bloom
+		enc.Difficulty = (*hexutil.Big)(h.Number)
 		enc.Number = (*hexutil.Big)(h.Number)
 		enc.GasLimit = hexutil.Uint64(h.GasLimit)
 		enc.GasUsed = hexutil.Uint64(h.GasUsed)
 		enc.Time = hexutil.Uint64(h.Time / 1000)
 		enc.Extra = h.Extra
+		enc.MixDigest = common.ZeroHash
 		enc.Nonce = h.Nonce.ETHBlockNonce()
+		enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 		enc.Hash = h.Hash()
-		enc.UncleHash = common.ZeroHash
-		enc.Difficulty = (*hexutil.Big)(h.Number)
 		return json2.Marshal(&enc)
 	}
 	type Header struct {
@@ -183,6 +190,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 		Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
 		Extra       hexutil.Bytes  `json:"extraData"        gencodec:"required"`
 		Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+		BaseFee     *hexutil.Big   `json:"baseFeePerGas" rlp:"optional"`
 		Hash        common.Hash    `json:"hash"`
 	}
 	var enc Header
@@ -198,6 +206,7 @@ func (h Header) MarshalJSON2() ([]byte, error) {
 	enc.Time = hexutil.Uint64(h.Time)
 	enc.Extra = h.Extra
 	enc.Nonce = h.Nonce
+	enc.BaseFee = (*hexutil.Big)(h.BaseFee)
 	enc.Hash = h.Hash()
 	return json2.Marshal(&enc)
 }
@@ -209,6 +218,7 @@ type headerMarshaling struct {
 	GasUsed  hexutil.Uint64
 	Time     hexutil.Uint64
 	Extra    hexutil.Bytes
+	BaseFee  *hexutil.Big
 	Hash     common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
 
@@ -216,6 +226,25 @@ type headerMarshaling struct {
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
+}
+
+// SanityCheck checks a few basic things -- these checks are way beyond what
+// any 'sane' production values should hold, and can mainly be used to prevent
+// that the unbounded fields are stuffed with junk data to add processing
+// overhead
+func (h *Header) SanityCheck() error {
+	if h.Number != nil && !h.Number.IsUint64() {
+		return fmt.Errorf("too large block number: bitlen %d", h.Number.BitLen())
+	}
+	if eLen := len(h.Extra); eLen > ExtraMaxSize {
+		return fmt.Errorf("too large block extradata: size %d", eLen)
+	}
+	if h.BaseFee != nil {
+		if bfLen := h.BaseFee.BitLen(); bfLen > 256 {
+			return fmt.Errorf("too large base fee: bitlen %d", bfLen)
+		}
+	}
+	return nil
 }
 
 func (h *Header) CacheHash() common.Hash {
@@ -262,7 +291,7 @@ func (h *Header) _sealHash() (hash common.Hash) {
 	if len(h.Extra) > 32 {
 		extra = h.Extra[0:32]
 	}
-	rlp.Encode(hasher, []interface{}{
+	enc := []interface{}{
 		h.ParentHash,
 		h.Coinbase,
 		h.Root,
@@ -275,7 +304,11 @@ func (h *Header) _sealHash() (hash common.Hash) {
 		h.Time,
 		extra,
 		h.Nonce,
-	})
+	}
+	if h.BaseFee != nil {
+		enc = append(enc, h.BaseFee)
+	}
+	rlp.Encode(hasher, enc)
 
 	hasher.Sum(hash[:0])
 	return hash
@@ -302,25 +335,15 @@ func (h *Header) ExtraData() []byte {
 	return h.Extra[:32]
 }
 
-// Check whether the Extra field exceeds the limit size
-func (h *Header) IsInvalid() bool {
-	return len(h.Extra) > ExtraMaxSize
+// EmptyBody returns true if there is no additional 'body' to complete the header
+// that is: no transactions and no uncles.
+func (h *Header) EmptyBody() bool {
+	return h.TxHash == EmptyRootHash
 }
 
-// hasherPool holds Keccak hashers.
-var hasherPool = sync.Pool{
-	New: func() interface{} {
-		return sha3.NewLegacyKeccak256()
-	},
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	sha := hasherPool.Get().(crypto.KeccakState)
-	defer hasherPool.Put(sha)
-	sha.Reset()
-	rlp.Encode(sha, x)
-	sha.Read(h[:])
-	return h
+// EmptyReceipts returns true if there are no receipts for this header/block.
+func (h *Header) EmptyReceipts() bool {
+	return h.ReceiptHash == EmptyRootHash
 }
 
 // Body is a simple (mutable, non-safe) data container for storing and moving
@@ -348,24 +371,11 @@ type Block struct {
 	CalTxFromCH chan int
 }
 
-// [deprecated by eth/63]
-// StorageBlock defines the RLP encoding of a Block stored in the
-// state database. The StorageBlock encoding contains fields that
-// would otherwise need to be recomputed.
-type StorageBlock Block
-
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
 	Header    *Header
 	Txs       []*Transaction
 	ExtraData []byte
-}
-
-// [deprecated by eth/63]
-// "storage" block encoding. used for database.
-type storageblock struct {
-	Header *Header
-	Txs    []*Transaction
 }
 
 // NewBlock creates a new block. The input data is copied,
@@ -375,7 +385,7 @@ type storageblock struct {
 // The values of TxHash, ReceiptHash and Bloom in header
 // are ignored and set to values derived from the given txs
 // and receipts.
-func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher Hasher) *Block {
+func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher TrieHasher) *Block {
 	b := &Block{header: CopyHeader(header)}
 
 	// TODO: panic if len(txs) != len(receipts)
@@ -421,6 +431,9 @@ func CopyHeader(h *Header) *Header {
 	if cpy.Number = new(big.Int); h.Number != nil {
 		cpy.Number.Set(h.Number)
 	}
+	if h.BaseFee != nil {
+		cpy.BaseFee = new(big.Int).Set(h.BaseFee)
+	}
 	if len(h.Extra) > 0 {
 		cpy.Extra = make([]byte, len(h.Extra))
 		copy(cpy.Extra, h.Extra)
@@ -449,18 +462,6 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 	})
 }
 
-// [deprecated by eth/63]
-func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
-	var sb storageblock
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	b.header, b.transactions = sb.Header, sb.Txs
-	return nil
-}
-
-// TODO: copies
-
 func (b *Block) Transactions() Transactions { return b.transactions }
 
 func (b *Block) Transaction(hash common.Hash) *Transaction {
@@ -488,6 +489,13 @@ func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }
 func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Extra) }
 
+func (b *Block) BaseFee() *big.Int {
+	if b.header.BaseFee == nil {
+		return nil
+	}
+	return new(big.Int).Set(b.header.BaseFee)
+}
+
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
 // Body returns the non-header content of the block.
@@ -503,6 +511,12 @@ func (b *Block) Size() common.StorageSize {
 	rlp.Encode(&c, b)
 	b.size.Store(common.StorageSize(c))
 	return common.StorageSize(c)
+}
+
+// SanityCheck can be used to prevent that unbounded fields are
+// stuffed with junk data to add processing overhead
+func (b *Block) SanityCheck() error {
+	return b.header.SanityCheck()
 }
 
 type writeCounter common.StorageSize

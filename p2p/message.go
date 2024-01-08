@@ -21,12 +21,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -66,8 +66,12 @@ func (msg Msg) String() string {
 
 // Discard reads any remaining payload data into a black hole.
 func (msg Msg) Discard() error {
-	_, err := io.Copy(ioutil.Discard, msg.Payload)
+	_, err := io.Copy(io.Discard, msg.Payload)
 	return err
+}
+
+func (msg Msg) Time() time.Time {
+	return msg.ReceivedAt
 }
 
 type MsgReader interface {
@@ -104,12 +108,11 @@ func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 // SendItems writes an RLP with the given code and data elements.
 // For a call such as:
 //
-//    SendItems(w, code, e1, e2, e3)
+//	SendItems(w, code, e1, e2, e3)
 //
 // the message payload will be an RLP list containing the items:
 //
-//    [e1, e2, e3]
-//
+//	[e1, e2, e3]
 func SendItems(w MsgWriter, msgcode uint64, elems ...interface{}) error {
 	return Send(w, msgcode, elems)
 }
@@ -173,7 +176,7 @@ type MsgPipeRW struct {
 	closed  *int32
 }
 
-// WriteMsg sends a messsage on the pipe.
+// WriteMsg sends a message on the pipe.
 // It blocks until the receiver has consumed the message payload.
 func (p *MsgPipeRW) WriteMsg(msg Msg) error {
 	if atomic.LoadInt32(p.closed) == 0 {
@@ -241,7 +244,7 @@ func ExpectMsg(r MsgReader, code uint64, content interface{}) error {
 	if int(msg.Size) != len(contentEnc) {
 		return fmt.Errorf("message size mismatch: got %d, want %d", msg.Size, len(contentEnc))
 	}
-	actualContent, err := ioutil.ReadAll(msg.Payload)
+	actualContent, err := io.ReadAll(msg.Payload)
 	if err != nil {
 		return err
 	}
@@ -257,7 +260,7 @@ type msgEventer struct {
 	MsgReadWriter
 
 	feed          *event.Feed
-	peerID        discover.NodeID
+	peerID        enode.ID
 	Protocol      string
 	localAddress  string
 	remoteAddress string
@@ -265,7 +268,7 @@ type msgEventer struct {
 
 // newMsgEventer returns a msgEventer which sends message events to the given
 // feed
-func newMsgEventer(rw MsgReadWriter, feed *event.Feed, peerID discover.NodeID, proto, remote, local string) *msgEventer {
+func newMsgEventer(rw MsgReadWriter, feed *event.Feed, peerID enode.ID, proto, remote, local string) *msgEventer {
 	return &msgEventer{
 		MsgReadWriter: rw,
 		feed:          feed,

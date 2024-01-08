@@ -90,7 +90,7 @@ func (c *Chain) AddBlock() {
 
 func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
 	c.AddBlock()
-	c.StateDB.Prepare(txHash, c.CurrentHeader().Hash(), 1)
+	c.StateDB.Prepare(txHash, 1)
 }
 
 func (c *Chain) SetHeaderTimeGenerate(f func(uint64) uint64) {
@@ -108,7 +108,7 @@ func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f fu
 
 func (c *Chain) execTx(miner bool, f Transaction) error {
 	c.StateDB.TxIndex++
-	c.StateDB.Prepare(f.Hash(), c.CurrentHeader().Hash(), c.StateDB.TxIndex)
+	c.StateDB.Prepare(f.Hash(), c.StateDB.TxIndex)
 	if miner {
 		return f(common.ZeroHash, c.CurrentHeader(), c.StateDB, c.SnapDB)
 	} else {
@@ -384,21 +384,20 @@ type MockStateDB struct {
 	Nonce    map[common.Address]uint64
 	Suicided map[common.Address]bool
 
-	Balance      map[common.Address]*big.Int
-	State        map[common.Address]map[string][]byte
-	Thash, Bhash common.Hash
-	TxIndex      int
-	logSize      uint
-	Logs         map[common.Hash][]*types.Log
-	Journal      *journal
+	Balance map[common.Address]*big.Int
+	State   map[common.Address]map[string][]byte
+	Thash   common.Hash
+	TxIndex int
+	logSize uint
+	Logs    map[common.Hash][]*types.Log
+	Journal *journal
 
 	// Per-transaction access list
 	accessList *accessList
 }
 
-func (s *MockStateDB) Prepare(thash, bhash common.Hash, ti int) {
+func (s *MockStateDB) Prepare(thash common.Hash, ti int) {
 	s.Thash = thash
-	s.Bhash = bhash
 	s.TxIndex = ti
 }
 
@@ -596,15 +595,18 @@ func (s *MockStateDB) AddLog(logInfo *types.Log) {
 	s.Journal.append(addLogChange{txhash: s.Thash})
 
 	logInfo.TxHash = s.Thash
-	logInfo.BlockHash = s.Bhash
 	logInfo.TxIndex = uint(s.TxIndex)
 	logInfo.Index = s.logSize
 	s.Logs[s.Thash] = append(s.Logs[s.Thash], logInfo)
 	s.logSize++
 }
 
-func (s *MockStateDB) GetLogs(hash common.Hash) []*types.Log {
-	return s.Logs[hash]
+func (s *MockStateDB) GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log {
+	logs := s.Logs[hash]
+	for _, l := range logs {
+		l.BlockHash = blockHash
+	}
+	return logs
 }
 
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
@@ -628,14 +630,20 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.TxIndex)
 }
 
+func (s *MockStateDB) PrepareAccessList(common.Address, *common.Address, []common.Address, types.AccessList) {
+}
+
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {
 	return s.accessList.ContainsAddress(addr)
 }
+
 func (s *MockStateDB) AddSlotToAccessList(common.Address, common.Hash) {
 }
+
 func (s *MockStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
 	return s.accessList.Contains(addr, slot)
 }
+
 func (s *MockStateDB) AddAddressToAccessList(common.Address) {
 }
 
@@ -678,10 +686,6 @@ func (s *MockStateDB) Equal(other *MockStateDB) bool {
 	}
 
 	if s.Thash != other.Thash {
-		return false
-	}
-
-	if s.Bhash != other.Bhash {
 		return false
 	}
 
@@ -754,11 +758,7 @@ func (lhs *MockStateDB) DeepCopy(rhs *MockStateDB) {
 	}
 
 	lhs.Thash = rhs.Thash
-
-	lhs.Bhash = rhs.Bhash
-
 	lhs.TxIndex = rhs.TxIndex
-
 	lhs.logSize = rhs.logSize
 
 	if nil != rhs.Logs {

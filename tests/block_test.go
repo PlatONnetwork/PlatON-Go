@@ -37,8 +37,11 @@ func TestBlockchain(t *testing.T) {
 	//	bt.skipLoad(`^bcWalletTest.*_Byzantium$`)
 
 	bt.walk(t, blockTestDir, func(t *testing.T, name string, test *BlockTest) {
-		if err := bt.checkFailure(t, name, test.Run()); err != nil {
-			t.Error(err)
+		if err := bt.checkFailure(t, test.Run(false)); err != nil {
+			t.Errorf("test without snapshotter failed: %v", err)
+		}
+		if err := bt.checkFailure(t, test.Run(true)); err != nil {
+			t.Errorf("test with snapshotter failed: %v", err)
 		}
 	})
 }

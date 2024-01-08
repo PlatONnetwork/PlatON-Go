@@ -22,8 +22,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -31,7 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -51,7 +53,7 @@ type BlockChainReactor struct {
 	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
 	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string                    // mode: static, inner, ppos
-	NodeId        discover.NodeID           // The nodeId of current node
+	NodeId        enode.IDv0                // The nodeId of current node
 	exitCh        chan chan struct{}        // Used to receive an exit signal
 	exitOnce      sync.Once
 	chainID       *big.Int
@@ -189,7 +191,7 @@ func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 			bcr.vh.SetPrivateKey(privateKey)
 		}
 		plugin.SlashInstance().SetPrivateKey(privateKey)
-		bcr.NodeId = discover.PubkeyID(&privateKey.PublicKey)
+		bcr.NodeId = enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	}
 }
 
@@ -200,7 +202,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId discover.NodeID) {
+func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId enode.IDv0) {
 
 	/**
 	this things about ppos
@@ -228,6 +230,59 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId dis
 			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
 	}
 
+}
+
+func (bcr *BlockChainReactor) PrepareHeaderNonce(header *types.Header) error {
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
+	// store the sign in  header.Extra[32:97]
+	if xutil.IsWorker(header.Extra) {
+		// Generate vrf proof
+		if value, err := bcr.vh.GenerateNonce(header.Number, header.ParentHash); nil != err {
+			return err
+		} else {
+			header.Nonce = types.EncodeNonce(value)
+		}
+	}
+	return nil
+}
+
+func (bcr *BlockChainReactor) NewBlock(header *types.Header, state xcom.StateDB, blockHash common.Hash) error {
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
+	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
+		"hash", blockHash, "parentHash", header.ParentHash)
+	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
+		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
+			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
+			hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		return err
+	}
+
+	for _, pluginRule := range bcr.beginRule {
+		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
+			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
+				return err
+			}
+		}
+	}
+
+	// This must not be deleted
+	root := state.IntermediateRoot(true)
+	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
+		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
+
+	return nil
 }
 
 // Called before every block has not executed all txs
@@ -261,30 +316,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			return err
 		}
 	}
-
-	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(),
-		"hash", blockHash, "parentHash", header.ParentHash)
-	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber",
-			header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash",
-			hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
-		return err
-	}
-
-	for _, pluginRule := range bcr.beginRule {
-		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
-			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
-				return err
-			}
-		}
-	}
-
-	// This must not be deleted
-	root := state.IntermediateRoot(true)
-	log.Debug("BeginBlock StateDB root, end", "blockHash", header.Hash(), "blockNumber",
-		header.Number.Uint64(), "root", root, "pointer", fmt.Sprintf("%p", state))
-
-	return nil
+	return bcr.NewBlock(header, state, blockHash)
 }
 
 // Called after every block had executed all txs
@@ -336,9 +368,9 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address) error {
+func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address, rules params.Rules) error {
 
-	if !vm.IsPlatONPrecompiledContract(to, true) {
+	if !vm.IsPlatONPrecompiledContract(to, rules, false) {
 		return nil
 	}
 
@@ -398,7 +430,7 @@ func (bcr *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Valid
 	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
-func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
+func (bcr *BlockChainReactor) IsCandidateNode(nodeID enode.IDv0) bool {
 	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 

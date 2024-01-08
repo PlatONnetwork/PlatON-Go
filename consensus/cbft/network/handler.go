@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -25,7 +24,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 
@@ -33,7 +34,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -223,10 +223,10 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 // whether forwarding is required according to the message type.
 //
 // Note:
-// 1. message type that need to be forwarded:
-//    PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
-// 2. message type that need not to be forwarded:
-//    (Except for the above types, the rest are not forwarded).
+//  1. message type that need to be forwarded:
+//     PrepareBlockMsg/PrepareVoteMsg/ViewChangeMsg/BlockQuorumCertMsg
+//  2. message type that need not to be forwarded:
+//     (Except for the above types, the rest are not forwarded).
 func (h *EngineManager) Forwarding(nodeID string, msg types.Message) error {
 	msgHash := msg.MsgHash()
 	msgType := protocols.MessageType(msg)
@@ -299,7 +299,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			NodeInfo: func() interface{} {
 				return h.NodeInfo()
 			},
-			PeerInfo: func(id discover.NodeID) interface{} {
+			PeerInfo: func(id enode.ID) interface{} {
 				if p, err := h.peers.get(fmt.Sprintf("%x", id[:8])); err == nil {
 					return p.Info()
 				}
@@ -335,7 +335,7 @@ func (h *EngineManager) Unregister(id string) error {
 }
 
 // ConsensusNodes returns a list of all consensus nodes.
-func (h *EngineManager) ConsensusNodes() ([]discover.NodeID, error) {
+func (h *EngineManager) ConsensusNodes() ([]enode.ID, error) {
 	return h.engine.ConsensusNodes()
 }
 
@@ -372,11 +372,11 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		// Build a new CbftStatusData object as a handshake parameter
 		cbftStatus := &protocols.CbftStatusData{
 			ProtocolVersion: CbftProtocolVersion,
-			QCBn:            new(big.Int).SetUint64(uint64(qcBn)),
+			QCBn:            new(big.Int).SetUint64(qcBn),
 			QCBlock:         qcHash,
-			LockBn:          new(big.Int).SetUint64(uint64(lockedBn)),
+			LockBn:          new(big.Int).SetUint64(lockedBn),
 			LockBlock:       lockedHash,
-			CmtBn:           new(big.Int).SetUint64(uint64(commitBn)),
+			CmtBn:           new(big.Int).SetUint64(commitBn),
 			CmtBlock:        commitHash,
 		}
 		// do handshake
@@ -394,9 +394,10 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 		// If blockNumber in the local is better than the remote
 		// then determine if there is a fork.
-		if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
-			err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
-		}
+		// QCBn fork allowed and does not require check
+		//if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
+		//	err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)
+		//}
 		if cbftStatus.LockBn.Uint64() > remoteStatus.LockBn.Uint64() {
 			err = h.engine.BlockExists(remoteStatus.LockBn.Uint64(), remoteStatus.LockBlock)
 		}
@@ -431,7 +432,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// is processing abnormally.
 	for {
 		if err := h.handleMsg(peer); err != nil {
-			p.Log().Error("CBFT message handling failed", "peerID", peer.PeerID(), "err", err)
+			p.Log().Error("CBFT message handling failed", "err", err)
 			return err
 		}
 	}
