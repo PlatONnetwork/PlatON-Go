@@ -685,6 +685,7 @@ func (s *Ethereum) Stop() error {
 	s.ethDialCandidates.Close()
 	s.snapDialCandidates.Close()
 	s.p2pServer.CloseConsensusDial()
+	s.p2pServer.CloseDiscovery()
 	s.handler.Stop()
 
 	// Then stop everything else.

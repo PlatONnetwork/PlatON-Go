@@ -397,7 +397,7 @@ func (srv *Server) RemoveConsensusPeer(node *enode.Node) {
 
 func (srv *Server) CloseConsensusDial() {
 	srv.dialsched.closeConsensusDial()
-	srv.log.Info("close consensus Dial")
+	srv.log.Info("Close consensus Dial")
 }
 
 // AddTrustedPeer adds the given node to a reserved whitelist which allows the
@@ -1260,6 +1260,12 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) CloseDiscovery() {
+	srv.ntab.Close()
+	srv.discmix.Close()
+	srv.log.Info("Close ntab and discmix")
 }
 
 func (srv *Server) StartWatching(eventMux *event.TypeMux) {
