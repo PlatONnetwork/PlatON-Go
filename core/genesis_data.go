@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -23,11 +24,19 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-//stats
-func ConvertToCommonNodeIdList(verifierList []params.CbftNode) []common.NodeID {
-	nodeIdList := make([]common.NodeID, len(verifierList))
-	for i, verifier := range verifierList {
-		nodeIdList[i] = common.NodeID(verifier.Node.ID)
+// stats
+func ConvertToENodeList(nodeList []params.CbftNode) []*enode.Node {
+	nodeIdList := make([]*enode.Node, len(nodeList))
+	for i, verifier := range nodeList {
+		nodeIdList[i] = verifier.Node
+	}
+	return nodeIdList
+}
+
+func ConvertToCommonNodeIDList(nodeList []params.CbftNode) []common.NodeID {
+	nodeIdList := make([]common.NodeID, len(nodeList))
+	for i, verifier := range nodeList {
+		nodeIdList[i] = common.NodeID(verifier.Node.IDv0())
 	}
 	return nodeIdList
 }
@@ -59,7 +68,7 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 	initQueue := g.Config.Cbft.InitialNodes
 
 	//stats
-	nodeList := ConvertToCommonNodeIdList(initQueue)
+	nodeList := ConvertToCommonNodeIDList(initQueue)
 	log.Debug("init genesis validators", "idList", nodeList)
 	genesisDataCollector.ConsensusElection = nodeList
 	genesisDataCollector.EpochElection = nodeList
