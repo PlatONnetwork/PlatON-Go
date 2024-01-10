@@ -837,6 +837,7 @@ running:
 			}
 		case nodeList := <-srv.addNodeMonitor:
 			srv.log.Trace("add monitor node list", "nodeList", nodeList)
+			monitorNodes = make(map[enode.ID]bool, 0)
 			srv.dialsched.addNodeMonitor(nodeList)
 			for _, node := range nodeList {
 				monitorNodes[node.ID()] = true
@@ -890,35 +891,29 @@ running:
 			// At this point the connection is past the protocol handshake.
 			// Its capabilities are known and the remote identity is verified.
 			err := srv.addPeerChecks(peers, inboundCount, c)
-
-			if err == nil {
+			//对于只是monitor的节点，会断开连接，并不增加peer
+			if c.flags&monitorConn != 0 && c.flags&staticDialedConn == 0 && c.flags&consensusDialedConn == 0 && c.flags&dynDialedConn == 0 && c.flags&trustedConn == 0 && c.flags&inboundConn == 0 {
 				// The handshakes are done and it passed all checks.
 				p := srv.launchPeer(c)
 
-				if c.flags&monitorConn != 0 &&
-					c.flags&staticDialedConn == 0 &&
-					c.flags&consensusDialedConn == 0 &&
-					c.flags&dynDialedConn == 0 &&
-					c.flags&trustedConn == 0 &&
-					c.flags&inboundConn == 0 {
-					saveNodePingResult(c.node, c.node.IP().String(), 1)
-					delete(monitorNodes, c.node.ID())
-					srv.dialsched.monitorPool.removeTask(c.node.ID())
+				saveNodePingResult(c.node, c.node.IP().String(), 1)
+				delete(monitorNodes, c.node.ID())
+				srv.dialsched.monitorPool.removeTask(c.node.ID())
 
-					for _, p := range peers {
-						p.Disconnect(DiscQuitting)
-					}
-				} else {
-
-					peers[c.node.ID()] = p
-					srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
-					srv.dialsched.peerAdded(c)
-					if srv.consensus {
-						srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
-					}
-					if p.Inbound() {
-						inboundCount++
-					}
+				p.Disconnect(DiscQuitting)
+				c.cont <- nil
+			}
+			if err == nil {
+				// The handshakes are done and it passed all checks.
+				p := srv.launchPeer(c)
+				peers[c.node.ID()] = p
+				srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
+				srv.dialsched.peerAdded(c)
+				if srv.consensus {
+					srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+				}
+				if p.Inbound() {
+					inboundCount++
 				}
 			}
 			c.cont <- err

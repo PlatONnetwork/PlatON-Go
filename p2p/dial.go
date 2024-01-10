@@ -384,7 +384,9 @@ loop:
 			d.monitorPool.clear()
 			//把需要监控的节点加入队列
 			for _, node := range monitorNodeList {
-				d.monitorPool.offer(newDialTask(node, dynDialedConn|monitorConn))
+				task := newDialTask(node, dynDialedConn|monitorConn)
+				task.isMonitorTask = true
+				d.monitorPool.offer(task)
 			}
 		case <-d.clearConsensus:
 			d.consensusPool.clear()
@@ -570,7 +572,7 @@ func (d *dialScheduler) startMonitorDials(n int) (started int) {
 		case errAlreadyConnected:
 			d.monitorPool.removeTask(t.dest.ID())
 			//todo：没有ip
-			saveNodePingResult(t.dest, "<nil>", 1)
+			saveNodePingResult(t.dest, "<nil>", 2)
 		case nil:
 			d.startDial(t)
 			started++
@@ -641,13 +643,11 @@ type dialError struct {
 	error
 }
 
-// 执行拨号
+// 执行拨号，并返回拨号错误
 func (t *dialTask) run(d *dialScheduler) {
 	if t.needResolve() {
 		if !t.resolve(d) {
 			// 保存结果
-			/*saveNodePingResult(t.dest, "<nil>", 2)
-			d.monitorPool.removeTask(t.dest.ID())*/
 			t.err = errResolve
 			return
 		}
@@ -662,13 +662,7 @@ func (t *dialTask) run(d *dialScheduler) {
 			}
 		}
 	}
-
-	if err != nil && t.flags&monitorConn != 0 {
-		// 保存结果
-		/*saveNodePingResult(t.dest, t.dest.IP().String(), 2)
-		d.monitorPool.removeTask(t.dest.ID())*/
-		t.err = errDial
-	}
+	t.err = errDial
 }
 
 func (t *dialTask) needResolve() bool {
