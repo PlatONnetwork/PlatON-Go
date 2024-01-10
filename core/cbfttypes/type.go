@@ -223,16 +223,16 @@ func (vs *Validators) sort() {
 }
 
 type ElectNextEpochVerifierEvent struct {
-	NodeIdList []common.NodeID
+	NodeList []*enode.Node
 }
 
 func (event ElectNextEpochVerifierEvent) String2() string {
-	return fmt.Sprintf("{NodeIdList: %v}", event.NodeIdList)
+	return fmt.Sprintf("{NodeList: %v}", event.NodeList)
 }
 
 func (event ElectNextEpochVerifierEvent) String() string {
 	var buffer bytes.Buffer
-	for _, node := range event.NodeIdList {
+	for _, node := range event.NodeList {
 		buffer.WriteString(node.String())
 		buffer.WriteString("\n")
 	}

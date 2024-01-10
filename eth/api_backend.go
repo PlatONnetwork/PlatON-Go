@@ -19,6 +19,7 @@ package eth
 import (
 	"context"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"math/big"
 	"time"
 
@@ -284,6 +285,10 @@ func (b *EthAPIBackend) SubscribeNewTxsEvent(ch chan<- core.NewTxsEvent) event.S
 
 func (b *EthAPIBackend) SyncProgress() PlatON.SyncProgress {
 	return b.eth.Downloader().Progress()
+}
+
+func (b *EthAPIBackend) Downloader() *downloader.Downloader {
+	return b.eth.Downloader()
 }
 
 func (b *EthAPIBackend) FeeHistory(ctx context.Context, blockCount int, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, err error) {

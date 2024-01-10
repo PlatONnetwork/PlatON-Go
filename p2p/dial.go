@@ -82,6 +82,8 @@ var (
 	errRecentlyDialed   = errors.New("recently dialed")
 	errNetRestrict      = errors.New("not contained in netrestrict list")
 	errNoPort           = errors.New("node does not provide TCP port")
+	errResolve          = errors.New("cannot resolve")
+	errDial             = errors.New("failed to dail")
 )
 
 // dialer creates outbound connections and submits them into Server.
@@ -106,9 +108,10 @@ type dialScheduler struct {
 	addPeerCh   chan *conn
 	remPeerCh   chan *conn
 
-	addconsensus    chan *enode.Node
-	removeconsensus chan *enode.Node
-	clearConsensus  chan struct{}
+	addconsensus     chan *enode.Node
+	removeconsensus  chan *enode.Node
+	clearConsensus   chan struct{}
+	addNodeMonitorCh chan []*enode.Node
 
 	// Everything below here belongs to loop and
 	// should only be accessed by code on the loop goroutine.
@@ -126,6 +129,8 @@ type dialScheduler struct {
 	consensusPeers         int
 	updateConsensusPeersCh chan int
 	consensusPool          *dialedTasks
+
+	monitorPool *monitorDialTasks
 
 	// The dial history keeps recently dialed nodes. Members of history are not dialed.
 	history          expHeap
@@ -186,6 +191,7 @@ func newDialScheduler(config dialConfig, it enode.Iterator, setupFunc dialSetupF
 		remPeerCh:              make(chan *conn),
 		addconsensus:           make(chan *enode.Node),
 		removeconsensus:        make(chan *enode.Node),
+		addNodeMonitorCh:       make(chan []*enode.Node),
 		clearConsensus:         make(chan struct{}),
 		updateConsensusPeersCh: make(chan int),
 		consensusPool:          NewDialedTasks(config.MaxConsensusPeers*2, nil),
@@ -241,6 +247,13 @@ func (d *dialScheduler) removeConsensus(n *enode.Node) {
 	}
 }
 
+func (d *dialScheduler) addNodeMonitor(nodeList []*enode.Node) {
+	select {
+	case d.addNodeMonitorCh <- nodeList:
+	case <-d.ctx.Done():
+	}
+}
+
 func (d *dialScheduler) closeConsensusDial() {
 	select {
 	case d.clearConsensus <- struct{}{}:
@@ -285,6 +298,7 @@ loop:
 		slots := d.freeDialSlots()
 		slots -= d.startStaticDials(slots)
 		slots -= d.startConsensusDials(slots)
+		slots -= d.startMonitorDials(slots)
 		if slots > 0 {
 			nodesCh = d.nodesIn
 		} else {
@@ -304,8 +318,18 @@ loop:
 		case task := <-d.doneCh:
 			id := task.dest.ID()
 			delete(d.dialing, id)
-			d.updateStaticPool(id)
+			if task.isMonitorTask == false {
+				d.updateStaticPool(id)
+			}
 			d.doneSinceLastLog++
+
+			if task.isMonitorTask == true {
+				if task.err == errResolve || task.err == errDial {
+					d.monitorPool.removeTask(task.dest.ID())
+					//todo：没有ip
+					saveNodePingResult(task.dest, "<nil>", 2)
+				}
+			}
 
 		case c := <-d.addPeerCh:
 			if c.is(dynDialedConn) || c.is(staticDialedConn) {
@@ -355,6 +379,13 @@ loop:
 			d.consensusPool.AddTask(newDialTask(node, dynDialedConn|consensusDialedConn))
 		case node := <-d.removeconsensus:
 			d.consensusPool.RemoveTask(node.ID())
+		case monitorNodeList := <-d.addNodeMonitorCh:
+			//清空
+			d.monitorPool.clear()
+			//把需要监控的节点加入队列
+			for _, node := range monitorNodeList {
+				d.monitorPool.offer(newDialTask(node, dynDialedConn|monitorConn))
+			}
 		case <-d.clearConsensus:
 			d.consensusPool.clear()
 		case num := <-d.updateConsensusPeersCh:
@@ -518,6 +549,36 @@ func (d *dialScheduler) startConsensusDials(n int) (started int) {
 	return started
 }
 
+func (d *dialScheduler) startMonitorDials(n int) (started int) {
+	if len(d.monitorPool.listTask()) == 0 {
+		return
+	}
+	log.Debug("startMonitorDials")
+
+	// Create dials for consensus nodes if they are not connected.
+	for _, t := range d.monitorPool.listTask() {
+		if started >= n {
+			break
+		}
+		err := d.checkDial(t.dest)
+		switch err {
+		case errNetRestrict, errSelf:
+			d.monitorPool.removeTask(t.dest.ID())
+			saveNodePingResult(t.dest, "<nil>", 2)
+		case errAlreadyDialing:
+			//增在拨号的
+		case errAlreadyConnected:
+			d.monitorPool.removeTask(t.dest.ID())
+			//todo：没有ip
+			saveNodePingResult(t.dest, "<nil>", 1)
+		case nil:
+			d.startDial(t)
+			started++
+		}
+	}
+	return started
+}
+
 // updateStaticPool attempts to move the given static dial back into staticPool.
 func (d *dialScheduler) updateStaticPool(id enode.ID) {
 	task, ok := d.static[id]
@@ -567,6 +628,9 @@ type dialTask struct {
 	dest         *enode.Node
 	lastResolved mclock.AbsTime
 	resolveDelay time.Duration
+
+	isMonitorTask bool
+	err           error
 }
 
 func newDialTask(dest *enode.Node, flags connFlag) *dialTask {
@@ -577,24 +641,38 @@ type dialError struct {
 	error
 }
 
+// 执行拨号
 func (t *dialTask) run(d *dialScheduler) {
-	if t.needResolve() && !t.resolve(d) {
-		return
+	if t.needResolve() {
+		if !t.resolve(d) {
+			// 保存结果
+			/*saveNodePingResult(t.dest, "<nil>", 2)
+			d.monitorPool.removeTask(t.dest.ID())*/
+			t.err = errResolve
+			return
+		}
 	}
 
 	err := t.dial(d, t.dest)
 	if err != nil {
 		// For static and consensus nodes, resolve one more time if dialing fails.
-		if _, ok := err.(*dialError); ok && (t.flags&staticDialedConn != 0 || t.flags&consensusDialedConn != 0) {
+		if _, ok := err.(*dialError); ok && (t.flags&staticDialedConn != 0 || t.flags&consensusDialedConn != 0 || t.flags&monitorConn != 0) {
 			if t.resolve(d) {
-				t.dial(d, t.dest)
+				err = t.dial(d, t.dest)
 			}
 		}
+	}
+
+	if err != nil && t.flags&monitorConn != 0 {
+		// 保存结果
+		/*saveNodePingResult(t.dest, t.dest.IP().String(), 2)
+		d.monitorPool.removeTask(t.dest.ID())*/
+		t.err = errDial
 	}
 }
 
 func (t *dialTask) needResolve() bool {
-	return (t.flags&staticDialedConn != 0 || t.flags&consensusDialedConn != 0) && t.dest.IP() == nil
+	return (t.flags&staticDialedConn != 0 || t.flags&consensusDialedConn != 0 || t.flags&monitorConn != 0) && t.dest.IP() == nil
 }
 
 // resolve attempts to find the current endpoint for the destination
@@ -603,6 +681,7 @@ func (t *dialTask) needResolve() bool {
 // Resolve operations are throttled with backoff to avoid flooding the
 // discovery network with useless queries for nodes that don't exist.
 // The backoff delay resets when the node is found.
+// 找ip端口
 func (t *dialTask) resolve(d *dialScheduler) bool {
 	if d.resolver == nil {
 		return false

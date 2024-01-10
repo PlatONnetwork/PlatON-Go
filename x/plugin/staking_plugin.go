@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"math/rand"
@@ -1153,7 +1154,7 @@ func (sk *StakingPlugin) AdvanceDelegationLockedFunds(blockHash common.Hash, acc
 // 0.15.0之前，委托用户可以撤销委托，马上到账。待赎回委托：委托的节点如果撤销质押了，委托用户需自己赎回委托，这种委托，成为待赎回委托。
 // 0.15.0之后，委托用户撤销委托，要先发撤回委托交易，委托进入冻结状态，冻结期满；委托进入待赎回状态，委托用户再发赎回委托才能到账；委托的节点如果撤销质押了，委托用户需要自己发送撤回委托交易，待冻结结满，再发赎回交易。待赎回委托：处于冻结期的委托。
 
-func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber, txHash common.Hash, amount *big.Int,
+func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common.Hash, blockNumber, amount *big.Int, txHash common.Hash,
 	delAddr common.Address, nodeId enode.IDv0, stakingBlockNum uint64, del *staking.Delegation, delegateRewardPerList []*reward.DelegateRewardPer, isEinstein bool) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	issueIncome, returnReleased, returnRestrictingPlan, returnLockReleased, returnLockRestrictingPlan := new(big.Int), new(big.Int), new(big.Int), new(big.Int), new(big.Int)
 	canAddr, err := xutil.NodeId2Addr(nodeId)
@@ -1628,11 +1629,13 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return err
 	}
 
-	nodeIdList := p2p.ConvertToCommonNodeIdList(queue)
 	//stats
+	nodeIdList := p2p.ConvertToCommonNodeIdList(queue)
 	common.CollectEpochElection(blockNumber, nodeIdList)
+
 	//monitor, 发送事件，需要监控的备选节点列表
-	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, nodeIdList, downloading)
+	enodeList := p2p.ConvertToENodeList(queue)
+	p2p.PostMonitorNodeEvent(sk.eventMux, blockNumber, epoch+1, enodeList, downloading)
 
 	log.Debug("Call ElectNextVerifierList  Next verifiers", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
 		"list length", len(queue), "list", newVerifierArr)
@@ -2544,7 +2547,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 	return resultQueue, nil
 }
 
-//stats:开始处理被惩罚的节点
+// stats:开始处理被惩罚的节点
 // NotifyPunishedVerifiers
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64, queue ...*staking.SlashNodeItem) error {
 
@@ -2585,7 +2588,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-//stats:执行处罚节点的动作
+// stats:执行处罚节点的动作
 func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHash common.Hash, slashItem *staking.SlashNodeItem) (bool, error) {
 
 	log.Debug("Call SlashCandidates: call toSlash", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
@@ -3240,7 +3243,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 }
 
 // Calculating Total Entrusted Income
-//计算委托奖励
+// 计算委托奖励
 func calcDelegateIncome(epoch uint64, del *staking.Delegation, per []*reward.DelegateRewardPer) []reward.DelegateRewardReceipt {
 	if del.IsEmpty() {
 		return nil
@@ -3811,7 +3814,8 @@ func (sk *StakingPlugin) setRoundValListByIndex(blockNumber uint64, blockHash co
 	return nil
 }
 
-/**
+/*
+*
 列出备选节点列表（101）
 */
 func (sk *StakingPlugin) getVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (*staking.ValidatorArray, error) {

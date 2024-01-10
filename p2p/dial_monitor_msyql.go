@@ -1,15 +1,12 @@
 package p2p
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -83,22 +80,22 @@ func MonitorDB() *gorm.DB {
 	return db
 }
 
-func SaveEpochElection(epoch uint64, nodeIdList []discover.NodeID) {
-	log.Info("SaveEpochElection", "epoch", epoch, "nodeIdList", nodeIdList)
-	epochList := make([]TbEpoch, len(nodeIdList))
-	for idx, nodeId := range nodeIdList {
-		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: nodeId.String()}
+func SaveEpochElection(epoch uint64, enodeList []*enode.Node) {
+	log.Info("SaveEpochElection", "epoch", epoch, "enodeList", enodeList)
+	epochList := make([]TbEpoch, len(enodeList))
+	for idx, node := range enodeList {
+		epochList[idx] = TbEpoch{Epoch: epoch, NodeId: node.IDv0().String()}
 	}
 	if result := MonitorDB().Create(&epochList); result.Error != nil {
 		log.Error("failed to insert into tb_epoch", "err", result.Error)
 	}
 }
 
-func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
-	log.Info("SaveConsensusElection", "consensusNo", consensusNo, "nodeIdList", nodeIdList)
-	consensusList := make([]TbConsensus, len(nodeIdList))
-	for idx, nodeId := range nodeIdList {
-		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: nodeId.String(), StatBlockQty: 0}
+func SaveConsensusElection(consensusNo uint64, enodeList []*enode.Node) {
+	log.Info("SaveConsensusElection", "consensusNo", consensusNo, "enodeList", enodeList)
+	consensusList := make([]TbConsensus, len(enodeList))
+	for idx, node := range enodeList {
+		consensusList[idx] = TbConsensus{ConsensusNo: consensusNo, NodeId: node.IDv0().String(), StatBlockQty: 0}
 	}
 	if result := MonitorDB().Create(&consensusList); result.Error != nil {
 		log.Error("failed to insert into tb_consensus", "err", result.Error)
@@ -106,15 +103,15 @@ func SaveConsensusElection(consensusNo uint64, nodeIdList []discover.NodeID) {
 
 }
 
-func InitNodePing(nodeIdList []common.NodeID) {
-	log.Info("InitNodePing", "nodeIdList", nodeIdList)
-	for _, nodeId := range nodeIdList {
+func InitNodePing(enodeList []*enode.Node) {
+	log.Info("InitNodePing", "enodeList", enodeList)
+	for _, node := range enodeList {
 		var nodePing TbNodePing
-		if result := MonitorDB().Find(&nodePing, "node_id=?", nodeId.String()); result.Error != nil {
+		if result := MonitorDB().Find(&nodePing, "node_id=?", node.IDv0().String()); result.Error != nil {
 			log.Error("failed to query tb_node_ping", "err", result.Error)
 		}
 		if nodePing.NodeId == "" {
-			nodePing = TbNodePing{NodeId: nodeId.String(), Status: 0}
+			nodePing = TbNodePing{NodeId: node.IDv0().String(), Status: 0}
 			if result := MonitorDB().Create(&nodePing); result.Error != nil {
 				log.Error("failed to insert into tb_node_ping", "err", result.Error)
 			}
@@ -127,11 +124,11 @@ func InitNodePing(nodeIdList []common.NodeID) {
 	}
 }
 
-func SaveNodePingResult(nodeId discover.NodeID, addr string, status int8) {
-	log.Info("SaveNodePingResult", "nodeId", nodeId.String(), "addr", addr, "status", status)
+func SaveNodePingResult(node *enode.Node, addr string, status int8) {
+	log.Info("SaveNodePingResult", "nodeId", node.IDv0().String(), "addr", addr, "status", status)
 
 	var nodePing TbNodePing
-	if result := MonitorDB().Find(&nodePing, "node_id=?", nodeId.String()); result.Error != nil {
+	if result := MonitorDB().Find(&nodePing, "node_id=?", node.IDv0().String()); result.Error != nil {
 		log.Error("failed to query tb_node_ping", "err", result.Error)
 	}
 	if strings.TrimSpace(nodePing.NodeId) != "" {

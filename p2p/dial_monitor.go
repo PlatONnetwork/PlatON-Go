@@ -1,10 +1,8 @@
 package p2p
 
 import (
-	"fmt"
-	"net"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -15,184 +13,155 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
-var (
-	monitorSchedulerOnce sync.Once
-	monitorSchedulerRef  *monitorScheduler
-)
-
-type monitorScheduler struct {
-	queue                    []*monitorTask
-	monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn
+type Downloading interface {
+	HighestBlock() uint64
 }
 
-type monitorTask struct {
-	flags        connFlag
-	dest         *discover.Node
-	lastResolved time.Time
-	resolveDelay time.Duration
-	err          error
+type monitorDialTasks struct {
+	queue []*dialTask
 }
 
-func (t *monitorTask) String() string {
-	return fmt.Sprintf("{flags: %v, dest: %v, lastResolved: %v}", t.flags, t.dest, t.lastResolved)
+func NewMonitorDialedTasks() *monitorDialTasks {
+	tasks := &monitorDialTasks{
+		queue: make([]*dialTask, 0),
+	}
+	return tasks
 }
 
-func MonitorScheduler() *monitorScheduler {
-	monitorSchedulerOnce.Do(func() {
-		log.Info("Init node monitor scheduler ...")
-		monitorSchedulerRef = &monitorScheduler{}
-	})
-	return monitorSchedulerRef
+func (tasks *monitorDialTasks) listTask() []*dialTask {
+	return tasks.queue
 }
 
-func (tasks *monitorScheduler) InitMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn monitorTaskDoneFurtherFn) {
-	tasks.monitorTaskDoneFurtherFn = monitorTaskDoneFurtherFn
+// adding new task to the end of the queue
+func (tasks *monitorDialTasks) offer(task *dialTask) {
+	tasks.queue = append(tasks.queue, task)
+}
+
+func (tasks *monitorDialTasks) removeTask(NodeID enode.ID) {
+
+	log.Info("[before remove]monitor dial task list before removeTask operation", "task queue", tasks.description())
+	if !tasks.isEmpty() {
+		for i, t := range tasks.queue {
+			if t.dest.ID() == NodeID {
+				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
+				break
+			}
+		}
+	}
+	log.Info("[after remove]monitor dial task list after removeTask operation", "task queue", tasks.description())
+}
+
+// remove the first task in the queue
+func (tasks *monitorDialTasks) poll() *dialTask {
+	if tasks.isEmpty() {
+		log.Info("dialedTasks is empty!")
+		return nil
+	}
+
+	pollTask := tasks.queue[0]
+	tasks.queue = tasks.queue[1:]
+	return pollTask
+}
+
+// remove the specify index task in the queue
+func (tasks *monitorDialTasks) pollIndex(index int) *dialTask {
+	if tasks.isEmpty() {
+		log.Info("dialedTasks is empty!")
+		return nil
+	}
+
+	pollTask := tasks.queue[index]
+	tasks.queue = append(tasks.queue[:index], tasks.queue[index+1:]...)
+	return pollTask
+}
+
+// index of task in the queue
+func (tasks *monitorDialTasks) index(task *dialTask) int {
+	for i, t := range tasks.queue {
+		if t.dest.ID() == task.dest.ID() {
+			return i
+		}
+	}
+	return -1
+}
+
+// queue size
+func (tasks *monitorDialTasks) size() int {
+	return len(tasks.queue)
+}
+
+// clear queue
+func (tasks *monitorDialTasks) clear() bool {
+	if tasks.isEmpty() {
+		log.Info("queue is empty!")
+		return false
+	}
+	for i := 0; i < tasks.size(); i++ {
+		tasks.queue[i] = nil
+	}
+	tasks.queue = nil
+	return true
 }
 
 // whether the queue is empty
-func (tasks *monitorScheduler) isEmpty() bool {
+func (tasks *monitorDialTasks) isEmpty() bool {
 	if len(tasks.queue) == 0 {
 		return true
 	}
 	return false
 }
 
-func (tasks *monitorScheduler) ClearMonitorScheduler() {
-	tasks.queue = []*monitorTask{}
-}
-
-func (tasks *monitorScheduler) AddMonitorTask(task *monitorTask) {
-	tasks.queue = append(tasks.queue, task)
-}
-func (tasks *monitorScheduler) RemoveMonitorTask(nodeId discover.NodeID) {
-	log.Info("before RemoveMonitorTask", "nodeId", nodeId, "task queue length", len(tasks.queue), "task queue", tasks.description())
-	if !tasks.isEmpty() {
-		for i, t := range tasks.queue {
-			if t.dest.ID == nodeId {
-				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
-				break
-			}
-		}
-	}
-	log.Info("after RemoveMonitorTask", "nodeId", nodeId, "task queue length", len(tasks.queue), "task queue", tasks.description())
-}
-
-func (tasks *monitorScheduler) ListTask() []*monitorTask {
-	return tasks.queue
-}
-
-func (tasks *monitorScheduler) RemoveTask(NodeID discover.NodeID) {
-	if !tasks.isEmpty() {
-		for i, t := range tasks.queue {
-			if t.dest.ID == NodeID {
-				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
-				break
-			}
-		}
-	}
-}
-
-func (tasks *monitorScheduler) description() string {
+func (tasks *monitorDialTasks) description() []string {
 	var description []string
 	for _, t := range tasks.queue {
-		description = append(description, fmt.Sprintf("%x", t.dest.ID[:8]))
+		description = append(description, t.dest.ID().TerminalString())
 	}
-	return strings.Join(description, ",")
+	return description
 }
 
-func (t *monitorTask) Do(srv *Server) {
-	log.Info("monitorTask.Do", "id", t.dest.ID)
-	if t.dest.Incomplete() {
-		if !t.resolve(srv) {
-			return
+func saveNodePingResult(node *enode.Node, addr string, status int8) {
+	log.Info("SaveNodePingResult", "idV0", node.IDv0(), "addr", addr, "status", status)
+
+	var nodePing TbNodePing
+	if result := MonitorDB().Find(&nodePing, "node_id=?", node.IDv0()); result.Error != nil {
+		log.Error("failed to query tb_node_ping", "err", result.Error)
+	}
+	if strings.TrimSpace(nodePing.NodeId) != "" {
+		nodePing.Addr = addr
+		nodePing.Status = status
+		if status == 1 {
+			nodePing.ReplyTime = time.Now().Unix()
+		}
+		if result := MonitorDB().Save(&nodePing); result.Error != nil {
+			log.Error("failed to update tb_node_ping", "err", result.Error)
 		}
 	}
-	err := t.dial(srv, t.dest)
-	if err != nil {
-		log.Trace("Dial error", "task", t, "err", err)
-		// Try resolving the ID of static nodes if dialing failed.
-		if _, ok := err.(*dialError); ok && t.flags&staticDialedConn != 0 {
-			if t.resolve(srv) {
-				t.dial(srv, t.dest)
-			}
-		}
-	}
-	t.err = err
+
+	/*var nodePing = TbNodePing{NodeId: nodeId, Ip: ip, Port: port, Status: status, ReplyTime: time.Now().Unix(), UpdateTime: time.Now().Unix()}
+	MonitorDB().Save(&nodePing)*/
 }
 
-//monitorTask任务结束后的后续操作（保存NodePing结果，从监控任务列表删除任务）
-func (t *monitorTask) MonitorTaskDoneFurther() bool {
-	log.Info("monitorTask.MonitorTaskDoneFurther", "id", t.dest)
-	return MonitorScheduler().monitorTaskDoneFurtherFn(t.dest)
-}
-
-func (t *monitorTask) resolve(srv *Server) bool {
-	if srv.ntab == nil {
-		log.Debug("Can't resolve node", "id", t.dest.ID, "err", "discovery is disabled")
-		return false
-	}
-	if t.resolveDelay == 0 {
-		t.resolveDelay = initialResolveDelay
-	}
-	if time.Since(t.lastResolved) < t.resolveDelay {
-		return false
-	}
-	resolved := srv.ntab.Resolve(t.dest.ID)
-	t.lastResolved = time.Now()
-	if resolved == nil {
-		t.resolveDelay *= 2
-		if t.resolveDelay > maxResolveDelay {
-			t.resolveDelay = maxResolveDelay
-		}
-		log.Debug("Resolving node failed", "id", t.dest.ID, "newdelay", t.resolveDelay)
-		return false
-	}
-	// The node was found.
-	t.resolveDelay = initialResolveDelay
-	t.dest = resolved
-	log.Debug("Resolved node", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)})
-
-	return true
-}
-
-// dial performs the actual connection attempt.
-func (t *monitorTask) dial(srv *Server, dest *discover.Node) error {
-	fd, err := srv.Dialer.Dial(dest)
-	if err != nil {
-		return &dialError{err}
-	}
-	mfd := newMeteredConn(fd, false)
-	return srv.SetupConn(mfd, t.flags, dest)
-}
-
-type Downloading interface {
-	HighestBlock() uint64
-}
-
-//
-//
 // param: eventMux
 // param: blockNumber, 选举块高，结算周期末，选出下一个结算周期的备选101节点
 // param: epoch 结算周期。从1开始计算。创世块可以认为是0
 // param: verifierList
 // param: downloading
-func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, nodeIdList []common.NodeID, downloading Downloading) {
+func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uint64, enodeList []*enode.Node, downloading Downloading) {
 	//nodeIdList := ConvertToNodeIdList(verifierList)
 	//nodeIdStringList := xcom.ConvertToNodeIdStringList(verifierList)
 	//MONITOR，保存这一轮结算周期的新101名单
-	log.Info("PostMonitorNodeEvent", "blockNumber", blockNumber, "epoch", epoch, "nodeIdList", nodeIdList)
+	log.Info("PostMonitorNodeEvent", "blockNumber", blockNumber, "epoch", epoch, "enodeList", enodeList)
 
 	//SaveEpochElection(epoch, nodeIdList)
 
 	if blockNumber == 0 {
 		log.Info("current block is genesis block")
 
-		InitNodePing(nodeIdList)
-		if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
-			log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+		InitNodePing(enodeList)
+		if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeList: enodeList}); err != nil {
+			log.Error("post ElectNextEpochVerifierEvent failed", "enodeList", enodeList, "err", err)
 		}
 
 	} else {
@@ -200,18 +169,18 @@ func PostMonitorNodeEvent(eventMux *event.TypeMux, blockNumber uint64, epoch uin
 			log.Info("current block is consensus block")
 			//说明区块是共识协议得到的，需要执行monitor任务
 			//MONITOR，保存新101名单
-			InitNodePing(nodeIdList)
-			if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
-				log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+			InitNodePing(enodeList)
+			if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeList: enodeList}); err != nil {
+				log.Error("post ElectNextEpochVerifierEvent failed", "enodeList", enodeList, "err", err)
 			}
 		} else {
 			//此次需要同步的最高块，可以认为是链上当前块，如果当前结算周期和链上结算周期一致，则开始执行monitor任务
 			chainEpoch := xutil.CalculateEpoch(downloading.HighestBlock())
 			if chainEpoch == epoch && epoch != 1 { //epoch=1 第一个epoch的 监控信息，已经有创世块写入。
 				log.Info("current block is downloaded block and epoch is same as chain")
-				InitNodePing(nodeIdList)
-				if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeIdList: nodeIdList}); err != nil {
-					log.Error("post ElectNextEpochVerifierEvent failed", "nodeIdList", nodeIdList, "err", err)
+				InitNodePing(enodeList)
+				if err := eventMux.Post(cbfttypes.ElectNextEpochVerifierEvent{NodeList: enodeList}); err != nil {
+					log.Error("post ElectNextEpochVerifierEvent failed", "enodeList", enodeList, "err", err)
 				}
 			} else {
 				log.Info("current block is downloaded block but far way from chain")
@@ -228,14 +197,6 @@ func ConvertToNodeIdStringList(verifierList []*staking.Validator) []string {
 	return nodeIdStringList
 }
 
-func ConvertToNodeIdList(verifierList []*staking.Validator) []discover.NodeID {
-	nodeIdList := make([]discover.NodeID, len(verifierList))
-	for i, verifier := range verifierList {
-		nodeIdList[i] = verifier.NodeId
-	}
-	return nodeIdList
-}
-
 func ConvertToCommonNodeIdList(verifierList []*staking.Validator) []common.NodeID {
 	nodeIdList := make([]common.NodeID, len(verifierList))
 	for i, verifier := range verifierList {
@@ -244,12 +205,14 @@ func ConvertToCommonNodeIdList(verifierList []*staking.Validator) []common.NodeI
 	return nodeIdList
 }
 
-/*func (t *monitorTask) dialAndClose(srv *Server, dest *discover.Node) error {
-	fd, err := srv.Dialer.Dial(dest)
-	if err != nil {
-		return &dialError{err}
+func ConvertToENodeList(verifierList []*staking.Validator) []*enode.Node {
+	enodeList := make([]*enode.Node, len(verifierList))
+	for i, verifier := range verifierList {
+		pub, err := verifier.NodeId.Pubkey()
+		if err != nil {
+			panic(err)
+		}
+		enodeList[i] = enode.NewV4(pub, nil, 0, 0)
 	}
-	fd.Close()
-	return nil
+	return enodeList
 }
-*/

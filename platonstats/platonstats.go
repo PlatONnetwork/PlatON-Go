@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,10 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 
@@ -59,7 +58,7 @@ func (nonce Nonce) MarshalJSON() ([]byte, error) {
 }
 
 func jsonBlock(block *types.Block) (map[string]interface{}, error) {
-	fields, err := ethapi.RPCMarshalBlock(block, true, true)
+	fields, err := ethapi.RPCMarshalBlock(block, true, true, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -306,16 +305,12 @@ func collectBrief(block *types.Block) *Brief {
 
 func (s *PlatonStatsService) filterDistinctContract(blockNumber uint64, txs types.Transactions) []common.Address {
 
-	stats, _, err := s.ethapi.StateAndHeaderByNumber(context.Background(), rpc.BlockNumber(blockNumber))
-	//stats, err := s.eth.BlockChain().StateAt(b.Root())
-	if err != nil {
-		log.Error("Failed to on filterDistinctContract invoke IsPrecompiledContract", "blockNumber", blockNumber, "err", err)
-	}
+	bigBlockNumber := new(big.Int).SetUint64(blockNumber)
 
 	contractAddrMap := make(map[common.Address]interface{})
 	for _, tx := range txs {
 		if tx.To() != nil {
-			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats), gov.Gte140VersionState(stats)) && !vm.IsPlatONPrecompiledContract(*tx.To(), gov.Gte120VersionState(stats)) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
+			if _, exist := contractAddrMap[*tx.To()]; !exist && !vm.IsPrecompiledContract(*tx.To(), s.ethapi.ChainConfig().Rules(bigBlockNumber), true) && len(tx.Data()) > 0 && s.isContract(*tx.To(), blockNumber) {
 				contractAddrMap[*tx.To()] = nil
 			}
 		}

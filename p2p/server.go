@@ -219,6 +219,7 @@ type Server struct {
 	consensus       bool
 	addconsensus    chan *enode.Node
 	removeconsensus chan *enode.Node
+	addNodeMonitor  chan []*enode.Node
 }
 
 type peerOpFunc func(map[enode.ID]*Peer)
@@ -423,9 +424,9 @@ func (srv *Server) RemoveTrustedPeer(node *enode.Node) {
 	}
 }
 
-func (srv *Server) MonitorNodeIdList(nodeIdList []common.NodeID) {
+func (srv *Server) MonitorNodeList(nodeList []*enode.Node) {
 	select {
-	case srv.rescheduleNodeMonitor <- nodeIdList:
+	case srv.addNodeMonitor <- nodeList:
 	case <-srv.quit:
 	}
 }
@@ -532,7 +533,7 @@ func (srv *Server) Start() (err error) {
 	srv.addconsensus = make(chan *enode.Node)
 	srv.removeconsensus = make(chan *enode.Node)
 
-	srv.rescheduleNodeMonitor = make(chan []common.NodeID)
+	srv.addNodeMonitor = make(chan []*enode.Node)
 
 	if err := srv.setupLocalNode(); err != nil {
 		return err
@@ -781,7 +782,7 @@ func (srv *Server) run() {
 		inboundCount   = 0
 		trusted        = make(map[enode.ID]bool, len(srv.TrustedNodes))
 		consensusNodes = make(map[enode.ID]bool, 0)
-		monitorNodes   = make(map[discover.NodeID]bool, 0)
+		monitorNodes   = make(map[enode.ID]bool, 0)
 	)
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
@@ -789,24 +790,6 @@ func (srv *Server) run() {
 		trusted[n.ID()] = true
 	}
 
-	monitorTaskDoneFurtherFn := func(node *discover.Node) bool {
-		srv.log.Trace("disconnect monitor node from ", "node", node)
-		dialstate.removeMonitorTask(node)
-		if p, ok := peers[node.ID]; ok {
-			//关闭仅是monitor的连接
-			//MONITOR：记录
-			SaveNodePingResult(node.ID, p.RemoteAddr().String(), 1)
-			if p.rw.is(monitorConn) && !p.rw.is(staticDialedConn|trustedConn|consensusDialedConn|inboundConn) {
-				log.Info("disconnect monitor node from, node is only for monitor purpose", "node", node)
-				p.Disconnect(DiscRequested)
-				return true
-			}
-		} else {
-			SaveNodePingResult(node.ID, "nil", 2)
-		}
-		return false
-	}
-	dialstate.initMonitorTaskDoneFurtherFn(monitorTaskDoneFurtherFn)
 running:
 	for {
 		select {
@@ -852,15 +835,12 @@ running:
 					p.Disconnect(DiscRequested)
 				}
 			}
-		case nodeIdList := <-srv.rescheduleNodeMonitor:
-			srv.log.Trace("Renew monitor node list", "nodeIdList", nodeIdList)
-			log.Info("p2p.server.rescheduleNodeMonitor", "nodeIdList", nodeIdList)
-			dialstate.clearMonitorScheduler()
-			for _, nodeId := range nodeIdList {
-				node := discover.NewNode(discover.NodeID(nodeId), nil, 0, 0)
-				dialstate.addMonitorTask(node)
-				monitorNodes[node.ID] = true
-				if p, ok := peers[node.ID]; ok {
+		case nodeList := <-srv.addNodeMonitor:
+			srv.log.Trace("add monitor node list", "nodeList", nodeList)
+			srv.dialsched.addNodeMonitor(nodeList)
+			for _, node := range nodeList {
+				monitorNodes[node.ID()] = true
+				if p, ok := peers[node.ID()]; ok {
 					p.rw.set(monitorConn, true)
 				}
 			}
@@ -899,28 +879,46 @@ running:
 				c.set(consensusDialedConn, true)
 			}
 
-			if monitorNodes[c.id] {
+			if monitorNodes[c.node.ID()] {
 				c.flags |= monitorConn
 			}
 
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
 			c.cont <- srv.postHandshakeChecks(peers, inboundCount, c)
 
-		case c := <-srv.checkpointAddPeer:
+		case c := <-srv.checkpointAddPeer: //增加peers
 			// At this point the connection is past the protocol handshake.
 			// Its capabilities are known and the remote identity is verified.
 			err := srv.addPeerChecks(peers, inboundCount, c)
+
 			if err == nil {
 				// The handshakes are done and it passed all checks.
 				p := srv.launchPeer(c)
-				peers[c.node.ID()] = p
-				srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
-				srv.dialsched.peerAdded(c)
-				if srv.consensus {
-					srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
-				}
-				if p.Inbound() {
-					inboundCount++
+
+				if c.flags&monitorConn != 0 &&
+					c.flags&staticDialedConn == 0 &&
+					c.flags&consensusDialedConn == 0 &&
+					c.flags&dynDialedConn == 0 &&
+					c.flags&trustedConn == 0 &&
+					c.flags&inboundConn == 0 {
+					saveNodePingResult(c.node, c.node.IP().String(), 1)
+					delete(monitorNodes, c.node.ID())
+					srv.dialsched.monitorPool.removeTask(c.node.ID())
+
+					for _, p := range peers {
+						p.Disconnect(DiscQuitting)
+					}
+				} else {
+
+					peers[c.node.ID()] = p
+					srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
+					srv.dialsched.peerAdded(c)
+					if srv.consensus {
+						srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+					}
+					if p.Inbound() {
+						inboundCount++
+					}
 				}
 			}
 			c.cont <- err
@@ -968,10 +966,8 @@ func (srv *Server) postHandshakeChecks(peers map[enode.ID]*Peer, inboundCount in
 	numConsensusPeer := srv.numConsensusPeer(peers)
 	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && numConsensusPeer < srv.MaxConsensusPeers {
 		for _, p := range peers {
-			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
-				srv.log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
 			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn|monitorConn) {
-				log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
+				srv.log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
 				p.Disconnect(DiscRequested)
 				break
 			}
@@ -1109,6 +1105,7 @@ func (srv *Server) checkInboundConn(remoteIP net.IP) error {
 // SetupConn runs the handshakes and attempts to add the connection
 // as a peer. It returns when the connection has been added as a peer
 // or the handshakes have failed.
+// 建立连接
 func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) error {
 	c := &conn{fd: fd, flags: flags, cont: make(chan error)}
 	if dialDest == nil {
@@ -1124,6 +1121,7 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *enode.Node) 
 	return err
 }
 
+// 建立连接
 func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) error {
 	// Prevent leftover pending conns from entering the handshake.
 	srv.lock.Lock()
@@ -1380,7 +1378,7 @@ func (srv *Server) watching() {
 					continue
 				}
 				log.Info("Received ElectNextEpochVerifierEvent", "nodeIdList", electNextEpochVerifierEvent.String())
-				srv.MonitorNodeIdList(electNextEpochVerifierEvent.NodeIdList)
+				srv.MonitorNodeList(electNextEpochVerifierEvent.NodeList)
 			default:
 				srv.log.Error("Received unexcepted event")
 			}

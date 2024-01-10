@@ -20,12 +20,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"errors"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
 	"net"
 	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
@@ -97,10 +98,21 @@ func (n *node) String() string {
 	return n.Node.String()
 }
 
-func ExtractNode(sealhash common.Hash, sign []byte) (NodeID, common.NodeAddress, error) {
+// PubkeyID returns a marshaled representation of the given public key.
+func PubkeyID(pub *ecdsa.PublicKey) common.NodeID {
+	var id common.NodeID
+	pbytes := elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+	if len(pbytes)-1 != len(id) {
+		panic(fmt.Errorf("need %d bit pubkey, got %d bits", (len(id)+1)*8, len(pbytes)))
+	}
+	copy(id[:], pbytes[1:])
+	return id
+}
+
+func ExtractNode(sealhash common.Hash, sign []byte) (common.NodeID, common.NodeAddress, error) {
 	pk, err := crypto.SigToPub(sealhash.Bytes(), sign)
 	if err != nil {
-		return ZeroNodeID, common.ZeroNodeAddr, err
+		return common.NodeID{}, common.ZeroNodeAddr, err
 	}
 	return PubkeyID(pk), crypto.PubkeyToNodeAddress(*pk), nil
 }
