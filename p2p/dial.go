@@ -195,6 +195,7 @@ func newDialScheduler(config dialConfig, it enode.Iterator, setupFunc dialSetupF
 		clearConsensus:         make(chan struct{}),
 		updateConsensusPeersCh: make(chan int),
 		consensusPool:          NewDialedTasks(config.MaxConsensusPeers*2, nil),
+		monitorPool:            NewMonitorDialedTasks(),
 	}
 	d.lastStatsLog = d.clock.Now()
 	d.ctx, d.cancel = context.WithCancel(context.Background())
