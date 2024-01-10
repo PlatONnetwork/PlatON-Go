@@ -19,11 +19,11 @@ package vm
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/holiman/uint256"
 	"golang.org/x/crypto/sha3"
 	"sync/atomic"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -875,8 +875,8 @@ func opSelfdestruct(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 
 	//stats: 收集隐含交易
 	if balance.Sign() > 0 {
-		log.Info("collect embed transfer tx in opSuicide()", "blockNumber", interpreter.evm.Context.BlockNumber.Uint64(), "txHash", interpreter.evm.StateDB.TxHash(), "caller", callContext.contract.Address().Bech32(), "to", common.Address(beneficiary.Bytes20()).Bech32(), "&value", &balance)
-		common.CollectEmbedTransferTx(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), callContext.contract.Address(), common.Address(beneficiary.Bytes20()), balance)
+		log.Info("collect embed transfer tx in opSuicide()", "blockNumber", interpreter.evm.Context.BlockNumber.Uint64(), "txHash", interpreter.evm.StateDB.TxHash(), "caller", scope.Contract.Address().Bech32(), "to", common.Address(beneficiary.Bytes20()).Bech32(), "&value", &balance)
+		common.CollectEmbedTransferTx(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), scope.Contract.Address(), common.Address(beneficiary.Bytes20()), balance)
 	}
 	return nil, errStopToken
 }
