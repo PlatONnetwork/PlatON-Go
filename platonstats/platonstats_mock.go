@@ -3,6 +3,7 @@ package platonstats
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strconv"
 	"sync"
 	"time"
@@ -181,14 +182,14 @@ func (s *MockPlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common
 	iter := tr.NodeIterator(nil)
 	for iter.Next(true) {
 		if iter.Leaf() {
-			var obj state.Account
+			var obj state.DumpAccount
 			err := rlp.DecodeBytes(iter.LeafBlob(), &obj)
 			if err != nil {
 				return nil, fmt.Errorf("parse account error:%s", err.Error())
 			}
 			key := iter.LeafKey()
 			address := common.BytesToAddress(key)
-			balance := obj.Balance
+			balance, _ := new(big.Int).SetString(obj.Balance, 10)
 			genesisData.AddAllocItem(address, balance)
 
 			log.Debug("alloc account", "address", address, "balance", balance)
