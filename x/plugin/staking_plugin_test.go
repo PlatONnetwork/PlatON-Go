@@ -718,7 +718,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	err = StakingInstance().EndBlock(currentHash, header, state)
+	err = StakingInstance().EndBlock(currentHash, header, state, nil)
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to EndBlock, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
@@ -773,7 +773,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	err = StakingInstance().EndBlock(currentHash, header, state)
+	err = StakingInstance().EndBlock(currentHash, header, state, nil)
 	assert.Nil(t, err, fmt.Sprintf("Failed to Election, blockNumber: %d, err: %v", currentNumber, err))
 }
 
@@ -1035,7 +1035,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	err = StakingInstance().EndBlock(currentHash, header, state)
+	err = StakingInstance().EndBlock(currentHash, header, state, nil)
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to EndBlock, blockNumber: %d, err: %v", currentNumber, err)) {
 		return
 	}
@@ -1743,7 +1743,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 	amount, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
 
 	if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		if _, _, _, _, _, err := StakingInstance().WithdrewDelegation(chain.StateDB, hash, header.Number, amount, addrArr[index+1],
+		if _, _, _, _, _, err := StakingInstance().WithdrewDelegation(chain.StateDB, hash, header.Number, amount, header.TxHash, addrArr[index+1],
 			nodeIdArr[index], blockNumber.Uint64(), delegation, make([]*reward.DelegateRewardPer, 0), true); err != nil {
 			return err
 		}
@@ -1843,7 +1843,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	_, _, _, _, _, err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+	_, _, _, _, _, err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, state.TxHash(), addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0), false)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
@@ -1888,7 +1888,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	expectedIssueIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
-	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, state.TxHash(), addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList, false)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
@@ -1972,7 +1972,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	*/
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
-	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
+	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, state.TxHash(), addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0), true)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
@@ -2017,7 +2017,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	expectedIssueIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedLockBalance := new(big.Int).Set(del.ReleasedHes)
-	issueIncome, _, _, returnLockReleased, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
+	issueIncome, _, _, returnLockReleased, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, state.TxHash(), addrArr[index+1],
 		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList, true)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
@@ -2365,7 +2365,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		Start ElectNextVerifierList
 	*/
 	targetNum := xutil.EpochSize() * xutil.ConsensusSize()
-
+	targetEpoch := xutil.CalculateEpoch(targetNum)
 	targetNumInt := big.NewInt(int64(targetNum))
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
@@ -2373,7 +2373,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		return
 	}
 
-	err = StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), state)
+	err = StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64(), targetEpoch, state, nil)
 
 	assert.Nil(t, err, fmt.Sprintf("Failed to ElectNextVerifierList: %v", err))
 
