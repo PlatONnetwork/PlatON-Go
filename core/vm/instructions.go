@@ -23,14 +23,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/holiman/uint256"
 	"github.com/syndtr/goleveldb/leveldb"
 	"golang.org/x/crypto/sha3"
-	"sync/atomic"
 	"math/big"
 	"strconv"
+	"sync/atomic"
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -753,8 +754,9 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 	interpreter.returnData = ret
 
 	//stats
-	if IsPlatONPrecompiledContract(toAddr, false) {
-		saveTransData(interpreter, args, callContext.contract.self.Address().Bytes(), addr.Bytes(), string(ret))
+	gte150 := gov.Gte150VersionState(interpreter.evm.StateDB)
+	if IsPlatONPrecompiledContract(toAddr, interpreter.evm.chainRules, gte150) {
+		saveTransData(interpreter, args, scope.Contract.self.Address().Bytes(), addr.Bytes(), string(ret))
 	}
 
 	return ret, nil
@@ -824,8 +826,9 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	interpreter.returnData = ret
 
 	//stats
-	if IsPlatONPrecompiledContract(toAddr, false) {
-		saveTransData(interpreter, args, callContext.contract.CallerAddress.Bytes(), addr.Bytes(), string(ret))
+	gte150 := gov.Gte150VersionState(interpreter.evm.StateDB)
+	if IsPlatONPrecompiledContract(toAddr, interpreter.evm.chainRules, gte150) {
+		saveTransData(interpreter, args, scope.Contract.CallerAddress.Bytes(), addr.Bytes(), string(ret))
 	}
 
 	return ret, nil
@@ -896,11 +899,11 @@ func opSelfdestruct(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 		interpreter.cfg.Tracer.CaptureExit([]byte{}, 0, nil)
 	}
 	//stats: 把销毁的合约记录下来
-	saveContractSuicided(interpreter, callContext.contract.Address())
+	saveContractSuicided(interpreter, scope.Contract.Address())
 
 	//stats: 收集隐含交易
 	if balance.Sign() > 0 {
-		saveEmbedTransfer(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), callContext.contract.Address(), common.Address(beneficiary.Bytes20()), balance)
+		saveEmbedTransfer(interpreter.evm.Context.BlockNumber.Uint64(), interpreter.evm.StateDB.TxHash(), scope.Contract.Address(), common.Address(beneficiary.Bytes20()), balance)
 	}
 	return nil, errStopToken
 }
