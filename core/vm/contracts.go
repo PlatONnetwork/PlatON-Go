@@ -21,12 +21,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"math/big"
-
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
@@ -1169,6 +1169,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		randomNumbers[i] = currentNonces[i] ^ txHash[i]
 	}
 	if seedNum == 1 {
+		if txHash != common.ZeroHash {
+			vrfstatistics.Tool.AddRequest(v.Evm.Context.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
+		}
 		return randomNumbers, nil
 	}
 
@@ -1197,6 +1200,9 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		for j := 0; j < common.HashLength; j++ {
 			randomNumbers[j+start] = randomNumbers[j] ^ preNonce[j]
 		}
+	}
+	if txHash != common.ZeroHash {
+		vrfstatistics.Tool.AddRequest(v.Evm.Context.BlockNumber.Uint64(), seedNum, txHash, v.Evm.Origin)
 	}
 	return randomNumbers, nil
 }

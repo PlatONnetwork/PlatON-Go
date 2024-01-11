@@ -22,10 +22,9 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
+	"github.com/AlayaNetwork/Alaya-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -3371,7 +3370,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -3418,7 +3417,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
 		// Store Candidate power
-		powerKey := staking.TallyPowerKey(canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.ProgramVersion)
+		powerKey := staking.TallyPowerKey(canTmp.ProgramVersion, canTmp.Shares, canTmp.StakingBlockNum, canTmp.StakingTxIndex, canTmp.NodeId)
 		if err := sndb.PutBaseDB(powerKey, canAddr.Bytes()); nil != err {
 			t.Errorf("Failed to Store Candidate Power: PutBaseDB failed. error:%s", err.Error())
 			return
@@ -3439,9 +3438,9 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 
 		if j < 101 {
 			v := &staking.Validator{
-				NodeAddress: canAddr,
-				NodeId:      canTmp.NodeId,
-				BlsPubKey:   canTmp.BlsPubKey,
+				NodeAddress:   canAddr,
+				NodeId:        canTmp.NodeId,
+				BlsPubKey:     canTmp.BlsPubKey,
 				ValidatorTerm: 0,
 			}
 			validatorQueue[j] = v
@@ -3476,7 +3475,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 			TxHash:      types.EmptyRootHash,
 			ReceiptHash: types.EmptyRootHash,
 			Number:      blockNum,
-			Time:        big.NewInt(int64(121321213 * i)),
+			Time:        big.NewInt(int64(121321213 * i)).Uint64(),
 			Extra:       make([]byte, 97),
 			Nonce:       types.EncodeNonce(nonce),
 		}
@@ -3515,7 +3514,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 					return
 				}
 
-				nodeId := discover.PubkeyID(&privateKey.PublicKey)
+				nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 				privateKey, err = crypto.GenerateKey()
 				if nil != err {
@@ -3538,7 +3537,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 						StakingAddress:  sender,
 						BenefitAddress:  addr,
 						StakingBlockNum: uint64(1),
-						StakingTxIndex:  uint32(i+1),
+						StakingTxIndex:  uint32(i + 1),
 						ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
 						Description: staking.Description{
@@ -3564,8 +3563,8 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
 
 				v := &staking.Validator{
-					NodeAddress: canAddr,
-					NodeId:      canTmp.NodeId,
+					NodeAddress:   canAddr,
+					NodeId:        canTmp.NodeId,
 					ValidatorTerm: 0,
 				}
 				validatorQueue[j] = v
@@ -3613,7 +3612,7 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 				return
 			}
 
-			nodeId := discover.PubkeyID(&privateKey.PublicKey)
+			nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
@@ -3698,17 +3697,16 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 	// build genesis VerifierList
 
 	// Request th opening/creation of an ephemeral database and ensure it's not persisted
-	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
-	config := &eth.Config{
-	}
-	hDB, _ := eth.CreateDB(ctx, config, "historydata")
-	STAKING_DB = &StakingDB{
-		HistoryDB:  hDB,
-	}
+	/*ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
+	config := &eth.Config{}
+	hDB, _ := eth.CreateDB(ctx, config, "historydata")*/
+	/*STAKING_DB = &StakingDB{
+		HistoryDB: hDB,
+	}*/
 
-	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
+	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil, new(trie.Trie))
 	//blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
-	var dn discover.NodeID
+	var dn enode.IDv0
 	err = StakingInstance().Confirmed(dn, blockSwitch)
 	if nil != err {
 		return
@@ -3725,7 +3723,6 @@ func TestStakingPlugin_GetHistoryValidatorList(t *testing.T) {
 
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetHistoryValidatorList by QueryStartNotIrr:", string(validatorExArr))
-
 
 }
 
@@ -3816,7 +3813,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -3896,7 +3893,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 			TxHash:      types.EmptyRootHash,
 			ReceiptHash: types.EmptyRootHash,
 			Number:      blockNum,
-			Time:        big.NewInt(int64(121321213 * i)),
+			Time:        big.NewInt(int64(121321213 * i)).Uint64(),
 			Extra:       make([]byte, 97),
 			Nonce:       types.EncodeNonce(nonce),
 		}
@@ -3935,7 +3932,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 					return
 				}
 
-				nodeId := discover.PubkeyID(&privateKey.PublicKey)
+				nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 				privateKey, err = crypto.GenerateKey()
 				if nil != err {
@@ -3984,8 +3981,8 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 				stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
 
 				v := &staking.Validator{
-					NodeAddress: canAddr,
-					NodeId:      canTmp.NodeId,
+					NodeAddress:   canAddr,
+					NodeId:        canTmp.NodeId,
 					ValidatorTerm: 0,
 				}
 				validatorQueue[j] = v
@@ -4033,7 +4030,7 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 				return
 			}
 
-			nodeId := discover.PubkeyID(&privateKey.PublicKey)
+			nodeId := enode.IDv0(discv5.PubkeyID(&privateKey.PublicKey))
 
 			privateKey, err = crypto.GenerateKey()
 			if nil != err {
@@ -4118,18 +4115,17 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 	// build genesis VerifierList
 
 	// Request th opening/creation of an ephemeral database and ensure it's not persisted
-	ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
-	config := &eth.Config{
-	}
+	/*ctx := node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
+	config := &eth.Config{}
 	hDB, _ := eth.CreateDB(ctx, config, "historydata")
 	STAKING_DB = &StakingDB{
-		HistoryDB:  hDB,
-	}
+		HistoryDB: hDB,
+	}*/
 
-	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
+	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil, new(trie.Trie))
 	//blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
-	var dn discover.NodeID
-	err = StakingInstance().Confirmed(dn,blockSwitch)
+	var dn enode.IDv0
+	err = StakingInstance().Confirmed(dn, blockSwitch)
 	if nil != err {
 		return
 	}
@@ -4145,7 +4141,6 @@ func TestStakingPlugin_GetHistoryVerifierList(t *testing.T) {
 
 	validatorExArr, _ := json.Marshal(validatorExQueue)
 	t.Log("GetHistoryVerifierList by QueryStartNotIrr:", string(validatorExArr))
-
 
 }
 

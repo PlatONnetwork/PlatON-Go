@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	math2 "math"
 	"math/big"
 	"math/rand"
 	"strconv"
@@ -353,6 +354,35 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 
+	//stats
+	numStr := strconv.FormatUint(block.NumberU64(), 10)
+	if block.NumberU64() == uint64(1) {
+		current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
+		if nil != err {
+			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
+				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
+			return err
+		}
+
+		err = sk.SetValidator(block, "0", current)
+		if nil != err {
+			log.Error("Failed to SetValidator on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		err = sk.SetVerifier(block, "0")
+		if nil != err {
+			log.Error("Failed to SetVerifier on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+		err = sk.SetReward(block, "0")
+		if nil != err {
+			log.Error("Failed to SetReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+
+	}
 	if xutil.IsElection(block.NumberU64()) {
 
 		next, err := sk.getNextValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
@@ -366,6 +396,13 @@ func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error 
 		if nil != err {
 			log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
 				"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
+			return err
+		}
+		//stats
+		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
+		err = sk.SetValidator(block, numStr, current)
+		if nil != err {
+			log.Error("Failed to SetVerifier on stakingPlugin Confirmed When Settletmetn block", "err", err)
 			return err
 		}
 
@@ -405,6 +442,20 @@ func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error 
 		}
 	}
 
+	if xutil.IsEndOfEpoch(block.NumberU64()) {
+		err := sk.SetVerifier(block, numStr)
+		if nil != err {
+			log.Error("Failed to SetVerifier on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+		err = sk.SetReward(block, numStr)
+		if nil != err {
+			log.Error("Failed to SetReward on stakingPlugin Confirmed When Settletmetn block", "err", err)
+			return err
+		}
+	}
+
+	log.Info("Finished Confirmed on staking plugin", "blockNumber", block.Number(), "blockHash", block.Hash().String())
 	return nil
 }
 
@@ -4412,43 +4463,32 @@ func (sk *StakingPlugin) SetReward(block *types.Block, numStr string) error {
 	return nil
 }
 
-func (sk *StakingPlugin) SetValidator(block *types.Block, numStr string, nodeId discover.NodeID) (bool, map[discover.NodeID]struct{}, error) {
-	var isCurr bool
-	currMap := make(map[discover.NodeID]struct{})
-	current, err := sk.getCurrValList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
-	if nil != err {
-		log.Error("Failed to Query Current Round validators on stakingPlugin Confirmed When Election block",
-			"blockNumber", block.Number().Uint64(), "blockHash", block.Hash().TerminalString(), "err", err)
-		return isCurr, currMap, err
-	}
-	currentValidatorArray := &staking.ValidatorArraySave{
+func (sk *StakingPlugin) SetValidator(block *types.Block, numStr string, current *staking.ValidatorArray) error {
+	validatorArraySave := &staking.ValidatorArraySave{
 		Start: current.Start,
 		End:   current.End,
 	}
 	vQSave := make(staking.ValidatorQueueSave, len(current.Arr))
 	for k, v := range current.Arr {
-		currMap[v.NodeId] = struct{}{}
-		if nodeId == v.NodeId {
-			isCurr = true
-		}
 		vQSave[k] = &staking.ValidatorSave{
 			ValidatorTerm: v.ValidatorTerm,
 			NodeId:        v.NodeId,
 		}
 	}
-	currentValidatorArray.Arr = vQSave
-	data, err := rlp.EncodeToBytes(currentValidatorArray)
+	validatorArraySave.Arr = vQSave
+	data, err := rlp.EncodeToBytes(validatorArraySave)
 	if nil != err {
 		log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Election block", "err", err)
-		return isCurr, currMap, err
+		return err
 	}
 
 	STAKING_DB.HistoryDB.Put([]byte(ValidatorName+numStr), data)
 	log.Debug("wow,insert validator history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", ValidatorName+numStr)
-	log.Debug("wow,insert validator history :", currentValidatorArray)
-	return isCurr, currMap, nil
+	log.Debug("wow,insert validator history :", validatorArraySave)
+	return nil
 }
 
+// 首先找出VerifierLis，在找出CandidateList（因为verifier的委托相关信息在CandidateList中)
 func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 	current, err := sk.getVerifierList(block.Hash(), block.NumberU64(), QueryStartNotIrr)
 	if nil != err {
@@ -4463,7 +4503,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 			"blockHash", block.Hash().Hex(), "blockNumber", block.Number().Uint64(), "err", error)
 		return error
 	}
-	currentValidatorArray := &staking.ValidatorArraySave{
+	validatorArraySave := &staking.ValidatorArraySave{
 		Start: current.Start,
 		End:   current.End,
 	}
@@ -4475,6 +4515,7 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 			StakingBlockNum: v.StakingBlockNum,
 		}
 		var isCurrent = false
+		//找出verifier的委托相关信息
 		for _, cv := range currentCandidate {
 			if cv.NodeId == v.NodeId {
 				vQSave[k].DelegateRewardTotal = cv.DelegateRewardTotal.ToInt()
@@ -4500,15 +4541,15 @@ func (sk *StakingPlugin) SetVerifier(block *types.Block, numStr string) error {
 		}
 
 	}
-	currentValidatorArray.Arr = vQSave
-	data, err := rlp.EncodeToBytes(currentValidatorArray)
+	validatorArraySave.Arr = vQSave
+	data, err := rlp.EncodeToBytes(validatorArraySave)
 	if nil != err {
 		log.Error("Failed to EncodeToBytes on stakingPlugin Confirmed When Settletmetn block", "err", err)
 		return err
 	}
 	STAKING_DB.HistoryDB.Put([]byte(VerifierName+numStr), data)
 	log.Debug("wow,insert verifier history", "blockNumber", block.Number(), "blockHash", block.Hash().String(), "insertNum", VerifierName+numStr)
-	log.Debug("wow,insert verifier history :", currentValidatorArray)
+	log.Debug("wow,insert verifier history :", validatorArraySave)
 
 	if numStr == "0" {
 		dataCandidate, err := rlp.EncodeToBytes(currentCandidate)

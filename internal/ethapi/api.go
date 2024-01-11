@@ -24,10 +24,11 @@ import (
 	"strings"
 	"time"
 
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 
@@ -610,6 +611,14 @@ func (s *PublicBlockChainAPI) GetAddressHrp() string {
 		return common.DefaultAddressHRP
 	}
 	return chainConfig.AddressHRP
+}
+
+func (s *PublicBlockChainAPI) GetSumOfRandomNum() (uint64, error) {
+	return vrfstatistics.Tool.SumOfRandomNum(rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
+}
+
+func (s *PublicBlockChainAPI) GetRandomNumberTxs(ctx context.Context, from, to uint64) (map[uint64][]vrfstatistics.TxInfo, error) {
+	return vrfstatistics.Tool.GetRandomNumberTxs(from, to, rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
 }
 
 // Result structs for GetProof
@@ -1206,14 +1215,14 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 }
 
 // rpcMarshalHeader uses the generalized output filler, then adds the total difficulty field, which requires
-func RPCMarshalBlockTransaction(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
+func RPCMarshalBlockTransaction(b *types.Block, inclTx bool, fullTx bool, config *params.ChainConfig) ([]interface{}, error) {
 
 	formatTx := func(tx *types.Transaction) (interface{}, error) {
 		return tx.Hash(), nil
 	}
 	if fullTx {
 		formatTx = func(tx *types.Transaction) (interface{}, error) {
-			return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
+			return newRPCTransactionFromBlockHash(b, tx.Hash(), config), nil
 		}
 	}
 	txs := b.Transactions()
@@ -1255,7 +1264,7 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullT
 // rpcOutputBlock uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
 func (s *PublicTransactionPoolAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
-	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx)
+	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx, s.b.ChainConfig())
 	if err != nil {
 		return nil, err
 	}

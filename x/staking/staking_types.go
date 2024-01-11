@@ -586,7 +586,7 @@ type Validator struct {
 
 type ValidatorSave struct {
 	ValidatorTerm       uint32 // Validator's term in the consensus round
-	NodeId              discover.NodeID
+	NodeId              enode.IDv0
 	DelegateRewardTotal *big.Int
 	DelegateTotal       *big.Int
 	StakingBlockNum     uint64
@@ -1044,7 +1044,7 @@ type SlashNodeItem struct {
 
 type SlashNodeData struct {
 	// the nodeId will be slashed
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	// the amount of von with slashed
 	Amount *big.Int
 }
@@ -1143,7 +1143,7 @@ func (h *HistoryValidatorEx) String() string {
 }
 
 type CandidateVersion struct {
-	NodeId         discover.NodeID
+	NodeId         enode.IDv0
 	ProgramVersion uint32
 }
 

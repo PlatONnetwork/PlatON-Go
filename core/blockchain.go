@@ -20,13 +20,6 @@ package core
 import (
 	"errors"
 	"fmt"
-	"io"
-	mrand "math/rand"
-	"sort"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -36,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/internal/syncx"
@@ -44,6 +38,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	lru "github.com/hashicorp/golang-lru"
+	"io"
+	mrand "math/rand"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var (
@@ -198,6 +198,7 @@ type BlockChain struct {
 	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
 	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
 
+	vrfStatisticsDB ethdb.Database
 	// txLookupLimit is the maximum number of blocks from head whose tx indices
 	// are reserved:
 	//  * 0:   means no limit and regenerate any missing indexes
@@ -274,17 +275,18 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			Journal:   cacheConfig.TrieCleanJournal,
 			Preimages: cacheConfig.Preimages,
 		}),
-		quit:           make(chan struct{}),
-		chainmu:        syncx.NewClosableMutex(),
-		shouldPreserve: shouldPreserve,
-		bodyCache:      bodyCache,
-		bodyRLPCache:   bodyRLPCache,
-		receiptsCache:  receiptsCache,
-		blockCache:     blockCache,
-		txLookupCache:  txLookupCache,
-		futureBlocks:   futureBlocks,
-		engine:         engine,
-		vmConfig:       vmConfig,
+		vrfStatisticsDB: rawdb.NewTable(db, vrfstatistics.Prefix),
+		quit:            make(chan struct{}),
+		chainmu:         syncx.NewClosableMutex(),
+		shouldPreserve:  shouldPreserve,
+		bodyCache:       bodyCache,
+		bodyRLPCache:    bodyRLPCache,
+		receiptsCache:   receiptsCache,
+		blockCache:      blockCache,
+		txLookupCache:   txLookupCache,
+		futureBlocks:    futureBlocks,
+		engine:          engine,
+		vmConfig:        vmConfig,
 	}
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
@@ -1418,6 +1420,11 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
+
+	if err := vrfstatistics.Tool.Save(block.NumberU64(), bc.vrfStatisticsDB); err != nil {
+		log.Error("vrfstatistics save", "err", err)
+	}
+
 	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64())
 
 	// Set new head.
