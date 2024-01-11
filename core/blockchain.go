@@ -104,11 +104,13 @@ type CacheConfig struct {
 	BadBlockLimit   int
 	TriesInMemory   int
 
-	DBDisabledGC common.AtomicBool // Whether to disable database garbage collection
-	DBGCInterval uint64            // Block interval for database garbage collection
-	DBGCTimeout  time.Duration
-	DBGCMpt      bool
-	DBGCBlock    int
+	DBDisabledGC    common.AtomicBool // Whether to disable database garbage collection
+	DBGCInterval    uint64            // Block interval for database garbage collection
+	DBGCTimeout     time.Duration
+	DBGCMpt         bool
+	DBGCBlock       int
+	DBDisabledCache bool
+	DBCacheEpoch    uint64
 }
 
 // defaultCacheConfig are the default caching values if none are specified by the
