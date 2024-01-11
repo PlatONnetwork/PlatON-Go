@@ -711,7 +711,7 @@ var (
 	DBCacheEpochFlag = cli.Uint64Flag{
 		Name:  "db.chache_epoch",
 		Usage: "Number of cache epoch states, default 10",
-		Value: eth.DefaultConfig.DBCacheEpoch,
+		Value: ethconfig.Defaults.DBCacheEpoch,
 	}
 )
 
