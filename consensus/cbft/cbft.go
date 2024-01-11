@@ -22,12 +22,14 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"strings"
 	"sync/atomic"
 
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/pkg/errors"
@@ -59,7 +61,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
@@ -184,7 +185,7 @@ type Cbft struct {
 	//test
 	insertBlockQCHook  func(block *types.Block, qc *ctypes.QuorumCert)
 	executeFinishHook  func(index uint32)
-	consensusNodesMock func() ([]discover.NodeID, error)
+	consensusNodesMock func() ([]enode.ID, error)
 }
 
 // New returns a new CBFT.
@@ -261,16 +262,16 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	// Start the handler to process the message.
 	go cbft.network.Start()
 
-	if cbft.config.Option.NodePriKey == nil {
+	if cbft.config.Option.Node == nil {
+		cbft.config.Option.Node = enode.NewV4(&cbft.nodeServiceContext.Config().NodeKey().PublicKey, nil, 0, 0)
+		cbft.config.Option.NodeID = cbft.config.Option.Node.IDv0()
 		cbft.config.Option.NodePriKey = cbft.nodeServiceContext.Config().NodeKey()
-		cbft.config.Option.NodeID = discover.PubkeyID(&cbft.config.Option.NodePriKey.PublicKey)
 	}
-
 	if isGenesis() {
-		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.NodeID)
+		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), cstate.DefaultEpoch, cbft.config.Option.Node.ID())
 		cbft.changeView(cstate.DefaultEpoch, cstate.DefaultViewNumber, block, qc, nil)
 	} else {
-		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.NodeID)
+		cbft.validatorPool = validator.NewValidatorPool(agency, block.NumberU64(), qc.Epoch, cbft.config.Option.Node.ID())
 		cbft.changeView(qc.Epoch, qc.ViewNumber, block, qc, nil)
 	}
 
@@ -324,7 +325,7 @@ func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) error {
 
 	cMsg := msg.Msg.(ctypes.ConsensusMsg)
 	if invalidMsg(cMsg.EpochNum(), cMsg.ViewNum()) {
-		cbft.log.Debug("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
+		cbft.log.Trace("Invalid msg", "peer", msg.PeerID, "type", reflect.TypeOf(msg.Msg), "msg", msg.Msg.String())
 		return nil
 	}
 
@@ -428,7 +429,8 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 // ReceiveSyncMsg is used to receive messages that are synchronized from other nodes.
 //
 // Possible message types are:
-//  PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
+//
+//	PrepareBlockVotesMsg/GetLatestStatusMsg/LatestStatusMsg/
 func (cbft *Cbft) ReceiveSyncMsg(msg *ctypes.MsgInfo) error {
 	// If the node is synchronizing the block, discard sync msg directly and do not count the msg
 	// When the syncMsgCh channel is congested, it is easy to cause a message backlog
@@ -639,8 +641,35 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
+func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, async bool) error {
+	// Short circuit if the header is known, or its parent not
+	number := header.Number.Uint64()
+	if chain.GetHeader(header.Hash(), number) != nil {
+		return nil
+	}
+
+	parent := chain.GetHeader(header.ParentHash, number-1)
+	if parent == nil {
+		var parentBlock *types.Block
+		if async {
+			parentBlock = cbft.GetBlockWithLock(header.ParentHash, number-1)
+		} else {
+			parentBlock = cbft.GetBlockWithoutLock(header.ParentHash, number-1)
+		}
+		if parentBlock != nil {
+			parent = parentBlock.Header()
+		}
+	}
+	if parent == nil {
+		cbft.log.Warn("VerifyHeader, unknown ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
+		return consensus.ErrUnknownAncestor
+	}
+	// Sanity checks passed, do a proper verification
+	return cbft.verifyHeader(chain, header, parent, false)
+}
+
 // VerifyHeader verify the validity of the block header.
-func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header, parent *types.Header, seal bool) error {
 	if header.Number == nil {
 		cbft.log.Error("Verify header fail, unknown block")
 		return ErrorUnKnowBlock
@@ -652,15 +681,41 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return fmt.Errorf("verify header fail, missing signature, number:%d, hash:%s", header.Number.Uint64(), header.Hash().String())
 	}
 
-	if header.IsInvalid() {
+	if err := header.SanityCheck(); err != nil {
 		cbft.log.Error("Verify header fail, Extra field is too long", "number", header.Number, "hash", header.CacheHash())
 		return fmt.Errorf("verify header fail, Extra field is too long, number:%d, hash:%s", header.Number.Uint64(), header.CacheHash().String())
+	}
+
+	// Verify that the gasUsed is <= gasLimit
+	if header.GasUsed > header.GasLimit {
+		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
 	}
 
 	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "err", err)
 		return fmt.Errorf("verify header fail, number:%d, hash:%s, err:%s", header.Number.Uint64(), header.Hash().String(), err.Error())
 	}
+
+	if chain.Config().GetPauliBlock() == nil {
+		return nil
+	}
+
+	// Verify the block's gas usage and (if applicable) verify the base fee.
+	if !chain.Config().IsPauli(header.Number) {
+		// Verify BaseFee not present before EIP-1559 fork.
+		if header.BaseFee != nil {
+			return fmt.Errorf("invalid baseFee before fork: have %d, expected 'nil'", header.BaseFee)
+		}
+		// In earlier versions, the calculation of Gaslimit has been changed
+		// so the VerifyGaslimit method cannot be simply called here for verification
+		//if err := misc.VerifyGaslimit(parent.GasLimit, header.GasLimit); err != nil {
+		//	return err
+		//}
+	} else if err := misc.VerifyEip1559Header(chain.Config(), parent, header); err != nil {
+		// Verify the header's EIP-1559 attributes.
+		return err
+	}
+
 	return nil
 }
 
@@ -670,8 +725,8 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 	results := make(chan error, len(headers))
 
 	go func() {
-		for _, header := range headers {
-			err := cbft.VerifyHeader(chain, header, false)
+		for index, _ := range headers {
+			err := cbft.verifyHeaderWorker(chain, headers, index)
 
 			select {
 			case <-abort:
@@ -681,6 +736,27 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 		}
 	}()
 	return abort, results
+}
+
+func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, index int) error {
+	var parent *types.Header
+	if index == 0 {
+		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+		if parent == nil {
+			parentBlock := cbft.GetBlockWithLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+			if parentBlock != nil {
+				parent = parentBlock.Header()
+			}
+		}
+	} else if headers[index-1].Hash() == headers[index].ParentHash {
+		parent = headers[index-1]
+	}
+
+	if parent == nil {
+		cbft.log.Warn("VerifyHeaderWorker, unknown ancestor", "blockNumber", headers[index].Number.Uint64(), "blockHash", headers[index].Hash(), "parentHash", headers[index].ParentHash)
+		return consensus.ErrUnknownAncestor
+	}
+	return cbft.verifyHeader(chain, headers[index], parent, false)
 }
 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
@@ -756,9 +832,9 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.NodeID())
+	me, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.Node().ID())
 	if err != nil {
-		cbft.log.Warn("Can not got the validator, seal fail", "epoch", cbft.state.Epoch(), "nodeID", cbft.NodeID())
+		cbft.log.Warn("Can not got the validator, seal fail", "epoch", cbft.state.Epoch(), "nodeID", cbft.Node().ID())
 		return
 	}
 	numValidators := cbft.validatorPool.Len(cbft.state.Epoch())
@@ -897,7 +973,7 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 	// Verifies block
 	_, qc, err := ctypes.DecodeExtra(block.ExtraData())
 	if err != nil {
-		cbft.log.Error("Decode block extra date fail", "number", block.Number(), "hash", block.Hash())
+		cbft.log.Error("Decode block extra date fail", "number", block.Number(), "hash", block.Hash(), "err", err.Error())
 		return errors.New("failed to decode block extra data")
 	}
 
@@ -1102,11 +1178,21 @@ func (cbft *Cbft) Stop() error {
 }
 
 // ConsensusNodes returns to the list of consensus nodes.
-func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+func (cbft *Cbft) ConsensusNodes() ([]enode.ID, error) {
 	if cbft.consensusNodesMock != nil {
 		return cbft.consensusNodesMock()
 	}
 	return cbft.validatorPool.ValidatorList(cbft.state.Epoch()), nil
+}
+
+// ConsensusNodes returns to the list of consensus nodes.
+func (cbft *Cbft) ConsensusValidators() []*cbfttypes.ValidateNode {
+	vs := cbft.validatorPool.Validators(cbft.state.Epoch())
+	nodeList := make([]*cbfttypes.ValidateNode, 0)
+	for _, node := range vs.Nodes {
+		nodeList = append(nodeList, node)
+	}
+	return nodeList
 }
 
 // ShouldSeal check if we can seal block.
@@ -1154,14 +1240,14 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 		return
 	}
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID) {
+	if !cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.Node.ID()) {
 		result <- ErrorNotValidator
 		return
 	}
 
 	numValidators := cbft.validatorPool.Len(cbft.state.Epoch())
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	validator, err := cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 	if err != nil {
 		cbft.log.Error("Should seal fail", "err", err)
 		result <- err
@@ -1228,7 +1314,7 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 
 // IsConsensusNode returns whether the current node is a consensus node.
 func (cbft *Cbft) IsConsensusNode() bool {
-	return cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	return cbft.validatorPool.IsValidator(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 }
 
 // GetBlock returns the block corresponding to the specified number and hash.
@@ -1238,6 +1324,25 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
 		result <- block
 	}
+	return <-result
+}
+
+// GetBlockWithLock synchronously obtains blocks according to the specified number and hash.
+func (cbft *Cbft) GetBlockWithLock(hash common.Hash, number uint64) *types.Block {
+	result := make(chan *types.Block, 1)
+
+	cbft.asyncCallCh <- func() {
+		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+		if block == nil {
+			if eb := cbft.state.FindBlock(hash, number); eb != nil {
+				block = eb
+			} else {
+				cbft.log.Debug("Get block failed", "hash", hash, "number", number)
+			}
+		}
+		result <- block
+	}
+
 	return <-result
 }
 
@@ -1378,7 +1483,7 @@ func (cbft *Cbft) isStart() bool {
 }
 
 func (cbft *Cbft) isCurrentValidator() (*cbfttypes.ValidateNode, error) {
-	return cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.NodeID)
+	return cbft.validatorPool.GetValidatorByNodeID(cbft.state.Epoch(), cbft.config.Option.Node.ID())
 }
 
 func (cbft *Cbft) currentProposer() *cbfttypes.ValidateNode {
@@ -1644,7 +1749,7 @@ func (cbft *Cbft) generatePrepareQC(votes map[uint32]*protocols.PrepareVote) *ct
 	for _, p := range votes {
 		//Check whether two votes are equal
 		if !vote.EqualState(p) {
-			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same  vote1:%s vote2:%s", vote.String(), p.String()))
+			cbft.log.Error(fmt.Sprintf("QuorumCert isn't same, vote1:%s vote2:%s", vote.String(), p.String()))
 			return nil
 		}
 		if p.NodeIndex() != vote.NodeIndex() {
@@ -1822,8 +1927,8 @@ func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
 }
 
 // NodeID returns the ID value of the current node
-func (cbft *Cbft) NodeID() discover.NodeID {
-	return cbft.config.Option.NodeID
+func (cbft *Cbft) Node() *enode.Node {
+	return cbft.config.Option.Node
 }
 
 func (cbft *Cbft) avgRTT() time.Duration {

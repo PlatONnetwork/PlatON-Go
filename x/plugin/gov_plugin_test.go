@@ -31,7 +31,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -332,7 +332,7 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -356,7 +356,7 @@ func TestGovPlugin_SubmitText_invalidType(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -376,11 +376,11 @@ func TestGovPlugin_SubmitText_Proposer_empty(t *testing.T) {
 		ProposalType: gov.Text,
 		PIPID:        "textPIPID",
 		SubmitBlock:  1,
-		Proposer:     discover.ZeroNodeID,
+		Proposer:     enode.ZeroIDv0,
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //empty proposal
 	if err != nil {
@@ -468,7 +468,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -493,7 +493,7 @@ func TestGovPlugin_SubmitVersion_ZeroEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -509,7 +509,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	defer setup(t)()
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	version := uint32(1<<16 | 2<<8 | 0)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
@@ -625,7 +625,7 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 		TobeCanceled:    txHashArr[0],
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], lastBlockHash, 0)
+	state.Prepare(txHashArr[0], 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -1104,7 +1104,7 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 
 	//buildSnapDBDataCommitted(20001, 22229)
 	sndb.Compaction()
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1228,10 +1228,10 @@ func TestGovPlugin_printVersion(t *testing.T) {
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
-	var nodeID discover.NodeID
+	var nodeID enode.IDv0
 	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 
-	t.Logf("nodeID is empty, %t", nodeID == discover.ZeroNodeID)
+	t.Logf("nodeID is empty, %t", nodeID == enode.ZeroIDv0)
 
 }
 
@@ -1306,7 +1306,7 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 var (
 	chandler *node.CryptoHandler
 	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
-	nodeID   = discover.MustHexID("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+	nodeID   = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
 
 func initChandlerHandler() {

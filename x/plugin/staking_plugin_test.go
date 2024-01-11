@@ -56,7 +56,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -152,7 +152,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 			return nil, err
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -331,7 +331,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		t.Errorf("Failed to generate random Address private key: %v", err)
 		return nil, err
 	}
-	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	newNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(newNumber, big.NewInt(1))
@@ -426,7 +426,7 @@ func getCandidate(blockHash common.Hash, index int) (*staking.Candidate, error) 
 }
 
 func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
-	can *staking.Candidate, typ uint16, index int, t *testing.T) (*staking.Delegation, error) {
+	can *staking.Candidate, typ uint16, index int, isEinstein bool) (*staking.Delegation, error) {
 
 	delAddr := addrArr[index+1]
 
@@ -438,7 +438,7 @@ func delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 
 	delegateRewardPerList := make([]*reward.DelegateRewardPer, 0)
 
-	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, typ, amount, delegateRewardPerList)
+	return del, StakingInstance().Delegate(state, blockHash, blockNumber, delAddr, del, canAddr, can, typ, amount, delegateRewardPerList, isEinstein)
 }
 
 func getDelegate(blockHash common.Hash, stakingNum uint64, index int, t *testing.T) *staking.Delegation {
@@ -496,7 +496,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
 
@@ -521,7 +521,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
@@ -742,7 +742,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		t.Errorf("Failed to generate random Address private key: %v", err)
 		return
 	}
-	nodeId2 := discover.PubkeyID(&privateKey2.PublicKey)
+	nodeId2 := enode.PublicKeyToIDv0(&privateKey2.PublicKey)
 	currentHash = crypto.Keccak256Hash([]byte(nodeId2.String()))
 
 	/**
@@ -813,7 +813,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	nodeId := discover.PubkeyID(&privateKey.PublicKey)
+	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 	currentNumber := big.NewInt(1)
 
@@ -839,7 +839,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if !assert.Nil(t, err, fmt.Sprintf("Failed to generate random Address private key: %v", err)) {
@@ -1633,7 +1633,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	/**
 	Start Delegate
 	*/
-	del, err := delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+	del, err := delegate(state, blockHash2, blockNumber2, can, 0, index, false)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
 		return
@@ -1674,7 +1674,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	expectedCumulativeIncome := delegateRewardPerList[1].CalDelegateReward(del.ReleasedHes)
 	delegateAmount := new(big.Int).Mul(new(big.Int).SetInt64(10), new(big.Int).SetInt64(params.LAT))
-	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList); nil != err {
+	if err := StakingInstance().Delegate(state, blockHash3, curBlockNumber, addrArr[index+1], del, canAddr, can, 0, delegateAmount, delegateRewardPerList, false); nil != err {
 		t.Fatal("Failed to Delegate:", err)
 	}
 
@@ -1728,7 +1728,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 			return err
 		}
 
-		del, err := delegate(chain.StateDB, hash, header.Number, can, FreeVon, index, t)
+		del, err := delegate(chain.StateDB, hash, header.Number, can, FreeVon, index, true)
 		if err != nil {
 			return err
 		}
@@ -1747,7 +1747,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 
 	if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
 		if _, _, _, _, _, err := StakingInstance().WithdrewDelegation(chain.StateDB, hash, header.Number, amount, addrArr[index+1],
-			nodeIdArr[index], blockNumber.Uint64(), delegation, make([]*reward.DelegateRewardPer, 0)); err != nil {
+			nodeIdArr[index], blockNumber.Uint64(), delegation, make([]*reward.DelegateRewardPer, 0), true); err != nil {
 			return err
 		}
 		return nil
@@ -1762,7 +1762,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		del3, err3 := delegate(chain.StateDB, hash, header.Number, can, LockVon, index, t)
+		del3, err3 := delegate(chain.StateDB, hash, header.Number, can, LockVon, index, true)
 		if err3 != nil {
 			return err3
 		}
@@ -1813,7 +1813,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	t.Log("Get Candidate Info is:", can)
 
 	// Delegate
-	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+	del, err := delegate(state, blockHash, blockNumber, can, 0, index, false)
 
 	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
 	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
@@ -1847,7 +1847,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
 	_, _, _, _, _, err = StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0), false)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
@@ -1892,7 +1892,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedBalance = new(big.Int).Add(expectedBalance, del.ReleasedHes)
 	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
+		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList, false)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
@@ -1942,7 +1942,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	t.Log("Get Candidate Info is:", can)
 
 	// Delegate
-	del, err := delegate(state, blockHash, blockNumber, can, 0, index, t)
+	del, err := delegate(state, blockHash, blockNumber, can, 0, index, true)
 
 	delegateRewardPoolBalance, _ := new(big.Int).SetString(balanceStr[index+1], 10) // PASS
 	state.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Mul(new(big.Int).Set(delegateRewardPoolBalance), new(big.Int).Set(delegateRewardPoolBalance)))
@@ -1976,7 +1976,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	amount := common.Big257
 	delegateTotalHes := can.DelegateTotalHes
 	issueIncome, _, _, _, _, err := StakingInstance().WithdrewDelegation(state, blockHash2, blockNumber2, amount, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0))
+		nodeIdArr[index], blockNumber.Uint64(), del, make([]*reward.DelegateRewardPer, 0), true)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
@@ -2021,7 +2021,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 	expectedBalance := new(big.Int).Add(state.GetBalance(addrArr[index+1]), expectedIssueIncome)
 	expectedLockBalance := new(big.Int).Set(del.ReleasedHes)
 	issueIncome, _, _, returnLockReleased, _, err := StakingInstance().WithdrewDelegation(state, blockHash3, curBlockNumber, del.ReleasedHes, addrArr[index+1],
-		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList)
+		nodeIdArr[index], blockNumber.Uint64(), del, delegateRewardPerList, true)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to WithdrewDelegation: %v", err)) {
 		return
@@ -2084,7 +2084,7 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	}
 
 	// Delegate
-	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, t)
+	_, err = delegate(state, blockHash2, blockNumber2, can, 0, index, false)
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to delegate: %v", err)) {
 		return
@@ -2144,7 +2144,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 			c = can
 		}
 		// Delegate  0, 1
-		_, err := delegate(state, blockHash, blockNumber, c, 0, i, t)
+		_, err := delegate(state, blockHash, blockNumber, c, 0, i, false)
 		if nil != err {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 			return
@@ -2175,7 +2175,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 		}
 
 		// Delegate
-		_, err := delegate(state, blockHash2, blockNumber2, c, 0, i, t)
+		_, err := delegate(state, blockHash2, blockNumber2, c, 0, i, false)
 		if nil != err {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 			return
@@ -2242,7 +2242,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -2394,9 +2394,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
-	defer func() {
-		sndb.Clear()
-	}()
+	defer sndb.Clear()
 
 	// Must new VrfHandler instance by genesis block Hash
 	handler.NewVrfHandler(genesis.Hash().Bytes())
@@ -2429,7 +2427,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -2640,7 +2638,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -2953,7 +2951,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -3061,7 +3059,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 	validatorQueue := make(staking.ValidatorQueue, 0)
 
-	nodeIdArr := make([]discover.NodeID, 0)
+	nodeIdArr := make([]enode.IDv0, 0)
 	for i := 0; i < 1000; i++ {
 
 		var index int
@@ -3085,7 +3083,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -4241,7 +4239,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		return
 	}
 
-	nodeIdArr := make([]discover.NodeID, 0)
+	nodeIdArr := make([]enode.IDv0, 0)
 
 	for i := 0; i < 1000; i++ {
 
@@ -4266,7 +4264,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -4534,7 +4532,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
-		nodeId := discover.PubkeyID(&privKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privKey.PublicKey)
 		addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
 
 		var blsKeyHex bls.PublicKeyHex
@@ -4560,7 +4558,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, params.GenesisVersion)
+	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, true)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 
@@ -4587,7 +4585,7 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 			var blsKey bls.SecretKey
 			blsKey.SetByCSPRNG()
 			privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
-			nodeId := discover.PubkeyID(&privKey.PublicKey)
+			nodeId := enode.PublicKeyToIDv0(&privKey.PublicKey)
 			addr := crypto.PubkeyToNodeAddress(privKey.PublicKey)
 
 			var blsKeyHex bls.PublicKeyHex
@@ -4620,7 +4618,7 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 		vqList, preNonceList := buildCandidate(stakeThreshold)
 		stakeThreshold *= 10
 		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
-			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, params.GenesisVersion)
+			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, true)
 			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 			assert.True(t, nil != result, "the result is nil")
 		})
@@ -4653,7 +4651,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 		dataList = append(dataList, data)
 
 		tempPrivateKey, _ := ecdsa.GenerateKey(crypto.S256(), rand.Reader)
-		nodeId := discover.PubkeyID(&tempPrivateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&tempPrivateKey.PublicKey)
 		addr := crypto.PubkeyToNodeAddress(tempPrivateKey.PublicKey)
 		v := &staking.Validator{
 			NodeAddress: addr,
@@ -4725,7 +4723,7 @@ func Test_IteratorCandidate(t *testing.T) {
 			return
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 
 		privateKey, err = crypto.GenerateKey()
 		if nil != err {
@@ -4933,7 +4931,9 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		if nil != err {
 			t.Fatalf("Failed to generate random NodeId private key: %v", err)
 		}
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		pnode := enode.NewV4(&privateKey.PublicKey, nil, 0, 0)
+		nodeId := pnode.IDv0()
 		nodeAddr := crypto.PubkeyToNodeAddress(privateKey.PublicKey)
 		var blsKey bls.SecretKey
 		blsKey.SetByCSPRNG()

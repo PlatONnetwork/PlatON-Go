@@ -19,9 +19,11 @@ package cbft
 import (
 	"crypto/ecdsa"
 	"math/big"
+	"net"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
@@ -42,7 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -116,8 +117,7 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	pk, sk := GenerateKeys(num)
 	nodes := make([]params.CbftNode, num)
 	for i := 0; i < num; i++ {
-
-		nodes[i].Node = *discover.NewNode(discover.PubkeyID(&pk[i].PublicKey), nil, 0, 0)
+		nodes[i].Node = enode.NewV4(&pk[i].PublicKey, net.ParseIP("0.0.0.0"), 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
 
 	}
@@ -133,9 +133,11 @@ func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount u
 		InitialNodes: []params.CbftNode{},
 	}
 
+	pnode := enode.NewV4(&pk.PublicKey, nil, 0, 0)
 	optConfig := &ctypes.OptionsConfig{
 		NodePriKey:        pk,
-		NodeID:            discover.PubkeyID(&pk.PublicKey),
+		NodeID:            pnode.IDv0(),
+		Node:              pnode,
 		BlsPriKey:         sk,
 		MaxQueuesLimit:    1000,
 		BlacklistDeadline: 1,
@@ -167,6 +169,7 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
 
 	var db = rawdb.NewMemoryDatabase()
+	chainConfig.SetPauliBlock(nil)
 	gspec, _ := CreateGenesis(db)
 
 	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
@@ -245,12 +248,12 @@ func MockValidator(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftN
 }
 
 // NewEngineManager returns a list of EngineManager and NodeID.
-func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []discover.NodeID) {
-	nodeids := make([]discover.NodeID, 0)
+func NewEngineManager(cbfts []*TestCBFT) ([]*network.EngineManager, []enode.ID) {
+	nodeids := make([]enode.ID, 0)
 	engines := make([]*network.EngineManager, 0)
 	for _, c := range cbfts {
 		engines = append(engines, c.engine.network)
-		nodeids = append(nodeids, c.engine.config.Option.NodeID)
+		nodeids = append(nodeids, c.engine.config.Option.Node.ID())
 	}
 	return engines, nodeids
 }

@@ -18,15 +18,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"io"
-	"path/filepath"
-
-	"github.com/PlatONnetwork/PlatON-Go/eth"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"os"
 	"strconv"
@@ -37,12 +33,14 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 )
 
 var (
@@ -86,7 +84,9 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-	The import-preimages command imports hash preimages from an RLP encoded stream.`,
+	The import-preimages command imports hash preimages from an RLP encoded stream.
+It's deprecated, please use "geth db import" instead.
+`,
 	}
 	exportPreimagesCommand = cli.Command{
 		Action:    utils.MigrateFlags(exportPreimages),
@@ -100,63 +100,29 @@ The dumpgenesis command dumps the genesis block configuration in JSON format to 
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The export-preimages command export hash preimages to an RLP encoded stream`,
-	}
-	copydbCommand = cli.Command{
-		Action:    utils.MigrateFlags(copyDb),
-		Name:      "copydb",
-		Usage:     "Create a local chain from a target chaindata folder",
-		ArgsUsage: "<sourceChaindataDir> <sourceSnapshotDBDir>",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
-			utils.CacheFlag,
-			//	utils.SyncModeFlag,
-			utils.TestnetFlag,
-			utils.TxLookupLimitFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
-		Description: `
-The first argument must be the directory containing the blockchain to download from,The second argument must be the directory containing the ppos to download from`,
-	}
-	removedbCommand = cli.Command{
-		Action:    utils.MigrateFlags(removeDB),
-		Name:      "removedb",
-		Usage:     "Remove blockchain and state databases",
-		ArgsUsage: " ",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
-		Description: `
-Remove blockchain and state databases`,
+The export-preimages command exports hash preimages to an RLP encoded stream.
+It's deprecated, please use "geth db export" instead.
+`,
 	}
 	dumpCommand = cli.Command{
 		Action:    utils.MigrateFlags(dump),
 		Name:      "dump",
 		Usage:     "Dump a specific block from storage",
-		ArgsUsage: "[<blockHash> | <blockNum>]...",
+		ArgsUsage: "[? <blockHash> | <blockNum>]",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 			utils.CacheFlag,
-			utils.SyncModeFlag,
+			utils.IterativeOutputFlag,
+			utils.ExcludeCodeFlag,
+			utils.ExcludeStorageFlag,
+			utils.IncludeIncompletesFlag,
+			utils.StartKeyFlag,
+			utils.DumpLimitFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
-The arguments are interpreted as block numbers or hashes.
-Use "ethereum dump 0" to dump the genesis block.`,
-	}
-	inspectCommand = cli.Command{
-		Action:    utils.MigrateFlags(inspect),
-		Name:      "inspect",
-		Usage:     "Inspect the storage size for each type of data in the database",
-		ArgsUsage: " ",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
-			utils.AncientFlag,
-			utils.CacheFlag,
-			utils.SyncModeFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
+This command dumps out the state for a given block (or latest, if none provided).
+`,
 	}
 )
 
@@ -179,7 +145,7 @@ func initGenesis(ctx *cli.Context) error {
 	defer stack.Close()
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-		chaindb, err := stack.OpenDatabase(name, 0, 0, "")
+		chaindb, err := stack.OpenDatabase(name, 0, 0, "", false)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
@@ -233,18 +199,6 @@ func dumpGenesis(ctx *cli.Context) error {
 	return nil
 }
 
-type FakeBackend struct {
-	bc *core.BlockChain
-}
-
-func (f *FakeBackend) BlockChain() *core.BlockChain {
-	return f.bc
-}
-
-func (f *FakeBackend) TxPool() *core.TxPool {
-	return nil
-}
-
 // importPreimages imports preimage data from the specified file.
 func importPreimages(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
@@ -253,7 +207,7 @@ func importPreimages(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
-	diskdb := utils.MakeChainDatabase(ctx, stack)
+	diskdb := utils.MakeChainDatabase(ctx, stack, false)
 
 	start := time.Now()
 	if err := utils.ImportPreimages(diskdb, ctx.Args().First()); err != nil {
@@ -271,7 +225,7 @@ func exportPreimages(ctx *cli.Context) error {
 	stack, _ := makeFullNode(ctx)
 	defer stack.Close()
 
-	diskdb := utils.MakeChainDatabase(ctx, stack)
+	diskdb := utils.MakeChainDatabase(ctx, stack, true)
 	start := time.Now()
 
 	if err := utils.ExportPreimages(diskdb, ctx.Args().First()); err != nil {
@@ -281,171 +235,87 @@ func exportPreimages(ctx *cli.Context) error {
 	return nil
 }
 
-func copyDb(ctx *cli.Context) error {
-	// Ensure we have a source chain directory to copy
-	if len(ctx.Args()) < 1 {
-		utils.Fatalf("Source chaindata directory path argument missing")
+func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, ethdb.Database, common.Hash, error) {
+	db := utils.MakeChainDatabase(ctx, stack, true)
+	var header *types.Header
+	if ctx.NArg() > 1 {
+		return nil, nil, common.Hash{}, fmt.Errorf("expected 1 argument (number or hash), got %d", ctx.NArg())
 	}
-	if len(ctx.Args()) < 2 {
-		utils.Fatalf("Source ancient chain directory path argument missing")
-	}
-	// Ensure we have a source chain directory to copy
-	if len(ctx.Args()) < 3 {
-		utils.Fatalf("Source SnapshotDBD directory (path to a local ppos database) path argument missing")
-	}
-	// Initialize a new chain for the running node to sync into
-	stack, _ := makeFullNode(ctx)
-	defer stack.Close()
-
-	chain, chainDb := utils.MakeChain(ctx, stack, false)
-	syncmode := downloader.FastSync
-	//		*utils.GlobalTextMarshaler(ctx, utils.SyncModeFlag.Name).(*downloader.SyncMode)
-	localSnapshotDB := snapshotdb.Instance()
-
-	syncBloom := trie.NewSyncBloom(uint64(ctx.GlobalInt(utils.CacheFlag.Name)/2), chainDb)
-
-	dl := downloader.New(chainDb, localSnapshotDB, syncBloom, new(event.TypeMux), chain, nil, nil, nil)
-	// Create a source peer to satisfy downloader requests from
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name)/2, 256, ctx.Args().Get(1), "")
-	if err != nil {
-		return err
-	}
-	hc, err := core.NewHeaderChain(db, chain.Config(), chain.Engine(), func() bool { return false })
-	if err != nil {
-		return err
-	}
-	peerSnapshotDB, err := snapshotdb.Open(ctx.Args().Get(2), ctx.GlobalInt(utils.CacheFlag.Name), 256, false)
-	if err != nil {
-		return err
-	}
-	peer := downloader.NewFakePeer("local", db, peerSnapshotDB, hc, dl)
-	if err = dl.RegisterPeer("local", 63, peer); err != nil {
-		return err
-	}
-	// Synchronise with the simulated peer
-	start := time.Now()
-	base, _ := peerSnapshotDB.BaseNum()
-	currentHeader := hc.GetHeaderByNumber(base.Uint64())
-	if err = dl.Synchronise("local", currentHeader.Hash(), currentHeader.Number, syncmode); err != nil {
-		return err
-	}
-	for dl.Synchronising() {
-		time.Sleep(10 * time.Millisecond)
-	}
-	fmt.Printf("Database copy done in %v\n", time.Since(start))
-
-	// Compact the entire database to remove any sync overhead
-	start = time.Now()
-	fmt.Println("Compacting entire database...")
-	if err = db.Compact(nil, nil); err != nil {
-		utils.Fatalf("Compaction failed: %v", err)
-	}
-	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
-	localSnapshotDB.Close()
-	return nil
-}
-
-func removeDB(ctx *cli.Context) error {
-	stack, config := makeConfigNode(ctx)
-
-	// Remove the full node state database
-	path := stack.ResolvePath("chaindata")
-	if common.FileExist(path) {
-		confirmAndRemoveDB(path, "full node state database")
+	if ctx.NArg() == 1 {
+		arg := ctx.Args().First()
+		if hashish(arg) {
+			hash := common.HexToHash(arg)
+			if number := rawdb.ReadHeaderNumber(db, hash); number != nil {
+				header = rawdb.ReadHeader(db, hash, *number)
+			} else {
+				return nil, nil, common.Hash{}, fmt.Errorf("block %x not found", hash)
+			}
+		} else {
+			number, err := strconv.Atoi(arg)
+			if err != nil {
+				return nil, nil, common.Hash{}, err
+			}
+			if hash := rawdb.ReadCanonicalHash(db, uint64(number)); hash != (common.Hash{}) {
+				header = rawdb.ReadHeader(db, hash, uint64(number))
+			} else {
+				return nil, nil, common.Hash{}, fmt.Errorf("header for block %d not found", number)
+			}
+		}
 	} else {
-		log.Info("Full node state database missing", "path", path)
+		// Use latest
+		header = rawdb.ReadHeadHeader(db)
 	}
-	// Remove the full node ancient database
-	path = config.Eth.DatabaseFreezer
-	switch {
-	case path == "":
-		path = filepath.Join(stack.ResolvePath("chaindata"), "ancient")
-	case !filepath.IsAbs(path):
-		path = config.Node.ResolvePath(path)
+	if header == nil {
+		return nil, nil, common.Hash{}, errors.New("no head block found")
 	}
-	if common.FileExist(path) {
-		confirmAndRemoveDB(path, "full node ancient database")
-	} else {
-		log.Info("Full node ancient database missing", "path", path)
-	}
-	// Remove the light node database
-	path = stack.ResolvePath("lightchaindata")
-	if common.FileExist(path) {
-		confirmAndRemoveDB(path, "light node database")
-	} else {
-		log.Info("Light node database missing", "path", path)
-	}
-	return nil
-}
-
-// confirmAndRemoveDB prompts the user for a last confirmation and removes the
-// folder if accepted.
-func confirmAndRemoveDB(database string, kind string) {
-	confirm, err := prompt.Stdin.PromptConfirm(fmt.Sprintf("Remove %s (%s)?", kind, database))
-	switch {
-	case err != nil:
-		utils.Fatalf("%v", err)
-	case !confirm:
-		log.Info("Database deletion skipped", "path", database)
+	startArg := common.FromHex(ctx.String(utils.StartKeyFlag.Name))
+	var start common.Hash
+	switch len(startArg) {
+	case 0: // common.Hash
+	case 32:
+		start = common.BytesToHash(startArg)
+	case 20:
+		start = crypto.Keccak256Hash(startArg)
+		log.Info("Converting start-address to hash", "address", common.BytesToAddress(startArg), "hash", start.Hex())
 	default:
-		start := time.Now()
-		filepath.Walk(database, func(path string, info os.FileInfo, err error) error {
-			// If we're at the top level folder, recurse into
-			if path == database {
-				return nil
-			}
-			// Delete all the files, but not subfolders
-			if !info.IsDir() {
-				os.Remove(path)
-				return nil
-			}
-			return filepath.SkipDir
-		})
-		log.Info("Database successfully deleted", "path", database, "elapsed", common.PrettyDuration(time.Since(start)))
+		return nil, nil, common.Hash{}, fmt.Errorf("invalid start argument: %x. 20 or 32 hex-encoded bytes required", startArg)
 	}
+	var conf = &state.DumpConfig{
+		SkipCode:          ctx.Bool(utils.ExcludeCodeFlag.Name),
+		SkipStorage:       ctx.Bool(utils.ExcludeStorageFlag.Name),
+		OnlyWithAddresses: !ctx.Bool(utils.IncludeIncompletesFlag.Name),
+		Start:             start.Bytes(),
+		Max:               ctx.Uint64(utils.DumpLimitFlag.Name),
+	}
+	log.Info("State dump configured", "block", header.Number, "hash", header.Hash().Hex(),
+		"skipcode", conf.SkipCode, "skipstorage", conf.SkipStorage,
+		"start", hexutil.Encode(conf.Start), "limit", conf.Max)
+	return conf, db, header.Root, nil
 }
 
 func dump(ctx *cli.Context) error {
-	stack, _ := makeFullNode(ctx)
+	stack, _ := makeConfigNode(ctx)
 	defer stack.Close()
 
-	opts := &state.DumpConfig{
-		OnlyWithAddresses: true,
-		Max:               eth.AccountRangeMaxResults, // Sanity limit over RPC
+	conf, db, root, err := parseDumpConfig(ctx, stack)
+	if err != nil {
+		return err
 	}
-
-	chain, chainDb := utils.MakeChain(ctx, stack, false)
-	for _, arg := range ctx.Args() {
-		var block *types.Block
-		if hashish(arg) {
-			block = chain.GetBlockByHash(common.HexToHash(arg))
-		} else {
-			num, _ := strconv.Atoi(arg)
-			block = chain.GetBlockByNumber(uint64(num))
-		}
-		if block == nil {
-			fmt.Println("{}")
-			utils.Fatalf("block not found")
-		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
-			if err != nil {
-				utils.Fatalf("could not create new state: %v", err)
-			}
-			fmt.Printf("%s\n", state.Dump(opts))
-		}
+	state, err := state.New(root, state.NewDatabase(db), nil)
+	if err != nil {
+		return err
 	}
-	chainDb.Close()
+	if ctx.Bool(utils.IterativeOutputFlag.Name) {
+		state.IterativeDump(conf, json.NewEncoder(os.Stdout))
+	} else {
+		if conf.OnlyWithAddresses {
+			fmt.Fprintf(os.Stderr, "If you want to include accounts with missing preimages, you need iterative output, since"+
+				" otherwise the accounts will overwrite each other in the resulting mapping.")
+			return fmt.Errorf("incompatible options")
+		}
+		fmt.Println(string(state.Dump(conf)))
+	}
 	return nil
-}
-
-func inspect(ctx *cli.Context) error {
-	node, _ := makeConfigNode(ctx)
-	defer node.Close()
-
-	_, chainDb := utils.MakeChain(ctx, node, false)
-	defer chainDb.Close()
-
-	return rawdb.InspectDatabase(chainDb)
 }
 
 // hashish returns true for strings that look like hashes.

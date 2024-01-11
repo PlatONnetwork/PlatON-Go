@@ -17,11 +17,9 @@
 package types
 
 import (
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"io"
 	"math/big"
-
-	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -47,15 +45,15 @@ type Log struct {
 	// hash of the transaction
 	TxHash common.Hash `json:"transactionHash" gencodec:"required"`
 	// index of the transaction in the block
-	TxIndex uint `json:"transactionIndex" gencodec:"required"`
+	TxIndex uint `json:"transactionIndex"`
 	// hash of the block in which the transaction was included
 	BlockHash common.Hash `json:"blockHash"`
 	// index of the log in the block
-	Index uint `json:"logIndex" gencodec:"required"`
+	Index uint `json:"logIndex"`
 
 	// The Removed field is true if this log was reverted due to a chain reorganisation.
 	// You must pay attention to this field if you receive logs through a filter query.
-	Removed bool `json:"removed"`
+	Removed bool `json:"removed" rlp:"-"`
 }
 
 // MarshalJSON2 marshals as JSON.
@@ -66,9 +64,9 @@ func (l Log) MarshalJSON2() ([]byte, error) {
 		Data        hexutil.Bytes  `json:"data" gencodec:"required"`
 		BlockNumber hexutil.Uint64 `json:"blockNumber"`
 		TxHash      common.Hash    `json:"transactionHash" gencodec:"required"`
-		TxIndex     hexutil.Uint   `json:"transactionIndex" gencodec:"required"`
+		TxIndex     hexutil.Uint   `json:"transactionIndex"`
 		BlockHash   common.Hash    `json:"blockHash"`
-		Index       hexutil.Uint   `json:"logIndex" gencodec:"required"`
+		Index       hexutil.Uint   `json:"logIndex"`
 		Removed     bool           `json:"removed"`
 	}
 	var enc Log

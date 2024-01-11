@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package plugin
 
 import (
@@ -23,11 +22,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"strconv"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
@@ -42,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -64,7 +64,7 @@ var (
 
 // Nodes with zero blocks will construct this structure and store it in the queue waiting for punishment.
 type WaitSlashingNode struct {
-	NodeId discover.NodeID
+	NodeId enode.IDv0
 	// The number of consensus rounds when the first zero block appeared
 	Round uint64
 	// Used to record the number of times the node has zero blocks.
@@ -144,70 +144,21 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
 			}
-			if currentVersion >= params.FORKVERSION_0_11_0 {
-				// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
-				validatorMap := make(map[discover.NodeID]bool)
-				for _, validator := range preRoundVal.Arr {
-					nodeId := validator.NodeId
-					count := result[nodeId]
-					if count > 0 {
-						validatorMap[nodeId] = true
-					} else {
-						validatorMap[nodeId] = false
-					}
+			// Stores all consensus nodes in the previous round and records whether each node has a production block in the previous round
+			validatorMap := make(map[enode.IDv0]bool)
+			for _, validator := range preRoundVal.Arr {
+				nodeId := validator.NodeId
+				count := result[nodeId]
+				if count > 0 {
+					validatorMap[nodeId] = true
+				} else {
+					validatorMap[nodeId] = false
 				}
+			}
 
-				if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
-					log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-			} else {
-				blockReward, err := gov.GovernSlashBlocksReward(header.Number.Uint64(), blockHash)
-				if nil != err {
-					log.Error("Failed to BeginBlock, query GovernSlashBlocksReward is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-					return err
-				}
-
-				for _, validator := range preRoundVal.Arr {
-					nodeId := validator.NodeId
-					count := result[nodeId]
-					if count > 0 {
-						continue
-					}
-					slashType := staking.LowRatioDel
-					slashAmount := common.Big0
-
-					canMutable, err := stk.GetCanMutableByIrr(validator.NodeAddress)
-					if nil != err {
-						log.Error("Failed to BeginBlock, call candidate mutable info is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-						if err == snapshotdb.ErrNotFound {
-							continue
-						}
-						return err
-					}
-					totalBalance := calcCanTotalBalance(header.Number.Uint64(), canMutable)
-					if blockReward > 0 {
-						slashAmount, err = calcSlashBlockRewards(sp.db, blockHash, uint64(blockReward))
-						if nil != err {
-							log.Error("Failed to BeginBlock, call calcSlashBlockRewards fail", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
-						}
-						if slashAmount.Cmp(totalBalance) > 0 {
-							slashAmount = totalBalance
-						}
-					}
-					log.Info("Need to call SlashCandidates anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "nodeId", nodeId.TerminalString(),
-						"packBlockCount", count, "slashType", slashType, "totalBalance", totalBalance, "slashAmount", slashAmount, "SlashBlocksReward", blockReward)
-
-					slashItem := &staking.SlashNodeItem{
-						NodeId:      nodeId,
-						Amount:      slashAmount,
-						SlashType:   slashType,
-						BenefitAddr: vm.RewardManagerPoolAddr,
-					}
-
-					slashQueue = append(slashQueue, slashItem)
-
-				}
+			if slashQueue, err = sp.zeroProduceProcess(blockHash, header, validatorMap, preRoundVal.Arr); nil != err {
+				log.Error("Failed to BeginBlock, call zeroProduceProcess is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
+				return err
 			}
 
 			// Real to slash the node
@@ -215,15 +166,8 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			// it means that there is no block,
 			// then the penalty is directly
 			if len(slashQueue) != 0 {
-				var slashNodeQueue staking.SlashNodeQueue
-				for _, slashItem := range slashQueue  {
-					snData := &staking.SlashNodeData{
-						NodeId          : slashItem.NodeId,
-						Amount : slashItem.Amount,
-					}
-					slashNodeQueue = append(slashNodeQueue, snData)
-				}
-				sp.setSlashData(header.Number.Uint64() ,slashNodeQueue)
+				//stats
+				sp.saveSlashNode(header.Number.Uint64(), slashQueue)
 				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
@@ -235,15 +179,28 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 	return nil
 }
 
+//stats
+func (sp *SlashingPlugin) saveSlashNode(blockNumber uint64, slashQueue staking.SlashQueue){
+	var slashNodeQueue staking.SlashNodeQueue
+	for _, slashItem := range slashQueue  {
+		snData := &staking.SlashNodeData{
+			NodeId          : slashItem.NodeId,
+			Amount : slashItem.Amount,
+		}
+		slashNodeQueue = append(slashNodeQueue, snData)
+	}
+	sp.setSlashData(blockNumber ,slashNodeQueue)
+}
+
 func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	return nil
 }
 
-func (sp *SlashingPlugin) Confirmed(nodeId discover.NodeID, block *types.Block) error {
+func (sp *SlashingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error {
 	return nil
 }
 
-func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, validatorMap map[discover.NodeID]bool, validatorQueue staking.ValidatorQueue) (staking.SlashQueue, error) {
+func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *types.Header, validatorMap map[enode.IDv0]bool, validatorQueue staking.ValidatorQueue) (staking.SlashQueue, error) {
 	blockNumber := header.Number.Uint64()
 	slashQueue := make(staking.SlashQueue, 0)
 	waitSlashingNodeList, err := sp.getWaitSlashingNodeList(header.Number.Uint64(), blockHash)
@@ -495,7 +452,7 @@ func (sp *SlashingPlugin) setWaitSlashingNodeList(blockNumber uint64, blockHash 
 	return nil
 }
 
-func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Hash, nodeId discover.NodeID) (uint32, error) {
+func (sp *SlashingPlugin) getPackAmount(blockNumber uint64, blockHash common.Hash, nodeId enode.IDv0) (uint32, error) {
 	value, err := sp.db.Get(blockHash, buildKey(blockNumber, nodeId.Bytes()))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return 0, err
@@ -548,8 +505,8 @@ func (sp *SlashingPlugin) switchEpoch(blockNumber uint64, blockHash common.Hash)
 }
 
 // Get the consensus rate of all nodes in the previous round
-func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common.Hash) (map[discover.NodeID]uint32, error) {
-	result := make(map[discover.NodeID]uint32)
+func (sp *SlashingPlugin) GetPrePackAmount(blockNumber uint64, parentHash common.Hash) (map[enode.IDv0]uint32, error) {
+	result := make(map[enode.IDv0]uint32)
 	prefixKey := buildPrefixByRound(xutil.CalculateRound(blockNumber) - 1)
 	iter := sp.db.Ranking(parentHash, prefixKey, 0)
 
@@ -721,23 +678,23 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckDuplicateSign(nodeId discover.NodeID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
+func (sp *SlashingPlugin) CheckDuplicateSign(nodeId enode.IDv0, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) ([]byte, error) {
 	if value := sp.getSlashTxHash(nodeId, blockNumber, dupType, stateDB); len(value) > 0 {
 		return value, nil
 	}
 	return nil, nil
 }
 
-func (sp *SlashingPlugin) putSlashTxHash(nodeId discover.NodeID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
+func (sp *SlashingPlugin) putSlashTxHash(nodeId enode.IDv0, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) {
 	stateDB.SetState(vm.SlashingContractAddr, duplicateSignKey(nodeId, blockNumber, dupType), stateDB.TxHash().Bytes())
 }
 
-func (sp *SlashingPlugin) getSlashTxHash(nodeId discover.NodeID, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
+func (sp *SlashingPlugin) getSlashTxHash(nodeId enode.IDv0, blockNumber uint64, dupType consensus.EvidenceType, stateDB xcom.StateDB) []byte {
 	return stateDB.GetState(vm.SlashingContractAddr, duplicateSignKey(nodeId, blockNumber, dupType))
 }
 
 // duplicate signature result key format addr+blockNumber+_+type
-func duplicateSignKey(nodeId discover.NodeID, blockNumber uint64, dupType consensus.EvidenceType) []byte {
+func duplicateSignKey(nodeId enode.IDv0, blockNumber uint64, dupType consensus.EvidenceType) []byte {
 	return append(append(nodeId.Bytes(), common.Uint64ToBytes(blockNumber)...), common.Uint16ToBytes(uint16(dupType))...)
 }
 
@@ -753,24 +710,24 @@ func buildPrefixByRound(round uint64) []byte {
 	return append(packAmountPrefix, common.Uint64ToBytes(round)...)
 }
 
-func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
+func getNodeId(prefix []byte, key []byte) (enode.IDv0, error) {
 	key = key[len(prefix):]
-	nodeId, err := discover.BytesID(key)
+	nodeId, err := enode.BytesToIDv0(key)
 	if nil != err {
-		return discover.NodeID{}, err
+		return enode.ZeroIDv0, err
 	}
 	return nodeId, nil
 }
 
-func parseNodeId(header *types.Header) (discover.NodeID, error) {
+func parseNodeId(header *types.Header) (enode.IDv0, error) {
 	if xutil.IsWorker(header.Extra) {
-		return discover.PubkeyID(&SlashInstance().privateKey.PublicKey), nil
+		return enode.PublicKeyToIDv0(&SlashInstance().privateKey.PublicKey), nil
 	} else {
 		pk := header.CachePublicKey()
 		if pk == nil {
-			return discover.NodeID{}, errors.New("failed to get the public key of the block producer")
+			return enode.ZeroIDv0, errors.New("failed to get the public key of the block producer")
 		}
-		return discover.PubkeyID(pk), nil
+		return enode.PublicKeyToIDv0(pk), nil
 	}
 }
 

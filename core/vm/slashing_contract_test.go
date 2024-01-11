@@ -22,13 +22,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -41,7 +42,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	}()
 
 	addr := common.MustBech32ToAddress("lax1r9tx0n00etv5c5smmlctlpg8jas7p78n8x3n9x")
-	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	nodeId, err := enode.HexIDv0("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -61,7 +62,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
-	chain.StateDB.Prepare(txHashArr[1], common.ZeroHash, 2)
+	chain.StateDB.Prepare(txHashArr[1], 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -163,12 +164,12 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
-	chain.StateDB.Prepare(txHashArr[1], blockHash, 2)
+	chain.StateDB.Prepare(txHashArr[1], 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	nodeId, err := discover.HexID("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
+	nodeId, err := enode.HexIDv0("51c0559c065400151377d71acd7a17282a7c8abcfefdb11992dcecafde15e100b8e31e1a5e74834a04792d016f166c80b9923423fe280570e8131debf591d483")
 	if nil != err {
 		t.Fatal(err)
 	}

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package network
 
 import (
@@ -27,14 +26,13 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,9 +46,9 @@ var (
 func newTestRouter(t *testing.T) (*router, *peer) {
 	// Create a peerSet for assistance.
 	ps := NewPeerSet()
-	var consensusNodes []discover.NodeID
+	var consensusNodes []enode.ID
 	writer, reader := p2p.MsgPipe()
-	var localID discover.NodeID
+	var localID enode.ID
 	rand.Read(localID[:])
 	localPeer := newPeer(1, p2p.NewPeer(localID, "local", nil), reader)
 	for i := 0; i < testingPeerCount; i++ {
@@ -66,7 +64,7 @@ func newTestRouter(t *testing.T) (*router, *peer) {
 	getHook := func(id string) (*peer, error) {
 		return ps.get(id)
 	}
-	consensusNodesHook := func() ([]discover.NodeID, error) {
+	consensusNodesHook := func() ([]enode.ID, error) {
 		return consensusNodes, nil
 	}
 	peersHook := func() ([]*peer, error) {
@@ -295,7 +293,7 @@ func Test_Router_FormatPeers(t *testing.T) {
 	t.Log(formatPeers(peers))
 }
 
-func formatDiscoverNodeIDs(ids []discover.NodeID) string {
+func formatDiscoverNodeIDs(ids []enode.ID) string {
 	var bf bytes.Buffer
 	for idx, id := range ids {
 		bf.WriteString(id.TerminalString())

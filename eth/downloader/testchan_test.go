@@ -21,7 +21,7 @@ var (
 	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 	testDB      = rawdb.NewMemoryDatabase()
-	testGenesis = core.GenesisBlockForTesting(testDB, testAddress, big.NewInt(1000000000))
+	testGenesis = core.GenesisBlockForTesting(testDB, testAddress, big.NewInt(1000000000000000))
 	//contract Store {
 	//    uint256[] arr = [4,9,5,6,8,7,1,2,3,10];
 	//
@@ -134,9 +134,9 @@ func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool)
 		}
 		// Include transactions to the miner to make blocks more interesting.
 		if parent == tc.genesis && i%22 == 0 {
-			signer := types.NewEIP155Signer(params.TestChainConfig.ChainID)
+			signer := types.NewLondonSigner(params.TestChainConfig.PIP7ChainID)
 			// evm contract generate more storage, convenient for fast sync
-			tx, err := types.SignTx(types.NewContractCreation(block.TxNonce(testAddress), big.NewInt(1000), params.TxGas*10, nil, evmContract), signer, testKey)
+			tx, err := types.SignTx(types.NewContractCreation(block.TxNonce(testAddress), big.NewInt(1000), params.TxGas*10, block.BaseFee(), evmContract), signer, testKey)
 			if err != nil {
 				panic(err)
 			}

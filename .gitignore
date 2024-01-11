@@ -56,8 +56,6 @@ coverage.txt
 *.exe
 *.test
 
-go.sum
-
 life/resolver/builtins/build/
 
 mpc.rlp

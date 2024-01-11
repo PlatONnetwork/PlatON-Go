@@ -20,15 +20,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
+	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 )
 
@@ -52,7 +54,10 @@ type Network struct {
 	NetworkConfig
 
 	Nodes   []*Node `json:"nodes"`
-	nodeMap map[discover.NodeID]int
+	nodeMap map[enode.ID]int
+
+	// Maps a node property string to node indexes of all nodes that hold this property
+	propertyMap map[string][]int
 
 	Conns   []*Conn `json:"conns"`
 	connMap map[string]int
@@ -68,7 +73,8 @@ func NewNetwork(nodeAdapter adapters.NodeAdapter, conf *NetworkConfig) *Network 
 	return &Network{
 		NetworkConfig: *conf,
 		nodeAdapter:   nodeAdapter,
-		nodeMap:       make(map[discover.NodeID]int),
+		nodeMap:       make(map[enode.ID]int),
+		propertyMap:   make(map[string][]int),
 		connMap:       make(map[string]int),
 		quitc:         make(chan struct{}),
 	}
@@ -86,7 +92,7 @@ func (net *Network) NewNodeWithConfig(conf *adapters.NodeConfig) (*Node, error) 
 	defer net.lock.Unlock()
 
 	if conf.Reachable == nil {
-		conf.Reachable = func(otherID discover.NodeID) bool {
+		conf.Reachable = func(otherID enode.ID) bool {
 			_, err := net.InitConn(conf.ID, otherID)
 			if err != nil && bytes.Compare(conf.ID.Bytes(), otherID.Bytes()) < 0 {
 				return false
@@ -107,18 +113,23 @@ func (net *Network) NewNodeWithConfig(conf *adapters.NodeConfig) (*Node, error) 
 	if len(conf.Lifecycles) == 0 {
 		conf.Lifecycles = []string{net.DefaultService}
 	}
+
 	// use the NodeAdapter to create the node
 	adapterNode, err := net.nodeAdapter.NewNode(conf)
 	if err != nil {
 		return nil, err
 	}
-	node := &Node{
-		Node:   adapterNode,
-		Config: conf,
-	}
-	log.Trace(fmt.Sprintf("node %v created", conf.ID))
-	net.nodeMap[conf.ID] = len(net.Nodes)
+	node := newNode(adapterNode, conf, false)
+	log.Trace("Node created", "id", conf.ID)
+
+	nodeIndex := len(net.Nodes)
+	net.nodeMap[conf.ID] = nodeIndex
 	net.Nodes = append(net.Nodes, node)
+
+	// Register any node properties with the network-level propertyMap
+	for _, property := range conf.Properties {
+		net.propertyMap[property] = append(net.propertyMap[property], nodeIndex)
+	}
 
 	// emit a "control" event
 	net.events.Send(ControlEvent(node))
@@ -134,7 +145,7 @@ func (net *Network) Config() *NetworkConfig {
 // StartAll starts all nodes in the network
 func (net *Network) StartAll() error {
 	for _, node := range net.Nodes {
-		if node.Up {
+		if node.Up() {
 			continue
 		}
 		if err := net.Start(node.ID()); err != nil {
@@ -147,7 +158,7 @@ func (net *Network) StartAll() error {
 // StopAll stops all nodes in the network
 func (net *Network) StopAll() error {
 	for _, node := range net.Nodes {
-		if !node.Up {
+		if !node.Up() {
 			continue
 		}
 		if err := net.Stop(node.ID()); err != nil {
@@ -158,13 +169,13 @@ func (net *Network) StopAll() error {
 }
 
 // Start starts the node with the given ID
-func (net *Network) Start(id discover.NodeID) error {
+func (net *Network) Start(id enode.ID) error {
 	return net.startWithSnapshots(id, nil)
 }
 
 // startWithSnapshots starts the node with the given ID using the give
 // snapshots
-func (net *Network) startWithSnapshots(id discover.NodeID, snapshots map[string][]byte) error {
+func (net *Network) startWithSnapshots(id enode.ID, snapshots map[string][]byte) error {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 
@@ -172,7 +183,7 @@ func (net *Network) startWithSnapshots(id discover.NodeID, snapshots map[string]
 	if node == nil {
 		return fmt.Errorf("node %v does not exist", id)
 	}
-	if node.Up {
+	if node.Up() {
 		return fmt.Errorf("node %v already up", id)
 	}
 	log.Trace("Starting node", "id", id, "adapter", net.nodeAdapter.Name())
@@ -180,10 +191,10 @@ func (net *Network) startWithSnapshots(id discover.NodeID, snapshots map[string]
 		log.Warn("Node startup failed", "id", id, "err", err)
 		return err
 	}
-	node.Up = true
+	node.SetUp(true)
 	log.Info("Started node", "id", id)
-
-	net.events.Send(NewEvent(node))
+	ev := NewEvent(node)
+	net.events.Send(ev)
 
 	// subscribe to peer events
 	client, err := node.Client()
@@ -201,19 +212,21 @@ func (net *Network) startWithSnapshots(id discover.NodeID, snapshots map[string]
 
 // watchPeerEvents reads peer events from the given channel and emits
 // corresponding network events
-func (net *Network) watchPeerEvents(id discover.NodeID, events chan *p2p.PeerEvent, sub event.Subscription) {
+func (net *Network) watchPeerEvents(id enode.ID, events chan *p2p.PeerEvent, sub event.Subscription) {
 	defer func() {
 		sub.Unsubscribe()
 
 		// assume the node is now down
 		net.lock.Lock()
 		defer net.lock.Unlock()
+
 		node := net.getNode(id)
 		if node == nil {
 			return
 		}
-		node.Up = false
-		net.events.Send(NewEvent(node))
+		node.SetUp(false)
+		ev := NewEvent(node)
+		net.events.Send(ev)
 	}()
 	for {
 		select {
@@ -240,7 +253,7 @@ func (net *Network) watchPeerEvents(id discover.NodeID, events chan *p2p.PeerEve
 
 		case err := <-sub.Err():
 			if err != nil {
-				log.Error(fmt.Sprintf("error getting peer events for node %v", id), "err", err)
+				log.Error("Error in peer event subscription", "id", id, "err", err)
 			}
 			return
 		}
@@ -248,35 +261,58 @@ func (net *Network) watchPeerEvents(id discover.NodeID, events chan *p2p.PeerEve
 }
 
 // Stop stops the node with the given ID
-func (net *Network) Stop(id discover.NodeID) error {
-	net.lock.Lock()
-	node := net.getNode(id)
-	if node == nil {
-		return fmt.Errorf("node %v does not exist", id)
-	}
-	if !node.Up {
-		return fmt.Errorf("node %v already down", id)
-	}
-	node.Up = false
-	net.lock.Unlock()
+func (net *Network) Stop(id enode.ID) error {
+	// IMPORTANT: node.Stop() must NOT be called under net.lock as
+	// node.Reachable() closure has a reference to the network and
+	// calls net.InitConn() what also locks the network. => DEADLOCK
+	// That holds until the following ticket is not resolved:
 
-	err := node.Stop()
-	if err != nil {
+	var err error
+
+	node, err := func() (*Node, error) {
 		net.lock.Lock()
-		node.Up = true
-		net.lock.Unlock()
+		defer net.lock.Unlock()
+
+		node := net.getNode(id)
+		if node == nil {
+			return nil, fmt.Errorf("node %v does not exist", id)
+		}
+		if !node.Up() {
+			return nil, fmt.Errorf("node %v already down", id)
+		}
+		node.SetUp(false)
+		return node, nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	err = node.Stop() // must be called without net.lock
+
+	net.lock.Lock()
+	defer net.lock.Unlock()
+
+	if err != nil {
+		node.SetUp(true)
 		return err
 	}
 	log.Info("Stopped node", "id", id, "err", err)
-	net.events.Send(ControlEvent(node))
+	ev := ControlEvent(node)
+	net.events.Send(ev)
 	return nil
 }
 
 // Connect connects two nodes together by calling the "admin_addPeer" RPC
 // method on the "one" node so that it connects to the "other" node
-func (net *Network) Connect(oneID, otherID discover.NodeID) error {
+func (net *Network) Connect(oneID, otherID enode.ID) error {
+	net.lock.Lock()
+	defer net.lock.Unlock()
+	return net.connect(oneID, otherID)
+}
+
+func (net *Network) connect(oneID, otherID enode.ID) error {
 	log.Debug("Connecting nodes with addPeer", "id", oneID, "other", otherID)
-	conn, err := net.InitConn(oneID, otherID)
+	conn, err := net.initConn(oneID, otherID)
 	if err != nil {
 		return err
 	}
@@ -290,7 +326,7 @@ func (net *Network) Connect(oneID, otherID discover.NodeID) error {
 
 // Disconnect disconnects two nodes by calling the "admin_removePeer" RPC
 // method on the "one" node so that it disconnects from the "other" node
-func (net *Network) Disconnect(oneID, otherID discover.NodeID) error {
+func (net *Network) Disconnect(oneID, otherID enode.ID) error {
 	conn := net.GetConn(oneID, otherID)
 	if conn == nil {
 		return fmt.Errorf("connection between %v and %v does not exist", oneID, otherID)
@@ -307,7 +343,7 @@ func (net *Network) Disconnect(oneID, otherID discover.NodeID) error {
 }
 
 // DidConnect tracks the fact that the "one" node connected to the "other" node
-func (net *Network) DidConnect(one, other discover.NodeID) error {
+func (net *Network) DidConnect(one, other enode.ID) error {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 	conn, err := net.getOrCreateConn(one, other)
@@ -324,7 +360,7 @@ func (net *Network) DidConnect(one, other discover.NodeID) error {
 
 // DidDisconnect tracks the fact that the "one" node disconnected from the
 // "other" node
-func (net *Network) DidDisconnect(one, other discover.NodeID) error {
+func (net *Network) DidDisconnect(one, other enode.ID) error {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 	conn := net.getConn(one, other)
@@ -341,7 +377,7 @@ func (net *Network) DidDisconnect(one, other discover.NodeID) error {
 }
 
 // DidSend tracks the fact that "sender" sent a message to "receiver"
-func (net *Network) DidSend(sender, receiver discover.NodeID, proto string, code uint64) error {
+func (net *Network) DidSend(sender, receiver enode.ID, proto string, code uint64) error {
 	msg := &Msg{
 		One:      sender,
 		Other:    receiver,
@@ -354,7 +390,7 @@ func (net *Network) DidSend(sender, receiver discover.NodeID, proto string, code
 }
 
 // DidReceive tracks the fact that "receiver" received a message from "sender"
-func (net *Network) DidReceive(sender, receiver discover.NodeID, proto string, code uint64) error {
+func (net *Network) DidReceive(sender, receiver enode.ID, proto string, code uint64) error {
 	msg := &Msg{
 		One:      sender,
 		Other:    receiver,
@@ -368,35 +404,26 @@ func (net *Network) DidReceive(sender, receiver discover.NodeID, proto string, c
 
 // GetNode gets the node with the given ID, returning nil if the node does not
 // exist
-func (net *Network) GetNode(id discover.NodeID) *Node {
-	net.lock.Lock()
-	defer net.lock.Unlock()
+func (net *Network) GetNode(id enode.ID) *Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
 	return net.getNode(id)
 }
 
-// GetNode gets the node with the given name, returning nil if the node does
-// not exist
-func (net *Network) GetNodeByName(name string) *Node {
-	net.lock.Lock()
-	defer net.lock.Unlock()
-	return net.getNodeByName(name)
-}
-
-// GetNodes returns the existing nodes
-func (net *Network) GetNodes() (nodes []*Node) {
-	net.lock.Lock()
-	defer net.lock.Unlock()
-
-	nodes = append(nodes, net.Nodes...)
-	return nodes
-}
-
-func (net *Network) getNode(id discover.NodeID) *Node {
+func (net *Network) getNode(id enode.ID) *Node {
 	i, found := net.nodeMap[id]
 	if !found {
 		return nil
 	}
 	return net.Nodes[i]
+}
+
+// GetNodeByName gets the node with the given name, returning nil if the node does
+// not exist
+func (net *Network) GetNodeByName(name string) *Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+	return net.getNodeByName(name)
 }
 
 func (net *Network) getNodeByName(name string) *Node {
@@ -408,23 +435,187 @@ func (net *Network) getNodeByName(name string) *Node {
 	return nil
 }
 
+// GetNodeIDs returns the IDs of all existing nodes
+// Nodes can optionally be excluded by specifying their enode.ID.
+func (net *Network) GetNodeIDs(excludeIDs ...enode.ID) []enode.ID {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+
+	return net.getNodeIDs(excludeIDs)
+}
+
+func (net *Network) getNodeIDs(excludeIDs []enode.ID) []enode.ID {
+	// Get all current nodeIDs
+	nodeIDs := make([]enode.ID, 0, len(net.nodeMap))
+	for id := range net.nodeMap {
+		nodeIDs = append(nodeIDs, id)
+	}
+
+	if len(excludeIDs) > 0 {
+		// Return the difference of nodeIDs and excludeIDs
+		return filterIDs(nodeIDs, excludeIDs)
+	}
+	return nodeIDs
+}
+
+// GetNodes returns the existing nodes.
+// Nodes can optionally be excluded by specifying their enode.ID.
+func (net *Network) GetNodes(excludeIDs ...enode.ID) []*Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+
+	return net.getNodes(excludeIDs)
+}
+
+func (net *Network) getNodes(excludeIDs []enode.ID) []*Node {
+	if len(excludeIDs) > 0 {
+		nodeIDs := net.getNodeIDs(excludeIDs)
+		return net.getNodesByID(nodeIDs)
+	}
+	return net.Nodes
+}
+
+// GetNodesByID returns existing nodes with the given enode.IDs.
+// If a node doesn't exist with a given enode.ID, it is ignored.
+func (net *Network) GetNodesByID(nodeIDs []enode.ID) []*Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+
+	return net.getNodesByID(nodeIDs)
+}
+
+func (net *Network) getNodesByID(nodeIDs []enode.ID) []*Node {
+	nodes := make([]*Node, 0, len(nodeIDs))
+	for _, id := range nodeIDs {
+		node := net.getNode(id)
+		if node != nil {
+			nodes = append(nodes, node)
+		}
+	}
+
+	return nodes
+}
+
+// GetNodesByProperty returns existing nodes that have the given property string registered in their NodeConfig
+func (net *Network) GetNodesByProperty(property string) []*Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+
+	return net.getNodesByProperty(property)
+}
+
+func (net *Network) getNodesByProperty(property string) []*Node {
+	nodes := make([]*Node, 0, len(net.propertyMap[property]))
+	for _, nodeIndex := range net.propertyMap[property] {
+		nodes = append(nodes, net.Nodes[nodeIndex])
+	}
+
+	return nodes
+}
+
+// GetNodeIDsByProperty returns existing node's enode IDs that have the given property string registered in the NodeConfig
+func (net *Network) GetNodeIDsByProperty(property string) []enode.ID {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+
+	return net.getNodeIDsByProperty(property)
+}
+
+func (net *Network) getNodeIDsByProperty(property string) []enode.ID {
+	nodeIDs := make([]enode.ID, 0, len(net.propertyMap[property]))
+	for _, nodeIndex := range net.propertyMap[property] {
+		node := net.Nodes[nodeIndex]
+		nodeIDs = append(nodeIDs, node.ID())
+	}
+
+	return nodeIDs
+}
+
+// GetRandomUpNode returns a random node on the network, which is running.
+func (net *Network) GetRandomUpNode(excludeIDs ...enode.ID) *Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+	return net.getRandomUpNode(excludeIDs...)
+}
+
+// GetRandomUpNode returns a random node on the network, which is running.
+func (net *Network) getRandomUpNode(excludeIDs ...enode.ID) *Node {
+	return net.getRandomNode(net.getUpNodeIDs(), excludeIDs)
+}
+
+func (net *Network) getUpNodeIDs() (ids []enode.ID) {
+	for _, node := range net.Nodes {
+		if node.Up() {
+			ids = append(ids, node.ID())
+		}
+	}
+	return ids
+}
+
+// GetRandomDownNode returns a random node on the network, which is stopped.
+func (net *Network) GetRandomDownNode(excludeIDs ...enode.ID) *Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+	return net.getRandomNode(net.getDownNodeIDs(), excludeIDs)
+}
+
+func (net *Network) getDownNodeIDs() (ids []enode.ID) {
+	for _, node := range net.Nodes {
+		if !node.Up() {
+			ids = append(ids, node.ID())
+		}
+	}
+	return ids
+}
+
+// GetRandomNode returns a random node on the network, regardless of whether it is running or not
+func (net *Network) GetRandomNode(excludeIDs ...enode.ID) *Node {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
+	return net.getRandomNode(net.getNodeIDs(nil), excludeIDs) // no need to exclude twice
+}
+
+func (net *Network) getRandomNode(ids []enode.ID, excludeIDs []enode.ID) *Node {
+	filtered := filterIDs(ids, excludeIDs)
+
+	l := len(filtered)
+	if l == 0 {
+		return nil
+	}
+	return net.getNode(filtered[rand.Intn(l)])
+}
+
+func filterIDs(ids []enode.ID, excludeIDs []enode.ID) []enode.ID {
+	exclude := make(map[enode.ID]bool)
+	for _, id := range excludeIDs {
+		exclude[id] = true
+	}
+	var filtered []enode.ID
+	for _, id := range ids {
+		if _, found := exclude[id]; !found {
+			filtered = append(filtered, id)
+		}
+	}
+	return filtered
+}
+
 // GetConn returns the connection which exists between "one" and "other"
 // regardless of which node initiated the connection
-func (net *Network) GetConn(oneID, otherID discover.NodeID) *Conn {
-	net.lock.Lock()
-	defer net.lock.Unlock()
+func (net *Network) GetConn(oneID, otherID enode.ID) *Conn {
+	net.lock.RLock()
+	defer net.lock.RUnlock()
 	return net.getConn(oneID, otherID)
 }
 
 // GetOrCreateConn is like GetConn but creates the connection if it doesn't
 // already exist
-func (net *Network) GetOrCreateConn(oneID, otherID discover.NodeID) (*Conn, error) {
+func (net *Network) GetOrCreateConn(oneID, otherID enode.ID) (*Conn, error) {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 	return net.getOrCreateConn(oneID, otherID)
 }
 
-func (net *Network) getOrCreateConn(oneID, otherID discover.NodeID) (*Conn, error) {
+func (net *Network) getOrCreateConn(oneID, otherID enode.ID) (*Conn, error) {
 	if conn := net.getConn(oneID, otherID); conn != nil {
 		return conn, nil
 	}
@@ -449,7 +640,7 @@ func (net *Network) getOrCreateConn(oneID, otherID discover.NodeID) (*Conn, erro
 	return conn, nil
 }
 
-func (net *Network) getConn(oneID, otherID discover.NodeID) *Conn {
+func (net *Network) getConn(oneID, otherID enode.ID) *Conn {
 	label := ConnLabel(oneID, otherID)
 	i, found := net.connMap[label]
 	if !found {
@@ -458,7 +649,7 @@ func (net *Network) getConn(oneID, otherID discover.NodeID) *Conn {
 	return net.Conns[i]
 }
 
-// InitConn(one, other) retrieves the connectiton model for the connection between
+// InitConn(one, other) retrieves the connection model for the connection between
 // peers one and other, or creates a new one if it does not exist
 // the order of nodes does not matter, i.e., Conn(i,j) == Conn(j, i)
 // it checks if the connection is already up, and if the nodes are running
@@ -466,9 +657,13 @@ func (net *Network) getConn(oneID, otherID discover.NodeID) *Conn {
 // it also checks whether there has been recent attempt to connect the peers
 // this is cheating as the simulation is used as an oracle and know about
 // remote peers attempt to connect to a node which will then not initiate the connection
-func (net *Network) InitConn(oneID, otherID discover.NodeID) (*Conn, error) {
+func (net *Network) InitConn(oneID, otherID enode.ID) (*Conn, error) {
 	net.lock.Lock()
 	defer net.lock.Unlock()
+	return net.initConn(oneID, otherID)
+}
+
+func (net *Network) initConn(oneID, otherID enode.ID) (*Conn, error) {
 	if oneID == otherID {
 		return nil, fmt.Errorf("refusing to connect to self %v", oneID)
 	}
@@ -485,7 +680,7 @@ func (net *Network) InitConn(oneID, otherID discover.NodeID) (*Conn, error) {
 
 	err = conn.nodesUp()
 	if err != nil {
-		log.Trace(fmt.Sprintf("nodes not up: %v", err))
+		log.Trace("Nodes not up", "err", err)
 		return nil, fmt.Errorf("nodes not up: %v", err)
 	}
 	log.Debug("Connection initiated", "id", oneID, "other", otherID)
@@ -500,25 +695,20 @@ func (net *Network) Shutdown() {
 		if err := node.Stop(); err != nil {
 			log.Warn("Can't stop node", "id", node.ID(), "err", err)
 		}
-		// If the node has the close method, call it.
-		if closer, ok := node.Node.(io.Closer); ok {
-			if err := closer.Close(); err != nil {
-				log.Warn("Can't close node", "id", node.ID(), "err", err)
-			}
-		}
 	}
 	close(net.quitc)
 }
 
-//Reset resets all network properties:
-//emtpies the nodes and the connection list
+// Reset resets all network properties:
+// empties the nodes and the connection list
 func (net *Network) Reset() {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 
 	//re-initialize the maps
 	net.connMap = make(map[string]int)
-	net.nodeMap = make(map[discover.NodeID]int)
+	net.nodeMap = make(map[enode.ID]int)
+	net.propertyMap = make(map[string][]int)
 
 	net.Nodes = nil
 	net.Conns = nil
@@ -532,12 +722,36 @@ type Node struct {
 	// Config if the config used to created the node
 	Config *adapters.NodeConfig `json:"config"`
 
-	// Up tracks whether or not the node is running
-	Up bool `json:"up"`
+	// up tracks whether or not the node is running
+	up   bool
+	upMu *sync.RWMutex
+}
+
+func newNode(an adapters.Node, ac *adapters.NodeConfig, up bool) *Node {
+	return &Node{Node: an, Config: ac, up: up, upMu: new(sync.RWMutex)}
+}
+
+func (n *Node) copy() *Node {
+	configCpy := *n.Config
+	return newNode(n.Node, &configCpy, n.Up())
+}
+
+// Up returns whether the node is currently up (online)
+func (n *Node) Up() bool {
+	n.upMu.RLock()
+	defer n.upMu.RUnlock()
+	return n.up
+}
+
+// SetUp sets the up (online) status of the nodes with the given value
+func (n *Node) SetUp(up bool) {
+	n.upMu.Lock()
+	defer n.upMu.Unlock()
+	n.up = up
 }
 
 // ID returns the ID of the node
-func (n *Node) ID() discover.NodeID {
+func (n *Node) ID() enode.ID {
 	return n.Config.ID
 }
 
@@ -554,7 +768,6 @@ func (n *Node) NodeInfo() *p2p.NodeInfo {
 	}
 	info := n.Node.NodeInfo()
 	info.Name = n.Config.Name
-	info.ID = n.Config.ID.String()
 	return info
 }
 
@@ -568,17 +781,33 @@ func (n *Node) MarshalJSON() ([]byte, error) {
 	}{
 		Info:   n.NodeInfo(),
 		Config: n.Config,
-		Up:     n.Up,
+		Up:     n.Up(),
 	})
+}
+
+// UnmarshalJSON implements json.Unmarshaler interface so that we don't lose Node.up
+// status. IMPORTANT: The implementation is incomplete; we lose p2p.NodeInfo.
+func (n *Node) UnmarshalJSON(raw []byte) error {
+	// TODO: How should we turn back NodeInfo into n.Node?
+	// Ticket: https://github.com/ethersphere/go-ethereum/issues/1177
+	var node struct {
+		Config *adapters.NodeConfig `json:"config,omitempty"`
+		Up     bool                 `json:"up"`
+	}
+	if err := json.Unmarshal(raw, &node); err != nil {
+		return err
+	}
+	*n = *newNode(nil, node.Config, node.Up)
+	return nil
 }
 
 // Conn represents a connection between two nodes in the network
 type Conn struct {
 	// One is the node which initiated the connection
-	One discover.NodeID `json:"one"`
+	One enode.ID `json:"one"`
 
 	// Other is the node which the connection was made to
-	Other discover.NodeID `json:"other"`
+	Other enode.ID `json:"other"`
 
 	// Up tracks whether or not the connection is active
 	Up bool `json:"up"`
@@ -591,10 +820,10 @@ type Conn struct {
 
 // nodesUp returns whether both nodes are currently up
 func (c *Conn) nodesUp() error {
-	if !c.one.Up {
+	if !c.one.Up() {
 		return fmt.Errorf("one %v is not up", c.One)
 	}
-	if !c.other.Up {
+	if !c.other.Up() {
 		return fmt.Errorf("other %v is not up", c.Other)
 	}
 	return nil
@@ -607,11 +836,11 @@ func (c *Conn) String() string {
 
 // Msg represents a p2p message sent between two nodes in the network
 type Msg struct {
-	One      discover.NodeID `json:"one"`
-	Other    discover.NodeID `json:"other"`
-	Protocol string          `json:"protocol"`
-	Code     uint64          `json:"code"`
-	Received bool            `json:"received"`
+	One      enode.ID `json:"one"`
+	Other    enode.ID `json:"other"`
+	Protocol string   `json:"protocol"`
+	Code     uint64   `json:"code"`
+	Received bool     `json:"received"`
 }
 
 // String returns a log-friendly string
@@ -622,8 +851,8 @@ func (m *Msg) String() string {
 // ConnLabel generates a deterministic string which represents a connection
 // between two nodes, used to compare if two connections are between the same
 // nodes
-func ConnLabel(source, target discover.NodeID) string {
-	var first, second discover.NodeID
+func ConnLabel(source, target enode.ID) string {
+	var first, second enode.ID
 	if bytes.Compare(source.Bytes(), target.Bytes()) > 0 {
 		first = target
 		second = source
@@ -651,15 +880,22 @@ type NodeSnapshot struct {
 
 // Snapshot creates a network snapshot
 func (net *Network) Snapshot() (*Snapshot, error) {
+	return net.snapshot(nil, nil)
+}
+
+func (net *Network) SnapshotWithServices(addServices []string, removeServices []string) (*Snapshot, error) {
+	return net.snapshot(addServices, removeServices)
+}
+
+func (net *Network) snapshot(addServices []string, removeServices []string) (*Snapshot, error) {
 	net.lock.Lock()
 	defer net.lock.Unlock()
 	snap := &Snapshot{
 		Nodes: make([]NodeSnapshot, len(net.Nodes)),
-		Conns: make([]Conn, len(net.Conns)),
 	}
 	for i, node := range net.Nodes {
-		snap.Nodes[i] = NodeSnapshot{Node: *node}
-		if !node.Up {
+		snap.Nodes[i] = NodeSnapshot{Node: *node.copy()}
+		if !node.Up() {
 			continue
 		}
 		snapshots, err := node.Snapshots()
@@ -667,29 +903,127 @@ func (net *Network) Snapshot() (*Snapshot, error) {
 			return nil, err
 		}
 		snap.Nodes[i].Snapshots = snapshots
+		for _, addSvc := range addServices {
+			haveSvc := false
+			for _, svc := range snap.Nodes[i].Node.Config.Lifecycles {
+				if svc == addSvc {
+					haveSvc = true
+					break
+				}
+			}
+			if !haveSvc {
+				snap.Nodes[i].Node.Config.Lifecycles = append(snap.Nodes[i].Node.Config.Lifecycles, addSvc)
+			}
+		}
+		if len(removeServices) > 0 {
+			var cleanedServices []string
+			for _, svc := range snap.Nodes[i].Node.Config.Lifecycles {
+				haveSvc := false
+				for _, rmSvc := range removeServices {
+					if rmSvc == svc {
+						haveSvc = true
+						break
+					}
+				}
+				if !haveSvc {
+					cleanedServices = append(cleanedServices, svc)
+				}
+
+			}
+			snap.Nodes[i].Node.Config.Lifecycles = cleanedServices
+		}
 	}
-	for i, conn := range net.Conns {
-		snap.Conns[i] = *conn
+	for _, conn := range net.Conns {
+		if conn.Up {
+			snap.Conns = append(snap.Conns, *conn)
+		}
 	}
 	return snap, nil
 }
 
+// longrunning tests may need a longer timeout
+var snapshotLoadTimeout = 900 * time.Second
+
 // Load loads a network snapshot
 func (net *Network) Load(snap *Snapshot) error {
+	// Start nodes.
 	for _, n := range snap.Nodes {
 		if _, err := net.NewNodeWithConfig(n.Node.Config); err != nil {
 			return err
 		}
-		if !n.Node.Up {
+		if !n.Node.Up() {
 			continue
 		}
 		if err := net.startWithSnapshots(n.Node.Config.ID, n.Snapshots); err != nil {
 			return err
 		}
 	}
+
+	// Prepare connection events counter.
+	allConnected := make(chan struct{}) // closed when all connections are established
+	done := make(chan struct{})         // ensures that the event loop goroutine is terminated
+	defer close(done)
+
+	// Subscribe to event channel.
+	// It needs to be done outside of the event loop goroutine (created below)
+	// to ensure that the event channel is blocking before connect calls are made.
+	events := make(chan *Event)
+	sub := net.Events().Subscribe(events)
+	defer sub.Unsubscribe()
+
+	go func() {
+		// Expected number of connections.
+		total := len(snap.Conns)
+		// Set of all established connections from the snapshot, not other connections.
+		// Key array element 0 is the connection One field value, and element 1 connection Other field.
+		connections := make(map[[2]enode.ID]struct{}, total)
+
+		for {
+			select {
+			case e := <-events:
+				// Ignore control events as they do not represent
+				// connect or disconnect (Up) state change.
+				if e.Control {
+					continue
+				}
+				// Detect only connection events.
+				if e.Type != EventTypeConn {
+					continue
+				}
+				connection := [2]enode.ID{e.Conn.One, e.Conn.Other}
+				// Nodes are still not connected or have been disconnected.
+				if !e.Conn.Up {
+					// Delete the connection from the set of established connections.
+					// This will prevent false positive in case disconnections happen.
+					delete(connections, connection)
+					log.Warn("load snapshot: unexpected disconnection", "one", e.Conn.One, "other", e.Conn.Other)
+					continue
+				}
+				// Check that the connection is from the snapshot.
+				for _, conn := range snap.Conns {
+					if conn.One == e.Conn.One && conn.Other == e.Conn.Other {
+						// Add the connection to the set of established connections.
+						connections[connection] = struct{}{}
+						if len(connections) == total {
+							// Signal that all nodes are connected.
+							close(allConnected)
+							return
+						}
+
+						break
+					}
+				}
+			case <-done:
+				// Load function returned, terminate this goroutine.
+				return
+			}
+		}
+	}()
+
+	// Start connecting.
 	for _, conn := range snap.Conns {
 
-		if !net.GetNode(conn.One).Up || !net.GetNode(conn.Other).Up {
+		if !net.GetNode(conn.One).Up() || !net.GetNode(conn.Other).Up() {
 			//in this case, at least one of the nodes of a connection is not up,
 			//so it would result in the snapshot `Load` to fail
 			continue
@@ -697,6 +1031,14 @@ func (net *Network) Load(snap *Snapshot) error {
 		if err := net.Connect(conn.One, conn.Other); err != nil {
 			return err
 		}
+	}
+
+	select {
+	// Wait until all connections from the snapshot are established.
+	case <-allConnected:
+	// Make sure that we do not wait forever.
+	case <-time.After(snapshotLoadTimeout):
+		return errors.New("snapshot connections not established")
 	}
 	return nil
 }
@@ -735,7 +1077,7 @@ func (net *Network) executeControlEvent(event *Event) {
 }
 
 func (net *Network) executeNodeEvent(e *Event) error {
-	if !e.Node.Up {
+	if !e.Node.Up() {
 		return net.Stop(e.Node.ID())
 	}
 
