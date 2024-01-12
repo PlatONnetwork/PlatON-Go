@@ -19,8 +19,9 @@ package snap
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -121,7 +122,7 @@ func MakeProtocols(backend Backend, dnsdisc enode.Iterator) []p2p.Protocol {
 func handle(backend Backend, peer *Peer) error {
 	for {
 		if err := HandleMessage(backend, peer); err != nil {
-			peer.Log().Debug("Message handling failed in `snap`", "err", err)
+			peer.Log().Error("Message handling failed in `snap`", "err", err)
 			return err
 		}
 	}
