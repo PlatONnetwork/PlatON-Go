@@ -23,11 +23,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-const (
-	// Number of contractAddress->bool associations to keep.
-	contractCacheSize = 100000
-)
-
 var (
 	executorOnce sync.Once
 	executor     Executor
