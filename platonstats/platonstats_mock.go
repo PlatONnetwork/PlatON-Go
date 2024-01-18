@@ -3,6 +3,7 @@ package platonstats
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"math/big"
 	"strconv"
 	"sync"
@@ -73,6 +74,14 @@ func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethd
 	return blockChain
 }
 
+func (s *MockPlatonStatsService) jsonBlock(block *types.Block) (map[string]interface{}, error) {
+	fields, err := ethapi.RPCMarshalBlock(block, true, true, s.BlockChain().Config())
+	if err != nil {
+		return nil, err
+	}
+	return fields, nil
+}
+
 func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	var genesisData *common.GenesisData
 	var receipts []*types.Receipt
@@ -97,7 +106,7 @@ func (s *MockPlatonStatsService) reportBlockMsg(block *types.Block) error {
 	}
 	brief := collectBrief(block)
 
-	blockJsonMapping, err := jsonBlock(block)
+	blockJsonMapping, err := s.jsonBlock(block)
 	if err != nil {
 		log.Error("marshal block to json string error")
 		return err
