@@ -57,8 +57,8 @@ func (nonce Nonce) MarshalJSON() ([]byte, error) {
 	return json.Marshal(fmt.Sprintf("0x%x", nonce))
 }
 
-func jsonBlock(block *types.Block) (map[string]interface{}, error) {
-	fields, err := ethapi.RPCMarshalBlock(block, true, true, nil)
+func (s *PlatonStatsService) jsonBlock(block *types.Block) (map[string]interface{}, error) {
+	fields, err := ethapi.RPCMarshalBlock(block, true, true, s.BlockChain().ChainConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (s *PlatonStatsService) reportBlockMsg(block *types.Block) error {
 	brief := collectBrief(block)
 	contractList := s.filterDistinctContract(block.NumberU64(), block.Transactions())
 
-	blockJsonMapping, err := jsonBlock(block)
+	blockJsonMapping, err := s.jsonBlock(block)
 	if err != nil {
 		log.Error("marshal block to json string error")
 		return err
