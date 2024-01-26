@@ -22,9 +22,13 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
 	mapset "github.com/deckarep/golang-set"
 
@@ -33,12 +37,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/pkg/errors"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"reflect"
-	"sync"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -57,6 +55,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -661,8 +660,13 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		}
 	}
 	if parent == nil {
-		cbft.log.Warn("VerifyHeader, unknown ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
-		return consensus.ErrUnknownAncestor
+		// Find it again from the blockChain
+		p := chain.GetHeader(header.ParentHash, number-1)
+		if p == nil {
+			cbft.log.Warn("VerifyHeader, unknown ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
+			return consensus.ErrUnknownAncestor
+		}
+		parent = p
 	}
 	// Sanity checks passed, do a proper verification
 	return cbft.verifyHeader(chain, header, parent, false)
@@ -747,6 +751,10 @@ func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*typ
 			if parentBlock != nil {
 				parent = parentBlock.Header()
 			}
+		}
+		if parent == nil {
+			// Find it again from the blockChain
+			parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
 		}
 	} else if headers[index-1].Hash() == headers[index].ParentHash {
 		parent = headers[index-1]
