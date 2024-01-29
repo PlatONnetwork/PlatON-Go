@@ -717,6 +717,10 @@ func (f *BlockFetcher) insert(peer string, block *types.Block) {
 		case consensus.ErrFutureBlock:
 			// Weird future block, don't fail, but neither propagate
 
+		case consensus.ErrUnknownAncestor:
+			// If the parent's unknown, abort insertion
+			log.Warn("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+
 		default:
 			// Something went very wrong, drop the peer
 			log.Debug("Propagated block verification failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
