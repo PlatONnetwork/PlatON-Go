@@ -1719,7 +1719,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 	block := types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.ExtraData)
 	//TODO: 临时改为Error级，方便升级时判断fast同步信息
-	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
+	log.Error("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
 
 	// Commit the pivot block as the new head, will require full sync from here on
 	if _, err := d.blockchain.InsertReceiptChain([]*types.Block{block}, []types.Receipts{result.Receipts}, d.ancientLimit); err != nil {

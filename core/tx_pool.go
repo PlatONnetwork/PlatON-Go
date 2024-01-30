@@ -776,7 +776,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	log.Warn("validateTx result", "from", from)
 	if err != nil {
-		log.Debug("validateTx  fail", "tx", tx.Hash(), "err", err)
+		log.Debug("validateTx fail", "tx", tx.Hash(), "err", err)
 		return ErrInvalidSender
 	}
 	// Drop non-local transactions under our own minimal accepted gas price or tip
@@ -822,9 +822,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	// If the transaction is already known, discard it
 	hash := tx.Hash()
 	if pool.all.Get(hash) != nil {
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Discarding already known transaction", "hash", hash)
-		}
+		log.Trace("Discarding already known transaction", "hash", hash)
 		knownTxMeter.Mark(1)
 		return false, ErrAlreadyKnown
 	}
@@ -834,9 +832,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 
 	// If the transaction fails basic validation, discard it
 	if err := pool.validateTx(tx, isLocal); err != nil {
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
-		}
+		log.Trace("Discarding invalid transaction", "hash", hash, "err", err)
 		invalidTxMeter.Mark(1)
 		return false, err
 	}
@@ -844,9 +840,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 	if uint64(pool.all.Slots()+numSlots(tx)) > pool.config.GlobalSlots+pool.config.GlobalQueue {
 		// If the new transaction is underpriced, don't accept it
 		if !isLocal && pool.priced.Underpriced(tx) {
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding underpriced transaction", "hash", hash, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
-			}
+			log.Trace("Discarding underpriced transaction", "hash", hash, "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			underpricedTxMeter.Mark(1)
 			return false, ErrUnderpriced
 		}
@@ -874,9 +868,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		pool.changesSinceReorg += len(drop)
 		// Kick out the underpriced remote transactions.
 		for _, tx := range drop {
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
-			}
+			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "gasTipCap", tx.GasTipCap(), "gasFeeCap", tx.GasFeeCap())
 			underpricedTxMeter.Mark(1)
 			pool.removeTx(tx.Hash(), false)
 
@@ -903,9 +895,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		pool.priced.Put(tx, isLocal)
 		pool.journalTx(from, tx)
 		pool.queueTxEvent(tx)
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
-		}
+		log.Trace("Pooled new executable transaction", "hash", hash, "from", from, "to", tx.To())
 		// Successful promotion, bump the heartbeat
 		pool.beats[from] = time.Now()
 		return old != nil, nil
@@ -925,10 +915,7 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (replaced bool, err e
 		localGauge.Inc(1)
 	}
 	pool.journalTx(from, tx)
-
-	if log.GetWasmLogLevel() == log.LvlTrace {
-		log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
-	}
+	log.Trace("Pooled new future transaction", "hash", hash, "from", from, "to", tx.To())
 	return replaced, nil
 }
 
@@ -1084,9 +1071,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 
 		if _, ok := pool.knowns.Load(hash); ok {
 			atomic.AddInt32(&pool.filterKnowns, 1)
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Discarding already known transaction", "hash", hash)
-			}
+			log.Trace("Discarding already known transaction", "hash", hash)
 			errs[i] = ErrAlreadyKnown
 			knownTxMeter.Mark(1)
 			continue
@@ -1551,22 +1536,16 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 		for _, tx := range forwards {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Removed old queued transaction", "hash", hash)
-			}
+			log.Trace("Removed old queued transaction", "hash", hash)
 		}
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Removed old queued transactions", "count", len(forwards))
-		}
+		log.Trace("Removed old queued transactions", "count", len(forwards))
 		// Drop all transactions that are too costly (low balance or out of gas)
 		drops, _ := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
 		}
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Removed unpayable queued transactions", "count", len(drops))
-		}
+		log.Trace("Removed unpayable queued transactions", "count", len(drops))
 		queuedNofundsMeter.Mark(int64(len(drops)))
 
 		// Gather all executable transactions and promote them
@@ -1586,9 +1565,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			pool.pendingNonces.set(addr, readies[len(readies)-1].Nonce()+1)
 		}
 
-		if log.GetWasmLogLevel() == log.LvlTrace {
-			log.Trace("Promoted queued transactions", "count", len(promoted))
-		}
+		log.Trace("Promoted queued transactions", "count", len(promoted))
 		queuedGauge.Dec(int64(len(readies)))
 
 		// Drop all transactions over the allowed limit
@@ -1598,9 +1575,7 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) []*types.Trans
 			for _, tx := range caps {
 				hash := tx.Hash()
 				pool.all.Remove(hash)
-				if log.GetWasmLogLevel() == log.LvlTrace {
-					log.Trace("Removed cap-exceeding queued transaction", "hash", hash)
-				}
+				log.Trace("Removed cap-exceeding queued transaction", "hash", hash)
 			}
 			queuedRateLimitMeter.Mark(int64(len(caps)))
 		}
@@ -1667,9 +1642,7 @@ func (pool *TxPool) truncatePending() {
 
 						// Update the account nonce to the dropped transaction
 						pool.pendingNonces.setIfLower(offenders[i], tx.Nonce())
-						if log.GetWasmLogLevel() == log.LvlTrace {
-							log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
-						}
+						log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
 					}
 					pool.priced.Removed(len(caps))
 					pendingGauge.Dec(int64(len(caps)))
@@ -1697,9 +1670,7 @@ func (pool *TxPool) truncatePending() {
 
 					// Update the account nonce to the dropped transaction
 					pool.pendingNonces.setIfLower(addr, tx.Nonce())
-					if log.GetWasmLogLevel() == log.LvlTrace {
-						log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
-					}
+					log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
 				}
 				pool.priced.Removed(len(caps))
 				pendingGauge.Dec(int64(len(caps)))
@@ -1777,17 +1748,13 @@ func (pool *TxPool) demoteUnexecutables() {
 		for _, tx := range olds {
 			hash := tx.Hash()
 			pool.all.Remove(hash)
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Removed old pending transaction", "hash", hash)
-			}
+			log.Trace("Removed old pending transaction", "hash", hash)
 		}
 		// Drop all transactions that are too costly (low balance or out of gas), and queue any invalids back for later
 		drops, invalids := list.Filter(pool.currentState.GetBalance(addr), pool.currentMaxGas)
 		for _, tx := range drops {
 			hash := tx.Hash()
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Removed unpayable pending transaction", "hash", hash)
-			}
+			log.Trace("Removed unpayable pending transaction", "hash", hash)
 			pool.all.Remove(hash)
 		}
 		pool.priced.Removed(len(olds) + len(drops))
@@ -1795,9 +1762,7 @@ func (pool *TxPool) demoteUnexecutables() {
 
 		for _, tx := range invalids {
 			hash := tx.Hash()
-			if log.GetWasmLogLevel() == log.LvlTrace {
-				log.Trace("Demoting pending transaction", "hash", hash)
-			}
+			log.Trace("Demoting pending transaction", "hash", hash)
 			// Internal shuffle shouldn't touch the lookup set.
 			pool.enqueueTx(hash, tx, false, false)
 		}

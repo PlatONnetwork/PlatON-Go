@@ -360,7 +360,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	if vmerr != nil {
-		log.Error("VM returned with error", "blockNumber", st.evm.Context.BlockNumber, "txHash", st.evm.StateDB.TxHash().TerminalString(), "err", vmerr)
+		log.Info("VM returned with error", "blockNumber", st.evm.Context.BlockNumber, "txHash", st.evm.StateDB.TxHash().TerminalString(), "err", vmerr)
 		// A possible consensus-error would be if there wasn't
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
