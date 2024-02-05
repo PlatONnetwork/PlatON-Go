@@ -717,19 +717,25 @@ func (f *BlockFetcher) insert(peer string, block *types.Block) {
 		case consensus.ErrFutureBlock:
 			// Weird future block, don't fail, but neither propagate
 
+		case consensus.ErrForkedAncestor:
+			log.Warn("Forked parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+			return
+
 		case consensus.ErrUnknownAncestor:
 			// If the parent's unknown, abort insertion
 			log.Warn("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+			f.dropPeer(peer)
+			return
 
 		default:
 			// Something went very wrong, drop the peer
-			log.Debug("Propagated block verification failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
+			log.Warn("Propagated block verification failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
 			f.dropPeer(peer)
 			return
 		}
 		// Run the actual import and log any issues
 		if _, err := f.insertChain(types.Blocks{block}); err != nil {
-			log.Debug("Propagated block import failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
+			log.Warn("Propagated block import failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
 			return
 		}
 		// If import succeeded, broadcast the block

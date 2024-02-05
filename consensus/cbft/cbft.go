@@ -648,10 +648,13 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	}
 
 	parent := chain.GetHeader(header.ParentHash, number-1)
+	// 当 parentBlock 出现分叉，且 cbft 还未同步该分叉区块（只有旧的分叉块高的区块）
+	// 那么此时 cbft 无法查询到该分叉区块，在这种正常流程下为了避免出现 unknown ancestor。增加了 forked ancestor
+	forked := false
 	if parent == nil {
 		var parentBlock *types.Block
 		if async {
-			parentBlock = cbft.GetBlockWithLock(header.ParentHash, number-1)
+			parentBlock, forked = cbft.GetBlockWithLock(header.ParentHash, number-1)
 		} else {
 			parentBlock = cbft.GetBlockWithoutLock(header.ParentHash, number-1)
 		}
@@ -663,6 +666,10 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		// Find it again from the blockChain
 		p := chain.GetHeader(header.ParentHash, number-1)
 		if p == nil {
+			if forked {
+				cbft.log.Warn("VerifyHeader, forked ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
+				return consensus.ErrForkedAncestor
+			}
 			cbft.log.Warn("VerifyHeader, unknown ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
 			return consensus.ErrUnknownAncestor
 		}
@@ -743,11 +750,16 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 }
 
 func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, index int) error {
-	var parent *types.Header
+	var (
+		parent      *types.Header
+		parentBlock *types.Block
+		forked      = false
+	)
+
 	if index == 0 {
 		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
 		if parent == nil {
-			parentBlock := cbft.GetBlockWithLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+			parentBlock, forked = cbft.GetBlockWithLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
 			if parentBlock != nil {
 				parent = parentBlock.Header()
 			}
@@ -761,6 +773,10 @@ func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*typ
 	}
 
 	if parent == nil {
+		if forked {
+			cbft.log.Warn("VerifyHeaderWorker, forked ancestor", "blockNumber", headers[index].Number.Uint64(), "blockHash", headers[index].Hash(), "parentHash", headers[index].ParentHash)
+			return consensus.ErrForkedAncestor
+		}
 		cbft.log.Warn("VerifyHeaderWorker, unknown ancestor", "blockNumber", headers[index].Number.Uint64(), "blockHash", headers[index].Hash(), "parentHash", headers[index].ParentHash)
 		return consensus.ErrUnknownAncestor
 	}
@@ -1336,22 +1352,29 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 }
 
 // GetBlockWithLock synchronously obtains blocks according to the specified number and hash.
-func (cbft *Cbft) GetBlockWithLock(hash common.Hash, number uint64) *types.Block {
-	result := make(chan *types.Block, 1)
+func (cbft *Cbft) GetBlockWithLock(hash common.Hash, number uint64) (*types.Block, bool) {
+	type result struct {
+		block  *types.Block
+		forked bool
+	}
+	resultCh := make(chan result, 1)
 
 	cbft.asyncCallCh <- func() {
 		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+		var forked bool
 		if block == nil {
 			if eb := cbft.state.FindBlock(hash, number); eb != nil {
 				block = eb
 			} else {
 				cbft.log.Debug("Get block failed", "hash", hash, "number", number)
+				_, _, forked = cbft.blockTree.IsForked(hash, number)
 			}
 		}
-		result <- block
+		resultCh <- result{block: block, forked: forked}
 	}
 
-	return <-result
+	ret := <-resultCh
+	return ret.block, ret.forked
 }
 
 // GetBlockWithoutLock returns the block corresponding to the specified number and hash.
