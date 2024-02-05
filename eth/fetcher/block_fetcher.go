@@ -665,7 +665,7 @@ func (f *BlockFetcher) enqueue(peer string, block *types.Block) {
 		return
 	}
 	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
+	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < minQueueDist || dist > maxQueueDist {
 		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
 		blockBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
