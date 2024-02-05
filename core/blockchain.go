@@ -20,6 +20,15 @@ package core
 import (
 	"errors"
 	"fmt"
+	"io"
+	mrand "math/rand"
+	"sort"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -29,7 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/internal/syncx"
@@ -37,13 +45,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
-	"io"
-	mrand "math/rand"
-	"sort"
-	"sync"
-	"sync/atomic"
-	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 )
 
 var (
@@ -104,11 +107,11 @@ type CacheConfig struct {
 	BadBlockLimit   int
 	TriesInMemory   int
 
-	DBDisabledGC    common.AtomicBool // Whether to disable database garbage collection
-	DBGCInterval    uint64            // Block interval for database garbage collection
-	DBGCTimeout     time.Duration
-	DBGCMpt         bool
-	DBGCBlock       int
+	DBDisabledGC common.AtomicBool // Whether to disable database garbage collection
+	DBGCInterval uint64            // Block interval for database garbage collection
+	DBGCTimeout  time.Duration
+	DBGCMpt      bool
+	DBGCBlock    int
 	DBDisabledCache bool
 	DBCacheEpoch    uint64
 }
@@ -278,17 +281,17 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			Preimages: cacheConfig.Preimages,
 		}),
 		vrfStatisticsDB: rawdb.NewTable(db, vrfstatistics.Prefix),
-		quit:            make(chan struct{}),
-		chainmu:         syncx.NewClosableMutex(),
-		shouldPreserve:  shouldPreserve,
-		bodyCache:       bodyCache,
-		bodyRLPCache:    bodyRLPCache,
-		receiptsCache:   receiptsCache,
-		blockCache:      blockCache,
-		txLookupCache:   txLookupCache,
-		futureBlocks:    futureBlocks,
-		engine:          engine,
-		vmConfig:        vmConfig,
+		quit:           make(chan struct{}),
+		chainmu:        syncx.NewClosableMutex(),
+		shouldPreserve: shouldPreserve,
+		bodyCache:      bodyCache,
+		bodyRLPCache:   bodyRLPCache,
+		receiptsCache:  receiptsCache,
+		blockCache:     blockCache,
+		txLookupCache:  txLookupCache,
+		futureBlocks:   futureBlocks,
+		engine:         engine,
+		vmConfig:       vmConfig,
 	}
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
@@ -1572,19 +1575,23 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	// Some other error(except ErrKnownBlock) occurred, abort.
 	// ErrKnownBlock is allowed here since some known blocks
 	// still need re-execution to generate snapshots that are missing
-	case err != nil && !errors.Is(err, ErrKnownBlock):
+	case err != nil && !errors.Is(err, ErrKnownBlock) && !errors.Is(err, consensus.ErrForkedAncestor):
 		bc.futureBlocks.Remove(block.Hash())
 		stats.ignored += len(it.chain)
 		bc.reportBlock(block, nil, err)
 		return it.index, err
 	}
 	// No validation errors for the first block (or chain prefix skipped)
-	for ; block != nil && (err == nil || errors.Is(err, ErrKnownBlock)); block, err = it.next() {
+	for ; block != nil && (err == nil || errors.Is(err, ErrKnownBlock) || errors.Is(err, consensus.ErrForkedAncestor)); block, err = it.next() {
 		// If the chain is terminating, stop processing blocks
 		if bc.insertStopped() {
 			log.Debug("Abort during block processing")
 			break
 		}
+		if errors.Is(err, consensus.ErrForkedAncestor) {
+			return it.index, nil
+		}
+
 		start := time.Now()
 		err = bc.engine.InsertChain(block)
 		if err != nil {
