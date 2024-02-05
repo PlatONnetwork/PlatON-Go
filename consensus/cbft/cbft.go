@@ -1003,7 +1003,11 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
-		cbft.log.Warn("Not found the inserted block's parent block",
+		// 规避因 blockTree 上涨而产生的父区块为空
+		if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+			return nil
+		}
+		cbft.log.Warn("Missing parent block of inserted block",
 			"number", block.Number(), "hash", block.Hash(),
 			"parentHash", block.ParentHash(),
 			"lockedNumber", cbft.state.HighestLockBlock().Number(),
