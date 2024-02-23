@@ -1191,9 +1191,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// Write downloaded chain data and corresponding receipt chain data
 	if len(ancientBlocks) > 0 {
 		// fast同步的时候不会写入回执
-		//if n, err := writeAncient(ancientBlocks, ancientReceipts); err != nil {
-		if n, err := writeAncient(ancientBlocks, nil); err != nil {
-			if err == errInsertionInterrupted {
+		if n, err := writeAncient(ancientBlocks, ancientReceipts); err != nil {
+			//if n, err := writeAncient(ancientBlocks, nil); err != nil {
+			if errors.Is(err, errInsertionInterrupted) {
 				return 0, nil
 			}
 			return n, err
@@ -1214,9 +1214,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	}
 	if len(liveBlocks) > 0 {
 		// fast同步的时候不会写入回执
-		// if n, err := writeLive(liveBlocks, liveReceipts); err != nil {
-		if n, err := writeLive(liveBlocks, nil); err != nil {
-			if err == errInsertionInterrupted {
+		if n, err := writeLive(liveBlocks, liveReceipts); err != nil {
+			// if n, err := writeLive(liveBlocks, nil); err != nil {
+			if errors.Is(err, errInsertionInterrupted) {
 				return 0, nil
 			}
 			return n, err
