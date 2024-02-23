@@ -1258,16 +1258,19 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, errInsertionInterrupted
 	}
 	defer bc.chainmu.Unlock()
-	if cbftBridgeUpdateChainState != nil {
-		cbftBridgeUpdateChainState()
-	}
-	return bc.writeBlockWithState(block, receipts, logs, state, emitHeadEvent)
+
+	return bc.writeBlockWithState(block, receipts, logs, state, emitHeadEvent, cbftBridgeUpdateChainState)
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool, cbftBridgeUpdateChainState func()) (status WriteStatus, err error) {
 	if bc.insertStopped() {
 		return NonStatTy, errInsertionInterrupted
+	}
+
+	// Update consensus state to wal
+	if cbftBridgeUpdateChainState != nil {
+		cbftBridgeUpdateChainState()
 	}
 
 	// Make sure no inconsistent state is leaked during insertion

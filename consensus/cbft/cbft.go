@@ -1179,7 +1179,6 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 
 // Close turns off the consensus engine.
 func (cbft *Cbft) Close() error {
-	cbft.log.Info("Close cbft consensus")
 	utils.SetFalse(&cbft.start)
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
@@ -1189,12 +1188,12 @@ func (cbft *Cbft) Close() error {
 		close(cbft.exitCh)
 	})
 	cbft.bridge.Close()
+	cbft.log.Info("Cbft consensus closed")
 	return nil
 }
 
 // Stop turns off the consensus asyncExecutor and fetcher.
 func (cbft *Cbft) Stop() error {
-	cbft.log.Info("Stop cbft consensus")
 	if cbft.asyncExecutor != nil {
 		cbft.asyncExecutor.Stop()
 	}
@@ -1202,6 +1201,7 @@ func (cbft *Cbft) Stop() error {
 		cbft.fetcher.Stop()
 	}
 	cbft.blockCacheWriter.Stop()
+	cbft.log.Info("Cbft consensus stopped")
 	return nil
 }
 

@@ -168,6 +168,7 @@ func (miner *Miner) Stop() {
 func (miner *Miner) Close() {
 	close(miner.exitCh)
 	miner.wg.Wait()
+	log.Info("Miner stopped")
 }
 
 func (miner *Miner) Mining() bool {
