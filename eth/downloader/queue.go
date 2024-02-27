@@ -328,8 +328,8 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 			if _, ok := q.receiptTaskPool[hash]; ok {
 				log.Warn("Header already scheduled for receipt fetch", "number", header.Number, "hash", hash)
 			} else {
-				//q.receiptTaskPool[hash] = header
-				//q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+				q.receiptTaskPool[hash] = header
+				q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
 			}
 		}
 		inserts = append(inserts, header)
