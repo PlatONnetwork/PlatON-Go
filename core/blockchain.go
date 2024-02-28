@@ -248,7 +248,7 @@ type BlockChain struct {
 
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
 
-	cleaner *Cleaner
+	//cleaner *Cleaner
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -393,7 +393,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	}
 
 	log.Debug("DB config", "DBDisabledGC", bc.cacheConfig.DBDisabledGC, "DBGCInterval", bc.cacheConfig.DBGCInterval, "DBGCTimeout", bc.cacheConfig.DBGCTimeout, "DBGCMpt", bc.cacheConfig.DBGCMpt)
-	bc.cleaner = NewCleaner(bc, bc.cacheConfig.DBGCInterval, bc.cacheConfig.DBGCTimeout, bc.cacheConfig.DBGCMpt)
+	//bc.cleaner = NewCleaner(bc, bc.cacheConfig.DBGCInterval, bc.cacheConfig.DBGCTimeout, bc.cacheConfig.DBGCMpt)
 
 	// Load any existing snapshot, regenerating it if loading failed
 	if bc.cacheConfig.SnapshotLimit > 0 {
@@ -870,7 +870,7 @@ func (bc *BlockChain) Stop() {
 	close(bc.quit)
 	bc.StopInsert()
 
-	bc.cleaner.Stop()
+	//bc.cleaner.Stop()
 
 	// Now wait for all chain modifications to end and persistent goroutines to exit.
 	//
@@ -1462,9 +1462,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 
 	bc.hc.SetCurrentHeader(block.Header())
 	// Cleanup storage
-	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
-		bc.cleaner.Cleanup()
-	}
+	//if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
+	//	bc.cleaner.Cleanup()
+	//}
 
 	bc.BlockFeed.Send(block)
 
