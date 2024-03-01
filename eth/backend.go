@@ -705,6 +705,7 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	s.eventMux.Stop()
+	log.Info("Backend stopped")
 	return nil
 }
 
