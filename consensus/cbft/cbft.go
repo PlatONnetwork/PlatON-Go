@@ -1003,7 +1003,11 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
-		cbft.log.Warn("Not found the inserted block's parent block",
+		// 规避因 blockTree 上涨而产生的父区块为空
+		if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+			return nil
+		}
+		cbft.log.Warn("Missing parent block of inserted block",
 			"number", block.Number(), "hash", block.Hash(),
 			"parentHash", block.ParentHash(),
 			"lockedNumber", cbft.state.HighestLockBlock().Number(),
@@ -1175,7 +1179,6 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 
 // Close turns off the consensus engine.
 func (cbft *Cbft) Close() error {
-	cbft.log.Info("Close cbft consensus")
 	utils.SetFalse(&cbft.start)
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
@@ -1185,12 +1188,12 @@ func (cbft *Cbft) Close() error {
 		close(cbft.exitCh)
 	})
 	cbft.bridge.Close()
+	cbft.log.Info("Cbft consensus closed")
 	return nil
 }
 
 // Stop turns off the consensus asyncExecutor and fetcher.
 func (cbft *Cbft) Stop() error {
-	cbft.log.Info("Stop cbft consensus")
 	if cbft.asyncExecutor != nil {
 		cbft.asyncExecutor.Stop()
 	}
@@ -1198,6 +1201,7 @@ func (cbft *Cbft) Stop() error {
 		cbft.fetcher.Stop()
 	}
 	cbft.blockCacheWriter.Stop()
+	cbft.log.Info("Cbft consensus stopped")
 	return nil
 }
 
