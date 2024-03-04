@@ -23,6 +23,10 @@ var (
 	// that is unknown.
 	ErrUnknownAncestor = errors.New("unknown ancestor")
 
+	// ErrForkedAncestor is returned when validating a block requires an ancestor
+	// that is forked.
+	ErrForkedAncestor = errors.New("forked ancestor")
+
 	// ErrPrunedAncestor is returned when validating a block requires an ancestor
 	// that is known, but the state of which is not available.
 	ErrPrunedAncestor = errors.New("pruned ancestor")
