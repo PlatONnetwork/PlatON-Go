@@ -365,7 +365,7 @@ func (cbft *Cbft) trySwitchValidator(blockNumber uint64) {
 		if err := cbft.validatorPool.Update(blockNumber, cbft.state.Epoch()+1, cbft.eventMux); err != nil {
 			cbft.log.Debug("Update validator error", "err", err.Error())
 		}
-		cbft.log.Trace("Update validator success", "blockNumber", blockNumber, "epoch", cbft.state.Epoch()+1)
+		cbft.log.Trace("Update validator success", "blockNumber", blockNumber)
 	}
 }
 
@@ -404,8 +404,11 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 
 		isContiguous, parentBlock := cbft.contiguousQCBlock(m.Block)
 		if !isContiguous {
-			cbft.log.Warn("ConfirmedViewChange msg status and chainState are not continuous", "confirmedViewChange", m.String(), "highestQCBn", cbft.state.HighestQCBlock().NumberU64(), "highestQCHash", cbft.state.HighestQCBlock().Hash())
-			// 如果状态不连续，则丢弃该消息及后面所有的消息
+			if m.Block.NumberU64() > cbft.state.HighestQCBlock().NumberU64() {
+				cbft.log.Warn("ConfirmedViewChange msg status and chainState are not continuous", "confirmedViewChange", m.String(),
+					"highestQCBn", cbft.state.HighestQCBlock().NumberU64(), "highestQCHash", cbft.state.HighestQCBlock().Hash())
+			}
+			// 如果状态不连续（ConfirmedViewChange消息落后于ChainState状态是正常的），则丢弃该消息
 			return nil
 		}
 
@@ -413,15 +416,21 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 		if parentBlock != nil {
 			// 执行 wal 消息中的区块
 			if err := cbft.executeBlock(m.Block, parentBlock, math.MaxUint32); err != nil {
-				cbft.log.Error("Failed to execute block on recovery confirmedViewChange msg", "confirmedViewChange", m.String(), "parentBlockNumber", parentBlock.NumberU64(), "parentBlockHash", parentBlock.Hash())
+				cbft.log.Error("Failed to execute block on recovery confirmedViewChange msg", "confirmedViewChange", m.String(),
+					"parentBlockNumber", parentBlock.NumberU64(), "parentBlockHash", parentBlock.Hash())
 				return nil
 			}
 			// 更新 ChainState 状态
 			lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(cbft.state.HighestLockBlock().Hash(), cbft.state.HighestLockBlock().NumberU64())
 			qcBlock, qc := cbft.blockTree.FindBlockAndQC(parentBlock.Hash(), parentBlock.NumberU64())
-			cbft.recoveryChainStateProcess(protocols.CommitState, &protocols.State{Block: lockBlock, QuorumCert: lockQC})
-			cbft.recoveryChainStateProcess(protocols.LockState, &protocols.State{Block: qcBlock, QuorumCert: qc})
-			cbft.recoveryChainStateProcess(protocols.QCState, &protocols.State{Block: m.Block, QuorumCert: m.QC})
+
+			commitState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
+			lockState := &protocols.State{Block: qcBlock, QuorumCert: qc}
+			qcState := &protocols.State{Block: m.Block, QuorumCert: m.QC}
+			cbft.recoveryChainStateProcess(protocols.CommitState, commitState)
+			cbft.recoveryChainStateProcess(protocols.LockState, lockState)
+			cbft.recoveryChainStateProcess(protocols.QCState, qcState)
+			cbft.bridge.UpdateChainState(qcState, lockState, commitState)
 			// 将新的 commit 区块写入 blockchain
 			extra, _ := ctypes.EncodeExtra(byte(cbftVersion), lockQC)
 			lockBlock.SetExtraData(extra)
