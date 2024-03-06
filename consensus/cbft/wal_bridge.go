@@ -548,7 +548,7 @@ func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	}
 	// equalViewState
 	highestQCBlockBn, _ := cbft.HighestQCBlockBn()
-	return msg.BlockNumber() > highestQCBlockBn, nil
+	return msg.BlockNumber() >= highestQCBlockBn, nil
 }
 
 // equalViewState check if the msg view is equal with current.
