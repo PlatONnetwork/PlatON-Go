@@ -5,6 +5,7 @@ import (
 	dag3 "github.com/PlatONnetwork/PlatON-Go/core/dag"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"reflect"
 )
 
 type TxDag struct {
@@ -30,7 +31,7 @@ func (txDag *TxDag) MakeDagGraph(ctx *ParallelContext, exe *Executor) error {
 	latestPrecompiledIndex := -1
 	for index, tx := range txs {
 		if tx.FromAddr(txDag.signer) == (common.Address{}) {
-			log.Error("The from of the transaction cannot be resolved", "number", blockNumber, "index", index)
+			log.Error("The from of the transaction cannot be resolved", "number", blockNumber, "index", index, "signer", reflect.TypeOf(txDag.signer), "signer chainID", txDag.signer.ChainID(), "tx chainID", tx.ChainId(), "tx type", tx.Type())
 			continue
 		}
 
