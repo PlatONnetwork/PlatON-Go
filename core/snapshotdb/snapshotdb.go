@@ -20,13 +20,15 @@ import (
 	"container/heap"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/syndtr/goleveldb/leveldb/storage"
-	"golang.org/x/net/context"
 	"math/big"
 	"os"
 	"sort"
 	"sync"
+
+	"github.com/syndtr/goleveldb/leveldb/storage"
+	"golang.org/x/net/context"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
@@ -162,7 +164,8 @@ type snapshotDB struct {
 	walLoopCancel context.CancelFunc
 	walSync       sync.WaitGroup
 
-	corn *cron.Cron
+	corn    *cron.Cron
+	jobWait sync.WaitGroup
 
 	closed bool
 
@@ -1037,6 +1040,8 @@ func (s *snapshotDB) Close() error {
 	if s.walLoopCancel != nil {
 		s.walLoopCancel()
 	}
+
+	s.jobWait.Wait()
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {

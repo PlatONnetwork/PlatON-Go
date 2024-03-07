@@ -81,7 +81,7 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	//	item.pending |= (1 << bodyType)
 	//}
 	if fastSync && !header.EmptyReceipts() {
-		//item.pending |= (1 << receiptType)	// The receipt is not synchronized in PlatON SnapSync mode, so comment here
+		item.pending |= (1 << receiptType) // The receipt is not synchronized in PlatON SnapSync mode, so comment here
 	}
 	return item
 }
@@ -328,8 +328,8 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 			if _, ok := q.receiptTaskPool[hash]; ok {
 				log.Warn("Header already scheduled for receipt fetch", "number", header.Number, "hash", hash)
 			} else {
-				//q.receiptTaskPool[hash] = header
-				//q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+				q.receiptTaskPool[hash] = header
+				q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
 			}
 		}
 		inserts = append(inserts, header)
