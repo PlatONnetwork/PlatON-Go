@@ -40,7 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 const (
@@ -76,7 +75,7 @@ type txPool interface {
 
 	// Pending should return pending transactions.
 	// The slice should be modifiable by the caller.
-	Pending() (map[common.Address]types.Transactions, error)
+	Pending(enforceTips, limited bool) map[common.Address]types.Transactions
 
 	// SubscribeNewTxsEvent should return an event subscription of
 	// NewTxsEvent and send events to the given channel.
@@ -112,7 +111,6 @@ type handler struct {
 	maxPeers    int
 
 	downloader   *downloader.Downloader
-	stateBloom   *trie.SyncBloom
 	blockFetcher *fetcher.BlockFetcher
 	txFetcher    *fetcher.TxFetcher
 	peers        *peerSet
@@ -133,7 +131,9 @@ type handler struct {
 
 	chainSync *chainSyncer
 	wg        sync.WaitGroup
-	peerWG    sync.WaitGroup
+
+	handlerStartCh chan struct{}
+	handlerDoneCh  chan struct{}
 
 	engine consensus.Engine
 }
@@ -145,15 +145,17 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		config.EventMux = new(event.TypeMux) // Nicety initialization for tests
 	}
 	h := &handler{
-		networkID: config.Network,
-		eventMux:  config.EventMux,
-		database:  config.Database,
-		txpool:    config.TxPool,
-		chain:     config.Chain,
-		peers:     newPeerSet(),
-		txsyncCh:  make(chan *txsync),
-		quitSync:  make(chan struct{}),
-		engine:    config.Chain.Engine(),
+		networkID:      config.Network,
+		eventMux:       config.EventMux,
+		database:       config.Database,
+		txpool:         config.TxPool,
+		chain:          config.Chain,
+		peers:          newPeerSet(),
+		txsyncCh:       make(chan *txsync),
+		quitSync:       make(chan struct{}),
+		handlerDoneCh:  make(chan struct{}),
+		handlerStartCh: make(chan struct{}),
+		engine:         config.Chain.Engine(),
 	}
 	if config.Sync == downloader.FullSync {
 		// The database seems empty as the current block is the genesis. Yet the fast
@@ -189,14 +191,7 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	// Construct the downloader (long sync) and its backing state bloom if fast
 	// sync is requested. The downloader is responsible for deallocating the state
 	// bloom when it's done.
-	// Note: we don't enable it if snap-sync is performed, since it's very heavy
-	// and the heal-portion of the snap sync is much lighter than fast. What we particularly
-	// want to avoid, is a 90%-finished (but restarted) snap-sync to begin
-	// indexing the entire trie
-	if atomic.LoadUint32(&h.fastSync) == 1 && atomic.LoadUint32(&h.snapSync) == 0 {
-		h.stateBloom = trie.NewSyncBloom(config.BloomCache, config.Database)
-	}
-	h.downloader = downloader.New(config.Database, snapshotdb.Instance(), h.stateBloom, h.eventMux, h.chain, nil, h.removePeer, decodeExtra)
+	h.downloader = downloader.New(config.Database, snapshotdb.Instance(), h.eventMux, h.chain, nil, h.removePeer, decodeExtra)
 
 	// Construct the fetcher (short sync)
 	validator := func(header *types.Header) error {
@@ -238,9 +233,50 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	return h, nil
 }
 
+// protoTracker tracks the number of active protocol handlers.
+func (h *handler) protoTracker() {
+	defer h.wg.Done()
+	var active int
+	for {
+		select {
+		case <-h.handlerStartCh:
+			active++
+		case <-h.handlerDoneCh:
+			active--
+		case <-h.quitSync:
+			// Wait for all active handlers to finish.
+			for ; active > 0; active-- {
+				<-h.handlerDoneCh
+			}
+			return
+		}
+	}
+}
+
+// incHandlers signals to increment the number of active handlers if not
+// quitting.
+func (h *handler) incHandlers() bool {
+	select {
+	case h.handlerStartCh <- struct{}{}:
+		return true
+	case <-h.quitSync:
+		return false
+	}
+}
+
+// decHandlers signals to decrement the number of active handlers.
+func (h *handler) decHandlers() {
+	h.handlerDoneCh <- struct{}{}
+}
+
 // runEthPeer registers an eth peer into the joint eth/snap peerset, adds it to
 // various subsistems and starts handling messages.
 func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
+	if !h.incHandlers() {
+		return p2p.DiscQuitting
+	}
+	defer h.decHandlers()
+
 	// If the peer has a `snap` extension, wait for it to connect so we can have
 	// a uniform initialization/teardown mechanism
 	snap, err := h.peers.waitSnapExtension(peer)
@@ -248,12 +284,6 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		peer.Log().Error("Snapshot extension barrier failed", "err", err)
 		return err
 	}
-	// TODO(karalabe): Not sure why this is needed
-	if !h.chainSync.handlePeerEvent(peer) {
-		return p2p.DiscQuitting
-	}
-	h.peerWG.Add(1)
-	defer h.peerWG.Done()
 
 	// Execute the Ethereum handshake
 	var (
@@ -319,7 +349,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			return err
 		}
 	}
-	h.chainSync.handlePeerEvent(peer)
+	h.chainSync.handlePeerEvent()
 
 	// Propagate existing transactions. new transactions appearing
 	// after this will be sent via broadcasts.
@@ -340,8 +370,10 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 // `eth`, all subsystem registrations and lifecycle management will be done by
 // the main `eth` handler to prevent strange races.
 func (h *handler) runSnapExtension(peer *snap.Peer, handler snap.Handler) error {
-	h.peerWG.Add(1)
-	defer h.peerWG.Done()
+	if !h.incHandlers() {
+		return p2p.DiscQuitting
+	}
+	defer h.decHandlers()
 
 	if err := h.peers.registerSnapExtension(peer); err != nil {
 		peer.Log().Error("Snapshot extension registration failed", "err", err)
@@ -407,6 +439,10 @@ func (h *handler) Start(maxPeers int) {
 	h.wg.Add(2)
 	go h.chainSync.loop()
 	go h.txsyncLoop64() // TODO(karalabe): Legacy initial tx echange, drop with eth/64.
+
+	// start peer handler tracker
+	h.wg.Add(1)
+	go h.protoTracker()
 }
 
 func (h *handler) Stop() {
@@ -416,14 +452,13 @@ func (h *handler) Stop() {
 	// Quit chainSync and txsync64.
 	// After this is done, no new peers will be accepted.
 	close(h.quitSync)
-	h.wg.Wait()
 
 	// Disconnect existing sessions.
 	// This also closes the gate for any new registrations on the peer set.
 	// sessions which are already established but not added to h.peers yet
 	// will exit when they try to register.
 	h.peers.close()
-	h.peerWG.Wait()
+	h.wg.Wait()
 
 	log.Info("PlatON protocol stopped")
 }

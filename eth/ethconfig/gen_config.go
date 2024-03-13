@@ -70,8 +70,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
-		RPCGasCap                uint64                    `toml:",omitempty"`
-		RPCTxFeeCap              float64                   `toml:",omitempty"`
+		RPCGasCap                uint64
+		RPCEVMTimeout            time.Duration
+		RPCTxFeeCap              float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}
@@ -130,6 +131,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DocRoot = c.DocRoot
 	enc.Debug = c.Debug
 	enc.RPCGasCap = c.RPCGasCap
+	enc.RPCEVMTimeout = c.RPCEVMTimeout
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
 	enc.Whitelist = c.Whitelist
 	enc.Checkpoint = c.Checkpoint
@@ -192,8 +194,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
-		RPCGasCap                *uint64                   `toml:",omitempty"`
-		RPCTxFeeCap              *float64                  `toml:",omitempty"`
+		RPCGasCap                *uint64
+		RPCEVMTimeout            *time.Duration
+		RPCTxFeeCap              *float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
 	}
@@ -362,6 +365,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.RPCGasCap != nil {
 		c.RPCGasCap = *dec.RPCGasCap
+	}
+	if dec.RPCEVMTimeout != nil {
+		c.RPCEVMTimeout = *dec.RPCEVMTimeout
 	}
 	if dec.RPCTxFeeCap != nil {
 		c.RPCTxFeeCap = *dec.RPCTxFeeCap

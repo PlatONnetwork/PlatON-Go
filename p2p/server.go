@@ -395,6 +395,11 @@ func (srv *Server) RemoveConsensusPeer(node *enode.Node) {
 	}
 }
 
+func (srv *Server) CloseConsensusDial() {
+	srv.dialsched.closeConsensusDial()
+	srv.log.Info("Close consensus Dial")
+}
+
 // AddTrustedPeer adds the given node to a reserved whitelist which allows the
 // node to always connect, even if the slot are full.
 func (srv *Server) AddTrustedPeer(node *enode.Node) {
@@ -683,7 +688,7 @@ func (srv *Server) setupDialScheduler() {
 		srv.doPeerOp(func(peers map[enode.ID]*Peer) {
 			srv.dialsched.removeConsensusFromQueue(node)
 			if p, ok := peers[node.ID()]; ok {
-				p.Disconnect(DiscRequested)
+				p.rw.set(consensusDialedConn, false)
 			}
 		})
 	}
@@ -778,9 +783,9 @@ running:
 		case n := <-srv.addconsensus:
 			// This channel is used by AddConsensusNode to add an enode
 			// to the consensus node set.
-			srv.log.Trace("Adding consensus node", "node", n)
+			srv.log.Trace("Adding consensus node", "node", n.ID())
 			id := n.ID()
-			if bytes.Equal(crypto.Keccak256(srv.ourHandshake.ID), id[:]) {
+			if srv.localnode.ID() == id {
 				srv.log.Debug("We are become an consensus node")
 				srv.consensus = true
 			} else {
@@ -788,15 +793,15 @@ running:
 			}
 			consensusNodes[id] = true
 			if p, ok := peers[id]; ok {
-				srv.log.Debug("Add consensus flag", "peer", id)
 				p.rw.set(consensusDialedConn, true)
+				srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+				srv.log.Debug("Add consensus flag", "peer", id, "flag", p.rw.flags)
 			}
 		case n := <-srv.removeconsensus:
 			// This channel is used by RemoveConsensusNode to remove an enode
 			// from the consensus node set.
-			srv.log.Trace("Removing consensus node", "node", n)
-			id := n.ID()
-			if bytes.Equal(crypto.Keccak256(srv.ourHandshake.ID), id[:]) {
+			srv.log.Trace("Removing consensus node", "node", n.ID())
+			if srv.localnode.ID() == n.ID() {
 				srv.log.Debug("We are not an consensus node")
 				srv.consensus = false
 			}
@@ -806,10 +811,8 @@ running:
 			}
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(consensusDialedConn, false)
-				if !p.rw.is(staticDialedConn | trustedConn | inboundConn) {
-					p.rw.set(dynDialedConn, true)
-				}
-				srv.log.Debug("Remove consensus flag", "peer", n.ID(), "consensus", srv.consensus)
+				srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+				srv.log.Debug("Remove consensus flag", "peer", n.ID(), "consensus", srv.consensus, "flag", p.rw.flags)
 				if len(peers) > srv.MaxPeers && !p.rw.is(staticDialedConn|trustedConn) {
 					srv.log.Debug("Disconnect non-consensus node", "peer", n.ID(), "flags", p.rw.flags, "peers", len(peers), "consensus", srv.consensus)
 					p.Disconnect(DiscRequested)
@@ -818,7 +821,7 @@ running:
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add a node
 			// to the trusted node set.
-			srv.log.Trace("Adding trusted node", "node", n)
+			srv.log.Trace("Adding trusted node", "node", n.ID())
 			trusted[n.ID()] = true
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(trustedConn, true)
@@ -827,7 +830,7 @@ running:
 		case n := <-srv.removetrusted:
 			// This channel is used by RemoveTrustedPeer to remove a node
 			// from the trusted node set.
-			srv.log.Trace("Removing trusted node", "node", n)
+			srv.log.Trace("Removing trusted node", "node", n.ID())
 			delete(trusted, n.ID())
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(trustedConn, false)
@@ -847,7 +850,7 @@ running:
 			}
 
 			if consensusNodes[c.node.ID()] {
-				c.flags |= consensusDialedConn
+				c.set(consensusDialedConn, true)
 			}
 
 			// TODO: track in-progress inbound node IDs (pre-Peer) to avoid dialing them.
@@ -863,6 +866,9 @@ running:
 				peers[c.node.ID()] = p
 				srv.log.Debug("Adding p2p peer", "peercount", len(peers), "id", p.ID(), "conn", c.flags, "addr", p.RemoteAddr(), "name", p.Name())
 				srv.dialsched.peerAdded(c)
+				if srv.consensus {
+					srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+				}
 				if p.Inbound() {
 					inboundCount++
 				}
@@ -875,6 +881,9 @@ running:
 			delete(peers, pd.ID())
 			srv.log.Debug("Removing p2p peer", "peercount", len(peers), "id", pd.ID(), "duration", d, "req", pd.requested, "err", pd.err)
 			srv.dialsched.peerRemoved(pd.rw)
+			if srv.consensus {
+				srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))
+			}
 			if pd.Inbound() {
 				inboundCount--
 			}
@@ -906,7 +915,8 @@ running:
 
 func (srv *Server) postHandshakeChecks(peers map[enode.ID]*Peer, inboundCount int, c *conn) error {
 	// Disconnect over limit non-consensus node.
-	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && srv.numConsensusPeer(peers) < srv.MaxConsensusPeers {
+	numConsensusPeer := srv.numConsensusPeer(peers)
+	if srv.consensus && len(peers) >= srv.MaxPeers && c.is(consensusDialedConn) && numConsensusPeer < srv.MaxConsensusPeers {
 		for _, p := range peers {
 			if p.rw.is(inboundConn|dynDialedConn) && !p.rw.is(trustedConn|staticDialedConn|consensusDialedConn) {
 				srv.log.Debug("Disconnect over limit connection", "peer", p.ID(), "flags", p.rw.flags, "peers", len(peers))
@@ -917,7 +927,7 @@ func (srv *Server) postHandshakeChecks(peers map[enode.ID]*Peer, inboundCount in
 	}
 
 	switch {
-	case c.is(consensusDialedConn) && srv.numConsensusPeer(peers) >= srv.MaxConsensusPeers:
+	case c.is(consensusDialedConn) && numConsensusPeer >= srv.MaxConsensusPeers:
 		return DiscTooManyConsensusPeers
 	case !srv.consensus && c.is(consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
@@ -1072,9 +1082,8 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *enode.Node) erro
 	}
 
 	// If dialing, figure out the remote public key.
-	var dialPubkey *ecdsa.PublicKey
 	if dialDest != nil {
-		dialPubkey = new(ecdsa.PublicKey)
+		dialPubkey := new(ecdsa.PublicKey)
 		if err := dialDest.Load((*enode.Secp256k1)(dialPubkey)); err != nil {
 			err = errors.New("dial destination doesn't have a secp256k1 public key")
 			srv.log.Trace("Setting up connection failed", "addr", c.fd.RemoteAddr(), "conn", c.flags, "err", err)
@@ -1253,13 +1262,19 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 	return infos
 }
 
+func (srv *Server) CloseDiscovery() {
+	srv.ntab.Close()
+	srv.discmix.Close()
+	srv.log.Info("Close ntab and discmix")
+}
+
 func (srv *Server) StartWatching(eventMux *event.TypeMux) {
 	srv.eventMux = eventMux
 	go srv.watching()
 }
 
 func (srv *Server) watching() {
-	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{}, cbfttypes.UpdateValidatorEvent{})
 	defer events.Unsubscribe()
 
 	for {
@@ -1271,11 +1286,41 @@ func (srv *Server) watching() {
 
 			switch data := ev.Data.(type) {
 			case cbfttypes.AddValidatorEvent:
-				srv.log.Trace("Received AddValidatorEvent", "nodeID", data.Node.ID().String())
-				srv.AddConsensusPeer(data.Node)
+				srv.log.Trace("Received AddValidatorEvent", "num", len(data.Nodes))
+				for _, node := range data.Nodes {
+					srv.AddConsensusPeer(node)
+				}
+
 			case cbfttypes.RemoveValidatorEvent:
-				srv.log.Trace("Received RemoveValidatorEvent", "nodeID", data.Node.ID().String())
-				srv.RemoveConsensusPeer(data.Node)
+				srv.log.Trace("Received RemoveValidatorEvent", "num", len(data.Nodes))
+				for _, node := range data.Nodes {
+					srv.RemoveConsensusPeer(node)
+				}
+			case cbfttypes.UpdateValidatorEvent:
+				consensusPeer := 0
+				if _, ok := data.Nodes[srv.localnode.ID()]; ok {
+					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+						for id, peer := range peers {
+							if _, ok := data.Nodes[id]; ok {
+								peer.rw.set(consensusDialedConn, true)
+							} else {
+								peer.rw.set(consensusDialedConn, false)
+							}
+						}
+						srv.log.Debug("We are become an consensus node")
+						srv.consensus = true
+						consensusPeer = srv.numConsensusPeer(peers)
+					})
+				} else {
+					srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+						for _, peer := range peers {
+							peer.rw.set(consensusDialedConn, false)
+						}
+						srv.log.Debug("We are not an consensus node")
+						srv.consensus = false
+					})
+				}
+				srv.dialsched.updateConsensusNun(consensusPeer)
 			default:
 				srv.log.Error("Received unexcepted event")
 			}

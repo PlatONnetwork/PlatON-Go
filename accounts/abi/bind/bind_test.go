@@ -285,7 +285,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy an interaction tester contract and call a transaction on it
@@ -340,7 +340,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a tuple tester contract and execute a structured call on it
@@ -386,7 +386,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a tuple tester contract and execute a structured call on it
@@ -444,7 +444,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a slice tester contract and execute a n array call on it
@@ -492,7 +492,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a default method invoker contract and execute its default method
@@ -690,7 +690,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a funky gas pattern contract
@@ -740,7 +740,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a sender tester contract and execute a structured call on it
@@ -815,7 +815,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a underscorer tester contract and execute a structured call on it
@@ -909,7 +909,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy an eventer contract
@@ -1099,7 +1099,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			//deploy the test contract
@@ -1234,7 +1234,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			_, _, contract, err := DeployTuple(auth, sim)
@@ -1376,7 +1376,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			//deploy the test contract
@@ -1441,7 +1441,7 @@ var bindTests = []struct {
 		// Initialize test accounts
 		key, _ := crypto.GenerateKey()
 		auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
-		sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+		sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 		defer sim.Close()
 
 		// deploy the test contract
@@ -1531,7 +1531,7 @@ var bindTests = []struct {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 
 		// Deploy registrar contract
-		sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(1000000000)}}, 10000000)
+		sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 		defer sim.Close()
 
 		transactOpts, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
@@ -1593,7 +1593,7 @@ var bindTests = []struct {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 
 		// Deploy registrar contract
-		sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(1000000000)}}, 10000000)
+		sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 		defer sim.Close()
 
 		transactOpts, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
@@ -1655,7 +1655,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			auth, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
 
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000)}}, 10000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{auth.From: {Balance: big.NewInt(10000000000000000)}}, 10000000)
 			defer sim.Close()
 
 			// Deploy a tester contract and execute a structured call on it
@@ -1715,7 +1715,7 @@ var bindTests = []struct {
 			key, _ := crypto.GenerateKey()
 			addr := crypto.PubkeyToAddress(key.PublicKey)
 	
-			sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(1000000000)}}, 1000000)
+			sim := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(10000000000000000)}}, 1000000)
 			defer sim.Close()
 	
 			opts, _ := bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
@@ -1771,6 +1771,48 @@ var bindTests = []struct {
 		nil,
 		nil,
 		nil,
+	},
+	{
+		name: `ConstructorWithStructParam`,
+		contract: `
+		pragma solidity >=0.8.0 <0.9.0;
+		
+		contract ConstructorWithStructParam {
+			struct StructType {
+				uint256 field;
+			}
+		
+			constructor(StructType memory st) {}
+		}
+		`,
+		bytecode: []string{`0x608060405234801561001057600080fd5b506040516101c43803806101c48339818101604052810190610032919061014a565b50610177565b6000604051905090565b600080fd5b600080fd5b6000601f19601f8301169050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b6100958261004c565b810181811067ffffffffffffffff821117156100b4576100b361005d565b5b80604052505050565b60006100c7610038565b90506100d3828261008c565b919050565b6000819050919050565b6100eb816100d8565b81146100f657600080fd5b50565b600081519050610108816100e2565b92915050565b60006020828403121561012457610123610047565b5b61012e60206100bd565b9050600061013e848285016100f9565b60008301525092915050565b6000602082840312156101605761015f610042565b5b600061016e8482850161010e565b91505092915050565b603f806101856000396000f3fe6080604052600080fdfea2646970667358221220cdffa667affecefac5561f65f4a4ba914204a8d4eb859d8cd426fb306e5c12a364736f6c634300080a0033`},
+		abi:      []string{`[{"inputs":[{"components":[{"internalType":"uint256","name":"field","type":"uint256"}],"internalType":"struct ConstructorWithStructParam.StructType","name":"st","type":"tuple"}],"stateMutability":"nonpayable","type":"constructor"}]`},
+		imports: `
+			"math/big"
+			"github.com/ethereum/go-ethereum/accounts/abi/bind"
+			"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
+			"github.com/ethereum/go-ethereum/core"
+			"github.com/ethereum/go-ethereum/crypto"
+			"github.com/ethereum/go-ethereum/eth/ethconfig"
+		`,
+		tester: `
+			var (
+				key, _  = crypto.GenerateKey()
+				user, _ = bind.NewKeyedTransactorWithChainID(key, big.NewInt(1337))
+				sim     = backends.NewSimulatedBackend(core.GenesisAlloc{user.From: {Balance: big.NewInt(1000000000000000000)}}, ethconfig.Defaults.Miner.GasCeil)
+			)
+			defer sim.Close()
+			_, tx, _, err := DeployConstructorWithStructParam(user, sim, ConstructorWithStructParamStructType{Field: big.NewInt(42)})
+			if err != nil {
+				t.Fatalf("DeployConstructorWithStructParam() got err %v; want nil err", err)
+			}
+			sim.Commit()
+			
+			if _, err = bind.WaitDeployed(nil, sim, tx); err != nil {
+				t.Logf("Deployment tx: %+v", tx)
+				t.Errorf("bind.WaitDeployed(nil, %T, <deployment tx>) got err %v; want nil err", sim, err)
+			}
+		`,
 	},
 }
 

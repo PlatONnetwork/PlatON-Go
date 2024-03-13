@@ -62,7 +62,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	plugin.StakingInstance()
 	plugin.GovPluginInstance()
 
-	chain.StateDB.Prepare(txHashArr[1], common.ZeroHash, 2)
+	chain.StateDB.Prepare(txHashArr[1], 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -164,7 +164,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 		Contract: newContract(common.Big0, sender),
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
-	chain.StateDB.Prepare(txHashArr[1], blockHash, 2)
+	chain.StateDB.Prepare(txHashArr[1], 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)

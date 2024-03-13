@@ -289,6 +289,7 @@ func newPlugins() {
 	RestrictingInstance()
 	RewardMgrInstance()
 	StakingInstance().SetChainConfig(params.TestChainConfig)
+	GovPluginInstance().SetChainConfig(params.TestChainConfig)
 	snapshotdb.Instance()
 }
 

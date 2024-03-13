@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"errors"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -69,21 +70,23 @@ func init() {
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
 
-	signer := types.NewEIP2930Signer(chainConfig.PIP7ChainID)
+	signer := types.NewLondonSigner(chainConfig.PIP7ChainID)
 	tx1 := types.MustSignNewTx(testBankKey, signer, &types.AccessListTx{
-		ChainID: params.TestChainConfig.PIP7ChainID,
-		Nonce:   0,
-		To:      &testUserAddress,
-		Value:   big.NewInt(1000),
-		Gas:     params.TxGas,
+		ChainID:  params.TestChainConfig.PIP7ChainID,
+		Nonce:    0,
+		To:       &testUserAddress,
+		Value:    big.NewInt(1000),
+		Gas:      params.TxGas,
+		GasPrice: big.NewInt(params.InitialBaseFee),
 	})
 	pendingTxs = append(pendingTxs, tx1)
 
 	tx2 := types.MustSignNewTx(testBankKey, signer, &types.LegacyTx{
-		Nonce: 1,
-		To:    &testUserAddress,
-		Value: big.NewInt(1000),
-		Gas:   params.TxGas,
+		Nonce:    1,
+		To:       &testUserAddress,
+		Value:    big.NewInt(1000),
+		Gas:      params.TxGas,
+		GasPrice: big.NewInt(params.InitialBaseFee),
 	})
 	newTxs = append(newTxs, tx2)
 
@@ -159,6 +162,9 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 func (b *testWorkerBackend) BlockChain() *core.BlockChain { return b.chain }
 func (b *testWorkerBackend) TxPool() *core.TxPool         { return b.txPool }
+func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
+	return nil, errors.New("not supported")
+}
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
 
@@ -190,7 +196,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 				}
 
 				// block write to real chain
-				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false)
+				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
 				if nil != err {
 					panic(err)
 				}
@@ -356,7 +362,7 @@ func testRegenerateMiningBlock(t *testing.T, chainConfig *params.ChainConfig, en
 	b.txPool.AddLocals(newTxs)
 	defer w.close()
 
-	var taskCh = make(chan struct{})
+	var taskCh = make(chan struct{}, 3)
 
 	taskIndex := 0
 	w.newTaskHook = func(task *task) {

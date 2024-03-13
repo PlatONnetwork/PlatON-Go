@@ -19,12 +19,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
@@ -42,6 +43,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+
+	// Force-load the tracer engines to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 const (
@@ -66,7 +71,6 @@ var (
 		utils.AncientFlag,
 		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
-		utils.NoUSBFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -83,6 +87,7 @@ var (
 		utils.SnapshotFlag,
 		utils.TxLookupLimitFlag,
 		utils.LightKDFFlag,
+		utils.BloomFilterSizeFlag,
 		utils.CacheFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheTrieFlag,
@@ -114,6 +119,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.LegacyGpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
+		utils.GpoIgnoreGasPriceFlag,
 		configFileFlag,
 	}
 
@@ -123,18 +129,12 @@ var (
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
 		utils.HTTPVirtualHostsFlag,
-		utils.LegacyRPCEnabledFlag,
-		utils.LegacyRPCListenAddrFlag,
-		utils.LegacyRPCPortFlag,
-		utils.LegacyRPCCORSDomainFlag,
-		utils.LegacyRPCVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
 		utils.GraphQLCORSDomainFlag,
 		utils.GraphQLVirtualHostsFlag,
 		utils.HTTPApiFlag,
 		utils.HTTPPathPrefixFlag,
 		utils.HTTPEnabledEthCompatibleFlag,
-		utils.LegacyRPCApiFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
 		utils.LegacyWSListenAddrFlag,
@@ -149,6 +149,7 @@ var (
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
 		utils.RPCGlobalGasCapFlag,
+		utils.RPCGlobalEVMTimeoutFlag,
 		utils.RPCGlobalTxFeeCapFlag,
 		utils.AllowUnprotectedTxs,
 	}
@@ -164,6 +165,10 @@ var (
 		utils.MetricsInfluxDBUsernameFlag,
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBTagsFlag,
+		utils.MetricsEnableInfluxDBV2Flag,
+		utils.MetricsInfluxDBTokenFlag,
+		utils.MetricsInfluxDBBucketFlag,
+		utils.MetricsInfluxDBOrganizationFlag,
 	}
 
 	cbftFlags = []cli.Flag{
@@ -193,7 +198,7 @@ func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -227,7 +232,6 @@ func init() {
 	app.Flags = append(app.Flags, rpcFlags...)
 	app.Flags = append(app.Flags, consoleFlags...)
 	app.Flags = append(app.Flags, debug.Flags...)
-	app.Flags = append(app.Flags, debug.DeprecatedFlags...)
 	//app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
 
@@ -285,7 +289,7 @@ func platon(ctx *cli.Context) error {
 	}
 	stack, backend := makeFullNode(ctx)
 	defer stack.Close()
-	startNode(ctx, stack, backend)
+	startNode(ctx, stack, backend, false)
 	stack.Wait()
 	return nil
 }
@@ -293,11 +297,11 @@ func platon(ctx *cli.Context) error {
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
-func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend) {
+func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
 	debug.Memsize.Add("node", stack)
 
 	// Start up the node itself
-	utils.StartNode(ctx, stack)
+	utils.StartNode(ctx, stack, isConsole)
 
 	// Unlock any account specifically requested
 	unlockAccounts(ctx, stack)

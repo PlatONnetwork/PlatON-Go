@@ -40,10 +40,10 @@ const (
 )
 
 var (
-	blockCacheMaxItems     = 128              // Maximum number of blocks to cache before throttling the download
-	blockCacheInitialItems = 128              // Initial number of blocks to start fetching, before we know the sizes of the blocks
-	blockCacheMemory       = 64 * 1024 * 1024 // Maximum amount of memory to use for block caching
-	blockCacheSizeWeight   = 0.1              // Multiplier to approximate the average block size based on past ones
+	blockCacheMaxItems     = 1024              // Maximum number of blocks to cache before throttling the download
+	blockCacheInitialItems = 256               // Initial number of blocks to start fetching, before we know the sizes of the blocks
+	blockCacheMemory       = 256 * 1024 * 1024 // Maximum amount of memory to use for block caching
+	blockCacheSizeWeight   = 0.1               // Multiplier to approximate the average block size based on past ones
 )
 
 var (
@@ -81,7 +81,7 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	//	item.pending |= (1 << bodyType)
 	//}
 	if fastSync && !header.EmptyReceipts() {
-		//item.pending |= (1 << receiptType)	// The receipt is not synchronized in PlatON SnapSync mode, so comment here
+		item.pending |= (1 << receiptType) // The receipt is not synchronized in PlatON SnapSync mode, so comment here
 	}
 	return item
 }
@@ -328,8 +328,8 @@ func (q *queue) Schedule(headers []*types.Header, from uint64) []*types.Header {
 			if _, ok := q.receiptTaskPool[hash]; ok {
 				log.Warn("Header already scheduled for receipt fetch", "number", header.Number, "hash", hash)
 			} else {
-				//q.receiptTaskPool[hash] = header
-				//q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
+				q.receiptTaskPool[hash] = header
+				q.receiptTaskQueue.Push(header, -int64(header.Number.Uint64()))
 			}
 		}
 		inserts = append(inserts, header)
@@ -794,13 +794,14 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 		}
 
 		bh, _, err := q.decodeExtra(extra)
-		log.Debug("DeliverBodies equalExtra", "bh", bh, "header.Hash", header.Hash(), "blockNumber", header.Number)
+		//log.Debug("DeliverBodies equalExtra", "bh", bh, "header.Hash", header.Hash(), "blockNumber", header.Number)
 		return err == nil && bh == header.Hash()
 	}
+	trieHasher := trie.NewStackTrie(nil)
 	validate := func(index int, header *types.Header) error {
-		deriveSha := types.DeriveSha(types.Transactions(txLists[index]), trie.NewStackTrie(nil))
+		deriveSha := types.DeriveSha(types.Transactions(txLists[index]), trieHasher)
 		if deriveSha != header.TxHash || !equalExtra(header, extraData[index]) {
-			log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
+			//log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
 			return errInvalidBody
 		}
 		return nil
@@ -822,8 +823,9 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraDa
 func (q *queue) DeliverReceipts(id string, receiptList [][]*types.Receipt) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
+	trieHasher := trie.NewStackTrie(nil)
 	validate := func(index int, header *types.Header) error {
-		if types.DeriveSha(types.Receipts(receiptList[index]), trie.NewStackTrie(nil)) != header.ReceiptHash {
+		if types.DeriveSha(types.Receipts(receiptList[index]), trieHasher) != header.ReceiptHash {
 			return errInvalidReceipt
 		}
 		return nil

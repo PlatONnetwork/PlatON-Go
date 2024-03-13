@@ -21,23 +21,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
 
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 
-	cli "gopkg.in/urfave/cli.v1"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/naoina/toml"
+	cli "gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -67,7 +67,12 @@ var tomlSettings = toml.Config{
 		return field
 	},
 	MissingField: func(rt reflect.Type, field string) error {
-		link := ""
+		id := fmt.Sprintf("%s.%s", rt.String(), field)
+		if deprecated(id) {
+			log.Warn("Config field is deprecated and won't have an effect", "name", id)
+			return nil
+		}
+		var link string
 		if unicode.IsUpper(rune(rt.Name()[0])) && rt.PkgPath() != "main" {
 			link = fmt.Sprintf(", see https://godoc.org/%s#%s for available fields", rt.PkgPath(), rt.Name())
 		}
@@ -150,6 +155,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
+	}
+	// Node doesn't by default populate account manager backends
+	if err := setAccountManagerBackends(stack); err != nil {
+		utils.Fatalf("Failed to set account manager backends: %v", err)
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
@@ -247,4 +256,40 @@ func applyMetricConfig(ctx *cli.Context, cfg *platonConfig) {
 	if ctx.GlobalIsSet(utils.MetricsInfluxDBTagsFlag.Name) {
 		cfg.Metrics.InfluxDBTags = ctx.GlobalString(utils.MetricsInfluxDBTagsFlag.Name)
 	}
+	if ctx.GlobalIsSet(utils.MetricsEnableInfluxDBV2Flag.Name) {
+		cfg.Metrics.EnableInfluxDBV2 = ctx.GlobalBool(utils.MetricsEnableInfluxDBV2Flag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBTokenFlag.Name) {
+		cfg.Metrics.InfluxDBToken = ctx.GlobalString(utils.MetricsInfluxDBTokenFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBBucketFlag.Name) {
+		cfg.Metrics.InfluxDBBucket = ctx.GlobalString(utils.MetricsInfluxDBBucketFlag.Name)
+	}
+	if ctx.GlobalIsSet(utils.MetricsInfluxDBOrganizationFlag.Name) {
+		cfg.Metrics.InfluxDBOrganization = ctx.GlobalString(utils.MetricsInfluxDBOrganizationFlag.Name)
+	}
+}
+
+func deprecated(field string) bool {
+	return false
+}
+
+func setAccountManagerBackends(stack *node.Node) error {
+	conf := stack.Config()
+	am := stack.AccountManager()
+	keydir := stack.KeyStoreDir()
+	scryptN := keystore.StandardScryptN
+	scryptP := keystore.StandardScryptP
+	if conf.UseLightweightKDF {
+		scryptN = keystore.LightScryptN
+		scryptP = keystore.LightScryptP
+	}
+
+	// For now, we're using EITHER external signer OR local signers.
+	// If/when we implement some form of lockfile for USB and keystore wallets,
+	// we can have both, but it's very confusing for the user to see the same
+	// accounts in both externally and locally, plus very racey.
+	am.AddBackend(keystore.NewKeyStore(keydir, scryptN, scryptP))
+
+	return nil
 }

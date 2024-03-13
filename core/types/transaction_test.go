@@ -21,11 +21,13 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -66,7 +68,7 @@ var (
 	})
 
 	signedEip2718Tx, _ = emptyEip2718Tx.WithSignature(
-		NewEIP2930Signer(big.NewInt(1)),
+		NewLondonSigner(big.NewInt(1)),
 		common.Hex2Bytes("c9519f4f2b30335884581971573fadf60c6204f59a911df35ee8a540456b266032f1e8e2c5dd761f9e4f88f41c8310aeaba26a8bfcdacfedfa12ec3862d3752101"),
 	)
 )
@@ -111,7 +113,7 @@ func TestTransactionEncode(t *testing.T) {
 }
 
 func TestEIP2718TransactionSigHash(t *testing.T) {
-	s := NewEIP2930Signer(big.NewInt(1))
+	s := NewLondonSigner(big.NewInt(1))
 	if s.Hash(emptyEip2718Tx, nil) != common.HexToHash("49b486f0ec0a60dfbbca2d30cb07c9e8ffb2a2ff41f29a1ab6737475f6ff69f3") {
 		t.Errorf("empty EIP-2718 transaction hash mismatch, got %x", s.Hash(emptyEip2718Tx, nil))
 	}
@@ -126,8 +128,8 @@ func TestEIP2930Signer(t *testing.T) {
 	var (
 		key, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		keyAddr = crypto.PubkeyToAddress(key.PublicKey)
-		signer1 = NewEIP2930Signer(big.NewInt(1))
-		signer2 = NewEIP2930Signer(big.NewInt(2))
+		signer1 = NewLondonSigner(big.NewInt(1))
+		signer2 = NewLondonSigner(big.NewInt(2))
 		tx0     = NewTx(&AccessListTx{Nonce: 1})
 		tx1     = NewTx(&AccessListTx{ChainID: big.NewInt(1), Nonce: 1})
 		tx2, _  = SignNewTx(key, signer2, &AccessListTx{ChainID: big.NewInt(2), Nonce: 1})
@@ -321,36 +323,77 @@ func TestRecipientNormal(t *testing.T) {
 	}
 }
 
+func TestTransactionPriceNonceSortLegacy(t *testing.T) {
+	testTransactionPriceNonceSort(t, nil)
+}
+
+func TestTransactionPriceNonceSort1559(t *testing.T) {
+	testTransactionPriceNonceSort(t, big.NewInt(0))
+	testTransactionPriceNonceSort(t, big.NewInt(5))
+	testTransactionPriceNonceSort(t, big.NewInt(50))
+}
+
 // Tests that transactions can be correctly sorted according to their price in
 // decreasing order, but at the same time with increasing nonces when issued by
 // the same account.
-func TestTransactionPriceNonceSort(t *testing.T) {
+func testTransactionPriceNonceSort(t *testing.T, baseFee *big.Int) {
 	// Generate a batch of accounts to start with
 	keys := make([]*ecdsa.PrivateKey, 25)
 	for i := 0; i < len(keys); i++ {
 		keys[i], _ = crypto.GenerateKey()
 	}
-	signer := NewEIP155Signer(big.NewInt(1))
+	signer := LatestSignerForChainID(common.Big1)
 
 	// Generate a batch of transactions with overlapping values, but shifted nonces
 	groups := map[common.Address]Transactions{}
+	expectedCount := 0
 	for start, key := range keys {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
+		count := 25
 		for i := 0; i < 25; i++ {
-			tx, _ := SignTx(NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(start+i)), nil), signer, key)
+			var tx *Transaction
+			gasFeeCap := rand.Intn(50)
+			if baseFee == nil {
+				tx = NewTx(&LegacyTx{
+					Nonce:    uint64(start + i),
+					To:       &common.Address{},
+					Value:    big.NewInt(100),
+					Gas:      100,
+					GasPrice: big.NewInt(int64(gasFeeCap)),
+					Data:     nil,
+				})
+			} else {
+				tx = NewTx(&DynamicFeeTx{
+					Nonce:     uint64(start + i),
+					To:        &common.Address{},
+					Value:     big.NewInt(100),
+					Gas:       100,
+					GasFeeCap: big.NewInt(int64(gasFeeCap)),
+					GasTipCap: big.NewInt(int64(rand.Intn(gasFeeCap + 1))),
+					Data:      nil,
+				})
+				if count == 25 && int64(gasFeeCap) < baseFee.Int64() {
+					count = i
+				}
+			}
+			tx, err := SignTx(tx, signer, key)
+			if err != nil {
+				t.Fatalf("failed to sign tx: %s", err)
+			}
 			groups[addr] = append(groups[addr], tx)
 		}
+		expectedCount += count
 	}
 	// Sort the transactions and cross check the nonce ordering
-	txset := NewTransactionsByPriceAndNonce(signer, groups)
+	txset := NewTransactionsByPriceAndNonce(signer, groups, baseFee)
 
 	txs := Transactions{}
 	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
 		txs = append(txs, tx)
 		txset.Shift()
 	}
-	if len(txs) != 25*25 {
-		t.Errorf("expected %d transactions, found %d", 25*25, len(txs))
+	if len(txs) != expectedCount {
+		t.Errorf("expected %d transactions, found %d", expectedCount, len(txs))
 	}
 	for i, txi := range txs {
 		fromi, _ := Sender(signer, txi)
@@ -366,7 +409,12 @@ func TestTransactionPriceNonceSort(t *testing.T) {
 		if i+1 < len(txs) {
 			next := txs[i+1]
 			fromNext, _ := Sender(signer, next)
-			if fromi != fromNext && txi.GasPrice().Cmp(next.GasPrice()) < 0 {
+			tip, err := txi.EffectiveGasTip(baseFee)
+			nextTip, nextErr := next.EffectiveGasTip(baseFee)
+			if err != nil || nextErr != nil {
+				t.Errorf("error calculating effective tip")
+			}
+			if fromi != fromNext && tip.Cmp(nextTip) < 0 {
 				t.Errorf("invalid gasprice ordering: tx #%d (A=%x P=%v) < tx #%d (A=%x P=%v)", i, fromi[:4], txi.GasPrice(), i+1, fromNext[:4], next.GasPrice())
 			}
 		}
@@ -394,7 +442,7 @@ func TestTransactionTimeSort(t *testing.T) {
 		groups[addr] = append(groups[addr], tx)
 	}
 	// Sort the transactions and cross check the nonce ordering
-	txset := NewTransactionsByPriceAndNonce(signer, groups)
+	txset := NewTransactionsByPriceAndNonce(signer, groups, nil)
 
 	txs := Transactions{}
 	for tx := txset.Peek(); tx != nil; tx = txset.Peek() {
@@ -428,7 +476,7 @@ func TestTransactionCoding(t *testing.T) {
 		t.Fatalf("could not generate key: %v", err)
 	}
 	var (
-		signer    = NewEIP2930Signer(common.Big1)
+		signer    = NewLondonSigner(common.Big1)
 		addr      = common.HexToAddress("0x0000000000000000000000000000000000000001")
 		recipient = common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
 		accesses  = AccessList{{Address: addr, StorageKeys: []common.Hash{{0}}}}

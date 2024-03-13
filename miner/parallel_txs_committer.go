@@ -20,19 +20,19 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 	}
 }
 
-func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
+func (c *ParallelTxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
 
 	w := c.worker
 
 	// Short circuit if current is nil
 	timeout := false
 
-	if w.current == nil {
+	if env == nil {
 		return true, timeout
 	}
 
-	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+	if env.gasPool == nil {
+		env.gasPool = new(core.GasPool).AddGas(env.header.GasLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -48,21 +48,21 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 			txs.Shift()
 		}
 	}
-	signer := types.MakeSigner(c.worker.chainConfig, header.Number, gov.Gte150VersionState(w.current.state))
-	ctx := core.NewParallelContext(w.current.state, header, common.Hash{}, w.current.gasPool, true, signer, tempContractCache)
+	signer := types.MakeSigner(c.worker.chainConfig, env.header.Number, gov.Gte150VersionState(env.state))
+	ctx := core.NewParallelContext(env.state, env.header, common.Hash{}, env.gasPool, true, signer, tempContractCache)
 	ctx.SetBlockDeadline(blockDeadline)
-	ctx.SetBlockGasUsedHolder(&header.GasUsed)
+	ctx.SetBlockGasUsedHolder(&(env.header.GasUsed))
 	ctx.SetTxList(parallelTxs)
-	log.Trace("Begin to execute transactions", "number", header.Number)
+	log.Trace("Begin to execute transactions", "number", env.header.Number)
 	if err := core.GetExecutor().ExecuteTransactions(ctx); err != nil {
 		log.Debug("pack txs err", "err", err)
 		return true, ctx.IsTimeout()
 	}
-	log.Trace("End to execute transactions", "number", header.Number)
+	log.Trace("End to execute transactions", "number", env.header.Number)
 
-	w.current.txs = append(w.current.txs, ctx.GetPackedTxList()...)
-	w.current.tcount = len(w.current.txs)
-	w.current.receipts = append(w.current.receipts, ctx.GetReceipts()...)
+	env.txs = append(env.txs, ctx.GetPackedTxList()...)
+	env.tcount = len(env.txs)
+	env.receipts = append(env.receipts, ctx.GetReceipts()...)
 	//w.current.header.GasUsed = ctx.GetBlockGasUsed()
 	coalescedLogs = append(coalescedLogs, ctx.GetLogs()...)
 
@@ -86,6 +86,6 @@ func (c *ParallelTxsCommitter) CommitTransactions(header *types.Header, txs *typ
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	log.Debug("End to commit transactions", "number", header.Number)
+	log.Debug("End to commit transactions", "number", env.header.Number)
 	return false, ctx.IsTimeout()
 }

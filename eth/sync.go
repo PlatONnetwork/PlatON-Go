@@ -49,7 +49,7 @@ type txsync struct {
 // syncTransactions starts sending all currently pending transactions to the given peer.
 func (h *handler) syncTransactions(p *eth.Peer) {
 	var txs types.Transactions
-	pending, _ := h.txpool.Pending()
+	pending := h.txpool.Pending(false, false)
 	for _, batch := range pending {
 		txs = append(txs, batch...)
 	}
@@ -178,7 +178,7 @@ func newChainSyncer(handler *handler) *chainSyncer {
 // handlePeerEvent notifies the syncer about a change in the peer set.
 // This is called for new peers and every time a peer announces a new
 // chain head.
-func (cs *chainSyncer) handlePeerEvent(peer *eth.Peer) bool {
+func (cs *chainSyncer) handlePeerEvent() bool {
 	select {
 	case cs.peerEventCh <- struct{}{}:
 		return true

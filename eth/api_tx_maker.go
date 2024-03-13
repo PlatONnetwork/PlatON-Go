@@ -91,9 +91,12 @@ type TxGenAPI struct {
 // accountPath,Account configuration address
 // start, end ,Start and end account
 // max wait account receipt time,seconds.if not receive the account receipt ,will resend the tx
-func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, waitAccountReceiptTime uint) error {
+func (txg *TxGenAPI) Start(txType uint, normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, waitAccountReceiptTime uint) error {
 	if txg.start {
 		return errors.New("the tx maker is working")
+	}
+	if txType != types.DynamicFeeTxType && txType != types.LegacyTxType {
+		return errors.New("the tx type is wrong")
 	}
 
 	//make sure when the txGen is start ,the node will not receive txs from other node,
@@ -109,14 +112,14 @@ func (txg *TxGenAPI) Start(normalTx, evmTx, wasmTx uint, totalTxPer, activeTxPer
 	txg.res = new(TxGenResData)
 	txg.res.TotalTxSend = 0
 	txg.res.Blocks = make([]BlockInfo, 0)
-	if err := txg.makeTransaction(normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
+	if err := txg.makeTransaction(txType, normalTx, evmTx, wasmTx, totalTxPer, activeTxPer, txFrequency, activeSender, sendingAmount, accountPath, start, end, blockExecutech, blockch, time.Second*time.Duration(waitAccountReceiptTime)); err != nil {
 		return err
 	}
 	txg.start = true
 	return nil
 }
 
-func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
+func (txg *TxGenAPI) makeTransaction(txType uint, tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, activeSender uint, sendingAmount uint64, accountPath string, start, end uint, blockExcuteCh, blockQCCh chan *types.Block, waitAccountReceiptTime time.Duration) error {
 	state, err := txg.eth.blockchain.State()
 	if err != nil {
 		return err
@@ -128,7 +131,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 	}
 	state.ClearReference()
 
-	singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
+	signer := types.LatestSignerForChainID(txg.eth.blockchain.Config().PIP7ChainID)
 
 	txsCh := make(chan []*types.Transaction, 2)
 
@@ -148,7 +151,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 				case <-txg.txGenExitCh:
 					return
 				case ntx := <-signTxCh:
-					newTx, err := types.SignTx(ntx.tx, singine, ntx.pri)
+					newTx, err := types.SignTx(ntx.tx, signer, ntx.pri)
 					if err != nil {
 						log.Error(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}
@@ -187,7 +190,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 			case res := <-blockExcuteCh:
 				txm.blockProduceTime = time.Now()
 				for _, receipt := range res.Transactions() {
-					readd, err := types.Sender(singine, receipt)
+					readd, err := types.Sender(signer, receipt)
 					if err != nil {
 						log.Error("get tx from fail", "err", err)
 					}
@@ -208,7 +211,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 				if block, ok := txm.blockCache[res.Hash()]; ok {
 					for _, receipt := range block.Transactions() {
-						readd, err := types.Sender(singine, receipt)
+						readd, err := types.Sender(signer, receipt)
 						if err != nil {
 							log.Error("get tx from fail", "err", err)
 						}
@@ -223,7 +226,7 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 					delete(txm.blockCache, res.Hash())
 				} else {
 					for _, receipt := range res.Transactions() {
-						readd, err := types.Sender(singine, receipt)
+						readd, err := types.Sender(signer, receipt)
 						if err != nil {
 							log.Error("get tx from fail", "err", err)
 						}
@@ -268,9 +271,33 @@ func (txg *TxGenAPI) makeTransaction(tx, evm, wasm uint, totalTxPer, activeTxPer
 
 					txContractInputData, txReceive, gasLimit, amount := txm.generateTxParams(toAdd)
 
-					tx := types.NewTransaction(account.Nonce, txReceive, amount, gasLimit, gasPrice, txContractInputData)
+					var inner types.TxData
+					if txType == types.DynamicFeeTxType {
+						inner = &types.DynamicFeeTx{
+							ChainID:   txg.eth.blockchain.Config().PIP7ChainID,
+							Nonce:     account.Nonce,
+							To:        &txReceive,
+							Value:     amount,
+							Gas:       gasLimit,
+							GasFeeCap: gasPrice,
+							GasTipCap: gasPrice,
+							Data:      txContractInputData,
+						}
+
+					} else if txType == types.LegacyTxType {
+						inner = &types.LegacyTx{
+							Nonce:    account.Nonce,
+							To:       &txReceive,
+							Value:    amount,
+							Gas:      gasLimit,
+							GasPrice: gasPrice,
+							Data:     txContractInputData,
+						}
+					}
+
+					tx := types.NewTx(inner)
 					signTxCh <- needSignTx{tx, account.Priv}
-					/*newTx, err := types.SignTx(tx, singine, account.Priv)
+					/*newTx, err := types.SignTx(tx, signer, account.Priv)
 					if err != nil {
 						log.Crit(fmt.Errorf("sign error,%s", err.Error()).Error())
 					}*/
@@ -339,7 +366,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 		defer currentState.ClearReference()
 		account := crypto.PubkeyToAddress(pri.PublicKey)
 		nonce := currentState.GetNonce(account)
-		singine := types.LatestSignerForChainID(txg.eth.blockchain.Config().ChainID)
+		signer := types.LatestSignerForChainID(txg.eth.blockchain.Config().PIP7ChainID)
 		gasPrice := txg.eth.txPool.GasPrice()
 
 		for _, input := range [][]*TxGenContractConfig{txgenInput.Wasm, txgenInput.Evm} {
@@ -348,7 +375,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 					continue
 				}
 				tx := types.NewContractCreation(nonce, nil, config.DeployGasLimit, gasPrice, common.Hex2Bytes(config.ContractsCode))
-				newTx, err := types.SignTx(tx, singine, pri)
+				newTx, err := types.SignTx(tx, signer, pri)
 				if err != nil {
 					return err
 				}

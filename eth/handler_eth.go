@@ -29,16 +29,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 // ethHandler implements the eth.Backend interface to handle the various network
 // packets that are sent as replies or broadcasts.
 type ethHandler handler
 
-func (h *ethHandler) Chain() *core.BlockChain     { return h.chain }
-func (h *ethHandler) StateBloom() *trie.SyncBloom { return h.stateBloom }
-func (h *ethHandler) TxPool() eth.TxPool          { return h.txpool }
+func (h *ethHandler) Chain() *core.BlockChain { return h.chain }
+func (h *ethHandler) TxPool() eth.TxPool      { return h.txpool }
 
 // RunPeer is invoked when a peer joins on the `eth` protocol.
 func (h *ethHandler) RunPeer(peer *eth.Peer, hand eth.Handler) error {
@@ -112,13 +110,14 @@ func (h *ethHandler) Handle(peer *eth.Peer, packet eth.Packet) error {
 	case *eth.PooledTransactionsPacket:
 		return h.txFetcher.Enqueue(peer.ID(), *packet, true)
 
-	case *eth.PposStoragePack:
-		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum)
-
-	case *eth.OriginAndPivotPack:
+	case *eth.PposStoragePacket:
+		return h.downloader.DeliverPposStorage(peer.ID(), packet.KVs, packet.Last, packet.KVNum, nil, 0)
+	case *eth.PposStorageV2Packet:
+		return h.downloader.DeliverPposStorage(peer.ID(), nil, false, 0, packet.BlockStorage, packet.BaseBlock)
+	case *eth.OriginAndPivotPacket:
 		return h.downloader.DeliverOriginAndPivot(peer.ID(), *packet)
 
-	case *eth.PposInfoPack:
+	case *eth.PposInfoPacket:
 		return h.downloader.DeliverPposInfo(peer.ID(), packet.Latest, packet.Pivot)
 
 	default:
@@ -226,7 +225,7 @@ func (h *ethHandler) handleBlockBroadcast(peer *eth.Peer, block *types.Block) er
 	// Update the peer's total difficulty if better than the previous
 	if _, bn := peer.Head(); trueBN.Cmp(bn) > 0 {
 		peer.SetHead(trueHead, trueBN)
-		h.chainSync.handlePeerEvent(peer)
+		h.chainSync.handlePeerEvent()
 	}
 	return nil
 }

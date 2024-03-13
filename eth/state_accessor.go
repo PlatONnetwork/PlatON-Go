@@ -19,8 +19,9 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -36,7 +37,17 @@ import (
 // are attempted to be reexecuted to generate the desired state. The optional
 // base layer statedb can be passed then it's regarded as the statedb of the
 // parent block.
-func (eth *Ethereum) stateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool) (statedb *state.StateDB, err error) {
+// Parameters:
+// - block: The block for which we want the state (== state at the stateRoot of the parent)
+// - reexec: The maximum number of blocks to reprocess trying to obtain the desired state
+//   - base: If the caller is tracing multiple blocks, the caller can provide the parent state
+//     continuously from the callsite.
+//   - checklive: if true, then the live 'blockchain' state database is used. If the caller want to
+//     perform Commit or other 'save-to-disk' changes, this should be set to false to avoid
+//     storing trash persistently
+//   - preferDisk: this arg can be used by the caller to signal that even though the 'base' is provided,
+//     it would be preferrable to start from a fresh state, if we have it on disk.
+func (eth *Ethereum) stateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
 	var (
 		current  *types.Block
 		database state.Database
@@ -51,6 +62,15 @@ func (eth *Ethereum) stateAtBlock(block *types.Block, reexec uint64, base *state
 		}
 	}
 	if base != nil {
+		if preferDisk {
+			// Create an ephemeral trie.Database for isolating the live one. Otherwise
+			// the internal junks created by tracing will be persisted into the disk.
+			database = state.NewDatabaseWithConfig(eth.chainDb, &trie.Config{Cache: 16})
+			if statedb, err = state.New(block.Root(), database, nil); err == nil {
+				log.Info("Found disk backend for state trie", "root", block.Root(), "number", block.Number())
+				return statedb, nil
+			}
+		}
 		// The optional base statedb is given, mark the start point as parent block
 		statedb, database, report = base, base.Database(), false
 		current = eth.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1)
@@ -119,7 +139,8 @@ func (eth *Ethereum) stateAtBlock(block *types.Block, reexec uint64, base *state
 		// Finalize the state so any modifications are written to the trie
 		root, err := statedb.Commit(true)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("stateAtBlock commit failed, number %d root %v: %w",
+				current.NumberU64(), current.Root().Hex(), err)
 		}
 		statedb, err = state.New(root, database, nil)
 		if err != nil {
@@ -151,7 +172,7 @@ func (eth *Ethereum) stateAtTransaction(block *types.Block, txIndex int, reexec 
 	}
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
-	statedb, err := eth.stateAtBlock(parent, reexec, nil, true)
+	statedb, err := eth.stateAtBlock(parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, vm.BlockContext{}, nil, err
 	}
@@ -161,7 +182,7 @@ func (eth *Ethereum) stateAtTransaction(block *types.Block, txIndex int, reexec 
 	// Recompute transactions up to the target index.
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
-		msg, _ := tx.AsMessage(types.NewEIP2930Signer(tx.ChainId()))
+		msg, _ := tx.AsMessage(types.NewLondonSigner(tx.ChainId()), block.BaseFee())
 		txContext := core.NewEVMTxContext(msg)
 		context := core.NewEVMBlockContext(block.Header(), eth.blockchain)
 		if idx == txIndex {
@@ -169,7 +190,7 @@ func (eth *Ethereum) stateAtTransaction(block *types.Block, txIndex int, reexec 
 		}
 		// Not yet the searched for transaction, execute on top of the current state
 		vmenv := vm.NewEVM(context, txContext, snapshotdb.Instance(), statedb, eth.blockchain.Config(), vm.Config{})
-		statedb.Prepare(tx.Hash(), block.Hash(), idx)
+		statedb.Prepare(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.BlockContext{}, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}

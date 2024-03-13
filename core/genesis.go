@@ -67,6 +67,7 @@ type Genesis struct {
 	Number     uint64      `json:"number"`
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
+	BaseFee    *big.Int    `json:"baseFeePerGas"`
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -89,6 +90,7 @@ type genesisSpecMarshaling struct {
 	GasLimit  math.HexOrDecimal64
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
+	BaseFee   *math.HexOrDecimal256
 	Alloc     map[common.Address]GenesisAccount
 }
 
@@ -402,7 +404,10 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 
 	genesisIssuance := new(big.Int)
 
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	statedb, e := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	if e != nil {
+		panic(e)
+	}
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
 	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
 	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
@@ -487,13 +492,20 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
+		BaseFee:    g.BaseFee,
 		Coinbase:   vm.RewardManagerPoolAddr,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-
+	if gov.Gte150Version(genesisVersion) {
+		if g.BaseFee != nil {
+			head.BaseFee = g.BaseFee
+		} else {
+			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
+		}
+	}
 	if _, err := statedb.Commit(false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
@@ -568,7 +580,10 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
-	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
+	g := Genesis{
+		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 	return g.MustCommit(db)
 }
 

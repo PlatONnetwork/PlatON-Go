@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -31,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
-type blockData struct {
+type BlockData struct {
 	BlockHash  common.Hash
 	ParentHash common.Hash
 	Number     *big.Int
@@ -50,7 +49,7 @@ type revision struct {
 	journalIndex int
 }
 
-func (b *blockData) DecodeRLP(s *rlp.Stream) error {
+func (b *BlockData) DecodeRLP(s *rlp.Stream) error {
 	jk := new(blockWal)
 	if err := s.Decode(jk); err != nil {
 		return err
@@ -67,7 +66,7 @@ func (b *blockData) DecodeRLP(s *rlp.Stream) error {
 	return nil
 }
 
-func (b *blockData) EncodeRLP(w io.Writer) error {
+func (b *BlockData) EncodeRLP(w io.Writer) error {
 	jk := new(blockWal)
 	jk.BlockHash = b.BlockHash
 	jk.ParentHash = b.ParentHash
@@ -89,11 +88,11 @@ func (b *blockData) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, jk)
 }
 
-func (b *blockData) BlockKey() []byte {
+func (b *BlockData) BlockKey() []byte {
 	return EncodeWalKey(b.Number)
 }
 
-func (b *blockData) BlockVal() []byte {
+func (b *BlockData) BlockVal() []byte {
 	val, err := rlp.EncodeToBytes(b)
 	if err != nil {
 		panic("Encode BlockVal to byte fail:" + err.Error())
@@ -101,13 +100,13 @@ func (b *blockData) BlockVal() []byte {
 	return val
 }
 
-func (b *blockData) cleanJournal() {
+func (b *BlockData) cleanJournal() {
 	b.journal = nil
 	b.validRevisions = nil
 	b.nextRevisionId = 0
 }
 
-func (b *blockData) revert(snapshot int) {
+func (b *BlockData) revert(snapshot int) {
 	for i := len(b.journal) - 1; i >= snapshot; i-- {
 		// Undo the changes made by the operation
 		en := b.journal[i]
@@ -122,7 +121,7 @@ func (b *blockData) revert(snapshot int) {
 }
 
 // RevertToSnapshot reverts all state changes made since the given revision.
-func (b *blockData) RevertToSnapshot(revid int) {
+func (b *BlockData) RevertToSnapshot(revid int) {
 	// Find the snapshot in the stack of valid snapshots.
 	idx := sort.Search(len(b.validRevisions), func(i int) bool {
 		return b.validRevisions[i].id >= revid
@@ -138,14 +137,14 @@ func (b *blockData) RevertToSnapshot(revid int) {
 }
 
 // Snapshot returns an identifier for the current revision of the state.
-func (b *blockData) Snapshot() int {
+func (b *BlockData) Snapshot() int {
 	id := b.nextRevisionId
 	b.nextRevisionId++
 	b.validRevisions = append(b.validRevisions, revision{id, len(b.journal)})
 	return id
 }
 
-func (b *blockData) Write(key, val []byte) error {
+func (b *BlockData) Write(key, val []byte) error {
 	var entry journalEntry = journalEntry{
 		key:       key,
 		newVal:    val,
@@ -177,11 +176,11 @@ type journalEntry struct {
 }
 
 type unCommitBlocks struct {
-	blocks map[common.Hash]*blockData
+	blocks map[common.Hash]*BlockData
 	sync.RWMutex
 }
 
-func (u *unCommitBlocks) Get(key common.Hash) *blockData {
+func (u *unCommitBlocks) Get(key common.Hash) *BlockData {
 	u.RLock()
 	block, ok := u.blocks[key]
 	u.RUnlock()
@@ -191,7 +190,7 @@ func (u *unCommitBlocks) Get(key common.Hash) *blockData {
 	return block
 }
 
-func (u *unCommitBlocks) Set(key common.Hash, block *blockData) {
+func (u *unCommitBlocks) Set(key common.Hash, block *BlockData) {
 	u.Lock()
 	u.blocks[key] = block
 	u.Unlock()

@@ -36,7 +36,7 @@ func newTestchain(path string) *testchain {
 	}
 	ch.db = db
 	SetDBBlockChain(ch)
-	ch.db.walCh = make(chan *blockData, 2)
+	ch.db.walCh = make(chan *BlockData, 2)
 	ch.db.walLoopCtx, ch.db.walLoopCancel = context.WithCancel(context.Background())
 	go ch.db.loopWriteWal()
 
@@ -55,7 +55,7 @@ func (c *testchain) reOpenSnapshotDB() {
 		panic(err)
 	}
 	c.db = db
-	c.db.walCh = make(chan *blockData, 2)
+	c.db.walCh = make(chan *BlockData, 2)
 	c.db.walLoopCtx, c.db.walLoopCancel = context.WithCancel(context.Background())
 	go c.db.loopWriteWal()
 

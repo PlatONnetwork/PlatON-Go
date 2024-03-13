@@ -35,7 +35,7 @@ import (
 
 var (
 	testdb  = rawdb.NewMemoryDatabase()
-	genesis = core.GenesisBlockForTesting(testdb, testAddress, big.NewInt(1000000000))
+	genesis = core.GenesisBlockForTesting(testdb, testAddress, big.NewInt(1000000000000000))
 )
 
 // makeChain creates a chain of n blocks starting at and including parent.
@@ -48,7 +48,7 @@ func makeChain(n int, seed byte, parent *types.Block, empty bool) ([]*types.Bloc
 		// Add one tx to every secondblock
 		if !empty && i%2 == 0 {
 			signer := types.MakeSigner(params.TestChainConfig, parent.Number(), false)
-			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, nil, nil), signer, testKey)
+			tx, err := types.SignTx(types.NewTransaction(block.TxNonce(testAddress), common.Address{seed}, big.NewInt(1000), params.TxGas, block.BaseFee(), nil), signer, testKey)
 			if err != nil {
 				panic(err)
 			}
@@ -115,8 +115,7 @@ func TestBasics(t *testing.T) {
 		t.Errorf("wrong pending block count, got %d, exp %d", got, exp)
 	}
 	// Only non-empty receipts get added to task-queue
-	// The receipt is not synchronized in PlatON SnapSync mode, so it is 0 here
-	if got, exp := q.PendingReceipts(), 0; got != exp {
+	if got, exp := q.PendingReceipts(), 64; got != exp {
 		t.Errorf("wrong pending receipt count, got %d, exp %d", got, exp)
 	}
 	// Items are now queued for downloading, next step is that we tell the

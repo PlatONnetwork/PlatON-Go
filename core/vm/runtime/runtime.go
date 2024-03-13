@@ -46,6 +46,7 @@ type Config struct {
 	Value       *big.Int
 	Debug       bool
 	EVMConfig   vm.Config
+	BaseFee     *big.Int
 
 	State     *state.StateDB
 	GetHashFn func(n uint64) common.Hash
@@ -83,6 +84,9 @@ func setDefaults(cfg *Config) {
 		cfg.GetHashFn = func(n uint64) common.Hash {
 			return common.BytesToHash(crypto.Keccak256([]byte(new(big.Int).SetUint64(n).String())))
 		}
+	}
+	if cfg.BaseFee == nil {
+		cfg.BaseFee = big.NewInt(params.InitialBaseFee)
 	}
 }
 
@@ -138,6 +142,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
 	)
+	vmenv.Context.Ctx = context.TODO()
 	if gov.Gte150VersionState(cfg.State) {
 		cfg.State.PrepareAccessList(cfg.Origin, nil, vm.ActivePrecompiles(cfg.State), nil)
 	}
@@ -161,9 +166,11 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	setDefaults(cfg)
 
 	vmenv := NewEnv(cfg)
+	vmenv.Context.Ctx = context.TODO()
 
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
 	statedb := cfg.State
+
 	if gov.Gte150VersionState(cfg.State) {
 		statedb.PrepareAccessList(cfg.Origin, &address, vm.ActivePrecompiles(statedb), nil)
 	}

@@ -21,10 +21,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
@@ -178,7 +180,7 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
 }
 
-var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
+var PlatONPrecompiledContractsNewton = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 	// add by economic model
 	vm.StakingContractAddr:     &StakingContract{},
@@ -190,12 +192,35 @@ var PlatONPrecompiledContracts120 = map[common.Address]PrecompiledContract{
 	vm.VrfInnerContractAddr:    &vrf{},
 }
 
+var PlatONPrecompiledContractsPauli = map[common.Address]PrecompiledContract{
+	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
+	// add by economic model
+	vm.StakingContractAddr:     &StakingContract{},
+	vm.RestrictingContractAddr: &RestrictingContract{},
+	vm.SlashingContractAddr:    &SlashingContract{},
+	vm.GovContractAddr:         &GovContract{},
+	vm.RewardManagerPoolAddr:   &rewardEmpty{},
+	vm.DelegateRewardPoolAddr:  &DelegateRewardContract{},
+	vm.VrfInnerContractAddr:    &vrf{},
+	vm.BlsVerifyContractAddr:   &blsSignVerify{},
+}
+
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(state xcom.StateDB) []common.Address {
 	if gov.Gte150VersionState(state) {
 		return PrecompiledAddressesBerlin2
 	}
 	return PrecompiledAddressesBerlin
+}
+
+// ActivePrecompiles returns the precompiles enabled with the current configuration.
+func ActivePrecompilesByRules(rules params.Rules) []common.Address {
+	switch {
+	case rules.IsPauli:
+		return PrecompiledAddressesBerlin2
+	default:
+		return PrecompiledAddressesBerlin
+	}
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
@@ -233,9 +258,14 @@ func IsEVMPrecompiledContract(addr common.Address, rules params.Rules, gte150Ver
 	return false
 }
 
-func IsPlatONPrecompiledContract(addr common.Address, rules params.Rules) bool {
+func IsPlatONPrecompiledContract(addr common.Address, rules params.Rules, gte150Version bool) bool {
+	if rules.IsPauli || gte150Version {
+		if _, ok := PlatONPrecompiledContractsPauli[addr]; ok {
+			return true
+		}
+	}
 	if rules.IsNewton {
-		if _, ok := PlatONPrecompiledContracts120[addr]; ok {
+		if _, ok := PlatONPrecompiledContractsNewton[addr]; ok {
 			return true
 		}
 	} else {
@@ -250,7 +280,7 @@ func IsPrecompiledContract(addr common.Address, rules params.Rules, gte150Versio
 	if IsEVMPrecompiledContract(addr, rules, gte150Version) {
 		return true
 	} else {
-		return IsPlatONPrecompiledContract(addr, rules)
+		return IsPlatONPrecompiledContract(addr, rules, gte150Version)
 	}
 }
 
@@ -1169,4 +1199,52 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		}
 	}
 	return randomNumbers, nil
+}
+
+var (
+	errBlsSignVerifyInvalidInputLength = errors.New("invalid input length")
+	errBlsSignVerifyFailed             = errors.New("bls sign verify failed")
+)
+
+type blsSignVerify struct {
+	Evm *EVM
+}
+
+func (b blsSignVerify) RequiredGas(input []byte) uint64 {
+	return params.BlsVerifyGas
+}
+
+// input由 签名+消息+n个bls公钥组成
+// 签名长度  64
+// 消息长度  32
+// bls公钥长度  96*n
+
+func (b blsSignVerify) Run(input []byte) ([]byte, error) {
+	if len(input) == 0 || len(input) == 96 || len(input)%96 != 0 {
+		return nil, errBlsSignVerifyInvalidInputLength
+	}
+
+	var (
+		sig    bls.Sign
+		msg    []byte
+		pubKey = new(bls.PublicKey)
+	)
+	if err := sig.Deserialize(getData(input, 0, 64)); err != nil {
+		return nil, err
+	}
+
+	for i := 1; i < len(input)/96; i++ {
+		pub := new(bls.PublicKey)
+		if err := pub.Deserialize(getData(input, uint64(96*i), 96)); err != nil {
+			return nil, err
+		}
+		pubKey.Add(pub)
+	}
+
+	msg = getData(input, 64, 32)
+
+	if !sig.Verify(pubKey, string(msg)) {
+		return nil, errBlsSignVerifyFailed
+	}
+	return nil, nil
 }

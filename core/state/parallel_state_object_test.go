@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,7 @@ import (
 )
 
 func TestParallelStateObject(t *testing.T) {
-	account := Account{
+	account := types.StateAccount{
 		Root:    common.HexToHash("0x1000000000000000000000000000000000000001"),
 		Nonce:   1,
 		Balance: common.Big100,

@@ -368,7 +368,7 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, root common.Hash, pref
 		for i, key := range result.keys {
 			snapTrie.Update(key, result.vals[i])
 		}
-		root, _ := snapTrie.Commit(nil)
+		root, _, _ := snapTrie.Commit(nil)
 		snapTrieDb.Commit(root, false, false)
 	}
 	// Construct the trie for state iteration, reuse the trie
@@ -714,7 +714,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 	}
 	ctx.batch.Reset()
 
-	log.Info("Generated state snapshot", "accounts", stats.accounts, "slots", stats.slots,
+	log.Error("Generated state snapshot", "accounts", stats.accounts, "slots", stats.slots,
 		"storage", stats.storage, "dangling", stats.dangling, "elapsed", common.PrettyDuration(time.Since(stats.start)))
 
 	dl.lock.Lock()

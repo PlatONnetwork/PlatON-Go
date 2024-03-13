@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 	"io"
 	"io/ioutil"
 	"math"
@@ -33,7 +34,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
@@ -129,10 +129,6 @@ var (
 		Name:  "keystore",
 		Usage: "Directory for the keystore (default = inside the datadir)",
 	}
-	NoUSBFlag = cli.BoolFlag{
-		Name:  "nousb",
-		Usage: "Disables monitoring for and managing USB hardware wallets",
-	}
 	NetworkIdFlag = cli.Uint64Flag{
 		Name:  "networkid",
 		Usage: "Explicitly set network id (integer)",
@@ -158,6 +154,32 @@ var (
 		Name:  "docroot",
 		Usage: "Document Root for HTTPClient file scheme",
 		Value: DirectoryString(HomeDir()),
+	}
+	IterativeOutputFlag = cli.BoolTFlag{
+		Name:  "iterative",
+		Usage: "Print streaming JSON iteratively, delimited by newlines",
+	}
+	ExcludeStorageFlag = cli.BoolFlag{
+		Name:  "nostorage",
+		Usage: "Exclude storage entries (save db lookups)",
+	}
+	IncludeIncompletesFlag = cli.BoolFlag{
+		Name:  "incompletes",
+		Usage: "Include accounts for which we don't have the address (missing preimage)",
+	}
+	ExcludeCodeFlag = cli.BoolFlag{
+		Name:  "nocode",
+		Usage: "Exclude contract code (save db lookups)",
+	}
+	StartKeyFlag = cli.StringFlag{
+		Name:  "start",
+		Usage: "Start position. Either a hash or address",
+		Value: "0x0000000000000000000000000000000000000000000000000000000000000000",
+	}
+	DumpLimitFlag = cli.Uint64Flag{
+		Name:  "limit",
+		Usage: "Max number of elements (0 = no limit)",
+		Value: 0,
 	}
 	defaultSyncMode = ethconfig.Defaults.SyncMode
 	SyncModeFlag    = TextMarshalerFlag{
@@ -260,9 +282,9 @@ var (
 		Usage: "Time interval to regenerate the trie cache journal",
 		Value: ethconfig.Defaults.TrieCleanCacheRejournal,
 	}
-	SnapshotFlag = cli.BoolFlag{
+	SnapshotFlag = cli.BoolTFlag{
 		Name:  "snapshot",
-		Usage: `Enables snapshot-database mode`,
+		Usage: `Enables snapshot-database mode (default = enable)`,
 	}
 	BloomFilterSizeFlag = cli.Uint64Flag{
 		Name:  "bloomfilter.size",
@@ -312,6 +334,11 @@ var (
 		Name:  "rpc.gascap",
 		Usage: "Sets a cap on gas that can be used in platon_call/estimateGas (0=infinite)",
 		Value: ethconfig.Defaults.RPCGasCap,
+	}
+	RPCGlobalEVMTimeoutFlag = cli.DurationFlag{
+		Name:  "rpc.evmtimeout",
+		Usage: "Sets a timeout used for eth_call (0=infinite)",
+		Value: ethconfig.Defaults.RPCEVMTimeout,
 	}
 	RPCGlobalTxFeeCapFlag = cli.Float64Flag{
 		Name:  "rpc.txfeecap",
@@ -499,10 +526,10 @@ var (
 	}
 
 	// ATM the url is left to the user and deployment to
-	JSpathFlag = cli.StringFlag{
+	JSpathFlag = DirectoryFlag{
 		Name:  "jspath",
 		Usage: "JavaScript root path for `loadScript`",
-		Value: ".",
+		Value: DirectoryString("."),
 	}
 
 	// Gas price oracle settings
@@ -518,8 +545,13 @@ var (
 	}
 	GpoMaxGasPriceFlag = cli.Int64Flag{
 		Name:  "gpo.maxprice",
-		Usage: "Maximum gas price will be recommended by gpo",
+		Usage: "Maximum transaction priority fee (or gasprice before London fork) to be recommended by gpo",
 		Value: ethconfig.Defaults.GPO.MaxPrice.Int64(),
+	}
+	GpoIgnoreGasPriceFlag = cli.Int64Flag{
+		Name:  "gpo.ignoreprice",
+		Usage: "Gas price below which gpo will ignore transactions",
+		Value: ethconfig.Defaults.GPO.IgnorePrice.Int64(),
 	}
 
 	// Metrics flags
@@ -578,6 +610,29 @@ var (
 		Name:  "metrics.influxdb.tags",
 		Usage: "Comma-separated InfluxDB tags (key/values) attached to all measurements",
 		Value: metrics.DefaultConfig.InfluxDBTags,
+	}
+
+	MetricsEnableInfluxDBV2Flag = cli.BoolFlag{
+		Name:  "metrics.influxdbv2",
+		Usage: "Enable metrics export/push to an external InfluxDB v2 database",
+	}
+
+	MetricsInfluxDBTokenFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.token",
+		Usage: "Token to authorize access to the database (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBToken,
+	}
+
+	MetricsInfluxDBBucketFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.bucket",
+		Usage: "InfluxDB bucket name to push reported metrics to (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBBucket,
+	}
+
+	MetricsInfluxDBOrganizationFlag = cli.StringFlag{
+		Name:  "metrics.influxdb.organization",
+		Usage: "InfluxDB organization name (v2 only)",
+		Value: metrics.DefaultConfig.InfluxDBOrganization,
 	}
 
 	CbftPeerMsgQueueSize = cli.Uint64Flag{
@@ -791,51 +846,23 @@ func SplitAndTrim(input string) (ret []string) {
 // setHTTP creates the HTTP RPC listener interface string from the set
 // command line flags, returning empty if the HTTP endpoint is disabled.
 func setHTTP(ctx *cli.Context, cfg *node.Config) {
-	if ctx.GlobalBool(LegacyRPCEnabledFlag.Name) && cfg.HTTPHost == "" {
-		log.Warn("The flag --rpc is deprecated and will be removed in the future, please use --http")
-		cfg.HTTPHost = "127.0.0.1"
-		if ctx.GlobalIsSet(LegacyRPCListenAddrFlag.Name) {
-			cfg.HTTPHost = ctx.GlobalString(LegacyRPCListenAddrFlag.Name)
-			log.Warn("The flag --rpcaddr is deprecated and will be removed in the future, please use --http.addr")
-		}
-	}
 	if ctx.GlobalBool(HTTPEnabledFlag.Name) && cfg.HTTPHost == "" {
 		cfg.HTTPHost = "127.0.0.1"
 		if ctx.GlobalIsSet(HTTPListenAddrFlag.Name) {
 			cfg.HTTPHost = ctx.GlobalString(HTTPListenAddrFlag.Name)
 		}
 	}
-
-	if ctx.GlobalIsSet(LegacyRPCPortFlag.Name) {
-		cfg.HTTPPort = ctx.GlobalInt(LegacyRPCPortFlag.Name)
-		log.Warn("The flag --rpcport is deprecated and will be removed in the future, please use --http.port")
-	}
 	if ctx.GlobalIsSet(HTTPPortFlag.Name) {
 		cfg.HTTPPort = ctx.GlobalInt(HTTPPortFlag.Name)
 	}
-
-	if ctx.GlobalIsSet(LegacyRPCCORSDomainFlag.Name) {
-		cfg.HTTPCors = SplitAndTrim(ctx.GlobalString(LegacyRPCCORSDomainFlag.Name))
-		log.Warn("The flag --rpccorsdomain is deprecated and will be removed in the future, please use --http.corsdomain")
-	}
 	if ctx.GlobalIsSet(HTTPCORSDomainFlag.Name) {
 		cfg.HTTPCors = SplitAndTrim(ctx.GlobalString(HTTPCORSDomainFlag.Name))
-	}
-
-	if ctx.GlobalIsSet(LegacyRPCApiFlag.Name) {
-		cfg.HTTPModules = SplitAndTrim(ctx.GlobalString(LegacyRPCApiFlag.Name))
-		log.Warn("The flag --rpcapi is deprecated and will be removed in the future, please use --http.api")
 	}
 	if ctx.GlobalIsSet(HTTPApiFlag.Name) {
 		cfg.HTTPModules = SplitAndTrim(ctx.GlobalString(HTTPApiFlag.Name))
 	}
 	if ctx.GlobalBool(HTTPEnabledEthCompatibleFlag.Name) {
 		types2.HttpEthCompatible = true
-	}
-
-	if ctx.GlobalIsSet(LegacyRPCVirtualHostsFlag.Name) {
-		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.GlobalString(LegacyRPCVirtualHostsFlag.Name))
-		log.Warn("The flag --rpcvhosts is deprecated and will be removed in the future, please use --http.vhosts")
 	}
 	if ctx.GlobalIsSet(HTTPVirtualHostsFlag.Name) {
 		cfg.HTTPVirtualHosts = SplitAndTrim(ctx.GlobalString(HTTPVirtualHostsFlag.Name))
@@ -1022,7 +1049,6 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 		}
 		cfg.NetRestrict = list
 	}
-
 }
 
 // SetNodeConfig applies node-related command line flags to the config.
@@ -1047,9 +1073,6 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	if ctx.GlobalIsSet(LightKDFFlag.Name) {
 		cfg.UseLightweightKDF = ctx.GlobalBool(LightKDFFlag.Name)
 	}
-	if ctx.GlobalIsSet(NoUSBFlag.Name) {
-		cfg.NoUSB = ctx.GlobalBool(NoUSBFlag.Name)
-	}
 	if ctx.GlobalIsSet(InsecureUnlockAllowedFlag.Name) {
 		cfg.InsecureUnlockAllowed = ctx.GlobalBool(InsecureUnlockAllowedFlag.Name)
 	}
@@ -1064,6 +1087,9 @@ func setGPO(ctx *cli.Context, cfg *gasprice.Config) {
 	}
 	if ctx.GlobalIsSet(GpoMaxGasPriceFlag.Name) {
 		cfg.MaxPrice = big.NewInt(ctx.GlobalInt64(GpoMaxGasPriceFlag.Name))
+	}
+	if ctx.GlobalIsSet(GpoIgnoreGasPriceFlag.Name) {
+		cfg.IgnorePrice = big.NewInt(ctx.GlobalInt64(GpoIgnoreGasPriceFlag.Name))
 	}
 }
 
@@ -1208,6 +1234,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		log.Info("Set global gas cap", "cap", cfg.RPCGasCap)
 	} else {
 		log.Info("Global gas cap disabled")
+	}
+	if ctx.GlobalIsSet(RPCGlobalEVMTimeoutFlag.Name) {
+		cfg.RPCEVMTimeout = ctx.GlobalDuration(RPCGlobalEVMTimeoutFlag.Name)
 	}
 	if ctx.GlobalIsSet(RPCGlobalTxFeeCapFlag.Name) {
 		cfg.RPCTxFeeCap = ctx.GlobalFloat64(RPCGlobalTxFeeCapFlag.Name)
@@ -1360,18 +1389,50 @@ func SetupMetrics(ctx *cli.Context) {
 		log.Info("Enabling metrics collection")
 
 		var (
-			enableExport = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)
-			endpoint     = ctx.GlobalString(MetricsInfluxDBEndpointFlag.Name)
-			database     = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
-			username     = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
-			password     = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
+			enableExport   = ctx.GlobalBool(MetricsEnableInfluxDBFlag.Name)
+			enableExportV2 = ctx.GlobalBool(MetricsEnableInfluxDBV2Flag.Name)
+		)
+
+		if enableExport || enableExportV2 {
+			CheckExclusive(ctx, MetricsEnableInfluxDBFlag, MetricsEnableInfluxDBV2Flag)
+
+			v1FlagIsSet := ctx.GlobalIsSet(MetricsInfluxDBUsernameFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBPasswordFlag.Name)
+
+			v2FlagIsSet := ctx.GlobalIsSet(MetricsInfluxDBTokenFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBOrganizationFlag.Name) ||
+				ctx.GlobalIsSet(MetricsInfluxDBBucketFlag.Name)
+
+			if enableExport && v2FlagIsSet {
+				Fatalf("Flags --influxdb.metrics.organization, --influxdb.metrics.token, --influxdb.metrics.bucket are only available for influxdb-v2")
+			} else if enableExportV2 && v1FlagIsSet {
+				Fatalf("Flags --influxdb.metrics.username, --influxdb.metrics.password are only available for influxdb-v1")
+			}
+		}
+
+		var (
+			endpoint = ctx.GlobalString(MetricsInfluxDBEndpointFlag.Name)
+			database = ctx.GlobalString(MetricsInfluxDBDatabaseFlag.Name)
+			username = ctx.GlobalString(MetricsInfluxDBUsernameFlag.Name)
+			password = ctx.GlobalString(MetricsInfluxDBPasswordFlag.Name)
+
+			token        = ctx.GlobalString(MetricsInfluxDBTokenFlag.Name)
+			bucket       = ctx.GlobalString(MetricsInfluxDBBucketFlag.Name)
+			organization = ctx.GlobalString(MetricsInfluxDBOrganizationFlag.Name)
 		)
 
 		if enableExport {
 			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
 
 			log.Info("Enabling metrics export to InfluxDB")
+
 			go influxdb.InfluxDBWithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, database, username, password, "platon.", tagsMap)
+		} else if enableExportV2 {
+			tagsMap := SplitTagsFlag(ctx.GlobalString(MetricsInfluxDBTagsFlag.Name))
+
+			log.Info("Enabling metrics export to InfluxDB (v2)")
+
+			go influxdb.InfluxDBV2WithTags(metrics.DefaultRegistry, 10*time.Second, endpoint, token, bucket, organization, "platon.", tagsMap)
 		}
 
 		if ctx.GlobalIsSet(MetricsHTTPFlag.Name) {

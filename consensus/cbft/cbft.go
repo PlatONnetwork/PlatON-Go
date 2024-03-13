@@ -22,8 +22,13 @@ import (
 	"crypto/elliptic"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
 	mapset "github.com/deckarep/golang-set"
 
@@ -32,12 +37,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/pkg/errors"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-
-	"reflect"
-	"sync"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -56,6 +55,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -640,8 +640,47 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 	return header.Coinbase, nil
 }
 
+func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, async bool) error {
+	// Short circuit if the header is known, or its parent not
+	number := header.Number.Uint64()
+	if chain.GetHeader(header.Hash(), number) != nil {
+		return nil
+	}
+
+	parent := chain.GetHeader(header.ParentHash, number-1)
+	// 当 parentBlock 出现分叉，且 cbft 还未同步该分叉区块（只有旧的分叉块高的区块）
+	// 那么此时 cbft 无法查询到该分叉区块，在这种正常流程下为了避免出现 unknown ancestor。增加了 forked ancestor
+	forked := false
+	if parent == nil {
+		var parentBlock *types.Block
+		if async {
+			parentBlock, forked = cbft.GetBlockWithLock(header.ParentHash, number-1)
+		} else {
+			parentBlock = cbft.GetBlockWithoutLock(header.ParentHash, number-1)
+		}
+		if parentBlock != nil {
+			parent = parentBlock.Header()
+		}
+	}
+	if parent == nil {
+		// Find it again from the blockChain
+		p := chain.GetHeader(header.ParentHash, number-1)
+		if p == nil {
+			if forked {
+				cbft.log.Warn("VerifyHeader, forked ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
+				return consensus.ErrForkedAncestor
+			}
+			cbft.log.Warn("VerifyHeader, unknown ancestor", "blockNumber", number, "blockHash", header.Hash(), "parentHash", header.ParentHash)
+			return consensus.ErrUnknownAncestor
+		}
+		parent = p
+	}
+	// Sanity checks passed, do a proper verification
+	return cbft.verifyHeader(chain, header, parent, false)
+}
+
 // VerifyHeader verify the validity of the block header.
-func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header, parent *types.Header, seal bool) error {
 	if header.Number == nil {
 		cbft.log.Error("Verify header fail, unknown block")
 		return ErrorUnKnowBlock
@@ -658,10 +697,36 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return fmt.Errorf("verify header fail, Extra field is too long, number:%d, hash:%s", header.Number.Uint64(), header.CacheHash().String())
 	}
 
+	// Verify that the gasUsed is <= gasLimit
+	if header.GasUsed > header.GasLimit {
+		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+	}
+
 	if err := cbft.validatorPool.VerifyHeader(header); err != nil {
 		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "err", err)
 		return fmt.Errorf("verify header fail, number:%d, hash:%s, err:%s", header.Number.Uint64(), header.Hash().String(), err.Error())
 	}
+
+	if chain.Config().GetPauliBlock() == nil {
+		return nil
+	}
+
+	// Verify the block's gas usage and (if applicable) verify the base fee.
+	if !chain.Config().IsPauli(header.Number) {
+		// Verify BaseFee not present before EIP-1559 fork.
+		if header.BaseFee != nil {
+			return fmt.Errorf("invalid baseFee before fork: have %d, expected 'nil'", header.BaseFee)
+		}
+		// In earlier versions, the calculation of Gaslimit has been changed
+		// so the VerifyGaslimit method cannot be simply called here for verification
+		//if err := misc.VerifyGaslimit(parent.GasLimit, header.GasLimit); err != nil {
+		//	return err
+		//}
+	} else if err := misc.VerifyEip1559Header(chain.Config(), parent, header); err != nil {
+		// Verify the header's EIP-1559 attributes.
+		return err
+	}
+
 	return nil
 }
 
@@ -671,8 +736,8 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 	results := make(chan error, len(headers))
 
 	go func() {
-		for _, header := range headers {
-			err := cbft.VerifyHeader(chain, header, false)
+		for index, _ := range headers {
+			err := cbft.verifyHeaderWorker(chain, headers, index)
 
 			select {
 			case <-abort:
@@ -682,6 +747,40 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 		}
 	}()
 	return abort, results
+}
+
+func (cbft *Cbft) verifyHeaderWorker(chain consensus.ChainReader, headers []*types.Header, index int) error {
+	var (
+		parent      *types.Header
+		parentBlock *types.Block
+		forked      = false
+	)
+
+	if index == 0 {
+		parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+		if parent == nil {
+			parentBlock, forked = cbft.GetBlockWithLock(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+			if parentBlock != nil {
+				parent = parentBlock.Header()
+			}
+		}
+		if parent == nil {
+			// Find it again from the blockChain
+			parent = chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+		}
+	} else if headers[index-1].Hash() == headers[index].ParentHash {
+		parent = headers[index-1]
+	}
+
+	if parent == nil {
+		if forked {
+			cbft.log.Warn("VerifyHeaderWorker, forked ancestor", "blockNumber", headers[index].Number.Uint64(), "blockHash", headers[index].Hash(), "parentHash", headers[index].ParentHash)
+			return consensus.ErrForkedAncestor
+		}
+		cbft.log.Warn("VerifyHeaderWorker, unknown ancestor", "blockNumber", headers[index].Number.Uint64(), "blockHash", headers[index].Hash(), "parentHash", headers[index].ParentHash)
+		return consensus.ErrUnknownAncestor
+	}
+	return cbft.verifyHeader(chain, headers[index], parent, false)
 }
 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
@@ -904,7 +1003,11 @@ func (cbft *Cbft) InsertChain(block *types.Block) error {
 
 	parent := cbft.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
-		cbft.log.Warn("Not found the inserted block's parent block",
+		// 规避因 blockTree 上涨而产生的父区块为空
+		if block.NumberU64() <= cbft.state.HighestLockBlock().NumberU64() || cbft.HasBlock(block.Hash(), block.NumberU64()) {
+			return nil
+		}
+		cbft.log.Warn("Missing parent block of inserted block",
 			"number", block.Number(), "hash", block.Hash(),
 			"parentHash", block.ParentHash(),
 			"lockedNumber", cbft.state.HighestLockBlock().Number(),
@@ -1076,7 +1179,6 @@ func (cbft *Cbft) FastSyncCommitHead(block *types.Block) error {
 
 // Close turns off the consensus engine.
 func (cbft *Cbft) Close() error {
-	cbft.log.Info("Close cbft consensus")
 	utils.SetFalse(&cbft.start)
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
@@ -1086,12 +1188,12 @@ func (cbft *Cbft) Close() error {
 		close(cbft.exitCh)
 	})
 	cbft.bridge.Close()
+	cbft.log.Info("Cbft consensus closed")
 	return nil
 }
 
 // Stop turns off the consensus asyncExecutor and fetcher.
 func (cbft *Cbft) Stop() error {
-	cbft.log.Info("Stop cbft consensus")
 	if cbft.asyncExecutor != nil {
 		cbft.asyncExecutor.Stop()
 	}
@@ -1099,6 +1201,7 @@ func (cbft *Cbft) Stop() error {
 		cbft.fetcher.Stop()
 	}
 	cbft.blockCacheWriter.Stop()
+	cbft.log.Info("Cbft consensus stopped")
 	return nil
 }
 
@@ -1108,6 +1211,16 @@ func (cbft *Cbft) ConsensusNodes() ([]enode.ID, error) {
 		return cbft.consensusNodesMock()
 	}
 	return cbft.validatorPool.ValidatorList(cbft.state.Epoch()), nil
+}
+
+// ConsensusNodes returns to the list of consensus nodes.
+func (cbft *Cbft) ConsensusValidators() []*cbfttypes.ValidateNode {
+	vs := cbft.validatorPool.Validators(cbft.state.Epoch())
+	nodeList := make([]*cbfttypes.ValidateNode, 0)
+	for _, node := range vs.Nodes {
+		nodeList = append(nodeList, node)
+	}
+	return nodeList
 }
 
 // ShouldSeal check if we can seal block.
@@ -1240,6 +1353,32 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 		result <- block
 	}
 	return <-result
+}
+
+// GetBlockWithLock synchronously obtains blocks according to the specified number and hash.
+func (cbft *Cbft) GetBlockWithLock(hash common.Hash, number uint64) (*types.Block, bool) {
+	type result struct {
+		block  *types.Block
+		forked bool
+	}
+	resultCh := make(chan result, 1)
+
+	cbft.asyncCallCh <- func() {
+		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+		var forked bool
+		if block == nil {
+			if eb := cbft.state.FindBlock(hash, number); eb != nil {
+				block = eb
+			} else {
+				cbft.log.Debug("Get block failed", "hash", hash, "number", number)
+				_, _, forked = cbft.blockTree.IsForked(hash, number)
+			}
+		}
+		resultCh <- result{block: block, forked: forked}
+	}
+
+	ret := <-resultCh
+	return ret.block, ret.forked
 }
 
 // GetBlockWithoutLock returns the block corresponding to the specified number and hash.

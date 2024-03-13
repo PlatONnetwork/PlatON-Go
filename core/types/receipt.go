@@ -98,6 +98,27 @@ type storedReceiptRLP struct {
 	Logs              []*LogForStorage
 }
 
+// v4StoredReceiptRLP is the storage encoding of a receipt used in database version 4.
+type v4StoredReceiptRLP struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed uint64
+	TxHash            common.Hash
+	ContractAddress   common.Address
+	Logs              []*LogForStorage
+	GasUsed           uint64
+}
+
+// v3StoredReceiptRLP is the original storage encoding of a receipt including some unnecessary fields.
+type v3StoredReceiptRLP struct {
+	PostStateOrStatus []byte
+	CumulativeGasUsed uint64
+	Bloom             Bloom
+	TxHash            common.Hash
+	ContractAddress   common.Address
+	Logs              []*LogForStorage
+	GasUsed           uint64
+}
+
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
 // Deprecated: create receipts using a struct literal instead.
 func NewReceipt(root []byte, failed bool, cumulativeGasUsed uint64) *Receipt {
@@ -121,18 +142,31 @@ func (r *Receipt) EncodeRLP(w io.Writer) error {
 	if r.Type == LegacyTxType {
 		return rlp.Encode(w, data)
 	}
-	// It's an EIP-2718 typed TX receipt.
-	if r.Type != AccessListTxType {
-		return ErrTxTypeNotSupported
-	}
 	buf := encodeBufferPool.Get().(*bytes.Buffer)
 	defer encodeBufferPool.Put(buf)
 	buf.Reset()
 	buf.WriteByte(r.Type)
-	if err := rlp.Encode(buf, data); err != nil {
+	if err := r.encodeTyped(data, buf); err != nil {
 		return err
 	}
 	return rlp.Encode(w, buf.Bytes())
+}
+
+// encodeTyped writes the canonical encoding of a typed receipt to w.
+func (r *Receipt) encodeTyped(data *receiptRLP, w *bytes.Buffer) error {
+	w.WriteByte(r.Type)
+	return rlp.Encode(w, data)
+}
+
+// MarshalBinary returns the consensus encoding of the receipt.
+func (r *Receipt) MarshalBinary() ([]byte, error) {
+	if r.Type == LegacyTxType {
+		return rlp.EncodeToBytes(r)
+	}
+	data := &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs}
+	var buf bytes.Buffer
+	err := r.encodeTyped(data, &buf)
+	return buf.Bytes(), err
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -160,7 +194,7 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 			return errEmptyTypedReceipt
 		}
 		r.Type = b[0]
-		if r.Type == AccessListTxType {
+		if r.Type == AccessListTxType || r.Type == DynamicFeeTxType {
 			var dec receiptRLP
 			if err := rlp.DecodeBytes(b[1:], &dec); err != nil {
 				return err
@@ -170,6 +204,42 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 		return ErrTxTypeNotSupported
 	default:
 		return rlp.ErrExpectedList
+	}
+}
+
+// UnmarshalBinary decodes the consensus encoding of receipts.
+// It supports legacy RLP receipts and EIP-2718 typed receipts.
+func (r *Receipt) UnmarshalBinary(b []byte) error {
+	if len(b) > 0 && b[0] > 0x7f {
+		// It's a legacy receipt decode the RLP
+		var data receiptRLP
+		err := rlp.DecodeBytes(b, &data)
+		if err != nil {
+			return err
+		}
+		r.Type = LegacyTxType
+		return r.setFromRLP(data)
+	}
+	// It's an EIP2718 typed transaction envelope.
+	return r.decodeTyped(b)
+}
+
+// decodeTyped decodes a typed receipt from the canonical format.
+func (r *Receipt) decodeTyped(b []byte) error {
+	if len(b) == 0 {
+		return errEmptyTypedReceipt
+	}
+	switch b[0] {
+	case DynamicFeeTxType, AccessListTxType:
+		var data receiptRLP
+		err := rlp.DecodeBytes(b[1:], &data)
+		if err != nil {
+			return err
+		}
+		r.Type = b[0]
+		return r.setFromRLP(data)
+	default:
+		return ErrTxTypeNotSupported
 	}
 }
 
@@ -240,11 +310,15 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 	// Try decoding from the newest format for future proofness, then the older one
-	// for old nodes that just upgraded.
-	if err := decodeStoredReceiptRLP(r, blob); err != nil {
-		return err
+	// for old nodes that just upgraded. V4 was an intermediate unreleased format so
+	// we do need to decode it, but it's not common (try last).
+	if err := decodeStoredReceiptRLP(r, blob); err == nil {
+		return nil
 	}
-	return nil
+	if err := decodeV3StoredReceiptRLP(r, blob); err == nil {
+		return nil
+	}
+	return decodeV4StoredReceiptRLP(r, blob)
 }
 
 func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
@@ -265,6 +339,47 @@ func decodeStoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 	return nil
 }
 
+func decodeV4StoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
+	var stored v4StoredReceiptRLP
+	if err := rlp.DecodeBytes(blob, &stored); err != nil {
+		return err
+	}
+	if err := (*Receipt)(r).setStatus(stored.PostStateOrStatus); err != nil {
+		return err
+	}
+	r.CumulativeGasUsed = stored.CumulativeGasUsed
+	r.TxHash = stored.TxHash
+	r.ContractAddress = stored.ContractAddress
+	r.GasUsed = stored.GasUsed
+	r.Logs = make([]*Log, len(stored.Logs))
+	for i, log := range stored.Logs {
+		r.Logs[i] = (*Log)(log)
+	}
+	r.Bloom = CreateBloom(Receipts{(*Receipt)(r)})
+
+	return nil
+}
+
+func decodeV3StoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
+	var stored v3StoredReceiptRLP
+	if err := rlp.DecodeBytes(blob, &stored); err != nil {
+		return err
+	}
+	if err := (*Receipt)(r).setStatus(stored.PostStateOrStatus); err != nil {
+		return err
+	}
+	r.CumulativeGasUsed = stored.CumulativeGasUsed
+	r.Bloom = stored.Bloom
+	r.TxHash = stored.TxHash
+	r.ContractAddress = stored.ContractAddress
+	r.GasUsed = stored.GasUsed
+	r.Logs = make([]*Log, len(stored.Logs))
+	for i, log := range stored.Logs {
+		r.Logs[i] = (*Log)(log)
+	}
+	return nil
+}
+
 // Receipts implements DerivableList for receipts.
 type Receipts []*Receipt
 
@@ -281,6 +396,9 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	case AccessListTxType:
 		w.WriteByte(AccessListTxType)
 		rlp.Encode(w, data)
+	case DynamicFeeTxType:
+		w.WriteByte(DynamicFeeTxType)
+		rlp.Encode(w, data)
 	default:
 		// For unsupported types, write nothing. Since this is for
 		// DeriveSha, the error will be caught matching the derived hash
@@ -290,40 +408,40 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 
 // DeriveFields fills the receipts with their computed fields based on consensus
 // data and contextual infos like containing block and transactions.
-func (r Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, txs Transactions) error {
+func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, txs Transactions) error {
 	logIndex := uint(0)
-	if len(txs) != len(r) {
+	if len(txs) != len(rs) {
 		return errors.New("transaction and receipt count mismatch")
 	}
-	for i := 0; i < len(r); i++ {
+	for i := 0; i < len(rs); i++ {
 		// The transaction type and hash can be retrieved from the transaction itself
-		r[i].Type = txs[i].Type()
-		r[i].TxHash = txs[i].Hash()
+		rs[i].Type = txs[i].Type()
+		rs[i].TxHash = txs[i].Hash()
 
 		// block location fields
-		r[i].BlockHash = hash
-		r[i].BlockNumber = new(big.Int).SetUint64(number)
-		r[i].TransactionIndex = uint(i)
+		rs[i].BlockHash = hash
+		rs[i].BlockNumber = new(big.Int).SetUint64(number)
+		rs[i].TransactionIndex = uint(i)
 
 		// The contract address can be derived from the transaction itself
 		if txs[i].To() == nil {
 			// Deriving the signer is expensive, only do if it's actually needed
-			from, _ := Sender(NewEIP2930Signer(txs[i].ChainId()), txs[i])
-			r[i].ContractAddress = crypto.CreateAddress(from, txs[i].Nonce())
+			from, _ := Sender(NewLondonSigner(txs[i].ChainId()), txs[i])
+			rs[i].ContractAddress = crypto.CreateAddress(from, txs[i].Nonce())
 		}
-		// The used gas can be calculated based on previous r
+		// The used gas can be calculated based on previous rs
 		if i == 0 {
-			r[i].GasUsed = r[i].CumulativeGasUsed
+			rs[i].GasUsed = rs[i].CumulativeGasUsed
 		} else {
-			r[i].GasUsed = r[i].CumulativeGasUsed - r[i-1].CumulativeGasUsed
+			rs[i].GasUsed = rs[i].CumulativeGasUsed - rs[i-1].CumulativeGasUsed
 		}
 		// The derived log fields can simply be set from the block and transaction
-		for j := 0; j < len(r[i].Logs); j++ {
-			r[i].Logs[j].BlockNumber = number
-			r[i].Logs[j].BlockHash = hash
-			r[i].Logs[j].TxHash = r[i].TxHash
-			r[i].Logs[j].TxIndex = uint(i)
-			r[i].Logs[j].Index = logIndex
+		for j := 0; j < len(rs[i].Logs); j++ {
+			rs[i].Logs[j].BlockNumber = number
+			rs[i].Logs[j].BlockHash = hash
+			rs[i].Logs[j].TxHash = rs[i].TxHash
+			rs[i].Logs[j].TxIndex = uint(i)
+			rs[i].Logs[j].Index = logIndex
 			logIndex++
 		}
 	}

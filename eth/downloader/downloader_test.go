@@ -101,7 +101,7 @@ func newTester() *downloadTester {
 	tester.stateDb = rawdb.NewMemoryDatabase()
 	tester.stateDb.Put(testGenesis.Root().Bytes(), []byte{0x00})
 
-	tester.downloader = New(tester.stateDb, sdb, trie.NewSyncBloom(1, tester.stateDb), new(event.TypeMux), tester, nil, tester.dropPeer, nil)
+	tester.downloader = New(tester.stateDb, sdb, new(event.TypeMux), tester, nil, tester.dropPeer, nil)
 	return tester
 }
 
@@ -494,7 +494,7 @@ func (dlp *downloadTesterPeer) RequestNodeData(hashes []common.Hash) error {
 	return nil
 }
 
-func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
+func (dlp *downloadTesterPeer) RequestPPOSStorage(num uint64) error {
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
 	Pivot := dlp.chain.headerm[dlp.chain.chain[dlp.chain.baseNum]]
@@ -516,14 +516,14 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		KVNum++
 		count++
 		if count >= eth.PPOSStorageKVSizeFetch {
-			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum); err != nil {
+			if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, false, KVNum, nil, 0); err != nil {
 				logger.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
 				return err
 			}
 			count = 0
 			ps = make([][2][]byte, 0)
 		}
-		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum); err != nil {
+		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, ps, true, KVNum, nil, 0); err != nil {
 			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 			return err
 		}
@@ -1592,8 +1592,8 @@ func (ftp *floodingTestPeer) RequestNodeData(hashes []common.Hash) error {
 	return ftp.peer.RequestNodeData(hashes)
 }
 
-func (ftp *floodingTestPeer) RequestPPOSStorage() error {
-	return ftp.peer.RequestPPOSStorage()
+func (ftp *floodingTestPeer) RequestPPOSStorage(num uint64) error {
+	return ftp.peer.RequestPPOSStorage(num)
 }
 
 func (ftp *floodingTestPeer) RequestOriginAndPivotByCurrent(d uint64) error {

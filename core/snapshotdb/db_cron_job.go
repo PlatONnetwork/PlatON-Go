@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -44,9 +43,10 @@ const (
 
 func (s *snapshotDB) schedule() {
 	// Compaction condition , last Compaction execute time gt than 60s or commit block num gt than 100
-	if counter.get() >= 60 || s.current.GetHighest(false).Num.Uint64()-s.current.GetBase(false).Num.Uint64() >= 100 {
+	if counter.get() >= 60 || s.current.GetHighest(false).Num.Uint64()-s.current.GetBase(false).Num.Uint64() >= MaxCommitBlock {
 		//only one compaction can execute
 		if atomic.CompareAndSwapInt32(&s.snapshotLockC, snapshotUnLock, snapshotLock) {
+			s.jobWait.Add(1)
 			if err := s.Compaction(); err != nil {
 				logger.Error("compaction fail", "err", err)
 				s.dbError = err
@@ -54,6 +54,7 @@ func (s *snapshotDB) schedule() {
 			}
 			counter.reset()
 			atomic.StoreInt32(&s.snapshotLockC, snapshotUnLock)
+			s.jobWait.Done()
 			return
 		}
 		logger.Info("snapshotDB is still Compaction Lock,wait for next schedule")

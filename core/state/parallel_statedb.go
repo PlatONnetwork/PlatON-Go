@@ -1,9 +1,9 @@
 package state
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"sync"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -31,22 +31,22 @@ func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *state
 		return obj
 	}
 	// Load the object from the database.
-	start := time.Now()
+	//start := time.Now()
 	parallelLocker.Lock()
-	if start.Add(20 * time.Millisecond).Before(time.Now()) {
-		log.Trace("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
-	}
-	start = time.Now()
+	//if start.Add(20 * time.Millisecond).Before(time.Now()) {
+	//	log.Trace("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
+	//}
+	//start = time.Now()
 	enc, err := self.trie.TryGet(addr[:])
-	if start.Add(20 * time.Millisecond).Before(time.Now()) {
-		log.Trace("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
-	}
+	//if start.Add(20 * time.Millisecond).Before(time.Now()) {
+	//	log.Trace("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
+	//}
 	parallelLocker.Unlock()
 	if len(enc) == 0 {
 		self.setError(err)
 		return nil
 	}
-	var data Account
+	var data types.StateAccount
 	if err := rlp.DecodeBytes(enc, &data); err != nil {
 		log.Error("Failed to decode state object", "addr", addr, "err", err)
 		return nil
@@ -98,7 +98,7 @@ func (self *StateDB) justGetStateObjectCache(addr common.Address) (stateObject *
 
 func (self *StateDB) justCreateObject(addr common.Address) *ParallelStateObject {
 	//newobj := newObject(self, addr, Account{})
-	newobj := newObject(self, addr, Account{StorageKeyPrefix: addr.Bytes()})
+	newobj := newObject(self, addr, types.StateAccount{StorageKeyPrefix: addr.Bytes()})
 	//self.journal.append(createObjectChange{account: &addr})
 	newobj.setNonce(0)
 	return &ParallelStateObject{

@@ -372,11 +372,11 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		// Build a new CbftStatusData object as a handshake parameter
 		cbftStatus := &protocols.CbftStatusData{
 			ProtocolVersion: CbftProtocolVersion,
-			QCBn:            new(big.Int).SetUint64(uint64(qcBn)),
+			QCBn:            new(big.Int).SetUint64(qcBn),
 			QCBlock:         qcHash,
-			LockBn:          new(big.Int).SetUint64(uint64(lockedBn)),
+			LockBn:          new(big.Int).SetUint64(lockedBn),
 			LockBlock:       lockedHash,
-			CmtBn:           new(big.Int).SetUint64(uint64(commitBn)),
+			CmtBn:           new(big.Int).SetUint64(commitBn),
 			CmtBlock:        commitHash,
 		}
 		// do handshake
@@ -392,6 +392,8 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 			return fmt.Errorf("illegal node: {%s}", peer.PeerID())
 		}
 
+		// If blockNumber in the local is better than the remote
+		// then determine if there is a fork.
 		// QCBn fork allowed and does not require check
 		//if cbftStatus.QCBn.Uint64() > remoteStatus.QCBn.Uint64() {
 		//	err = h.engine.BlockExists(remoteStatus.QCBn.Uint64(), remoteStatus.QCBlock)

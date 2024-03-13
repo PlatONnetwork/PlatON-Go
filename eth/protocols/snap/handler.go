@@ -21,9 +21,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
@@ -120,17 +121,17 @@ func MakeProtocols(backend Backend, dnsdisc enode.Iterator) []p2p.Protocol {
 // When this function terminates, the peer is disconnected.
 func handle(backend Backend, peer *Peer) error {
 	for {
-		if err := handleMessage(backend, peer); err != nil {
-			peer.Log().Debug("Message handling failed in `snap`", "err", err)
+		if err := HandleMessage(backend, peer); err != nil {
+			peer.Log().Error("Message handling failed in `snap`", "err", err)
 			return err
 		}
 	}
 }
 
-// handleMessage is invoked whenever an inbound message is received from a
+// HandleMessage is invoked whenever an inbound message is received from a
 // remote peer on the `snap` protocol. The remote connection is torn down upon
 // returning any error.
-func handleMessage(backend Backend, peer *Peer) error {
+func HandleMessage(backend Backend, peer *Peer) error {
 	// Read the next message from the remote peer, and ensure it's fully consumed
 	msg, err := peer.rw.ReadMsg()
 	if err != nil {
@@ -322,7 +323,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 				if err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
-				var acc state.Account
+				var acc types.StateAccount
 				if err := rlp.DecodeBytes(accTrie.Get(account[:]), &acc); err != nil {
 					return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{ID: req.ID})
 				}
@@ -350,7 +351,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 				break
 			}
 		}
-		log.Debug("Send StorageRangesMsg to", "req.ID", req.ID, "root", req.Root, "len(slots)", len(slots))
+		//log.Debug("Send StorageRangesMsg to", "req.ID", req.ID, "root", req.Root, "len(slots)", len(slots))
 		// Send back anything accumulated
 		return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{
 			ID:    req.ID,

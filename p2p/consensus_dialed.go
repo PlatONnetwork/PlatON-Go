@@ -1,9 +1,6 @@
 package p2p
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
@@ -52,12 +49,12 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 	return nil
 }
 
-func (tasks *dialedTasks) RemoveTask(NodeID *enode.Node) error {
+func (tasks *dialedTasks) RemoveTask(NodeID enode.ID) error {
 
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {
 		for i, t := range tasks.queue {
-			if t.dest.ID() == NodeID.ID() {
+			if t.dest.ID() == NodeID {
 				tasks.queue = append(tasks.queue[:i], tasks.queue[i+1:]...)
 				break
 			}
@@ -68,8 +65,6 @@ func (tasks *dialedTasks) RemoveTask(NodeID *enode.Node) error {
 }
 
 func (tasks *dialedTasks) ListTask() []*dialTask {
-
-	log.Info("[after list]Consensus dialed task list after ListTask operation", "task queue", tasks.description())
 	return tasks.queue
 }
 
@@ -138,10 +133,10 @@ func (tasks *dialedTasks) isEmpty() bool {
 	return false
 }
 
-func (tasks *dialedTasks) description() string {
+func (tasks *dialedTasks) description() []string {
 	var description []string
 	for _, t := range tasks.queue {
-		description = append(description, fmt.Sprintf("%x", t.dest.ID().TerminalString()))
+		description = append(description, t.dest.ID().TerminalString())
 	}
-	return strings.Join(description, ",")
+	return description
 }

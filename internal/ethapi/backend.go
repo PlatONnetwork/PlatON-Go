@@ -19,7 +19,9 @@ package ethapi
 
 import (
 	"context"
+	PlatON "github.com/PlatONnetwork/PlatON-Go"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -29,7 +31,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -40,14 +41,16 @@ import (
 // both full and light clients) with access to necessary functions.
 type Backend interface {
 	// General Ethereum API
-	Downloader() *downloader.Downloader
-	SuggestPrice(ctx context.Context) (*big.Int, error)
+	SyncProgress() PlatON.SyncProgress
+	SuggestGasTipCap(ctx context.Context) (*big.Int, error)
+	FeeHistory(ctx context.Context, blockCount int, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error)
 	ChainDb() ethdb.Database
 	AccountManager() *accounts.Manager
 	ExtRPCEnabled() bool
-	RPCTxFeeCap() float64     // global tx fee cap for all transaction related APIs
-	RPCGasCap() uint64        // global gas cap for eth_call over rpc: DoS protection
-	UnprotectedAllowed() bool // allows only for EIP155 transactions.
+	RPCTxFeeCap() float64         // global tx fee cap for all transaction related APIs
+	RPCGasCap() uint64            // global gas cap for eth_call over rpc: DoS protection
+	RPCEVMTimeout() time.Duration // global timeout for eth_call over rpc: DoS protection
+	UnprotectedAllowed() bool     // allows only for EIP155 transactions.
 
 	// Blockchain API
 	//SetHead(number uint64)
@@ -75,6 +78,7 @@ type Backend interface {
 	GetPoolNonce(ctx context.Context, addr common.Address) (uint64, error)
 	Stats() (pending int, queued int)
 	TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions)
+	TxPoolContentFrom(addr common.Address) (types.Transactions, types.Transactions)
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 
 	ChainConfig() *params.ChainConfig

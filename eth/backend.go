@@ -26,6 +26,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
+
 	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
@@ -101,6 +103,8 @@ type Ethereum struct {
 	p2pServer *p2p.Server
 
 	lock sync.RWMutex // Protects the variadic fields (e.g. gas price and etherbase)
+
+	shutdownTracker *shutdowncheck.ShutdownTracker // Tracks if and when the node has shutdown ungracefully
 }
 
 // New creates a new Ethereum object (including the
@@ -243,6 +247,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		bloomRequests:     make(chan chan *bloombits.Retrieval),
 		bloomIndexer:      core.NewBloomIndexer(chainDb, params.BloomBitsBlocks, params.BloomConfirms),
 		p2pServer:         stack.Server(),
+		shutdownTracker:   shutdowncheck.NewShutdownTracker(chainDb),
 	}
 
 	bcVersion := rawdb.ReadDatabaseVersion(chainDb)
@@ -294,6 +299,25 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//todo this is a hard code for 1.5.0
+	if chainConfig.PauliBlock == nil {
+		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Header().Root)
+		if err != nil {
+			return nil, err
+		}
+		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
+		if err != nil {
+			return nil, err
+		}
+		if len(ActiveVersionList) > 0 {
+			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
+				chainConfig.SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
+				log.Info("Initialised chain configuration for 1.5.0", "config", chainConfig)
+			}
+		}
+	}
+
 	snapshotdb.SetDBBlockChain(eth.blockchain)
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
@@ -327,7 +351,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	if config.Miner.GasFloor > uint64(gasCeil) {
 		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.Miner.GasFloor, "gasCeil", gasCeil)
-		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
+		return nil, fmt.Errorf("the gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
 	}
 
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
@@ -425,19 +449,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	stack.RegisterProtocols(eth.Protocols())
 	stack.RegisterLifecycle(eth)
 
-	// Check for unclean shutdown
-	if uncleanShutdowns, discards, err := rawdb.PushUncleanShutdownMarker(chainDb); err != nil {
-		log.Error("Could not update unclean-shutdown-marker list", "error", err)
-	} else {
-		if discards > 0 {
-			log.Warn("Old unclean shutdowns found", "count", discards)
-		}
-		for _, tstamp := range uncleanShutdowns {
-			t := time.Unix(int64(tstamp), 0)
-			log.Warn("Unclean shutdown detected", "booted", t,
-				"age", common.PrettyAge(t))
-		}
-	}
+	// Successful startup; push a marker and check previous unclean shutdowns.
+	eth.shutdownTracker.MarkStartup()
+
 	return eth, nil
 }
 
@@ -632,18 +646,21 @@ func (s *Ethereum) Start() error {
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers(params.BloomBitsBlocks)
 
+	// Regularly update shutdown marker
+	s.shutdownTracker.Start()
+
 	// Figure out a max peers count based on the server limits
 	maxPeers := s.p2pServer.MaxPeers
 	// Start the networking layer and the light server if requested
 	s.handler.Start(maxPeers)
 
-	//log.Debug("node start", "srvr.Config.PrivateKey", srvr.Config.PrivateKey)
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		if flag := cbftEngine.IsConsensusNode(); flag {
-			for _, n := range s.blockchain.Config().Cbft.InitialNodes {
-				// todo: Mock point.
+			for _, n := range cbftEngine.ConsensusValidators() {
 				if !node.FakeNetEnable {
-					s.p2pServer.AddConsensusPeer(n.Node)
+					enode := enode.NewV4(n.PubKey, nil, 0, 0)
+					log.Trace("PlatON start, adding consensus node", "nodeID", enode.IDv0())
+					s.p2pServer.AddConsensusPeer(enode)
 				}
 			}
 		}
@@ -659,6 +676,8 @@ func (s *Ethereum) Start() error {
 func (s *Ethereum) Stop() error {
 	s.ethDialCandidates.Close()
 	s.snapDialCandidates.Close()
+	s.p2pServer.CloseConsensusDial()
+	s.p2pServer.CloseDiscovery()
 	s.handler.Stop()
 
 	// Then stop everything else.
@@ -668,13 +687,17 @@ func (s *Ethereum) Stop() error {
 	s.bloomIndexer.Close()
 	close(s.closeBloomHandler)
 	s.txPool.Stop()
-	s.miner.Stop()
+	s.miner.Close()
 	s.blockchain.Stop()
 	s.engine.Close()
 	core.GetReactorInstance().Close()
-	rawdb.PopUncleanShutdownMarker(s.chainDb)
+
+	// Clean shutdown marker as the last thing before closing db
+	s.shutdownTracker.Stop()
+
 	s.chainDb.Close()
 	s.eventMux.Stop()
+	log.Info("Backend stopped")
 	return nil
 }
 
@@ -694,6 +717,7 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
 	xplugin.StakingInstance().SetChainConfig(chainConfig)
+	xplugin.GovPluginInstance().SetChainConfig(chainConfig)
 	if isValidatorsHistory {
 		xplugin.StakingInstance().EnableValidatorsHistory()
 	}

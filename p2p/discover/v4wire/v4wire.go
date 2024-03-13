@@ -23,7 +23,6 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net"
 	"time"
@@ -124,7 +123,7 @@ type (
 	}
 )
 
-// This number is the maximum number of neighbor nodes in a Neigbors packet.
+// This number is the maximum number of neighbor nodes in a Neighbors packet.
 const MaxNeighbors = 12
 
 // This code computes the MaxNeighbors constant value.
@@ -195,16 +194,6 @@ func (req *Ping) Fork() []rlp.RawValue {
 	return req.ForkID
 }
 
-func (req *Ping) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, PingV1{
-		Version:    req.Version,
-		From:       req.From,
-		To:         req.To,
-		Expiration: req.Expiration,
-		Rest:       req.ForkID,
-	})
-}
-
 func (req *Ping) DecodeRLP(s *rlp.Stream) error {
 	// Retrieve the entire receipt blob as we need to try multiple decoders
 	blob, err := s.Raw()
@@ -257,15 +246,6 @@ func (req *Pong) Name() string { return "PONG/v4" }
 func (req *Pong) Kind() byte   { return PongPacket }
 func (req *Pong) Fork() []rlp.RawValue {
 	return req.ForkID
-}
-
-func (req *Pong) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, PongV1{
-		To:         req.To,
-		ReplyTok:   req.ReplyTok,
-		Expiration: req.Expiration,
-		Rest:       req.ForkID,
-	})
 }
 
 func (req *Pong) DecodeRLP(s *rlp.Stream) error {
