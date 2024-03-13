@@ -365,6 +365,7 @@ func (cbft *Cbft) trySwitchValidator(blockNumber uint64) {
 		if err := cbft.validatorPool.Update(blockNumber, cbft.state.Epoch()+1, cbft.eventMux); err != nil {
 			cbft.log.Debug("Update validator error", "err", err.Error())
 		}
+		cbft.log.Trace("Update validator success", "blockNumber", blockNumber)
 	}
 }
 
@@ -372,7 +373,25 @@ func (cbft *Cbft) trySwitchValidator(blockNumber uint64) {
 func (cbft *Cbft) tryWalChangeView(epoch, viewNumber uint64, block *types.Block, qc *ctypes.QuorumCert, viewChangeQC *ctypes.ViewChangeQC) {
 	if epoch > cbft.state.Epoch() || epoch == cbft.state.Epoch() && viewNumber > cbft.state.ViewNumber() {
 		cbft.changeView(epoch, viewNumber, block, qc, viewChangeQC)
+		cbft.log.Trace("Change view success", "blockNumber", block.NumberU64())
 	}
+}
+
+// 判断指定区块是否和当前 ChainState 状态是连续的（相等或者当前 qc 区块是指定区块的父区块都视为连续）
+// 如果当前 qc 区块是指定区块的父区块，第二个参数返回该 qc 区块
+func (cbft *Cbft) contiguousQCBlock(m *types.Block) (bool, *types.Block) {
+	blocks, _ := cbft.blockTree.FindBlocksAndQCs(cbft.state.HighestQCBlock().NumberU64())
+	for _, qcBlock := range blocks {
+		isCurrent := m.NumberU64() == qcBlock.NumberU64() && m.Hash() == qcBlock.Hash()
+		if isCurrent {
+			return true, nil
+		}
+		isParent := contiguousChainBlock(qcBlock, m)
+		if isParent {
+			return true, qcBlock
+		}
+	}
+	return false, nil
 }
 
 // recoveryMsg tries to recovery consensus msg from wal when the platon node restart.
@@ -382,6 +401,48 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 	switch m := msg.(type) {
 	case *protocols.ConfirmedViewChange:
 		cbft.log.Debug("Load journal message from wal", "msgType", reflect.TypeOf(msg), "confirmedViewChange", m.String())
+
+		isContiguous, parentBlock := cbft.contiguousQCBlock(m.Block)
+		if !isContiguous {
+			if m.Block.NumberU64() > cbft.state.HighestQCBlock().NumberU64() {
+				cbft.log.Warn("ConfirmedViewChange msg status and chainState are not continuous", "confirmedViewChange", m.String(),
+					"highestQCBn", cbft.state.HighestQCBlock().NumberU64(), "highestQCHash", cbft.state.HighestQCBlock().Hash())
+			}
+			// 如果状态不连续（ConfirmedViewChange消息落后于ChainState状态是正常的），则丢弃该消息
+			return nil
+		}
+
+		// 如果 wal 消息的状态和 ChainState 状态是连续的，且当前消息区块领先
+		if parentBlock != nil {
+			// 执行 wal 消息中的区块
+			if err := cbft.executeBlock(m.Block, parentBlock, math.MaxUint32); err != nil {
+				cbft.log.Error("Failed to execute block on recovery confirmedViewChange msg", "confirmedViewChange", m.String(),
+					"parentBlockNumber", parentBlock.NumberU64(), "parentBlockHash", parentBlock.Hash())
+				return nil
+			}
+			// 更新 ChainState 状态
+			lockBlock, lockQC := cbft.blockTree.FindBlockAndQC(cbft.state.HighestLockBlock().Hash(), cbft.state.HighestLockBlock().NumberU64())
+			qcBlock, qc := cbft.blockTree.FindBlockAndQC(parentBlock.Hash(), parentBlock.NumberU64())
+
+			commitState := &protocols.State{Block: lockBlock, QuorumCert: lockQC}
+			lockState := &protocols.State{Block: qcBlock, QuorumCert: qc}
+			qcState := &protocols.State{Block: m.Block, QuorumCert: m.QC}
+			cbft.recoveryChainStateProcess(protocols.CommitState, commitState)
+			cbft.recoveryChainStateProcess(protocols.LockState, lockState)
+			cbft.recoveryChainStateProcess(protocols.QCState, qcState)
+			cbft.bridge.UpdateChainState(qcState, lockState, commitState)
+			// 将新的 commit 区块写入 blockchain
+			extra, _ := ctypes.EncodeExtra(byte(cbftVersion), lockQC)
+			lockBlock.SetExtraData(extra)
+			if err := cbft.blockCacheWriter.WriteBlock(lockBlock); err != nil {
+				return nil
+			}
+			if err := cbft.validatorPool.Commit(lockBlock); err != nil {
+				return nil
+			}
+		}
+		// 必要的时候切换 viewChange
+		cbft.trySwitchValidator(m.Block.NumberU64())
 		cbft.tryWalChangeView(m.Epoch, m.ViewNumber, m.Block, m.QC, m.ViewChangeQC)
 
 	case *protocols.SendViewChange:
@@ -396,7 +457,7 @@ func (cbft *Cbft) recoveryMsg(msg interface{}) error {
 			if err != nil {
 				return err
 			}
-			cbft.state.AddViewChange(uint32(node.Index), m.ViewChange)
+			cbft.state.AddViewChange(node.Index, m.ViewChange)
 		}
 
 	case *protocols.SendPrepareBlock:
@@ -478,7 +539,8 @@ func (cbft *Cbft) executeBlock(block *types.Block, parent *types.Block, index ui
 // if the msg does not belong to the current view or the msg number is smaller than the qc number discard it.
 func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	if cbft.higherViewState(msg) {
-		return false, fmt.Errorf("higher view state, curEpoch:%d, curViewNum:%d, msgEpoch:%d, msgViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
+		//return false, fmt.Errorf("higher view state, curEpoch:%d, curViewNum:%d, msgEpoch:%d, msgViewNum:%d", cbft.state.Epoch(), cbft.state.ViewNumber(), msg.Epoch(), msg.ViewNumber())
+		return false, nil
 	}
 	if cbft.lowerViewState(msg) {
 		// The state may have reached the automatic switch point, so advance to the next view
@@ -486,7 +548,7 @@ func (cbft *Cbft) shouldRecovery(msg protocols.WalMsg) (bool, error) {
 	}
 	// equalViewState
 	highestQCBlockBn, _ := cbft.HighestQCBlockBn()
-	return msg.BlockNumber() > highestQCBlockBn, nil
+	return msg.BlockNumber() >= highestQCBlockBn, nil
 }
 
 // equalViewState check if the msg view is equal with current.

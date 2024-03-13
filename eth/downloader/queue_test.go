@@ -115,8 +115,7 @@ func TestBasics(t *testing.T) {
 		t.Errorf("wrong pending block count, got %d, exp %d", got, exp)
 	}
 	// Only non-empty receipts get added to task-queue
-	// The receipt is not synchronized in PlatON SnapSync mode, so it is 0 here
-	if got, exp := q.PendingReceipts(), 0; got != exp {
+	if got, exp := q.PendingReceipts(), 64; got != exp {
 		t.Errorf("wrong pending receipt count, got %d, exp %d", got, exp)
 	}
 	// Items are now queued for downloading, next step is that we tell the

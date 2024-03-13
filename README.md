@@ -16,7 +16,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 The requirements to build PlatON-Go are:
 
 - OS:Windows10/Ubuntu18.04
-- [Golang](https://golang.org/doc/install) :version 1.17+
+- [Golang](https://golang.org/doc/install) :version 1.18+
 - [cmake](https://cmake.org/) :version 3.0+
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > 'cmake' and 'gcc&g++' are usually built-in with Ubuntu
@@ -107,10 +107,10 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 | :------------ | :------------ |
 | --identity | Custom node name |
 | --datadir  | Data directory for the databases and keystore |
-| --rpcaddr  | HTTP-RPC server listening interface (default: "localhost") |
-| --rpcport  | HTTP-RPC server listening port (default: 6789) |
-| --rpcapi   | API's offered over the HTTP-RPC interface |
-| --rpc      | Enable the HTTP-RPC server |
+| --http.addr  | HTTP-RPC server listening interface (default: "localhost") |
+| --http.port  | HTTP-RPC server listening port (default: 6789) |
+| --http.api   | API's offered over the HTTP-RPC interface |
+| --http      | Enable the HTTP-RPC server |
 | --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
 | --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
@@ -118,7 +118,7 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
 
 ```
-platon --identity "platon" --datadir ./data --port {your-p2p-port} --rpcaddr 127.0.0.1 --rpcport {your-rpc-port} --rpcapi "platon,net,web3,admin,personal" --rpc --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
+platon --identity "platon" --datadir ./data --port {your-p2p-port} --http.addr 127.0.0.1 --http.port {your-rpc-port} --http.api "platon,net,web3,admin,personal" --http --nodiscover --nodekey ./data/nodekey --cbft.blskey ./data/blskey
 ```
 
 OK, it seems that the chain is running correctly, we can check it as follow:
@@ -127,7 +127,7 @@ OK, it seems that the chain is running correctly, we can check it as follow:
 platon attach http://127.0.0.1:6789
 Welcome to the PlatON JavaScript console!
 
-instance: PlatONnetwork/platon/v0.7.3-unstable/linux-amd64/go1.17
+instance: PlatONnetwork/platon/v0.7.3-unstable/linux-amd64/go1.18
 at block: 26 (Wed, 15 Dec 51802 20:22:44 CST)
  datadir: /home/develop/platon/data
  modules: admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0
