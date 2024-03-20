@@ -11,8 +11,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
+	github.com/docker/docker v24.0.9+incompatible
 	github.com/dop251/goja v0.0.0-20211011172007-d99e4b8cbf48
-	github.com/docker/docker v24.0.7+incompatible
 	github.com/fatih/color v1.7.0
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
@@ -67,6 +67,7 @@ require (
 
 require (
 	github.com/btcsuite/btcd v0.22.0-beta.0.20220111032746-97732e52810c
+	github.com/herumi/bls v1.37.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	golang.org/x/net v0.17.0
 )
