@@ -18,6 +18,7 @@ package core
 
 import (
 	"errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -43,4 +44,7 @@ var (
 	// ErrTxTypeNotSupported is returned if a transaction is not supported in the
 	// current network configuration.
 	ErrTxTypeNotSupported = types.ErrTxTypeNotSupported
+
+	// ErrSenderNoEOA is returned if the sender of a transaction is a contract.
+	ErrSenderNoEOA = errors.New("sender not an eoa")
 )

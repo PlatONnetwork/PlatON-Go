@@ -12,6 +12,7 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -169,6 +170,11 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
 	if start.Add(30 * time.Millisecond).Before(time.Now()) {
 		log.Debug("Get state object overtime", "address", msg.From().String(), "duration", time.Since(start))
+	}
+
+	// Make sure the sender is an EOA
+	if codeHash := fromObj.GetCodeHash(); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
+		log.Error("Sender not an eoa", "from", msg.From().Hex(), "to", msg.To().Hex(), "err", ErrSenderNoEOA.Error())
 	}
 
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
