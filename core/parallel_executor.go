@@ -174,7 +174,11 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 
 	// Make sure the sender is an EOA
 	if codeHash := fromObj.GetCodeHash(); codeHash != emptyCodeHash && codeHash != (common.Hash{}) {
-		log.Error("Sender not an eoa", "from", msg.From().Hex(), "to", msg.To().Hex(), "err", ErrSenderNoEOA.Error())
+		if msg.To() != nil {
+			log.Error("Sender not an eoa", "from", msg.From().Hex(), "to", msg.To().Hex(), "err", ErrSenderNoEOA.Error())
+		} else {
+			log.Error("Sender not an eoa", "from", msg.From().Hex(), "err", ErrSenderNoEOA.Error())
+		}
 	}
 
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice())
