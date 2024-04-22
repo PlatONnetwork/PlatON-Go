@@ -165,19 +165,20 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 // New StateDB based on the parent StateDB
 func (s *StateDB) NewStateDB() *StateDB {
 	stateDB := &StateDB{
-		db:                  s.db,
-		trie:                s.db.NewTrie(s.trie),
-		snaps:               s.snaps,
-		stateObjects:        make(map[common.Address]*stateObject),
-		stateObjectsPending: make(map[common.Address]struct{}),
-		stateObjectsDirty:   make(map[common.Address]struct{}),
-		logs:                make(map[common.Hash][]*types.Log),
-		preimages:           make(map[common.Hash][]byte),
-		journal:             newJournal(),
-		parent:              s,
-		accessList:          newAccessList(),
-		clearReferenceFunc:  make([]func(), 0),
-		originRoot:          s.Root(),
+		db:                   s.db,
+		trie:                 s.db.NewTrie(s.trie),
+		snaps:                s.snaps,
+		stateObjects:         make(map[common.Address]*stateObject),
+		stateObjectsPending:  make(map[common.Address]struct{}),
+		stateObjectsDirty:    make(map[common.Address]struct{}),
+		stateObjectsDestruct: make(map[common.Address]struct{}),
+		logs:                 make(map[common.Hash][]*types.Log),
+		preimages:            make(map[common.Hash][]byte),
+		journal:              newJournal(),
+		parent:               s,
+		accessList:           newAccessList(),
+		clearReferenceFunc:   make([]func(), 0),
+		originRoot:           s.Root(),
 	}
 
 	index := s.AddReferenceFunc(stateDB.clearParentRef)
@@ -1242,7 +1243,7 @@ func (s *StateDB) UpdateSnaps() error {
 				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
 			}
 		}
-		s.snap, s.snapAccounts, s.snapStorage = nil, nil, nil
+		s.snapAccounts, s.snapStorage = nil, nil
 
 	}
 	return nil
@@ -1323,9 +1324,6 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		}
 		// Only update if there's a state transition
 		if parent := s.snap.Root(); parent != root {
-			if err := s.snaps.Update(root, parent, s.convertAccountSet(s.stateObjectsDestruct), s.snapAccounts, s.snapStorage); err != nil {
-				log.Warn("Failed to update snapshot tree", "from", parent, "to", root, "err", err)
-			}
 			// Keep 128 diff layers in the memory, persistent layer is 129th.
 			// - head layer is paired with HEAD state
 			// - head-1 layer is paired with HEAD-1 state

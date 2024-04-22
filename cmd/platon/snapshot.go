@@ -22,11 +22,11 @@ import (
 	"os"
 	"time"
 
+	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/state/pruner"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-
-	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -56,7 +56,7 @@ var (
 		Subcommands: []*cli.Command{
 			{
 				Name:      "prune-state",
-				Usage:     "Prune stale ethereum state data based on the snapshot",
+				Usage:     "Prune stale PlatON state data based on the snapshot",
 				ArgsUsage: "<root>",
 				Action:    pruneState,
 				Flags: flags.Merge([]cli.Flag{

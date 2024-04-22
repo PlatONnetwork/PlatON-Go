@@ -344,7 +344,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	}
 	if config.Miner.GasFloor > uint64(gasCeil) {
 		log.Error("The gasFloor must be less than gasCeil", "gasFloor", config.Miner.GasFloor, "gasCeil", gasCeil)
-		return nil, fmt.Errorf("The gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
+		return nil, fmt.Errorf("the gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
 	}
 
 	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
@@ -648,6 +648,8 @@ func (s *Ethereum) Start() error {
 func (s *Ethereum) Stop() error {
 	s.ethDialCandidates.Close()
 	s.snapDialCandidates.Close()
+	s.p2pServer.CloseConsensusDial()
+	s.p2pServer.CloseDiscovery()
 	s.handler.Stop()
 
 	// Then stop everything else.
@@ -667,6 +669,7 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	s.eventMux.Stop()
+	log.Info("Backend stopped")
 	return nil
 }
 

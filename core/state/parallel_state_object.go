@@ -2,6 +2,8 @@ package state
 
 import (
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 type ParallelStateObject struct {
@@ -42,6 +44,10 @@ func (parallelObject *ParallelStateObject) SubBalance(amount *big.Int) {
 		return
 	}
 	parallelObject.stateObject.setBalance(new(big.Int).Sub(parallelObject.stateObject.Balance(), amount))
+}
+
+func (parallelObject *ParallelStateObject) GetCodeHash() common.Hash {
+	return common.BytesToHash(parallelObject.stateObject.CodeHash())
 }
 
 func (parallelObject *ParallelStateObject) UpdateRoot() {

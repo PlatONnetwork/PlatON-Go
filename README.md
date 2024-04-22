@@ -119,16 +119,16 @@ Address: {lat1anp4tzmdggdrcf39qvshfq3glacjxcd5k60wg9}
 
 ### Connect to the PlatON network
 
-| Options       | description |
-|:--------------| :------------ |
-| --identity    | Custom node name |
-| --datadir     | Data directory for the databases and keystore |
-| --http.addr   | HTTP-RPC server listening interface (default: "localhost") |
-| --http.port   | HTTP-RPC server listening port (default: 6789) |
-| --http.api    | API's offered over the HTTP-RPC interface |
-| --http        | Enable the HTTP-RPC server |
-| --nodiscover  | Disables the peer discovery mechanism (manual peer addition) |
-| --nodekey     | P2P node key file |
+| Options | description |
+| :------------ | :------------ |
+| --identity | Custom node name |
+| --datadir  | Data directory for the databases and keystore |
+| --http.addr  | HTTP-RPC server listening interface (default: "localhost") |
+| --http.port  | HTTP-RPC server listening port (default: 6789) |
+| --http.api   | API's offered over the HTTP-RPC interface |
+| --http      | Enable the HTTP-RPC server |
+| --nodiscover | Disables the peer discovery mechanism (manual peer addition) |
+| --nodekey | P2P node key file |
 | --cbft.blskey | BLS key file |
 
 Run the following command to launch a PlatON node connecting to the PlatON's mainnet:
