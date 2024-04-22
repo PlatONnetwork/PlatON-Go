@@ -309,7 +309,6 @@ var opCodeToString = map[OpCode]string{
 	MSIZE:    "MSIZE",
 	GAS:      "GAS",
 	JUMPDEST: "JUMPDEST",
-	PUSH0:    "PUSH0",
 
 	BEGINSUB:  "BEGINSUB",
 	JUMPSUB:   "JUMPSUB",
