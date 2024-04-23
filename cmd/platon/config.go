@@ -21,10 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"os"
 	"reflect"
 	"unicode"
+
+	"github.com/naoina/toml"
+	cli "github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/external"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -38,8 +40,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/naoina/toml"
-	cli "github.com/urfave/cli/v2"
 )
 
 var (
@@ -200,12 +200,13 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		if cfg.Eth.NetworkId == 1 && ghash == params.MainnetGenesisHash {
 			firstIdx = 1
 		}
-		isLegacy, _, err := dbHasLegacyReceipts(eth.ChainDb(), firstIdx)
+		isLegacy, firstLegacy, err := dbHasLegacyReceipts(eth.ChainDb(), firstIdx)
 		if err != nil {
 			log.Error("Failed to check db for legacy receipts", "err", err)
 		} else if isLegacy {
 			stack.Close()
-			utils.Fatalf("Database has receipts with a legacy format. Please run `geth db freezer-migrate`.")
+			log.Error("Database has receipts with a legacy format", "firstLegacy", firstLegacy)
+			utils.Fatalf("Aborting. Please run `platon db freezer-migrate`.")
 		}
 	}
 

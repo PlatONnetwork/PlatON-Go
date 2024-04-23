@@ -27,6 +27,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
+	"github.com/urfave/cli/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -39,8 +42,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/olekukonko/tablewriter"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -820,11 +821,15 @@ func dbHasLegacyReceipts(db ethdb.Database, firstIdx uint64) (bool, uint64, erro
 			}
 		}
 	}
-	// Is first non-empty receipt legacy?
 	first, err := db.Ancient("receipts", firstIdx)
 	if err != nil {
 		return false, 0, err
 	}
+	// We looped over all receipts and they were all empty
+	if bytes.Equal(first, emptyRLPList) {
+		return false, 0, nil
+	}
+	// Is first non-empty receipt legacy?
 	legacy, err = types.IsLegacyStoredReceipts(first)
 	return legacy, firstIdx, err
 }
