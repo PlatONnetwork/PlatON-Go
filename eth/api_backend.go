@@ -191,13 +191,12 @@ func (b *EthAPIBackend) GetLogs(ctx context.Context, hash common.Hash, number ui
 }
 
 func (b *EthAPIBackend) GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config) (*vm.EVM, func() error, error) {
-	vmError := func() error { return nil }
 	if vmConfig == nil {
 		vmConfig = b.eth.blockchain.GetVMConfig()
 	}
 	txContext := core.NewEVMTxContext(msg)
 	context := core.NewEVMBlockContext(header, b.eth.BlockChain())
-	return vm.NewEVM(context, txContext, snapshotdb.Instance(), state, b.eth.blockchain.Config(), *vmConfig), vmError, nil
+	return vm.NewEVM(context, txContext, snapshotdb.Instance(), state, b.eth.blockchain.Config(), *vmConfig), state.Error, nil
 }
 
 func (b *EthAPIBackend) SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription {
