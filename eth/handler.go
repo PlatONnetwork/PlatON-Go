@@ -313,6 +313,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	// If we have any explicit whitelist block hashes, request them
 	for number, hash := range h.whitelist {
 		resCh := make(chan *eth.Response)
+
 		req, err := peer.RequestHeadersByNumber(number, 1, 0, false, resCh)
 		if err != nil {
 			return err
@@ -344,7 +345,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 					return
 				}
 				peer.Log().Debug("Whitelist block verified", "number", number, "hash", hash)
-
+				res.Done <- nil
 			case <-timeout.C:
 				peer.Log().Warn("Whitelist challenge timed out, dropping", "addr", peer.RemoteAddr(), "type", peer.Name())
 				h.removePeer(peer.ID())
