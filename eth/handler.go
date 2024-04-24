@@ -224,26 +224,6 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	return h, nil
 }
 
-// protoTracker tracks the number of active protocol handlers.
-func (h *handler) protoTracker() {
-	defer h.wg.Done()
-	var active int
-	for {
-		select {
-		case <-h.handlerStartCh:
-			active++
-		case <-h.handlerDoneCh:
-			active--
-		case <-h.quitSync:
-			// Wait for all active handlers to finish.
-			for ; active > 0; active-- {
-				<-h.handlerDoneCh
-			}
-			return
-		}
-	}
-}
-
 // incHandlers signals to increment the number of active handlers if not
 // quitting.
 func (h *handler) incHandlers() bool {
