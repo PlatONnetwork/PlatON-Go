@@ -19,6 +19,7 @@ package core
 import (
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -39,7 +40,10 @@ type ChainContext interface {
 
 // NewEVMBlockContext creates a new context for use in the EVM.
 func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContext {
-	var baseFee *big.Int
+	var (
+		baseFee *big.Int
+		random  common.Hash
+	)
 	beneficiary := header.Coinbase // we're must using header validation
 
 	blockHash := common.ZeroHash
@@ -50,6 +54,8 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 	if header.BaseFee != nil {
 		baseFee = new(big.Int).Set(header.BaseFee)
 	}
+
+	random = common.BytesToHash(vrf.ProofToHash(header.Nonce.Bytes()))
 
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
@@ -63,7 +69,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		GasLimit:    header.GasLimit,
 		BlockHash:   blockHash,
 		Difficulty:  new(big.Int).SetUint64(0), // This one must not be deleted, otherwise the solidity contract will be failed
-		Random:      &common.ZeroHash,
+		Random:      &random,
 		Nonce:       header.Nonce,
 		ParentHash:  header.ParentHash,
 	}

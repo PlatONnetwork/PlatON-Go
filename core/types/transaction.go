@@ -642,8 +642,7 @@ func (tx *Transaction) FromAddr(signer Signer) common.Address {
 			// the cache.
 			if sigCache.signer.Equal(signer) {
 				return sigCache.from
-			}
-		*/
+			} */
 	}
 
 	addr, err := signer.Sender(tx)

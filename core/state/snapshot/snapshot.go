@@ -350,6 +350,11 @@ func (t *Tree) Update(blockRoot common.Hash, parentRoot common.Hash, destructs m
 	// Save the new snapshot for later
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	// Update 和 Cap 并发执行，cap 过程中可能已经更换了新的 diskLayer
+	diskLayer := t.disklayer()
+	if snap.origin.Root() != diskLayer.Root() {
+		snap.rebloom(diskLayer)
+	}
 
 	t.layers[snap.root] = snap
 	return nil
@@ -624,7 +629,8 @@ func diffToDisk(bottom *diffLayer) *diskLayer {
 	if err := batch.Write(); err != nil {
 		log.Crit("Failed to write leftover snapshot", "err", err)
 	}
-	log.Debug("Journalled disk layer", "root", bottom.root, "complete", base.genMarker == nil)
+	//TODO: 临时改为Error级，方便升级时判断快照是否已经生成
+	log.Error("Journalled disk layer", "root", bottom.root, "complete", base.genMarker == nil)
 	res := &diskLayer{
 		root:       bottom.root,
 		cache:      base.cache,

@@ -538,7 +538,6 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enod
 					}
 				}
 			}
-
 			/*if verifierList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
 				return err
 			} else if len(verifierList) > 0 {
