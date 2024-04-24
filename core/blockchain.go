@@ -248,7 +248,7 @@ type BlockChain struct {
 
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
 
-	cleaner *Cleaner
+	//cleaner *Cleaner
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -395,8 +395,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		}
 	}
 
-	log.Debug("DB config", "DBDisabledGC", bc.cacheConfig.DBDisabledGC, "DBGCInterval", bc.cacheConfig.DBGCInterval, "DBGCTimeout", bc.cacheConfig.DBGCTimeout, "DBGCMpt", bc.cacheConfig.DBGCMpt, "SnapshotLimit", bc.cacheConfig.SnapshotLimit)
-	bc.cleaner = NewCleaner(bc, bc.cacheConfig.DBGCInterval, bc.cacheConfig.DBGCTimeout, bc.cacheConfig.DBGCMpt)
+	log.Debug("DB config", "DBDisabledGC", bc.cacheConfig.DBDisabledGC, "DBGCInterval", bc.cacheConfig.DBGCInterval, "DBGCTimeout", bc.cacheConfig.DBGCTimeout, "DBGCMpt", bc.cacheConfig.DBGCMpt)
+	//bc.cleaner = NewCleaner(bc, bc.cacheConfig.DBGCInterval, bc.cacheConfig.DBGCTimeout, bc.cacheConfig.DBGCMpt)
 
 	// Load any existing snapshot, regenerating it if loading failed
 	if bc.cacheConfig.SnapshotLimit > 0 {
@@ -870,7 +870,7 @@ func (bc *BlockChain) Stop() {
 	close(bc.quit)
 	bc.StopInsert()
 
-	bc.cleaner.Stop()
+	//bc.cleaner.Stop()
 
 	// Now wait for all chain modifications to end and persistent goroutines to exit.
 	//
@@ -979,8 +979,8 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	defer bc.wg.Done()
 
 	var (
-		ancientBlocks, liveBlocks types.Blocks
-		//ancientReceipts, liveReceipts []types.Receipts
+		ancientBlocks, liveBlocks     types.Blocks
+		ancientReceipts, liveReceipts []types.Receipts
 	)
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 0; i < len(blockChain); i++ {
@@ -993,9 +993,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			}
 		}
 		if blockChain[i].NumberU64() <= ancientLimit {
-			ancientBlocks /*, ancientReceipts*/ = append(ancientBlocks, blockChain[i]) /*, append(ancientReceipts, receiptChain[i])*/
+			ancientBlocks, ancientReceipts = append(ancientBlocks, blockChain[i]), append(ancientReceipts, receiptChain[i])
 		} else {
-			liveBlocks /*, liveReceipts*/ = append(liveBlocks, blockChain[i]) /*, append(liveReceipts, receiptChain[i])*/
+			liveBlocks, liveReceipts = append(liveBlocks, blockChain[i]), append(liveReceipts, receiptChain[i])
 		}
 	}
 
@@ -1195,9 +1195,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	// Write downloaded chain data and corresponding receipt chain data
 	if len(ancientBlocks) > 0 {
 		// fast同步的时候不会写入回执
-		//if n, err := writeAncient(ancientBlocks, ancientReceipts); err != nil {
-		if n, err := writeAncient(ancientBlocks, nil); err != nil {
-			if err == errInsertionInterrupted {
+		if n, err := writeAncient(ancientBlocks, ancientReceipts); err != nil {
+			//if n, err := writeAncient(ancientBlocks, nil); err != nil {
+			if errors.Is(err, errInsertionInterrupted) {
 				return 0, nil
 			}
 			return n, err
@@ -1218,9 +1218,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	}
 	if len(liveBlocks) > 0 {
 		// fast同步的时候不会写入回执
-		// if n, err := writeLive(liveBlocks, liveReceipts); err != nil {
-		if n, err := writeLive(liveBlocks, nil); err != nil {
-			if err == errInsertionInterrupted {
+		if n, err := writeLive(liveBlocks, liveReceipts); err != nil {
+			// if n, err := writeLive(liveBlocks, nil); err != nil {
+			if errors.Is(err, errInsertionInterrupted) {
 				return 0, nil
 			}
 			return n, err
@@ -1262,17 +1262,20 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return errInsertionInterrupted
 	}
 	defer bc.chainmu.Unlock()
-	if cbftBridgeUpdateChainState != nil {
-		cbftBridgeUpdateChainState()
-	}
-	_, err := bc.writeBlockWithState(block, receipts, logs, state, emitHeadEvent)
+
+	_, err := bc.writeBlockWithState(block, receipts, logs, state, emitHeadEvent, cbftBridgeUpdateChainState)
 	return err
 }
 
 // WriteBlockWithState writes the block and all associated state to the database.
-func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool) (status WriteStatus, err error) {
+func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool, cbftBridgeUpdateChainState func()) (status WriteStatus, err error) {
 	if bc.insertStopped() {
 		return NonStatTy, errInsertionInterrupted
+	}
+
+	// Update consensus state to wal
+	if cbftBridgeUpdateChainState != nil {
+		cbftBridgeUpdateChainState()
 	}
 
 	// Make sure no inconsistent state is leaked during insertion
@@ -1463,9 +1466,9 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 
 	bc.hc.SetCurrentHeader(block.Header())
 	// Cleanup storage
-	if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
-		bc.cleaner.Cleanup()
-	}
+	//if !bc.cacheConfig.DBDisabledGC.IsSet() && bc.cleaner.NeedCleanup() {
+	//	bc.cleaner.Cleanup()
+	//}
 
 	bc.BlockFeed.Send(block)
 
@@ -1568,19 +1571,23 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 	// Some other error(except ErrKnownBlock) occurred, abort.
 	// ErrKnownBlock is allowed here since some known blocks
 	// still need re-execution to generate snapshots that are missing
-	case err != nil && !errors.Is(err, ErrKnownBlock):
+	case err != nil && !errors.Is(err, ErrKnownBlock) && !errors.Is(err, consensus.ErrForkedAncestor):
 		bc.futureBlocks.Remove(block.Hash())
 		stats.ignored += len(it.chain)
 		bc.reportBlock(block, nil, err)
 		return it.index, err
 	}
 	// No validation errors for the first block (or chain prefix skipped)
-	for ; block != nil && (err == nil || errors.Is(err, ErrKnownBlock)); block, err = it.next() {
+	for ; block != nil && (err == nil || errors.Is(err, ErrKnownBlock) || errors.Is(err, consensus.ErrForkedAncestor)); block, err = it.next() {
 		// If the chain is terminating, stop processing blocks
 		if bc.insertStopped() {
 			log.Debug("Abort during block processing")
 			break
 		}
+		if errors.Is(err, consensus.ErrForkedAncestor) {
+			return it.index, nil
+		}
+
 		start := time.Now()
 		err = bc.engine.InsertChain(block)
 		if err != nil {

@@ -118,7 +118,7 @@ func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.H
 	return header
 }
 
-// chainContext construts the context reader which is used by the evm for reading
+// chainContext constructs the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *API) chainContext(ctx context.Context) core.ChainContext {
 	return &chainContext{api: api, ctx: ctx}
@@ -568,6 +568,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if block.NumberU64() == 0 {
 		return nil, errors.New("genesis is not traceable")
 	}
+	// Prepare base state
 	parent, err := api.blockByNumberAndHash(ctx, rpc.BlockNumber(block.NumberU64()-1), block.ParentHash())
 	if err != nil {
 		return nil, err
@@ -650,6 +651,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 // standardTraceBlockToFile configures a new tracer which uses standard JSON output,
 // and traces either a full block or an individual transaction. The return value will
 // be one filename per transaction traced.
+//
 //nolint:govet,goimports
 func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block, config *StdTraceConfig) ([]string, error) {
 	// If we're tracing a single transaction, make sure it's present
