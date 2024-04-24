@@ -850,7 +850,9 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
-	batch.Replay(uncacher)
+	if err := batch.Replay(uncacher); err != nil {
+		return err
+	}
 	batch.Reset()
 
 	// Reset the storage counters and bumpd metrics
@@ -902,9 +904,12 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch, uncacher *cleane
 			return err
 		}
 		db.lock.Lock()
-		batch.Replay(uncacher)
+		err := batch.Replay(uncacher)
 		batch.Reset()
 		db.lock.Unlock()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
