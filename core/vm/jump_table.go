@@ -52,9 +52,10 @@ var (
 	//homesteadInstructionSet      = newHomesteadInstructionSet()
 	//byzantiumInstructionSet      = newByzantiumInstructionSet()
 	//constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet = newIstanbulInstructionSet()
+	//istanbulInstructionSet = newIstanbulInstructionSet()
 	//berlinInstructionSet   = newBerlinInstructionSet()
-	londonInstructionSet = newLondonInstructionSet()
+	londonInstructionSet   = newLondonInstructionSet()
+	shanghaiInstructionSet = newShanghaiInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -76,6 +77,12 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+
+func newShanghaiInstructionSet() JumpTable {
+	instructionSet := newLondonInstructionSet()
+	//enable3860(&instructionSet) // Limit and meter initcode
+	return validate(instructionSet)
 }
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,
