@@ -229,6 +229,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 	s.stateObjects = make(map[common.Address]*stateObject)
 	s.stateObjectsPending = make(map[common.Address]struct{})
 	s.stateObjectsDirty = make(map[common.Address]struct{})
+	s.stateObjectsDestruct = make(map[common.Address]struct{})
 	s.thash = common.Hash{}
 	s.txIndex = 0
 	s.logs = make(map[common.Hash][]*types.Log)
