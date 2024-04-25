@@ -54,7 +54,8 @@ var (
 	//constantinopleInstructionSet = newConstantinopleInstructionSet()
 	istanbulInstructionSet = newIstanbulInstructionSet()
 	//berlinInstructionSet   = newBerlinInstructionSet()
-	londonInstructionSet = newLondonInstructionSet()
+	londonInstructionSet   = newLondonInstructionSet()
+	shanghaiInstructionSet = newShanghaiInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -76,6 +77,15 @@ func validate(jt JumpTable) JumpTable {
 		}
 	}
 	return jt
+}
+func newShanghaiInstructionSet() JumpTable {
+	instructionSet := newMergeInstructionSet()
+	enable3860(&instructionSet)
+	return validate(instructionSet)
+}
+
+func newMergeInstructionSet() JumpTable {
+	return londonInstructionSet // TODO 等25691合入 @clearly
 }
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,

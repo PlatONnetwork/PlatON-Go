@@ -424,6 +424,7 @@ func (err *ConfigCompatError) Error() string {
 type Rules struct {
 	ChainID                                                         *big.Int
 	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
+	IsDirac                                                         bool
 }
 
 // Rules ensures c's ChainID is not nil.

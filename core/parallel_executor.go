@@ -9,7 +9,6 @@ import (
 
 	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 
-	"github.com/panjf2000/ants/v2"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -18,6 +17,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/panjf2000/ants/v2"
 )
 
 var (
@@ -101,7 +101,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false, false)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue
