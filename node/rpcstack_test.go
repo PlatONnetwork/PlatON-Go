@@ -165,7 +165,7 @@ func TestWebsocketOrigins(t *testing.T) {
 
 // TestIsWebsocket tests if an incoming websocket upgrade request is handled properly.
 func TestIsWebsocket(t *testing.T) {
-	r, _ := http.NewRequest("GET", "/", nil)
+	r, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 	assert.False(t, isWebsocket(r))
 	r.Header.Set("upgrade", "websocket")
@@ -273,7 +273,7 @@ func rpcRequest(t *testing.T, url string, extraHeaders ...string) *http.Response
 
 	// Create the request.
 	body := bytes.NewReader([]byte(`{"jsonrpc":"2.0","id":1,"method":"rpc_modules","params":[]}`))
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest(http.MethodPost, url, body)
 	if err != nil {
 		t.Fatal("could not create http request:", err)
 	}
