@@ -124,7 +124,7 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, isEIP3860 bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if isContractCreation {
@@ -132,7 +132,6 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 	} else {
 		gas = params.TxGas
 	}
-
 	var noZeroGas, zeroGas uint64
 	if isContractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
@@ -142,8 +141,9 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		zeroGas = params.TxDataZeroGas
 	}
 
+	dataLen := uint64(len(data))
 	// Bump the required gas by the amount of transactional data
-	if len(data) > 0 {
+	if dataLen > 0 {
 		// Zero and non-zero bytes are priced differently
 		var nz uint64
 		for _, byt := range data {
@@ -157,17 +157,34 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		gas += nz * noZeroGas
 
-		z := uint64(len(data)) - nz
+		z := dataLen - nz
 		if (math.MaxUint64-gas)/zeroGas < z {
 			return 0, vm.ErrOutOfGas
 		}
 		gas += z * zeroGas
+
+		if isContractCreation && isEIP3860 {
+			lenWords := toWordSize(dataLen)
+			if (math.MaxUint64-gas)/params.InitCodeWordGas < lenWords {
+				return 0, ErrGasUintOverflow
+			}
+			gas += lenWords * params.InitCodeWordGas
+		}
 	}
 	if accessList != nil {
 		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
 		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
 	}
 	return gas, nil
+}
+
+// toWordSize returns the ceiled word size required for init code payment calculation.
+func toWordSize(size uint64) uint64 {
+	if size > math.MaxUint64-31 {
+		return math.MaxUint64/32 + 1
+	}
+
+	return (size + 31) / 32
 }
 
 // NewStateTransition initialises and returns a new state transition object.
@@ -318,8 +335,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To() == nil
 	)
 
+	// Check whether the init code size has been exceeded.
+	dirac := gov.Gte160VersionState(st.state)
+
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, dirac)
 	if err != nil {
 		return nil, err
 	}
@@ -331,6 +351,11 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// Check clause 6
 	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
+	}
+
+	// Set up the initial access list.
+	if dirac && contractCreation && len(st.data) > params.MaxInitCodeSize {
+		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
 	}
 
 	// Limit the time it takes for a virtual machine to execute the smart contract,

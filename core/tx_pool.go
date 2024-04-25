@@ -289,8 +289,9 @@ type TxPool struct {
 	signer types.Signer
 	mu     sync.RWMutex
 
-	eip2718 bool // Fork indicator whether we are using EIP-2718 type transactions.
-	eip1559 bool // Fork indicator whether we are using EIP-1559 type transactions.
+	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
+	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
+	shanghai bool // Fork indicator whether we are in the Shanghai stage.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *txNoncer      // Pending state tracking virtual nonces
@@ -791,7 +792,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.shanghai)
 	if err != nil {
 		return err
 	}
@@ -1515,6 +1516,12 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer
 	pool.cacheAccountNeedPromoted.signer = pool.signer
+	gte160 := gov.Gte160VersionState(statedb)
+	if gte160 {
+		pool.shanghai = true
+	} else {
+		pool.shanghai = false
+	}
 }
 
 // promoteExecutables moves transactions that have become processable from the

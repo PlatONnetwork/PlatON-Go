@@ -79,6 +79,15 @@ func Gte130Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_3_0
 }
 
+func WriteEcHash130(state xcom.StateDB) error {
+	if data, err := xcom.EcParams130(); nil != err {
+		return err
+	} else {
+		SetEcParametersHash(state, data)
+	}
+	return nil
+}
+
 func Gte150VersionState(state xcom.StateDB) bool {
 	return Gte150Version(GetCurrentActiveVersion(state))
 }
@@ -93,15 +102,6 @@ func Gte160VersionState(state xcom.StateDB) bool {
 
 func Gte160Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_6_0
-}
-
-func WriteEcHash130(state xcom.StateDB) error {
-	if data, err := xcom.EcParams130(); nil != err {
-		return err
-	} else {
-		SetEcParametersHash(state, data)
-	}
-	return nil
 }
 
 func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {

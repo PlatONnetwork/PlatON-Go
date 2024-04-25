@@ -30,7 +30,7 @@ import (
 )
 
 func init() {
-	register("prestateTracer", newPrestateTracer)
+	tracers.DefaultDirectory.Register("prestateTracer", newPrestateTracer, false)
 }
 
 type prestate = map[common.Address]*account
