@@ -115,6 +115,7 @@ var (
 		EinsteinBlock:   big.NewInt(1),
 		HubbleBlock:     big.NewInt(1),
 		PauliBlock:      big.NewInt(1),
+		DiracBlock:      big.NewInt(1),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialTestnetConsensusNodes),
 			Amount:        10,
@@ -144,6 +145,7 @@ var (
 		EinsteinBlock:   big.NewInt(0),
 		HubbleBlock:     big.NewInt(0),
 		PauliBlock:      big.NewInt(0),
+		DiracBlock:      big.NewInt(0),
 		Cbft: &CbftConfig{
 			Period: 3,
 		},
@@ -155,7 +157,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, false, sync.RWMutex{}}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, false, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
 )
@@ -190,6 +192,7 @@ type ChainConfig struct {
 	EinsteinBlock   *big.Int `json:"einsteinBlock,omitempty"`
 	HubbleBlock     *big.Int `json:"hubbleBlock,omitempty"`
 	PauliBlock      *big.Int `json:"pauliBlock,omitempty"`
+	DiracBlock      *big.Int `json:"diracBlock,omitempty"`
 
 	// Various consensus engines
 	Cbft *CbftConfig `json:"cbft,omitempty"`
@@ -212,7 +215,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Pauli: %v Engine: %v }",
+	return fmt.Sprintf("{ChainID: %v  PIP7ChainID: %v EIP155: %v Copernicus: %v newton: %v einstein: %v  hubble: %v Pauli: %v Dirac: %v Engine: %v }",
 		c.ChainID,
 		c.PIP7ChainID,
 		c.EIP155Block,
@@ -221,6 +224,7 @@ func (c *ChainConfig) String() string {
 		c.EinsteinBlock,
 		c.HubbleBlock,
 		c.PauliBlock,
+		c.DiracBlock,
 		engine,
 	)
 }
@@ -273,6 +277,25 @@ func (c *ChainConfig) SetPauliBlock(block *big.Int) {
 	c.RWMutex.Lock()
 	defer c.RWMutex.Unlock()
 	c.PauliBlock = block
+}
+
+// version 1.6.0
+func (c *ChainConfig) isDirac(num *big.Int) bool {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return isForked(c.DiracBlock, num)
+}
+
+func (c *ChainConfig) GetDiracBlock() *big.Int {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return c.DiracBlock
+}
+
+func (c *ChainConfig) SetDiracBlock(block *big.Int) {
+	c.RWMutex.Lock()
+	defer c.RWMutex.Unlock()
+	c.DiracBlock = block
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
@@ -422,9 +445,8 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                                         *big.Int
-	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli bool
-	IsDirac                                                         bool
+	ChainID                                                                  *big.Int
+	IsEIP155, IsCopernicus, IsNewton, IsEinstein, IsHubble, IsPauli, IsDirac bool
 }
 
 // Rules ensures c's ChainID is not nil.
@@ -441,5 +463,6 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsEinstein:   c.IsEinstein(num),
 		IsHubble:     c.IsHubble(num),
 		IsPauli:      c.IsPauli(num),
+		IsDirac:      c.isDirac(num),
 	}
 }

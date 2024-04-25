@@ -52,7 +52,7 @@ var (
 	//homesteadInstructionSet      = newHomesteadInstructionSet()
 	//byzantiumInstructionSet      = newByzantiumInstructionSet()
 	//constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet = newIstanbulInstructionSet()
+	//istanbulInstructionSet = newIstanbulInstructionSet()
 	//berlinInstructionSet   = newBerlinInstructionSet()
 	londonInstructionSet   = newLondonInstructionSet()
 	shanghaiInstructionSet = newShanghaiInstructionSet()
@@ -79,13 +79,9 @@ func validate(jt JumpTable) JumpTable {
 	return jt
 }
 func newShanghaiInstructionSet() JumpTable {
-	instructionSet := newMergeInstructionSet()
-	enable3860(&instructionSet)
+	instructionSet := newLondonInstructionSet()
+	enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
-}
-
-func newMergeInstructionSet() JumpTable {
-	return londonInstructionSet // TODO 等25691合入 @clearly
 }
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,
