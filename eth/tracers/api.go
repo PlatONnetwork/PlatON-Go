@@ -581,12 +581,55 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if err != nil {
 		return nil, err
 	}
+
+	// JS tracers have high overhead. In this case run a parallel
+	// process that generates states in one thread and traces txes
+	// in separate worker threads.
+	if config != nil && config.Tracer != nil && *config.Tracer != "" {
+		if isJS := DefaultDirectory.IsJS(*config.Tracer); isJS {
+			return api.traceBlockParallel(ctx, block, statedb, config)
+		}
+	}
+	// Native tracers have low overhead
+	var (
+		txs       = block.Transactions()
+		blockHash = block.Hash()
+		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
+		signer    = types.MakeSigner(api.backend.ChainConfig(), block.Number(), false)
+		results   = make([]*txTraceResult, len(txs))
+	)
+	for i, tx := range txs {
+		// Generate the next state snapshot fast without tracing
+		msg, _ := tx.AsMessage(signer, block.BaseFee())
+		txctx := &Context{
+			BlockHash: blockHash,
+			TxIndex:   i,
+			TxHash:    tx.Hash(),
+		}
+		res, err := api.traceTx(ctx, msg, txctx, blockCtx, statedb, config)
+		if err != nil {
+			return nil, err
+		}
+		results[i] = &txTraceResult{Result: res}
+		// Finalize the state so any modifications are written to the trie
+		// Only delete empty objects if EIP158/161 (a.k.a Spurious Dragon) is in effect
+		statedb.Finalise(true)
+	}
+	return results, nil
+}
+
+// traceBlockParallel is for tracers that have a high overhead (read JS tracers). One thread
+// runs along and executes txes without tracing enabled to generate their prestate.
+// Worker threads take the tasks and the prestate and trace them.
+func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, statedb *state.StateDB, config *TraceConfig) ([]*txTraceResult, error) {
 	// Execute all the transaction contained within the block concurrently
 	var (
 		signer = types.MakeSigner(api.backend.ChainConfig(), block.Number(), false)
 
-		txs     = block.Transactions()
-		results = make([]*txTraceResult, len(txs))
+		txs       = block.Transactions()
+		blockHash = block.Hash()
+		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
+		results   = make([]*txTraceResult, len(txs))
 
 		pend = new(sync.WaitGroup)
 		jobs = make(chan *txTraceTask, len(txs))
@@ -595,11 +638,9 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if threads > len(txs) {
 		threads = len(txs)
 	}
-	blockHash := block.Hash()
 	for th := 0; th < threads; th++ {
 		pend.Add(1)
 		go func() {
-			blockCtx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 			defer pend.Done()
 			// Fetch and execute the next transaction trace tasks
 			for task := range jobs {
@@ -620,7 +661,6 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	}
 	// Feed the transactions into the tracers and return
 	var failed error
-	blockCtx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 	for i, tx := range txs {
 		// Send the trace task over for execution
 		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
@@ -882,7 +922,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 	// Default tracer is the struct logger
 	tracer = logger.NewStructLogger(config.Config)
 	if config.Tracer != nil {
-		tracer, err = New(*config.Tracer, txctx, config.TracerConfig)
+		tracer, err = DefaultDirectory.New(*config.Tracer, txctx, config.TracerConfig)
 		if err != nil {
 			return nil, err
 		}

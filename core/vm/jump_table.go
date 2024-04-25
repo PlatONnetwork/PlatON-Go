@@ -78,10 +78,9 @@ func validate(jt JumpTable) JumpTable {
 	}
 	return jt
 }
-
 func newShanghaiInstructionSet() JumpTable {
 	instructionSet := newLondonInstructionSet()
-	//enable3860(&instructionSet) // Limit and meter initcode
+	enable3860(&instructionSet) // Limit and meter initcode
 	return validate(instructionSet)
 }
 

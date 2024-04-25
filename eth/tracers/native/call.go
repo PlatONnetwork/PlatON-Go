@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	register("callTracer", newCallTracer)
+	tracers.DefaultDirectory.Register("callTracer", newCallTracer, false)
 }
 
 type callFrame struct {

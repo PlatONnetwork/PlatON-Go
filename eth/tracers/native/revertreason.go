@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	register("revertReasonTracer", newRevertReasonTracer)
+	tracers.DefaultDirectory.Register("revertReasonTracer", newRevertReasonTracer, false)
 }
 
 var revertSelector = crypto.Keccak256([]byte("Error(string)"))[:4]
