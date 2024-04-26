@@ -109,9 +109,14 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 	}
-
+	isDirac := gov.Gte160VersionState(statedb)
+	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
+	withdrawals := block.Withdrawals()
+	if len(withdrawals) > 0 && !isDirac {
+		return nil, nil, 0, fmt.Errorf("withdrawals before dirac")
+	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
+	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts, withdrawals)
 
 	return receipts, allLogs, *usedGas, nil
 }

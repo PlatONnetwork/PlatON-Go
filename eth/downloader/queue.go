@@ -69,6 +69,7 @@ type fetchResult struct {
 	Transactions types.Transactions
 	Receipts     types.Receipts
 	ExtraData    []byte
+	Withdrawals  types.Withdrawals
 }
 
 func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
@@ -768,7 +769,8 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []comm
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash, extraData [][]byte) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash,
+	extraData [][]byte, withdrawalLists [][]*types.Withdrawal, withdrawalListHashes []common.Hash) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -789,12 +791,19 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			//log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
 			return errInvalidBody
 		}
+		if header.WithdrawalsHash == nil {
+			// discard any withdrawals if we don't have a withdrawal hash set
+			withdrawalLists[index] = nil
+		} else if withdrawalListHashes[index] != *header.WithdrawalsHash {
+			return errInvalidBody
+		}
 		return nil
 	}
 
 	reconstruct := func(index int, result *fetchResult) {
 		result.Transactions = txLists[index]
 		result.ExtraData = extraData[index]
+		result.Withdrawals = withdrawalLists[index]
 		result.SetBodyDone()
 	}
 	return q.deliver(id, q.blockTaskPool, q.blockTaskQueue, q.blockPendPool,

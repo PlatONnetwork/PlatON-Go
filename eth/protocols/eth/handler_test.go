@@ -43,6 +43,8 @@ var (
 	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
 )
 
+func u64(val uint64) *uint64 { return &val }
+
 // testBackend is a mock implementation of the live Ethereum message handler. Its
 // purpose is to allow testing the request/reply workflows and wire serialization
 // in the `eth` protocol without actually doing any data processing.
@@ -55,25 +57,21 @@ type testBackend struct {
 
 // newTestBackend creates an empty chain and wraps it into a mock backend.
 func newTestBackend(blocks int) *testBackend {
-	return newTestBackendWithGenerator(blocks, nil)
+	return newTestBackendWithGenerator(blocks, false, nil)
 }
 
 // newTestBackend creates a chain with a number of explicitly defined blocks and
 // wraps it into a mock backend.
-func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)) *testBackend {
-	// Create a database pre-initialize with a genesis block
-	db := rawdb.NewMemoryDatabase()
+func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, *core.BlockGen)) *testBackend {
+	var (
+		// Create a database pre-initialize with a genesis block
+		db     = rawdb.NewMemoryDatabase()
+		config = params.TestChainConfig
+	)
 	genesis := (&core.Genesis{
-		Config: params.TestChainConfig,
+		Config: config,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
 	}).MustCommit(db)
-
-	//chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFakerWithDataBase(db), vm.Config{}, nil, nil)
-	/*cache := core.NewBlockChainCache(chain)
-	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFakerWithDataBase(db), db, blocks, generator)
-	if _, err := chain.InsertChain(bs); err != nil {
-		panic(err)
-	}*/
 
 	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, genesis, consensus.NewFakerWithDataBase(db, genesis), db, blocks, generator)
 	cache := core.NewBlockChainCache(chain)
@@ -309,7 +307,17 @@ func TestGetBlockBodies66(t *testing.T) { testGetBlockBodies(t, ETH66) }
 func testGetBlockBodies(t *testing.T, protocol uint) {
 	t.Parallel()
 
-	backend := newTestBackend(maxBodiesServe + 15)
+	gen := func(n int, g *core.BlockGen) {
+		if n%2 == 0 {
+			w := &types.Withdrawal{
+				Address: common.Address{0xaa},
+				Amount:  42,
+			}
+			g.AddWithdrawal(w)
+		}
+	}
+
+	backend := newTestBackendWithGenerator(maxBodiesServe+15, true, gen)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)
@@ -359,7 +367,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 					block := backend.chain.GetBlockByNumber(uint64(num))
 					hashes = append(hashes, block.Hash())
 					if len(bodies) < tt.expected {
-						bodies = append(bodies, &BlockBody{Transactions: block.Transactions()})
+						bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 					}
 					break
 				}
@@ -369,7 +377,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 			hashes = append(hashes, hash)
 			if tt.available[j] && len(bodies) < tt.expected {
 				block := backend.chain.GetBlockByHash(hash)
-				bodies = append(bodies, &BlockBody{Transactions: block.Transactions()})
+				bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 			}
 		}
 		// Send the hash request and verify the response
@@ -426,7 +434,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 		}
 	}
 	// Assemble the test environment
-	backend := newTestBackendWithGenerator(4, generator)
+	backend := newTestBackendWithGenerator(4, false, generator)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)
@@ -531,7 +539,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 		}
 	}
 	// Assemble the test environment
-	backend := newTestBackendWithGenerator(4, generator)
+	backend := newTestBackendWithGenerator(4, false, generator)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)

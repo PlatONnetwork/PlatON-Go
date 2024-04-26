@@ -1159,7 +1159,9 @@ func RPCMarshalHeader(head *types.Header, ethCompatible bool) map[string]interfa
 	if head.BaseFee != nil {
 		result["baseFeePerGas"] = (*hexutil.Big)(head.BaseFee)
 	}
-
+	if head.WithdrawalsHash != nil {
+		result["withdrawalsRoot"] = head.WithdrawalsHash
+	}
 	return result
 }
 
@@ -1189,9 +1191,12 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 			}
 		}
 		fields["transactions"] = transactions
+
 	}
 	if ethCompatible {
 		fields["uncles"] = make([]common.Hash, 0)
+		// inclTx also expands withdrawals
+		fields["withdrawals"] = block.Withdrawals()
 	}
 
 	return fields, nil
