@@ -64,7 +64,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		GetNonce:    GetNonceFn(header, chain),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
+		Time:        header.Time,
 		BaseFee:     baseFee,
 		GasLimit:    header.GasLimit,
 		BlockHash:   blockHash,

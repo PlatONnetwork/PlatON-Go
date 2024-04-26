@@ -316,6 +316,11 @@ var (
 		Value:    2048,
 		Category: flags.EthCategory,
 	}
+	OverrideShanghai = &cli.Uint64Flag{
+		Name:     "override.shanghai",
+		Usage:    "Manually specify the Shanghai fork timestamp, overriding the bundled setting",
+		Category: flags.EthCategory,
+	}
 	CacheGCFlag = &cli.IntFlag{
 		Name:     "cache.gc",
 		Usage:    "Percentage of cache memory allowance to use for trie pruning (default = 25% full mode, 0% archive mode)",

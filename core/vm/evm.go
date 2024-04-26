@@ -165,7 +165,7 @@ type BlockContext struct {
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
+	Time        uint64         // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
 	Nonce       types.BlockNonce
 	BaseFee     *big.Int     // Provides information for BASEFEE

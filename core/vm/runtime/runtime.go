@@ -20,7 +20,6 @@ import (
 	"context"
 	"math"
 	"math/big"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -39,7 +38,7 @@ type Config struct {
 	Origin      common.Address
 	Coinbase    common.Address
 	BlockNumber *big.Int
-	Time        *big.Int
+	Time        uint64
 	GasLimit    uint64
 	GasPrice    *big.Int
 	Value       *big.Int
@@ -63,9 +62,6 @@ func setDefaults(cfg *Config) {
 
 	if cfg.Difficulty == nil {
 		cfg.Difficulty = new(big.Int)
-	}
-	if cfg.Time == nil {
-		cfg.Time = big.NewInt(time.Now().Unix())
 	}
 	if cfg.GasLimit == 0 {
 		cfg.GasLimit = math.MaxUint64
