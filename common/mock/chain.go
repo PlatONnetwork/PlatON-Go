@@ -28,6 +28,7 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -90,7 +91,7 @@ func (c *Chain) AddBlock() {
 
 func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
 	c.AddBlock()
-	c.StateDB.Prepare(txHash, 1)
+	c.StateDB.SetTxContext(txHash, 1)
 }
 
 func (c *Chain) SetHeaderTimeGenerate(f func(uint64) uint64) {
@@ -108,7 +109,7 @@ func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f fu
 
 func (c *Chain) execTx(miner bool, f Transaction) error {
 	c.StateDB.TxIndex++
-	c.StateDB.Prepare(f.Hash(), c.StateDB.TxIndex)
+	c.StateDB.SetTxContext(f.Hash(), c.StateDB.TxIndex)
 	if miner {
 		return f(common.ZeroHash, c.CurrentHeader(), c.StateDB, c.SnapDB)
 	} else {
@@ -396,7 +397,7 @@ type MockStateDB struct {
 	accessList *accessList
 }
 
-func (s *MockStateDB) Prepare(thash common.Hash, ti int) {
+func (s *MockStateDB) SetTxContext(thash common.Hash, ti int) {
 	s.Thash = thash
 	s.TxIndex = ti
 }
@@ -469,6 +470,14 @@ func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
 			s.State[adr] = stateVal
 		}
 	}
+}
+
+func (s *MockStateDB) GetTransientState(addr common.Address, key []byte) []byte {
+	return nil
+}
+
+func (s *MockStateDB) SetTransientState(adr common.Address, key, val []byte) {
+
 }
 
 func (s *MockStateDB) CreateAccount(addr common.Address) {
@@ -624,7 +633,7 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.TxIndex)
 }
 
-func (s *MockStateDB) PrepareAccessList(common.Address, *common.Address, []common.Address, types.AccessList) {
+func (s *MockStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
 }
 
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {

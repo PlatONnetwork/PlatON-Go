@@ -55,6 +55,9 @@ func (*dummyStatedb) GetRefund() uint64                             { return 133
 func (*dummyStatedb) GetState(_ common.Address, _ []byte) []byte    { return nil }
 func (*dummyStatedb) SetState(_ common.Address, _ []byte, _ []byte) {}
 
+func (*dummyStatedb) GetTransientState(_ common.Address, _ []byte) []byte    { return nil }
+func (*dummyStatedb) SetTransientState(_ common.Address, _ []byte, _ []byte) {}
+
 func TestStoreCapture(t *testing.T) {
 	var (
 		logger   = NewStructLogger(nil)
