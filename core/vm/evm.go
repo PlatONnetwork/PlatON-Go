@@ -169,7 +169,7 @@ type BlockContext struct {
 	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
 	Nonce       types.BlockNonce
 	BaseFee     *big.Int     // Provides information for BASEFEE
-	Random      *common.Hash // Provides information for RANDOM
+	Random      *common.Hash // Provides information for PREVRANDAO
 
 	BlockHash  common.Hash // Only, the value will be available after the current block has been sealed.
 	ParentHash common.Hash
