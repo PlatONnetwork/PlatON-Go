@@ -238,7 +238,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, config))
+	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm))
 	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, config))
 	evm.interpreter = evm.interpreters[0]
 
@@ -283,6 +283,13 @@ func (evm *EVM) Cancelled() bool {
 // Interpreter returns the current interpreter
 func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
+}
+
+// SetBlockContext updates the block context of the EVM.
+func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
+	evm.Context = blockCtx
+	num := blockCtx.BlockNumber
+	evm.chainRules = evm.chainConfig.Rules(num)
 }
 
 // Call executes the contract associated with the addr with the given input as
