@@ -70,11 +70,11 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	// Header validity is known at this point, check the transactions
 	header := block.Header()
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
-		return fmt.Errorf("transaction root hash mismatch: have %x, want %x", hash, header.TxHash)
+		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
 	if header.WithdrawalsHash != nil {
 		if hash := types.DeriveSha(block.Withdrawals(), trie.NewStackTrie(nil)); hash != *header.WithdrawalsHash {
-			return fmt.Errorf("withdrawals root hash mismatch: have %x, want %x", hash, *header.WithdrawalsHash)
+			return fmt.Errorf("withdrawals root hash mismatch (header value %x, calculated %x)", *header.WithdrawalsHash, hash)
 		}
 	}
 	return nil
