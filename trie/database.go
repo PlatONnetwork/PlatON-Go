@@ -328,11 +328,6 @@ func (db *Database) IncrVersion() {
 	db.nodeVersion++
 }
 
-// DiskDB retrieves the persistent storage backing the trie database.
-func (db *Database) DiskDB() ethdb.KeyValueStore {
-	return db.diskdb
-}
-
 func (db *Database) insertFreshNode(hash common.Hash) {
 	db.freshNodes[hash] = struct{}{}
 }
