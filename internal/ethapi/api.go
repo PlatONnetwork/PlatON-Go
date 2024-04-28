@@ -1209,6 +1209,10 @@ func (s *BlockChainAPI) rpcMarshalHeader(header *types.Header) map[string]interf
 	fields := RPCMarshalHeader(header, ethCompatible)
 	if ethCompatible {
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+
+		if header.WithdrawalsHash != nil {
+			fields["withdrawalsRoot"] = header.WithdrawalsHash
+		}
 	}
 	return fields
 }
@@ -1222,6 +1226,10 @@ func (s *BlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullTx bool
 	}
 	if inclTx && types.HttpEthCompatible {
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+
+		if b.Header().WithdrawalsHash != nil {
+			fields["withdrawals"] = b.Withdrawals()
+		}
 	}
 	return fields, err
 }
