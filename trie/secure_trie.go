@@ -67,7 +67,7 @@ type StateTrie struct {
 // cachelimit sets the number of past cache generations to keep.
 func NewStateTrie(owner common.Hash, root common.Hash, db *Database) (*StateTrie, error) {
 	if db == nil {
-		panic("trie.NewSecure called without a database")
+		panic("trie.NewStateTrie called without a database")
 	}
 	trie, err := New(owner, root, db)
 	if err != nil {
