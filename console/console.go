@@ -29,6 +29,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 
@@ -207,7 +209,7 @@ func (c *Console) initExtensions() error {
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	aliases := map[string]struct{}{"platon": {}, "personal": {}}
+	aliases := map[string]struct{}{"platon": {}}
 	for api := range apis {
 		if api == "web3" {
 			continue
@@ -252,6 +254,7 @@ func (c *Console) initPersonal(vm *goja.Runtime, bridge *bridge) {
 	if personal == nil || c.prompter == nil {
 		return
 	}
+	log.Warn("Enabling deprecated personal namespace")
 	jeth := vm.NewObject()
 	vm.Set("jplaton", jeth)
 	jeth.Set("openWallet", personal.Get("openWallet"))

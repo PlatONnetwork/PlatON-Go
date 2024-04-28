@@ -198,6 +198,9 @@ type Config struct {
 
 	// JWTSecret is the hex-encoded jwt secret.
 	JWTSecret string `toml:",omitempty"`
+
+	// EnablePersonal enables the deprecated personal namespace.
+	EnablePersonal bool `toml:"-"`
 }
 
 // IPCEndpoint resolves an IPC endpoint based on a configured value, taking into

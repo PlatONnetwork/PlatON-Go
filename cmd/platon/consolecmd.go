@@ -78,7 +78,7 @@ func localConsole(ctx *cli.Context) error {
 	// Attach to the newly started node and create the JavaScript console
 	client, err := stack.Attach()
 	if err != nil {
-		return fmt.Errorf("Failed to attach to the inproc platon: %v", err)
+		return fmt.Errorf("failed to attach to the inproc platon: %v", err)
 	}
 	config := console.Config{
 		DataDir: utils.MakeDataDir(ctx),
@@ -89,7 +89,7 @@ func localConsole(ctx *cli.Context) error {
 
 	console, err := console.New(config)
 	if err != nil {
-		return fmt.Errorf("Failed to start the JavaScript console: %v", err)
+		return fmt.Errorf("failed to start the JavaScript console: %v", err)
 	}
 	defer console.Stop(false)
 
