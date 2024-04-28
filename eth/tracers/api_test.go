@@ -640,11 +640,13 @@ func newStates(keys []common.Hash, vals []common.Hash) *map[common.Hash]common.H
 func TestTraceChain(t *testing.T) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
-	genesis := &core.Genesis{Alloc: core.GenesisAlloc{
-		accounts[0].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
-		accounts[2].addr: {Balance: big.NewInt(params.LAT)},
-	}}
+	genesis := &core.Genesis{
+		Config: params.TestChainConfig,
+		Alloc: core.GenesisAlloc{
+			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
+			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
+		}}
 	genBlocks := 50
 	signer := types.HomesteadSigner{}
 
