@@ -30,14 +30,15 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -175,7 +176,7 @@ type Cbft struct {
 	// Record message repetitions.
 	statQueues       map[common.Hash]map[string]int
 	statQueuesLock   sync.RWMutex
-	messageHashCache mapset.Set
+	messageHashCache mapset.Set[common.Hash]
 
 	// Delay time of each node
 	netLatencyMap  map[string]*list.List
@@ -207,7 +208,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		statQueues:         make(map[common.Hash]map[string]int),
-		messageHashCache:   mapset.NewSet(),
+		messageHashCache:   mapset.NewSet[common.Hash](),
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
@@ -391,7 +392,7 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 	defer cbft.statQueuesLock.Unlock()
 
 	for cbft.messageHashCache.Cardinality() >= maxStatQueuesSize {
-		msgHash := cbft.messageHashCache.Pop().(common.Hash)
+		msgHash, _ := cbft.messageHashCache.Pop()
 		// Printout.
 		var bf bytes.Buffer
 		for k, v := range cbft.statQueues[msgHash] {
