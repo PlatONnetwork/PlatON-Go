@@ -18,9 +18,11 @@ package ethapi
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
@@ -32,7 +34,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 
-	"strings"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -49,7 +51,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // EthereumAPI provides an API to access Ethereum related information.

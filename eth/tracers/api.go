@@ -612,6 +612,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if err != nil {
 		return nil, err
 	}
+	defer release()
 
 	// JS tracers have high overhead. In this case run a parallel
 	// process that generates states in one thread and traces txes
