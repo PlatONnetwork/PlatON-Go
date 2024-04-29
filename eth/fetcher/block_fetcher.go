@@ -366,7 +366,7 @@ func (f *BlockFetcher) loop() {
 				break
 			}
 			// Otherwise if fresh and still unknown, try and import
-			if number+minQueueDist <= height || f.getBlock(hash) != nil {
+			if number+minQueueDist < height || f.getBlock(hash) != nil {
 				f.forgetBlock(hash)
 				continue
 			}
@@ -392,10 +392,12 @@ func (f *BlockFetcher) loop() {
 				break
 			}
 			// If we have a valid block number, check that it's potentially useful
-			if dist := int64(notification.number) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
-				log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
-				blockAnnounceDropMeter.Mark(1)
-				break
+			if notification.number > 0 {
+				if dist := int64(notification.number) - int64(f.chainHeight()); dist < minQueueDist || dist > maxQueueDist {
+					log.Debug("Peer discarded announcement", "peer", notification.origin, "number", notification.number, "hash", notification.hash, "distance", dist)
+					blockAnnounceDropMeter.Mark(1)
+					break
+				}
 			}
 			// All is well, schedule the announce if block's not yet downloading
 			if _, ok := f.fetching[notification.hash]; ok {
@@ -746,8 +748,8 @@ func (f *BlockFetcher) enqueue(peer string, header *types.Header, block *types.B
 		return
 	}
 	// Discard any past or too distant blocks
-	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist <= minQueueDist || dist > maxQueueDist {
-		log.Debug("Discarded delivered header or block, too far away", "peer", peer, "number", number, "hash", hash, "distance", dist)
+	if dist := int64(block.NumberU64()) - int64(f.chainHeight()); dist < minQueueDist || dist > maxQueueDist {
+		log.Debug("Discarded propagated block, too far away", "peer", peer, "number", block.Number(), "hash", hash, "distance", dist)
 		blockBroadcastDropMeter.Mark(1)
 		f.forgetHash(hash)
 		return
@@ -800,15 +802,25 @@ func (f *BlockFetcher) importBlocks(peer string, block *types.Block) {
 		case consensus.ErrFutureBlock:
 			// Weird future block, don't fail, but neither propagate
 
+		case consensus.ErrForkedAncestor:
+			log.Warn("Forked parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+			return
+
+		case consensus.ErrUnknownAncestor:
+			// If the parent's unknown, abort insertion
+			log.Warn("Unknown parent of propagated block", "peer", peer, "number", block.Number(), "hash", hash, "parent", block.ParentHash())
+			f.dropPeer(peer)
+			return
+
 		default:
 			// Something went very wrong, drop the peer
-			log.Debug("Propagated block verification failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
+			log.Warn("Propagated block verification failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
 			f.dropPeer(peer)
 			return
 		}
 		// Run the actual import and log any issues
 		if _, err := f.insertChain(types.Blocks{block}); err != nil {
-			log.Debug("Propagated block import failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
+			log.Warn("Propagated block import failed", "peer", peer, "number", block.Number(), "hash", hash, "err", err)
 			return
 		}
 		// If import succeeded, broadcast the block

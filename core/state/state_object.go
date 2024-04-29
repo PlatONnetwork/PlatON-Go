@@ -85,7 +85,6 @@ type stateObject struct {
 	originStorage  ValueStorage // Storage cache of original entries to dedup rewrites, reset for every transaction
 	pendingStorage ValueStorage // Storage entries that need to be flushed to disk, at the end of an entire block
 	dirtyStorage   ValueStorage // Storage entries that have been modified in the current transaction execution
-	fakeStorage    ValueStorage // Fake storage which constructed by caller for debugging purpose.
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -166,10 +165,6 @@ func (s *stateObject) getTrie(db Database) Trie {
 
 // GetState retrieves a value from the account storage trie.
 func (s *stateObject) GetState(db Database, key []byte) []byte {
-	// If the fake storage is set, only lookup the state here(in the debugging mode)
-	if s.fakeStorage != nil {
-		return s.fakeStorage[string(key)]
-	}
 	// If we have a dirty value for this state entry, return it
 	value, dirty := s.dirtyStorage[string(key)]
 	if dirty {
@@ -216,10 +211,6 @@ func (s *stateObject) getCommittedStateCache(key []byte) []byte {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
-	// If the fake storage is set, only lookup the state here(in the debugging mode)
-	if s.fakeStorage != nil {
-		return s.fakeStorage[string(key)]
-	}
 	// If we have a pending write or clean cached, return that
 	if value, pending := s.pendingStorage[string(key)]; pending {
 		return value
@@ -227,6 +218,16 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	// If we have the original value cached, return that
 	if value := s.getCommittedStateCache(key); len(value) != 0 {
 		return value
+	}
+
+	// If the object was destructed in *this* block (and potentially resurrected),
+	// the storage has been cleared out, and we should *not* consult the previous
+	// database about any storage values. The only possible alternatives are:
+	//   1) resurrect happened, and new slot values were set -- those should
+	//      have been handles via pendingStorage above.
+	//   2) we don't have new values, and can deliver empty response back
+	if _, destructed := s.db.stateObjectsDestruct[s.address]; destructed {
+		return []byte{}
 	}
 
 	// If no live objects are available, attempt to use snapshots
@@ -237,15 +238,6 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 	if s.db.snap != nil {
 		if metrics.EnabledExpensive {
 			defer func(start time.Time) { s.db.SnapshotStorageReads += time.Since(start) }(time.Now())
-		}
-		// If the object was destructed in *this* block (and potentially resurrected),
-		// the storage has been cleared out, and we should *not* consult the previous
-		// snapshot about any storage values. The only possible alternatives are:
-		//   1) resurrect happened, and new slot values were set -- those should
-		//      have been handles via pendingStorage above.
-		//   2) we don't have new values, and can deliver empty response back
-		if _, destructed := s.db.snapDestructs[s.addrHash]; destructed {
-			return []byte{}
 		}
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key[:]))
 	}
@@ -276,11 +268,6 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 // SetState updates a value in account storage.
 // set [prefixKey,value] to storage
 func (s *stateObject) SetState(db Database, key, value []byte) {
-	// If the fake storage is set, put the temporary state update here.
-	if s.fakeStorage != nil {
-		s.fakeStorage[string(key)] = value
-		return
-	}
 	//if the new value is the same as old,don't set
 	preValue := s.GetState(db, key)
 	if bytes.Equal(preValue, value) {
@@ -295,24 +282,6 @@ func (s *stateObject) SetState(db Database, key, value []byte) {
 	})
 
 	s.setState(key, value)
-}
-
-// SetStorage replaces the entire state storage with the given one.
-//
-// After this function is called, all original state will be ignored and state
-// lookup only happens in the fake state storage.
-//
-// Note this function should only be used for debugging purpose.
-func (s *stateObject) SetStorage(storage map[common.Hash]common.Hash) {
-	// Allocate fake storage if it's nil.
-	if s.fakeStorage == nil {
-		s.fakeStorage = make(ValueStorage)
-	}
-	for key, value := range storage {
-		s.fakeStorage[key.Hex()] = value.Bytes()
-	}
-	// Don't bother journal since this function should only be used for
-	// debugging and the `fake` storage won't be committed to database.
 }
 
 func (s *stateObject) setState(key []byte, value []byte) {

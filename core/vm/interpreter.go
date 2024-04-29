@@ -105,11 +105,11 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// we'll set the default jump table.
 	if cfg.JumpTable[STOP] == nil {
 		if evm.StateDB == nil {
-			cfg.JumpTable = londonInstructionSet
-		} else if evm.chainRules.IsPauli || gov.Gte150VersionState(evm.StateDB) {
-			cfg.JumpTable = londonInstructionSet
+			cfg.JumpTable = shanghaiInstructionSet
+		} else if evm.chainRules.IsDirac || gov.Gte160VersionState(evm.StateDB) {
+			cfg.JumpTable = shanghaiInstructionSet
 		} else {
-			cfg.JumpTable = istanbulInstructionSet
+			cfg.JumpTable = londonInstructionSet
 		}
 	}
 

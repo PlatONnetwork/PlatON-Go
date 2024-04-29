@@ -25,22 +25,23 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/robfig/cron"
-	"github.com/syndtr/goleveldb/leveldb"
-	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
-	"github.com/syndtr/goleveldb/leveldb/filter"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/memdb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/storage"
-	"github.com/syndtr/goleveldb/leveldb/util"
 	"golang.org/x/net/context"
+
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/robfig/cron"
+	"github.com/syndtr/goleveldb/leveldb"
+	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 const (
@@ -159,7 +160,8 @@ type snapshotDB struct {
 	walLoopCancel context.CancelFunc
 	walSync       sync.WaitGroup
 
-	corn *cron.Cron
+	corn    *cron.Cron
+	jobWait sync.WaitGroup
 
 	closed bool
 
@@ -1037,6 +1039,8 @@ func (s *snapshotDB) Close() error {
 	if s.walLoopCancel != nil {
 		s.walLoopCancel()
 	}
+
+	s.jobWait.Wait()
 
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {

@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"os"
 	"time"
@@ -27,7 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 
-	cli "github.com/urfave/cli/v2"
+	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -38,6 +37,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	cli "github.com/urfave/cli/v2"
 )
 
 var (
@@ -56,7 +56,7 @@ var (
 		Subcommands: []*cli.Command{
 			{
 				Name:      "prune-state",
-				Usage:     "Prune stale ethereum state data based on the snapshot",
+				Usage:     "Prune stale PlatON state data based on the snapshot",
 				ArgsUsage: "<root>",
 				Action:    pruneState,
 				Flags: flags.Merge([]cli.Flag{

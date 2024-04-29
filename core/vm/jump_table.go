@@ -52,9 +52,10 @@ var (
 	//homesteadInstructionSet      = newHomesteadInstructionSet()
 	//byzantiumInstructionSet      = newByzantiumInstructionSet()
 	//constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet = newIstanbulInstructionSet()
+	//istanbulInstructionSet = newIstanbulInstructionSet()
 	//berlinInstructionSet   = newBerlinInstructionSet()
-	londonInstructionSet = newLondonInstructionSet()
+	londonInstructionSet   = newLondonInstructionSet()
+	shanghaiInstructionSet = newShanghaiInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -77,6 +78,11 @@ func validate(jt JumpTable) JumpTable {
 	}
 	return jt
 }
+func newShanghaiInstructionSet() JumpTable {
+	instructionSet := newLondonInstructionSet()
+	enable3860(&instructionSet) // Limit and meter initcode
+	return validate(instructionSet)
+}
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,
 // contantinople, istanbul, petersburg, berlin and london instructions.
@@ -84,6 +90,7 @@ func newLondonInstructionSet() JumpTable {
 	instructionSet := newBerlinInstructionSet()
 	enable3529(&instructionSet) // EIP-3529: Reduction in refunds https://eips.ethereum.org/EIPS/eip-3529
 	enable3198(&instructionSet) // Base fee opcode https://eips.ethereum.org/EIPS/eip-3198
+	enable3855(&instructionSet) // PUSH0 instruction
 
 	//this is merge op code
 	instructionSet[PREVRANDAO] = &operation{
