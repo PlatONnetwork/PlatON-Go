@@ -92,13 +92,17 @@ var (
 	SnapshotStoragePrefix = []byte("o") // SnapshotStoragePrefix + account hash + storage hash -> storage trie value
 	CodePrefix            = []byte("c") // CodePrefix + code hash -> account code
 
+	// Path-based trie node scheme.
+	trieNodeAccountPrefix = []byte("A") // trieNodeAccountPrefix + hexPath -> trie node
+	trieNodeStoragePrefix = []byte("O") // trieNodeStoragePrefix + accountHash + hexPath -> trie node
+
 	PreimagePrefix = []byte("secure-key-")      // PreimagePrefix + hash -> preimage
 	configPrefix   = []byte("ethereum-config-") // config prefix for the db
 
 	economicModelPrefix       = []byte("economicModel-key-")       // economicModel prefix for the db
 	economicModelExtendPrefix = []byte("economicModelExtend-key-") // economicModelExtend prefix for the db
 
-	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
+	// BloomBitsIndexPrefix is the data table of a chain indexer to track its progres
 	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
 
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
@@ -212,4 +216,14 @@ func economicModelKey(hash common.Hash) []byte {
 // economicModelExtendKey = economicModelExtendPrefix + hash
 func economicModelExtendKey(hash common.Hash) []byte {
 	return append(economicModelExtendPrefix, hash.Bytes()...)
+}
+
+// accountTrieNodeKey = trieNodeAccountPrefix + nodePath.
+func accountTrieNodeKey(path []byte) []byte {
+	return append(trieNodeAccountPrefix, path...)
+}
+
+// storageTrieNodeKey = trieNodeStoragePrefix + accountHash + nodePath.
+func storageTrieNodeKey(accountHash common.Hash, path []byte) []byte {
+	return append(append(trieNodeStoragePrefix, accountHash.Bytes()...), path...)
 }

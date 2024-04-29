@@ -268,7 +268,7 @@ func (p *Pruner) Prune(root common.Hash) error {
 	// Ensure the root is really present. The weak assumption
 	// is the presence of root can indicate the presence of the
 	// entire trie.
-	if !rawdb.HasTrieNode(p.db, root) {
+	if !rawdb.HasLegacyTrieNode(p.db, root) {
 		log.Error("Could not find the trie node corresponding to root", "root", root.TerminalString())
 		return fmt.Errorf("could not find the trie node corresponding to root:%s", root)
 	}
