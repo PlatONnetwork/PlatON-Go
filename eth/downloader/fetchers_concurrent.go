@@ -282,11 +282,12 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 			stales[req.Peer] = req
 			delete(ordering, req)
 
-			timeouts.Pop()
+			timeouts.Pop() // Popping an item will reorder indices in `ordering`, delete after, otherwise will resurrect!
 			if timeouts.Size() > 0 {
 				_, exp := timeouts.Peek()
 				timeout.Reset(time.Until(time.Unix(0, -exp)))
 			}
+			delete(ordering, req)
 			// New timeout potentially set if there are more requests pending,
 			// reschedule the failed one to a free peer
 			fails := queue.unreserve(req.Peer)
