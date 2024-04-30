@@ -65,6 +65,7 @@ var DefaultConfig = Config{
 		NAT:               nat.Any(),
 		MaxConsensusPeers: 40,
 	},
+	DBEngine: "",
 }
 
 // DefaultDataDir is the default data directory to use for the databases and other
