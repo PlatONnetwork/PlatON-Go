@@ -905,14 +905,14 @@ func (bc *BlockChain) Stop() {
 				recent := bc.GetBlockByNumber(number - offset)
 
 				log.Info("Writing cached state to disk", "block", recent.Number(), "hash", recent.Hash(), "root", recent.Root())
-				if err := triedb.Commit(recent.Root(), true, true); err != nil {
+				if err := triedb.Commit(recent.Root(), true, true, nil); err != nil {
 					log.Error("Failed to commit recent state trie", "err", err)
 				}
 			}
 		}
 		if snapBase != (common.Hash{}) {
 			log.Info("Writing snapshot state to disk", "root", snapBase)
-			if err := triedb.Commit(snapBase, true, true); err != nil {
+			if err := triedb.Commit(snapBase, true, true, nil); err != nil {
 				log.Error("Failed to commit recent state trie", "err", err)
 			}
 		}
@@ -1304,7 +1304,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
 			//triedb.ReferenceVersion(root)
-			if err := triedb.Commit(root, false, false); err != nil {
+			if err := triedb.Commit(root, false, false, nil); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
@@ -1315,7 +1315,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 			triedb.ReferenceVersion(root)
 			triedb.DereferenceDB(currentBlock.Root())
 
-			if err := triedb.Commit(root, false, false); err != nil {
+			if err := triedb.Commit(root, false, false, nil); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
@@ -1365,7 +1365,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 						float64(chosen-lastWrite)/(float64)(bc.cacheConfig.TriesInMemory))
 				}
 				// Flush an entire trie and restart the counters
-				triedb.Commit(header.Root, true, true)
+				triedb.Commit(header.Root, true, true, nil)
 				lastWrite = chosen
 				bc.gcproc = 0
 			}
