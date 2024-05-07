@@ -102,7 +102,7 @@ func checkStateAccounts(t *testing.T, db ethdb.Database, root common.Hash, accou
 }
 
 // checkTrieConsistency checks that all nodes in a (sub-)trie are indeed present.
-func checkTrieConsistency(db ethdb.Database, root common.Hash) error {
+func checkTrieConsistency(db ethdb.KeyValueStore, root common.Hash) error {
 	if v, _ := db.Get(root[:]); v == nil {
 		return nil // Consider a non existent state consistent.
 	}
@@ -556,7 +556,7 @@ func TestIncompleteStateSync(t *testing.T) {
 		}
 	}
 	isCode[common.BytesToHash(emptyCodeHash)] = struct{}{}
-	checkTrieConsistency(srcDb.TrieDB().DiskDB().(ethdb.Database), srcRoot)
+	checkTrieConsistency(srcDb.DiskDB(), srcRoot)
 
 	// Create a destination state and sync with the scheduler
 	dstDb := rawdb.NewMemoryDatabase()
@@ -657,12 +657,15 @@ func TestIncompleteStateSync(t *testing.T) {
 		}
 		rawdb.WriteCode(dstDb, node, val)
 	}
+	scheme := srcDb.TrieDB().Scheme()
 	for _, node := range addedNodes {
-		val := rawdb.ReadTrieNode(dstDb, node)
-		rawdb.DeleteTrieNode(dstDb, node)
+		owner, inner := trie.ResolvePath([]byte(path))
+		hash := addedHashes[i]
+		val := rawdb.ReadTrieNode(dstDb, node, scheme)
+		rawdb.DeleteTrieNode(dstDb, node, scheme)
 		if err := checkStateConsistency(dstDb, srcRoot); err == nil {
 			t.Errorf("trie inconsistency not caught, missing: %v", node.Hex())
 		}
-		rawdb.WriteTrieNode(dstDb, node, val)
+		rawdb.WriteTrieNode(dstDb, node, val, scheme)
 	}
 }

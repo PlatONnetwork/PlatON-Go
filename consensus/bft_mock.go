@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -42,6 +43,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 type Chain interface {
@@ -120,6 +122,7 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 		}
 
 		statedb, err := bm.chain.StateAt(root)
+		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
 		if err != nil {
 			return err
 		}

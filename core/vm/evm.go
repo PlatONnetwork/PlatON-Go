@@ -169,7 +169,7 @@ type BlockContext struct {
 	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
 	Nonce       types.BlockNonce
 	BaseFee     *big.Int     // Provides information for BASEFEE
-	Random      *common.Hash // Provides information for RANDOM
+	Random      *common.Hash // Provides information for PREVRANDAO
 
 	BlockHash  common.Hash // Only, the value will be available after the current block has been sealed.
 	ParentHash common.Hash
@@ -441,7 +441,11 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
-		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
+		// NOTE: caller must, at all times be a contract. It should never happen
+		// that caller is something other than a Contract.
+		parent := caller.(*Contract)
+		// DELEGATECALL inherits value from parent call
+		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, parent.value)
 		defer func(startGas uint64) {
 			evm.Config.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)

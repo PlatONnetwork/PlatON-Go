@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"sync"
 
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -539,7 +539,7 @@ func (p *Peer) SendOriginAndPivot(data []*types.Header) error {
 
 // knownCache is a cache for known hashes.
 type knownCache struct {
-	hashes mapset.Set
+	hashes mapset.Set[common.Hash]
 	max    int
 }
 
@@ -547,7 +547,7 @@ type knownCache struct {
 func newKnownCache(max int) *knownCache {
 	return &knownCache{
 		max:    max,
-		hashes: mapset.NewSet(),
+		hashes: mapset.NewSet[common.Hash](),
 	}
 }
 

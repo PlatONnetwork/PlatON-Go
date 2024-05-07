@@ -143,7 +143,7 @@ func (t *callTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Ad
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (t *callTracer) CaptureEnd(output []byte, gasUsed uint64, duration time.Duration, err error) {
+func (t *callTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 	t.callstack[0].processOutput(output, err)
 }
 

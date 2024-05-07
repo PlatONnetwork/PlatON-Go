@@ -17,13 +17,13 @@
 package state
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 )
 
 var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
@@ -51,7 +51,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 	// Create some arbitrary test state to iterate
 	db, root, _ := makeTestState()
-	db.TrieDB().Commit(root, false, true, nil)
+	db.TrieDB().Commit(root, false, true)
 
 	state, err := New(root, db, nil)
 	if err != nil {
@@ -64,45 +64,31 @@ func TestNodeIteratorCoverage(t *testing.T) {
 			hashes[it.Hash] = struct{}{}
 		}
 	}
-	// Check in-disk nodes
-	var (
-		seenNodes = make(map[common.Hash]struct{})
-		seenCodes = make(map[common.Hash]struct{})
-	)
-	it := db.NewIterator(nil, nil)
-	for it.Next() {
-		ok, hash := isTrieNode(sdb.TrieDB().Scheme(), it.Key(), it.Value())
-		if !ok {
-			continue
-		}
-		seenNodes[hash] = struct{}{}
-	}
-	it.Release()
-
-	// Check in-disk codes
-	it = db.NewIterator(nil, nil)
-	for it.Next() {
-		ok, hash := rawdb.IsCodeKey(it.Key())
-		if !ok {
-			continue
-		}
-		if _, ok := hashes[common.BytesToHash(hash)]; !ok {
-			t.Errorf("state entry not reported %x", it.Key())
-		}
-		seenCodes[common.BytesToHash(hash)] = struct{}{}
-	}
-	it.Release()
-
 	// Cross check the iterated hashes and the database/nodepool content
 	for hash := range hashes {
-		_, ok := seenNodes[hash]
-		if !ok {
-			_, ok = seenCodes[hash]
+		if _, err = db.TrieDB().Node(hash); err != nil {
+			_, err = db.ContractCode(common.Hash{}, hash)
 		}
-		if !ok {
+		if err != nil {
 			t.Errorf("failed to retrieve reported node %x", hash)
 		}
 	}
+	for _, hash := range db.TrieDB().Nodes() {
+		if _, ok := hashes[hash]; !ok {
+			t.Errorf("state entry not reported %x", hash)
+		}
+	}
+	it := db.DiskDB().NewIterator(nil, nil)
+	for it.Next() {
+		key := it.Key()
+		if bytes.HasPrefix(key, []byte("secure-key-")) {
+			continue
+		}
+		if _, ok := hashes[common.BytesToHash(key)]; !ok {
+			t.Errorf("state entry not reported %x", key)
+		}
+	}
+	it.Release()
 }
 
 // isTrieNode is a helper function which reports if the provided

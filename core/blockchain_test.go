@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"math/big"
 	"os"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -1680,11 +1682,121 @@ func TestEIP1559Transition(t *testing.T) {
 		t.Fatalf("sender balance incorrect: expected %d, got %d", expected, actual)
 	}
 }
+<<<<<<< HEAD
 func TestEIP3651(t *testing.T) {
 	var (
 		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
 		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
 		engine = consensus.NewFaker()
+=======
+
+// TestTransientStorageReset ensures the transient storage is wiped correctly
+// between transactions.
+func TestTransientStorageReset(t *testing.T) {
+	var (
+		//engine      = consensus.NewFaker()
+		key, _      = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+		address     = crypto.PubkeyToAddress(key.PublicKey)
+		destAddress = crypto.CreateAddress(address, 0)
+		funds       = big.NewInt(1000000000000000)
+		vmConfig    = vm.Config{
+			ExtraEips: []int{1153}, // Enable transient storage EIP
+		}
+		db = rawdb.NewMemoryDatabase()
+	)
+	code := append([]byte{
+		// TLoad value with location 1
+		byte(vm.PUSH1), 0x1,
+		byte(vm.TLOAD),
+
+		// PUSH location
+		byte(vm.PUSH1), 0x1,
+
+		// SStore location:value
+		byte(vm.SSTORE),
+	}, make([]byte, 32-6)...)
+	initCode := []byte{
+		// TSTORE 1:1
+		byte(vm.PUSH1), 0x1,
+		byte(vm.PUSH1), 0x1,
+		byte(vm.TSTORE),
+
+		// Get the runtime-code on the stack
+		byte(vm.PUSH32)}
+	initCode = append(initCode, code...)
+	initCode = append(initCode, []byte{
+		byte(vm.PUSH1), 0x0, // offset
+		byte(vm.MSTORE),
+		byte(vm.PUSH1), 0x6, // size
+		byte(vm.PUSH1), 0x0, // offset
+		byte(vm.RETURN), // return 6 bytes of zero-code
+	}...)
+	gspec := &Genesis{
+		Config: params.TestChainConfig,
+		Alloc: GenesisAlloc{
+			address: {Balance: funds},
+		},
+	}
+	nonce := uint64(0)
+	gspec.Config.HubbleBlock = common.Big0
+	gspec.Config.PauliBlock = common.Big0
+	genesis := gspec.MustCommit(db)
+	engine := consensus.NewFakerWithDataBase(db, genesis)
+	//signer := types.HomesteadSigner{}
+	signer := types.LatestSigner(gspec.Config, true)
+	blocks, _ := GenerateChain(gspec.Config, genesis, engine, db, 1, func(i int, b *BlockGen) {
+		fee := big.NewInt(1)
+		if b.header.BaseFee != nil {
+			fee = b.header.BaseFee
+		}
+		b.SetCoinbase(common.Address{1})
+		tx, _ := types.SignNewTx(key, signer, &types.LegacyTx{
+			Nonce:    nonce,
+			GasPrice: new(big.Int).Set(fee),
+			Gas:      100000,
+			Data:     initCode,
+		})
+		nonce++
+		b.AddTxWithVMConfig(tx, vmConfig)
+
+		tx, _ = types.SignNewTx(key, signer, &types.LegacyTx{
+			Nonce:    nonce,
+			GasPrice: new(big.Int).Set(fee),
+			Gas:      100000,
+			To:       &destAddress,
+		})
+		b.AddTxWithVMConfig(tx, vmConfig)
+		nonce++
+	})
+
+	// Initialize the blockchain with 1153 enabled.
+	chain, err := NewBlockChain(db, nil, gspec.Config, engine, vmConfig, nil, nil)
+	if err != nil {
+		t.Fatalf("failed to create tester chain: %v", err)
+	}
+	// Import the blocks
+	if _, err := chain.InsertChain(blocks); err != nil {
+		t.Fatalf("failed to insert into chain: %v", err)
+	}
+	// Check the storage
+	state, err := chain.StateAt(chain.CurrentHeader().Root)
+	if err != nil {
+		t.Fatalf("Failed to load state %v", err)
+	}
+	loc := common.BytesToHash([]byte{1})
+	slot := state.GetState(destAddress, loc.Bytes())
+	if !bytes.Equal(slot, []byte{}) {
+		t.Fatalf("Unexpected dirty storage slot")
+	}
+}
+
+func TestEIP3651(t *testing.T) {
+	var (
+		aa = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
+		bb = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
+		db = rawdb.NewMemoryDatabase()
+		//engine = consensus.NewFaker()
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1729,6 +1841,7 @@ func TestEIP3651(t *testing.T) {
 		}
 	)
 
+<<<<<<< HEAD
 	gspec.Config.DiracBlock = big.NewInt(0)
 	signer := types.LatestSigner(gspec.Config, true)
 
@@ -1738,6 +1851,21 @@ func TestEIP3651(t *testing.T) {
 		// One transaction to Coinbase
 		txdata := &types.DynamicFeeTx{
 			ChainID:    gspec.Config.ChainID,
+=======
+	gspec.Config.PauliBlock = common.Big0
+	gspec.Config.DiracBlock = common.Big0
+	//gspec.Config.ShanghaiTime = u64(0)
+	genesis := gspec.MustCommit(db)
+	engine := consensus.NewFakerWithDataBase(db, genesis)
+	//signer := types.HomesteadSigner{}
+	signer := types.LatestSigner(gspec.Config, true)
+
+	blocks, _ := GenerateChain(gspec.Config, genesis, engine, db, 1, func(i int, b *BlockGen) {
+		b.SetCoinbase(aa)
+		// One transaction to Coinbase
+		txdata := &types.DynamicFeeTx{
+			ChainID:    gspec.Config.PIP7ChainID,
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 			Nonce:      0,
 			To:         &bb,
 			Gas:        500000,
@@ -1755,6 +1883,11 @@ func TestEIP3651(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+<<<<<<< HEAD
+=======
+	engine.SetChain(chain)
+	NewExecutor(gspec.Config, chain, chain.vmConfig, nil)
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}

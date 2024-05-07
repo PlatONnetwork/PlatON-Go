@@ -19,12 +19,12 @@ package gethclient
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"runtime"
 	"runtime/debug"
 
 	platon "github.com/PlatONnetwork/PlatON-Go"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -124,15 +124,6 @@ func (ec *Client) GetProof(ctx context.Context, account common.Address, keys []s
 	return &result, err
 }
 
-// OverrideAccount specifies the state of an account to be overridden.
-type OverrideAccount struct {
-	Nonce     uint64                      `json:"nonce"`
-	Code      []byte                      `json:"code"`
-	Balance   *big.Int                    `json:"balance"`
-	State     map[common.Hash]common.Hash `json:"state"`
-	StateDiff map[common.Hash]common.Hash `json:"stateDiff"`
-}
-
 // CallContract executes a message call transaction, which is directly executed in the VM
 // of the node, but never mined into the blockchain.
 //
@@ -147,7 +138,7 @@ func (ec *Client) CallContract(ctx context.Context, msg platon.CallMsg, blockNum
 	var hex hexutil.Bytes
 	err := ec.c.CallContext(
 		ctx, &hex, "eth_call", toCallArg(msg),
-		toBlockNumArg(blockNumber), toOverrideMap(overrides),
+		toBlockNumArg(blockNumber), overrides,
 	)
 	return hex, err
 }
@@ -193,6 +184,14 @@ func toBlockNumArg(number *big.Int) string {
 	if number.Cmp(pending) == 0 {
 		return "pending"
 	}
+	finalized := big.NewInt(int64(rpc.FinalizedBlockNumber))
+	if number.Cmp(finalized) == 0 {
+		return "finalized"
+	}
+	safe := big.NewInt(int64(rpc.SafeBlockNumber))
+	if number.Cmp(safe) == 0 {
+		return "safe"
+	}
 	return hexutil.EncodeBig(number)
 }
 
@@ -216,26 +215,48 @@ func toCallArg(msg platon.CallMsg) interface{} {
 	return arg
 }
 
-func toOverrideMap(overrides *map[common.Address]OverrideAccount) interface{} {
-	if overrides == nil {
-		return nil
+// OverrideAccount specifies the state of an account to be overridden.
+type OverrideAccount struct {
+	// Nonce sets nonce of the account. Note: the nonce override will only
+	// be applied when it is set to a non-zero value.
+	Nonce uint64
+
+	// Code sets the contract code. The override will be applied
+	// when the code is non-nil, i.e. setting empty code is possible
+	// using an empty slice.
+	Code []byte
+
+	// Balance sets the account balance.
+	Balance *big.Int
+
+	// State sets the complete storage. The override will be applied
+	// when the given map is non-nil. Using an empty map wipes the
+	// entire contract storage during the call.
+	State map[common.Hash]common.Hash
+
+	// StateDiff allows overriding individual storage slots.
+	StateDiff map[common.Hash]common.Hash
+}
+
+func (a OverrideAccount) MarshalJSON() ([]byte, error) {
+	type acc struct {
+		Nonce     hexutil.Uint64              `json:"nonce,omitempty"`
+		Code      string                      `json:"code,omitempty"`
+		Balance   *hexutil.Big                `json:"balance,omitempty"`
+		State     interface{}                 `json:"state,omitempty"`
+		StateDiff map[common.Hash]common.Hash `json:"stateDiff,omitempty"`
 	}
-	type overrideAccount struct {
-		Nonce     hexutil.Uint64              `json:"nonce"`
-		Code      hexutil.Bytes               `json:"code"`
-		Balance   *hexutil.Big                `json:"balance"`
-		State     map[common.Hash]common.Hash `json:"state"`
-		StateDiff map[common.Hash]common.Hash `json:"stateDiff"`
+
+	output := acc{
+		Nonce:     hexutil.Uint64(a.Nonce),
+		Balance:   (*hexutil.Big)(a.Balance),
+		StateDiff: a.StateDiff,
 	}
-	result := make(map[common.Address]overrideAccount)
-	for addr, override := range *overrides {
-		result[addr] = overrideAccount{
-			Nonce:     hexutil.Uint64(override.Nonce),
-			Code:      override.Code,
-			Balance:   (*hexutil.Big)(override.Balance),
-			State:     override.State,
-			StateDiff: override.StateDiff,
-		}
+	if a.Code != nil {
+		output.Code = hexutil.Encode(a.Code)
 	}
-	return &result
+	if a.State != nil {
+		output.State = a.State
+	}
+	return json.Marshal(output)
 }

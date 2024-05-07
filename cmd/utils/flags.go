@@ -18,6 +18,8 @@
 package utils
 
 import (
+	"crypto/ecdsa"
+	"fmt"
 	"math"
 	"math/big"
 	"os"
@@ -27,9 +29,6 @@ import (
 	"strings"
 	"time"
 
-	"crypto/ecdsa"
-	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -37,6 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	types2 "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -65,9 +65,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/ethereum/go-ethereum/core/rawdb"
 	gopsutil "github.com/shirou/gopsutil/mem"
-
 	"github.com/urfave/cli/v2"
 )
 
@@ -424,7 +422,7 @@ var (
 		Value:    node.DefaultConfig.AuthPort,
 		Category: flags.APICategory,
 	}
-	JWTSecretFlag = &cli.StringFlag{
+	JWTSecretFlag = &flags.DirectoryFlag{
 		Name:     "authrpc.jwtsecret",
 		Usage:    "Path to a JWT secret to use for authenticated RPC endpoints",
 		Category: flags.APICategory,
@@ -1760,6 +1758,9 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Preimages:       ctx.Bool(CachePreimagesFlag.Name),
 		SnapshotLimit:   ethconfig.Defaults.SnapshotCache,
 	}
+	// Disable snapshot generation/wiping by default
+	cache.SnapshotNoBuild = true
+
 	if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheTrieFlag.Name) {
 		cache.TrieCleanLimit = ctx.Int(CacheFlag.Name) * ctx.Int(CacheTrieFlag.Name) / 100
 	}
@@ -1775,7 +1776,6 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	vmcfg := vm.Config{}
 
-	// TODO(rjl493456442) disable snapshot generation/wiping if the chain is read only.
 	// Disable transaction indexing/unindexing by default.
 	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil, nil)
 	if err != nil {
