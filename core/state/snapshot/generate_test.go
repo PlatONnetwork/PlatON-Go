@@ -190,7 +190,7 @@ func (t *testHelper) makeStorageTrie(stateRoot, owner common.Hash, keys []string
 	if !commit {
 		root = stTrie.Hash()
 	} else {
-		root, _, _ = stTrie.Commit(nil)
+		root, _ = stTrie.Commit(nil)
 	}
 	return root.Bytes()
 }

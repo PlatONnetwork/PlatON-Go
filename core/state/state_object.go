@@ -409,12 +409,10 @@ func (s *stateObject) CommitTrie(db Database) (int, error) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, committed, err := s.trie.Commit(nil)
+	root, committed := s.trie.Commit(nil)
 
-	if err == nil {
-		s.data.Root = root
-	}
-	return committed, err
+	s.data.Root = root
+	return committed, nil
 }
 
 // AddBalance adds amount to s's balance.

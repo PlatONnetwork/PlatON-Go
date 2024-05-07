@@ -86,7 +86,7 @@ type Trie interface {
 	// TryDeleteAccount abstracts an account deletion from the trie.
 	TryDeleteAccount(key []byte) error
 
-	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
+	Commit(onleaf trie.LeafCallback) (common.Hash, int)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
