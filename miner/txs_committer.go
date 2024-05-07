@@ -97,7 +97,7 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 			continue
 		}
 		// Start executing the transaction
-		env.state.Prepare(tx.Hash(), env.tcount)
+		env.state.SetTxContext(tx.Hash(), env.tcount)
 
 		logs, err := w.commitTransaction(env, tx)
 

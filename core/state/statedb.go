@@ -18,6 +18,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,9 +27,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state/snapshot"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -91,6 +92,9 @@ type StateDB struct {
 	// Per-transaction access list
 	accessList *accessList
 
+	// Transient storage
+	transientStorage transientStorage
+
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
 	journal        *journal
@@ -150,6 +154,7 @@ func New(root common.Hash, db Database, snaps *snapshot.Tree) (*StateDB, error) 
 		preimages:            make(map[common.Hash][]byte),
 		journal:              newJournal(),
 		accessList:           newAccessList(),
+		transientStorage:     newTransientStorage(),
 		clearReferenceFunc:   make([]func(), 0),
 		originRoot:           root,
 	}
@@ -177,6 +182,7 @@ func (s *StateDB) NewStateDB() *StateDB {
 		journal:              newJournal(),
 		parent:               s,
 		accessList:           newAccessList(),
+		transientStorage:     newTransientStorage(),
 		clearReferenceFunc:   make([]func(), 0),
 		originRoot:           s.Root(),
 	}
@@ -193,11 +199,6 @@ func (s *StateDB) NewStateDB() *StateDB {
 		}
 	}
 	return stateDB
-}
-
-// TxIndex returns the current transaction index set by Prepare.
-func (s *StateDB) TxIndex() int {
-	return s.txIndex
 }
 
 func (s *StateDB) HadParent() bool {
@@ -244,6 +245,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 		}
 	}
 	s.accessList = newAccessList()
+	s.transientStorage = newTransientStorage()
 	return nil
 }
 
@@ -333,6 +335,11 @@ func (s *StateDB) GetNonce(addr common.Address) uint64 {
 	}
 
 	return 0
+}
+
+// TxIndex returns the current transaction index set by SetTxContext.
+func (s *StateDB) TxIndex() int {
+	return s.txIndex
 }
 
 func (s *StateDB) GetCode(addr common.Address) []byte {
@@ -541,6 +548,35 @@ func (s *StateDB) Suicide(addr common.Address) bool {
 	stateObject.data.Balance = new(big.Int)
 
 	return true
+}
+
+// SetTransientState sets transient storage for a given account. It
+// adds the change to the journal so that it can be rolled back
+// to its previous value if there is a revert.
+func (s *StateDB) SetTransientState(addr common.Address, key, value []byte) {
+	prev := s.GetTransientState(addr, key)
+	if bytes.Equal(prev, value) {
+		return
+	}
+
+	s.journal.append(transientStorageChange{
+		account:  &addr,
+		key:      key,
+		prevalue: prev,
+	})
+
+	s.setTransientState(addr, key, value)
+}
+
+// setTransientState is a lower level setter for transient storage. It
+// is called during a revert to prevent modifications to the journal.
+func (s *StateDB) setTransientState(addr common.Address, key, value []byte) {
+	s.transientStorage.Set(addr, key, value)
+}
+
+// GetTransientState gets transient storage for a given account.
+func (s *StateDB) GetTransientState(addr common.Address, key []byte) []byte {
+	return s.transientStorage.Get(addr, key)
 }
 
 //
@@ -990,6 +1026,7 @@ func (s *StateDB) Copy() *StateDB {
 	// empty lists, so we do it anyway to not blow up if we ever decide copy them
 	// in the middle of a transaction.
 	state.accessList = s.accessList.Copy()
+	state.transientStorage = s.transientStorage.Copy()
 
 	// Copy parent state
 	s.refLock.Lock()
@@ -1144,9 +1181,10 @@ func (s *StateDB) Root() common.Hash {
 	return s.trie.Hash()
 }
 
-// Prepare sets the current transaction hash and index and block hash which is
-// used when the EVM emits new state logs.
-func (s *StateDB) Prepare(thash common.Hash, ti int) {
+// SetTxContext sets the current transaction hash and index which are
+// used when the EVM emits new state logs. It should be invoked before
+// transaction execution.
+func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.thash = thash
 	s.txIndex = ti
 }
@@ -1157,6 +1195,47 @@ func (s *StateDB) clearJournalAndRefund() {
 		s.refund = 0
 	}
 	s.validRevisions = s.validRevisions[:0] // Snapshots can be created without journal entires
+}
+
+// Prepare handles the preparatory steps for executing a state transition with.
+// This method must be invoked before state transition.
+//
+// Berlin fork:
+// - Add sender to access list (2929)
+// - Add destination to access list (2929)
+// - Add precompiles to access list (2929)
+// - Add the contents of the optional tx access list (2930)
+//
+// Potential EIPs:
+// - Reset access list (Berlin)
+// - Add coinbase to access list (EIP-3651)
+// - Reset transient storage (EIP-1153)
+func (s *StateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
+	if rules.IsPauli {
+		// Clear out any leftover from previous executions
+		al := newAccessList()
+		s.accessList = al
+
+		al.AddAddress(sender)
+		if dst != nil {
+			al.AddAddress(*dst)
+			// If it's a create-tx, the destination will be added inside evm.create
+		}
+		for _, addr := range precompiles {
+			al.AddAddress(addr)
+		}
+		for _, el := range list {
+			al.AddAddress(el.Address)
+			for _, key := range el.StorageKeys {
+				al.AddSlot(el.Address, key)
+			}
+		}
+		if rules.IsDirac { // EIP-3651: warm coinbase
+			al.AddAddress(coinbase)
+		}
+	}
+	// Reset transient storage at the beginning of transaction execution
+	s.transientStorage = newTransientStorage()
 }
 
 // AddAddressToAccessList adds the given address to the access list
@@ -1181,35 +1260,6 @@ func (s *StateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
 			address: &addr,
 			slot:    &slot,
 		})
-	}
-}
-
-// PrepareAccessList handles the preparatory steps for executing a state transition with
-// regards to both EIP-2929 and EIP-2930:
-//
-// - Add sender to access list (2929)
-// - Add destination to access list (2929)
-// - Add precompiles to access list (2929)
-// - Add the contents of the optional tx access list (2930)
-//
-// This method should only be called if Yolov3/Berlin/2929+2930 is applicable at the current number.
-func (s *StateDB) PrepareAccessList(sender common.Address, dst *common.Address, precompiles []common.Address, list types.AccessList) {
-	// Clear out any leftover from previous executions
-	s.accessList = newAccessList()
-
-	s.AddAddressToAccessList(sender)
-	if dst != nil {
-		s.AddAddressToAccessList(*dst)
-		// If it's a create-tx, the destination will be added inside evm.create
-	}
-	for _, addr := range precompiles {
-		s.AddAddressToAccessList(addr)
-	}
-	for _, el := range list {
-		s.AddAddressToAccessList(el.Address)
-		for _, key := range el.StorageKeys {
-			s.AddSlotToAccessList(el.Address, key)
-		}
 	}
 }
 

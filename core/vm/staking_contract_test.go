@@ -115,7 +115,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, chain *mock.Cha
 		Evm:      newEvm(blockNumber, blockHash, chain),
 	}
 
-	chain.StateDB.Prepare(txHashArr[index], index+1)
+	chain.StateDB.SetTxContext(txHashArr[index], index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -240,7 +240,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	if err := chain.SnapDB.NewBlock(blockNumber, chain.Genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 
 	create_staking(blockNumber, blockHash, chain, 1, t)
 }
@@ -256,7 +256,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -281,7 +281,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -328,7 +328,7 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -353,7 +353,7 @@ func TestStakingContract_editCandidate_updateRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -407,7 +407,7 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -432,7 +432,7 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -486,7 +486,7 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -511,7 +511,7 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -565,7 +565,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -590,7 +590,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -642,7 +642,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	params = make([][]byte, 0)
@@ -692,7 +692,7 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -718,7 +718,7 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 	oldCandidate := getCandidateInfo(contract2, index, t)
 	assert.True(t, oldCandidate != nil)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
 	var params [][]byte
@@ -778,7 +778,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 		t.Error("newBlock err", err)
 		return
 	}
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -803,7 +803,7 @@ func TestStakingContract_increaseStaking(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// increase
 
@@ -844,7 +844,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 		return
 	}
 
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -869,7 +869,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// withdrewStaking
 
@@ -902,7 +902,7 @@ func TestStakingContract_delegate(t *testing.T) {
 		return
 	}
 
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
@@ -927,7 +927,7 @@ func TestStakingContract_delegate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 	// delegate
 	create_delegate(contract2, index, t)
 
@@ -952,7 +952,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 		return
 	}
 
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
 	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
@@ -966,7 +966,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 		Evm:      newEvm(new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1)), blockHash2, chain),
 	}
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 	// delegate
 	create_delegate(contract, index, t)
 
@@ -992,7 +992,7 @@ func TestStakingContract_withdrewDelegate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[2], 0)
+	chain.StateDB.SetTxContext(txHashArr[2], 0)
 
 	// withdrewDelegation
 	var params [][]byte
@@ -1095,7 +1095,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		chain.StateDB.Prepare(txHashArr[i], i)
+		chain.StateDB.SetTxContext(txHashArr[i], i)
 		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 
@@ -1110,7 +1110,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	}
 
 	for i := 2; i < 4; i++ {
-		chain.StateDB.Prepare(txHashArr[i], i)
+		chain.StateDB.SetTxContext(txHashArr[i], i)
 		create_staking(blockNumber2, blockHash2, chain, i, t)
 	}
 
@@ -1141,7 +1141,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 	}
 
 	for i := 0; i < 4; i++ {
-		chain.StateDB.Prepare(txHashArr[i], i)
+		chain.StateDB.SetTxContext(txHashArr[i], i)
 		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 
@@ -1163,7 +1163,7 @@ func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 
 	// delegate
 	for i := 0; i < 3; i++ {
-		chain.StateDB.Prepare(txHashArr[i], i)
+		chain.StateDB.SetTxContext(txHashArr[i], i)
 		create_delegate(contract2, i, t)
 	}
 
@@ -1198,10 +1198,10 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 		return
 	}
 
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract1 := create_staking(blockNumber, blockHash, chain, index, t)
 
-	chain.StateDB.Prepare(txHashArr[1], 1)
+	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	if err := chain.SnapDB.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock err", err)
@@ -1237,7 +1237,7 @@ func TestStakingContract_getDelegateInfo(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	chain.StateDB.Prepare(txHashArr[2], 2)
+	chain.StateDB.SetTxContext(txHashArr[2], 2)
 	// get DelegateInfo
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -1266,7 +1266,7 @@ func TestStakingContract_getCandidateInfo(t *testing.T) {
 		return
 	}
 
-	chain.StateDB.Prepare(txHashArr[0], 0)
+	chain.StateDB.SetTxContext(txHashArr[0], 0)
 	contract := create_staking(blockNumber, blockHash, chain, 1, t)
 	if err := chain.SnapDB.Commit(blockHash); nil != err {
 		t.Errorf("Failed to commit snapshotdb, blockNumber: %d, blockHash: %s, err: %v", blockNumber, blockHash.Hex(), err)
@@ -1293,7 +1293,7 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 	}
 
 	for i := 0; i < 4; i++ {
-		chain.StateDB.Prepare(txHashArr[i], i)
+		chain.StateDB.SetTxContext(txHashArr[i], i)
 		create_staking(blockNumber, blockHash, chain, i, t)
 	}
 }

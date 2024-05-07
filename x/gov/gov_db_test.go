@@ -163,7 +163,7 @@ func TestGovDB_SetProposal_GetProposal_param(t *testing.T) {
 	//create block
 	blockHash := newBlock(chain)
 
-	chain.StateDB.Prepare(txHash, 0)
+	chain.StateDB.SetTxContext(txHash, 0)
 
 	value := &ParamValue{"", "initValue", 0}
 	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
