@@ -23,10 +23,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -360,16 +358,22 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, owner common.Hash, roo
 	}
 	// We use the snap data to build up a cache which can be used by the
 	// main account trie as a primary lookup when resolving hashes
-	var snapNodeCache ethdb.KeyValueStore
+	var resolver trie.NodeResolver
 	if len(result.keys) > 0 {
-		snapNodeCache = memorydb.New()
-		snapTrieDb := trie.NewDatabase(snapNodeCache)
-		snapTrie, _ := trie.New(owner, common.Hash{}, snapTrieDb)
+		mdb := rawdb.NewMemoryDatabase()
+		tdb := trie.NewDatabase(mdb)
+		snapTrie := trie.NewEmpty(tdb)
 		for i, key := range result.keys {
 			snapTrie.Update(key, result.vals[i])
 		}
-		root, _ := snapTrie.Commit(nil)
-		snapTrieDb.Commit(root, false, false)
+		root, nodes, err := snapTrie.Commit(false)
+		if err == nil && nodes != nil {
+			tdb.Update(trie.NewWithNodeSet(nodes))
+			tdb.Commit(root, false)
+		}
+		resolver = func(owner common.Hash, path []byte, hash common.Hash) []byte {
+			return rawdb.ReadTrieNode(mdb, owner, path, hash, tdb.Scheme())
+		}
 	}
 	// Construct the trie for state iteration, reuse the trie
 	// if it's already opened with some nodes resolved.
@@ -398,7 +402,7 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, owner common.Hash, roo
 		start    = time.Now()
 		internal time.Duration
 	)
-	nodeIt.AddResolver(snapNodeCache)
+	nodeIt.AddResolver(resolver)
 
 	for iter.Next() {
 		if last != nil && bytes.Compare(iter.Key, last) > 0 {

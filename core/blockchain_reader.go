@@ -345,6 +345,11 @@ func (bc *BlockChain) TxLookupLimit() uint64 {
 	return bc.txLookupLimit
 }
 
+// TrieDB retrieves the low level trie database used for data storage.
+func (bc *BlockChain) TrieDB() *trie.Database {
+	return bc.triedb
+}
+
 // SubscribeRemovedLogsEvent registers a subscription of RemovedLogsEvent.
 func (bc *BlockChain) SubscribeRemovedLogsEvent(ch chan<- RemovedLogsEvent) event.Subscription {
 	return bc.scope.Track(bc.rmLogsFeed.Subscribe(ch))

@@ -20,6 +20,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -202,6 +203,10 @@ type BlockChain interface {
 
 	// Snapshots returns the blockchain snapshot tree to paused it during sync.
 	Snapshots() *snapshot.Tree
+
+	// TrieDB retrieves the low level trie database used for interacting
+	// with trie nodes.
+	TrieDB() *trie.Database
 }
 
 // New creates a new downloader to fetch hashes and blocks from remote peers.
@@ -222,7 +227,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, mux *event.TypeMux, c
 		pposInfoCh:       make(chan dataPack, 1),
 		originAndPivotCh: make(chan dataPack, 1),
 		quitCh:           make(chan struct{}),
-		SnapSyncer:       snap.NewSyncer(stateDb),
+		SnapSyncer:       snap.NewSyncer(stateDb, chain.TrieDB().Scheme()),
 		stateSyncStart:   make(chan *stateSync),
 		snapshotDB:       snapshotDB,
 	}
