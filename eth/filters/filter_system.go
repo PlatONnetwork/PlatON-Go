@@ -58,10 +58,13 @@ type Backend interface {
 	ChainDb() ethdb.Database
 	HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumber) (*types.Header, error)
 	HeaderByHash(ctx context.Context, blockHash common.Hash) (*types.Header, error)
+	GetBody(ctx context.Context, hash common.Hash, number rpc.BlockNumber) (*types.Body, error)
 	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
 	GetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error)
 	PendingBlockAndReceipts() (*types.Block, types.Receipts)
 
+	CurrentHeader() *types.Header
+	ChainConfig() *params.ChainConfig
 	SubscribeNewTxsEvent(chan<- core.NewTxsEvent) event.Subscription
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeRemovedLogsEvent(ch chan<- core.RemovedLogsEvent) event.Subscription
@@ -75,30 +78,30 @@ type Backend interface {
 // FilterSystem holds resources shared by all filters.
 type FilterSystem struct {
 	backend   Backend
-	logsCache *lru.Cache
+	logsCache *lru.Cache[common.Hash, *logCacheElem]
 	cfg       *Config
 }
 
 // NewFilterSystem creates a filter system.
 func NewFilterSystem(backend Backend, config Config) *FilterSystem {
 	config = config.withDefaults()
-
-	cache, err := lru.New(config.LogCacheSize)
-	if err != nil {
-		panic(err)
-	}
 	return &FilterSystem{
 		backend:   backend,
-		logsCache: cache,
+		logsCache: lru.NewCache[common.Hash, *logCacheElem](config.LogCacheSize),
 		cfg:       &config,
 	}
 }
 
-// cachedGetLogs loads block logs from the backend and caches the result.
-func (sys *FilterSystem) cachedGetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error) {
+type logCacheElem struct {
+	logs []*types.Log
+	body atomic.Value
+}
+
+// cachedLogElem loads block logs from the backend and caches the result.
+func (sys *FilterSystem) cachedLogElem(ctx context.Context, blockHash common.Hash, number uint64) (*logCacheElem, error) {
 	cached, ok := sys.logsCache.Get(blockHash)
 	if ok {
-		return cached.([][]*types.Log), nil
+		return cached, nil
 	}
 
 	logs, err := sys.backend.GetLogs(ctx, blockHash, number)
@@ -108,8 +111,35 @@ func (sys *FilterSystem) cachedGetLogs(ctx context.Context, blockHash common.Has
 	if logs == nil {
 		return nil, fmt.Errorf("failed to get logs for block #%d (0x%s)", number, blockHash.TerminalString())
 	}
-	sys.logsCache.Add(blockHash, logs)
-	return logs, nil
+	// Database logs are un-derived.
+	// Fill in whatever we can (txHash is inaccessible at this point).
+	flattened := make([]*types.Log, 0)
+	var logIdx uint
+	for i, txLogs := range logs {
+		for _, log := range txLogs {
+			log.BlockHash = blockHash
+			log.BlockNumber = number
+			log.TxIndex = uint(i)
+			log.Index = logIdx
+			logIdx++
+			flattened = append(flattened, log)
+		}
+	}
+	elem := &logCacheElem{logs: flattened}
+	sys.logsCache.Add(blockHash, elem)
+	return elem, nil
+}
+
+func (sys *FilterSystem) cachedGetBody(ctx context.Context, elem *logCacheElem, hash common.Hash, number uint64) (*types.Body, error) {
+	if body := elem.body.Load(); body != nil {
+		return body.(*types.Body), nil
+	}
+	body, err := sys.backend.GetBody(ctx, hash, rpc.BlockNumber(number))
+	if err != nil {
+		return nil, err
+	}
+	elem.body.Store(body)
+	return body, nil
 }
 
 // Type determines the kind of filter and is used to put the filter in to
@@ -125,12 +155,12 @@ const (
 	PendingLogsSubscription
 	// MinedAndPendingLogsSubscription queries for logs in mined and pending blocks.
 	MinedAndPendingLogsSubscription
-	// PendingTransactionsSubscription queries tx hashes for pending
-	// transactions entering the pending state
+	// PendingTransactionsSubscription queries for pending transactions entering
+	// the pending state
 	PendingTransactionsSubscription
 	// BlocksSubscription queries hashes for blocks that are imported
 	BlocksSubscription
-	// LastSubscription keeps track of the last index
+	// LastIndexSubscription keeps track of the last index
 	LastIndexSubscription
 )
 
@@ -438,6 +468,12 @@ func (es *EventSystem) handleChainEvent(filters filterIndex, ev core.ChainEvent)
 	if es.lightMode && len(filters[LogsSubscription]) > 0 {
 		es.lightFilterNewHead(ev.Block.Header(), func(header *types.Header, remove bool) {
 			for _, f := range filters[LogsSubscription] {
+				if f.logsCrit.FromBlock != nil && header.Number.Cmp(f.logsCrit.FromBlock) < 0 {
+					continue
+				}
+				if f.logsCrit.ToBlock != nil && header.Number.Cmp(f.logsCrit.ToBlock) > 0 {
+					continue
+				}
 				if matchedLogs := es.lightFilterLogs(header, f.logsCrit.Addresses, f.logsCrit.Topics, remove); len(matchedLogs) > 0 {
 					f.logs <- matchedLogs
 				}
@@ -481,42 +517,39 @@ func (es *EventSystem) lightFilterNewHead(newHeader *types.Header, callBack func
 
 // filter logs of a single header in light client mode
 func (es *EventSystem) lightFilterLogs(header *types.Header, addresses []common.Address, topics [][]common.Hash, remove bool) []*types.Log {
-	if bloomFilter(header.Bloom, addresses, topics) {
-		// Get the logs of the block
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		logsList, err := es.sys.cachedGetLogs(ctx, header.Hash(), header.Number.Uint64())
-		if err != nil {
-			return nil
-		}
-		var unfiltered []*types.Log
-		for _, logs := range logsList {
-			for _, log := range logs {
-				logcopy := *log
-				logcopy.Removed = remove
-				unfiltered = append(unfiltered, &logcopy)
-			}
-		}
-		logs := filterLogs(unfiltered, nil, nil, addresses, topics)
-		if len(logs) > 0 && logs[0].TxHash == (common.Hash{}) {
-			// We have matching but non-derived logs
-			receipts, err := es.backend.GetReceipts(ctx, header.Hash())
-			if err != nil {
-				return nil
-			}
-			unfiltered = unfiltered[:0]
-			for _, receipt := range receipts {
-				for _, log := range receipt.Logs {
-					logcopy := *log
-					logcopy.Removed = remove
-					unfiltered = append(unfiltered, &logcopy)
-				}
-			}
-			logs = filterLogs(unfiltered, nil, nil, addresses, topics)
-		}
+	if !bloomFilter(header.Bloom, addresses, topics) {
+		return nil
+	}
+	// Get the logs of the block
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	cached, err := es.sys.cachedLogElem(ctx, header.Hash(), header.Number.Uint64())
+	if err != nil {
+		return nil
+	}
+	unfiltered := append([]*types.Log{}, cached.logs...)
+	for i, log := range unfiltered {
+		// Don't modify in-cache elements
+		logcopy := *log
+		logcopy.Removed = remove
+		// Swap copy in-place
+		unfiltered[i] = &logcopy
+	}
+	logs := filterLogs(unfiltered, nil, nil, addresses, topics)
+	// Txhash is already resolved
+	if len(logs) > 0 && logs[0].TxHash != (common.Hash{}) {
 		return logs
 	}
-	return nil
+	// Resolve txhash
+	body, err := es.sys.cachedGetBody(ctx, cached, header.Hash(), header.Number.Uint64())
+	if err != nil {
+		return nil
+	}
+	for _, log := range logs {
+		// logs are already copied, safe to modify
+		log.TxHash = body.Transactions[log.TxIndex].Hash()
+	}
+	return logs
 }
 
 // eventLoop (un)installs filters and processes mux events.
