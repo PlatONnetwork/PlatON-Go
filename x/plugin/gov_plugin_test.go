@@ -99,7 +99,7 @@ func submitText(t *testing.T, pid common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		t.Fatalf("submit text proposal err: %s", err)
@@ -128,7 +128,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], blockHash, 0)
+	//state.SetTxContext(txHashArr[0], blockHash, 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -160,7 +160,7 @@ func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -318,7 +318,7 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -342,7 +342,7 @@ func TestGovPlugin_SubmitText_invalidType(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -366,7 +366,7 @@ func TestGovPlugin_SubmitText_Proposer_empty(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //empty proposal
 	if err != nil {
@@ -452,7 +452,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -477,7 +477,7 @@ func TestGovPlugin_SubmitVersion_ZeroEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -493,7 +493,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	defer setup(t)()
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	version := uint32(1<<16 | 2<<8)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
@@ -584,7 +584,7 @@ func TestGovPlugin_SubmitCancel_invalidEndVotingRounds(t *testing.T) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 
 	err = gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -609,7 +609,7 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 		TobeCanceled:    txHashArr[0],
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {

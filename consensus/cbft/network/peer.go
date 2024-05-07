@@ -33,7 +33,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -82,7 +82,7 @@ type peer struct {
 	// Record the message received by the peer node.
 	// If the threshold is exceeded, the queue tail
 	// record is popped up and then added.
-	knownMessageHash mapset.Set
+	knownMessageHash mapset.Set[common.Hash]
 
 	pingList *list.List
 	listLock sync.RWMutex
@@ -103,7 +103,7 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		highestQCBn:      new(big.Int),
 		lockedBn:         new(big.Int),
 		commitBn:         new(big.Int),
-		knownMessageHash: mapset.NewSet(),
+		knownMessageHash: mapset.NewSet[common.Hash](),
 		pingList:         list.New(),
 		sendQueue:        make(chan *types.MsgPackage, maxQueueSize),
 	}
