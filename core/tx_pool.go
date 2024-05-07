@@ -613,9 +613,6 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 // Nonce returns the next nonce of an account, with all transactions executable
 // by the pool already applied on top.
 func (pool *TxPool) Nonce(addr common.Address) uint64 {
-	pool.mu.RLock()
-	defer pool.mu.RUnlock()
-
 	return pool.pendingNonces.get(addr)
 }
 
@@ -648,11 +645,11 @@ func (pool *TxPool) Content() (map[common.Address]types.Transactions, map[common
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
-	pending := make(map[common.Address]types.Transactions)
+	pending := make(map[common.Address]types.Transactions, len(pool.pending))
 	for addr, list := range pool.pending {
 		pending[addr] = list.Flatten()
 	}
-	queued := make(map[common.Address]types.Transactions)
+	queued := make(map[common.Address]types.Transactions, len(pool.queue))
 	for addr, list := range pool.queue {
 		queued[addr] = list.Flatten()
 	}
@@ -1823,7 +1820,7 @@ type accountSet struct {
 // derivations.
 func newAccountSet(signer types.Signer, addrs ...common.Address) *accountSet {
 	as := &accountSet{
-		accounts: make(map[common.Address]struct{}),
+		accounts: make(map[common.Address]struct{}, len(addrs)),
 		signer:   signer,
 	}
 	for _, addr := range addrs {

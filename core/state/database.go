@@ -58,11 +58,14 @@ type Database interface {
 	// ContractCodeSize retrieves a particular contracts code's size.
 	ContractCodeSize(addrHash, codeHash common.Hash) (int, error)
 
+	// DiskDB returns the underlying key-value disk database.
+	DiskDB() ethdb.KeyValueStore
+
 	// TrieDB retrieves the low level trie database used for data storage.
 	TrieDB() *trie.Database
 }
 
-// Trie is a Ethereum Merkle Trie.
+// Trie is a Ethereum Merkle Patricia trie.
 type Trie interface {
 	// TryGet returns the value for key stored in the trie. The value bytes must
 	// not be modified by the caller. If a node was not found in the database, a
@@ -94,16 +97,20 @@ type Trie interface {
 }
 
 // NewDatabase creates a backing store for state. The returned database is safe for
-// concurrent use and retains a few recent expanded trie nodes in memory. To keep
-// more historical state in memory, use the NewDatabaseWithCache constructor.
+// concurrent use, but does not retain any recent trie nodes in memory. To keep some
+// historical state in memory, use the NewDatabaseWithConfig constructor.
 func NewDatabase(db ethdb.Database) Database {
 	return NewDatabaseWithConfig(db, nil)
 }
 
+// NewDatabaseWithConfig creates a backing store for state. The returned database
+// is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
+// large memory cache.
 func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		db:            trie.NewDatabaseWithConfig(db, config),
+		disk:          db,
 		codeSizeCache: csc,
 		codeCache:     fastcache.New(codeCacheSize),
 	}
@@ -111,11 +118,12 @@ func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
 
 type cachingDB struct {
 	db            *trie.Database
+	disk          ethdb.KeyValueStore
 	codeSizeCache *lru.Cache
 	codeCache     *fastcache.Cache
 }
 
-// OpenTrie opens the main account trie.
+// OpenTrie opens the main account trie at a specific root hash.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	return trie.NewStateTrie(common.Hash{}, root, db.db)
 }
@@ -149,7 +157,7 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCode(db.db.DiskDB(), codeHash)
+	code := rawdb.ReadCode(db.disk, codeHash)
 	if len(code) > 0 {
 		db.codeCache.Set(codeHash.Bytes(), code)
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -165,7 +173,7 @@ func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]b
 	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCodeWithPrefix(db.db.DiskDB(), codeHash)
+	code := rawdb.ReadCodeWithPrefix(db.disk, codeHash)
 	if len(code) > 0 {
 		db.codeCache.Set(codeHash.Bytes(), code)
 		db.codeSizeCache.Add(codeHash, len(code))
@@ -181,6 +189,11 @@ func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, erro
 	}
 	code, err := db.ContractCode(addrHash, codeHash)
 	return len(code), err
+}
+
+// DiskDB returns the underlying key-value disk database.
+func (db *cachingDB) DiskDB() ethdb.KeyValueStore {
+	return db.disk
 }
 
 // TrieDB retrieves any intermediate trie-node caching layer.

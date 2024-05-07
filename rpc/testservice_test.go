@@ -70,6 +70,12 @@ func (testError) Error() string          { return "testError" }
 func (testError) ErrorCode() int         { return 444 }
 func (testError) ErrorData() interface{} { return "testError data" }
 
+type MarshalErrObj struct{}
+
+func (o *MarshalErrObj) MarshalText() ([]byte, error) {
+	return nil, errors.New("marshal error")
+}
+
 func (s *testService) NoArgsRets() {}
 
 func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
@@ -112,6 +118,14 @@ func (s *testService) InvalidRets3() (string, string, error) {
 
 func (s *testService) ReturnError() error {
 	return testError{}
+}
+
+func (s *testService) MarshalError() *MarshalErrObj {
+	return &MarshalErrObj{}
+}
+
+func (s *testService) Panic() string {
+	panic("service panic")
 }
 
 func (s *testService) CallMeBack(ctx context.Context, method string, args []interface{}) (interface{}, error) {
@@ -184,15 +198,6 @@ func (s *notificationTestService) SomeSubscription(ctx context.Context, n, val i
 	return subscription, nil
 }
 
-// largeRespService generates arbitrary-size JSON responses.
-type largeRespService struct {
-	length int
-}
-
-func (x largeRespService) LargeResp() string {
-	return strings.Repeat("x", x.length)
-}
-
 // HangSubscription blocks on s.unblockHangSubscription before sending anything.
 func (s *notificationTestService) HangSubscription(ctx context.Context, val int) (*Subscription, error) {
 	notifier, supported := NotifierFromContext(ctx)
@@ -207,4 +212,13 @@ func (s *notificationTestService) HangSubscription(ctx context.Context, val int)
 		notifier.Notify(subscription.ID, val)
 	}()
 	return subscription, nil
+}
+
+// largeRespService generates arbitrary-size JSON responses.
+type largeRespService struct {
+	length int
+}
+
+func (x largeRespService) LargeResp() string {
+	return strings.Repeat("x", x.length)
 }

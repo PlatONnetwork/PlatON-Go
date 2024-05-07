@@ -23,7 +23,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 var TestPlatONPrecompiledContracts = map[common.Address]interface{}{
@@ -78,7 +77,7 @@ func TestNodeIteratorCoverage(t *testing.T) {
 			t.Errorf("state entry not reported %x", hash)
 		}
 	}
-	it := db.TrieDB().DiskDB().(ethdb.Database).NewIterator(nil, nil)
+	it := db.DiskDB().NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if bytes.HasPrefix(key, []byte("secure-key-")) {
