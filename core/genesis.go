@@ -468,11 +468,16 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
+	var withdrawals []*types.Withdrawal
 	// 1.3.0
 	if gov.Gte130Version(genesisVersion) {
 		if err := gov.WriteEcHash130(statedb); nil != err {
 			panic("Failed Store EcHash130: " + err.Error())
 		}
+	}
+
+	if gov.Gte160Version(genesisVersion) {
+		withdrawals = make([]*types.Withdrawal, 0)
 	}
 
 	if g.Config != nil {
@@ -516,7 +521,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
 
-	block := types.NewBlock(head, nil, nil, new(trie.Trie))
+	block := types.NewBlock(head, nil, nil, new(trie.Trie)).WithWithdrawals(withdrawals)
 
 	if err := sdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
