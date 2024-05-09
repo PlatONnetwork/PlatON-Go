@@ -6,17 +6,6 @@ run:
   # default is true. Enables skipping of directories:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   skip-dirs-use-default: true
-  skip-files:
-    - core/genesis_alloc.go
-    - log/term/terminal_notwindows.go
-    - params/version_history.go
-    - accounts/usbwallet/trezor/trezor.go
-    - crypto/bls/mcl.go
-  skip-dirs:
-    - common/math
-    - common/json
-    - common/sort
-    - tests
 
 linters:
   disable-all: true
@@ -71,3 +60,14 @@ issues:
     - 'SA1019: strings.Title is deprecated'
     - 'SA1019: strings.Title has been deprecated since Go 1.18 and an alternative has been available since Go 1.0: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead.'
     - 'SA1029: should not use built-in type string as key for value'
+  exclude-files:
+    - core/genesis_alloc.go
+    - log/term/terminal_notwindows.go
+    - params/version_history.go
+    - accounts/usbwallet/trezor/trezor.go
+    - crypto/bls/mcl.go
+  exclude-dirs:
+    - common/math
+    - common/json
+    - common/sort
+    - tests

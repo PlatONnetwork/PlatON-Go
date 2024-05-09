@@ -196,7 +196,7 @@ type Config struct {
 	trustedNodesWarning    bool
 	oldGethResourceWarning bool
 
-	// JWTSecret is the hex-encoded jwt secret.
+	// JWTSecret is the path to the hex-encoded jwt secret.
 	JWTSecret string `toml:",omitempty"`
 }
 
