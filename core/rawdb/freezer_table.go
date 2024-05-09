@@ -47,7 +47,7 @@ var (
 	errNotSupported = errors.New("this operation is not supported")
 )
 
-// indexEntry contains the number/id of the file that the data resides in, aswell as the
+// indexEntry contains the number/id of the file that the data resides in, as well as the
 // offset within the file to the end of the data.
 // In serialized form, the filenum is stored as uint16.
 type indexEntry struct {
@@ -876,13 +876,22 @@ func (t *freezerTable) advanceHead() error {
 // Sync pushes any pending data from memory out to disk. This is an expensive
 // operation, so use it with care.
 func (t *freezerTable) Sync() error {
-	if err := t.index.Sync(); err != nil {
-		return err
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	if t.index == nil || t.head == nil || t.meta == nil {
+		return errClosed
 	}
-	if err := t.meta.Sync(); err != nil {
-		return err
+	var err error
+	trackError := func(e error) {
+		if e != nil && err == nil {
+			err = e
+		}
 	}
-	return t.head.Sync()
+
+	trackError(t.index.Sync())
+	trackError(t.meta.Sync())
+	trackError(t.head.Sync())
+	return err
 }
 
 func (t *freezerTable) dumpIndexStdout(start, stop int64) {
