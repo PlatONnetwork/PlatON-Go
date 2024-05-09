@@ -1,18 +1,19 @@
-// Copyright 2018 The go-ethereum Authors
-// This file is part of go-ethereum.
+// Copyright 2019 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
+// GNU Lesser General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+
 package core_test
 
 import (
@@ -219,15 +220,29 @@ func TestSignData(t *testing.T) {
 	if signature == nil || len(signature) != 65 {
 		t.Errorf("Expected 65 byte signature (got %d bytes)", len(signature))
 	}
-	// data/typed
+	// data/typed via SignTypeData
 	control.approveCh <- "Y"
 	control.inputCh <- "a_long_password"
-	signature, err = api.SignTypedData(context.Background(), a, typedData)
-	if err != nil {
+	var want []byte
+	if signature, err = api.SignTypedData(context.Background(), a, typedData); err != nil {
 		t.Fatal(err)
-	}
-	if signature == nil || len(signature) != 65 {
+	} else if signature == nil || len(signature) != 65 {
 		t.Errorf("Expected 65 byte signature (got %d bytes)", len(signature))
+	} else {
+		want = signature
+	}
+
+	// data/typed via SignData / mimetype typed data
+	control.approveCh <- "Y"
+	control.inputCh <- "a_long_password"
+	if typedDataJson, err := json.Marshal(typedData); err != nil {
+		t.Fatal(err)
+	} else if signature, err = api.SignData(context.Background(), apitypes.DataTyped.Mime, a, hexutil.Encode(typedDataJson)); err != nil {
+		t.Fatal(err)
+	} else if signature == nil || len(signature) != 65 {
+		t.Errorf("Expected 65 byte signature (got %d bytes)", len(signature))
+	} else if have := signature; !bytes.Equal(have, want) {
+		t.Fatalf("want %x, have %x", want, have)
 	}
 }
 
