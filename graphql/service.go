@@ -17,15 +17,18 @@
 package graphql
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	graphqlEth "github.com/AlayaNetwork/graphql-go"
+	"github.com/graph-gophers/graphql-go"
+
 	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/graph-gophers/graphql-go"
 )
 
 type handler struct {
@@ -44,8 +47,11 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+
 	if r.URL.Path == "/graphql" || r.URL.Path == "/graphql/" {
-		response := h.SchemaEth.Exec(r.Context(), params.Query, params.OperationName, params.Variables)
+		response := h.SchemaEth.Exec(ctx, params.Query, params.OperationName, params.Variables)
 		responseJSON, err := json2.Marshal(response)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -58,7 +64,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(responseJSON)
 	} else {
-		response := h.Schema.Exec(r.Context(), params.Query, params.OperationName, params.Variables)
+		response := h.Schema.Exec(ctx, params.Query, params.OperationName, params.Variables)
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
