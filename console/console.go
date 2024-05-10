@@ -34,11 +34,13 @@ import (
 
 	"github.com/dop251/goja"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
-	"github.com/PlatONnetwork/PlatON-Go/internal/web3ext"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
+
+	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
+	"github.com/PlatONnetwork/PlatON-Go/internal/web3ext"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 var (
@@ -200,13 +202,22 @@ func (c *Console) initWeb3(bridge *bridge) error {
 	return err
 }
 
+var defaultAPIs = map[string]string{"platon": "1.0", "net": "1.0", "debug": "1.0"}
+
 // initExtensions loads and registers web3.js extensions.
 func (c *Console) initExtensions() error {
-	// Compute aliases from server-provided modules.
+	const methodNotFound = -32601
 	apis, err := c.client.SupportedModules()
 	if err != nil {
-		return fmt.Errorf("api modules: %v", err)
+		if rpcErr, ok := err.(rpc.Error); ok && rpcErr.ErrorCode() == methodNotFound {
+			log.Warn("Server does not support method rpc_modules, using default API list.")
+			apis = defaultAPIs
+		} else {
+			return err
+		}
 	}
+
+	// Compute aliases from server-provided modules.
 	aliases := map[string]struct{}{"platon": {}, "personal": {}}
 	for api := range apis {
 		if api == "web3" {
