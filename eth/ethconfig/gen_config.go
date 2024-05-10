@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
@@ -67,7 +68,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		BlockChainVersion        int
 		DefaultTxsCacheSize      int
 		DefaultBroadcastInterval time.Duration
-		TxPool                   core.TxPoolConfig
+		TxPool                   txpool.Config
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
@@ -193,7 +194,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		BlockChainVersion        *int
 		DefaultTxsCacheSize      *int
 		DefaultBroadcastInterval *time.Duration
-		TxPool                   *core.TxPoolConfig
+		TxPool                   *txpool.Config
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool

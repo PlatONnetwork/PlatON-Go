@@ -1862,7 +1862,7 @@ func TestEIP3651(t *testing.T) {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
 	engine.SetChain(chain)
-	NewExecutor(gspec.Config, chain, chain.vmConfig, nil)
+	NewExecutor(gspec.Config, chain, chain.vmConfig)
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}

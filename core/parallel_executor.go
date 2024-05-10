@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
-	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/panjf2000/ants/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -17,7 +18,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/panjf2000/ants/v2"
 )
 
 var (
@@ -31,7 +31,6 @@ type Executor struct {
 	vmCfg        vm.Config
 
 	workerPool *ants.PoolWithFunc
-	txpool     *TxPool
 }
 
 type TaskArgs struct {
@@ -40,7 +39,7 @@ type TaskArgs struct {
 	intrinsicGas uint64
 }
 
-func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config, txpool *TxPool) {
+func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config) {
 	executorOnce.Do(func() {
 		log.Info("Init parallel executor ...")
 		executor = Executor{}
@@ -56,7 +55,6 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 
 		executor.vmCfg = vmCfg
-		executor.txpool = txpool
 	})
 }
 

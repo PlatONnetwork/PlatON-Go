@@ -27,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -50,7 +51,7 @@ type testBackend struct {
 	db         ethdb.Database
 	chain      *core.BlockChain
 	chainCache *core.BlockChainCache
-	txpool     *core.TxPool
+	txpool     *txpool.TxPool
 }
 
 // newTestBackend creates an empty chain and wraps it into a mock backend.
@@ -78,14 +79,14 @@ func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)
 	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, genesis, consensus.NewFakerWithDataBase(db, genesis), db, blocks, generator)
 	cache := core.NewBlockChainCache(chain)
 
-	txconfig := core.DefaultTxPoolConfig
+	txconfig := txpool.DefaultConfig
 	txconfig.Journal = "" // Don't litter the disk with test journals
 
 	return &testBackend{
 		db:         db,
 		chain:      chain,
 		chainCache: cache,
-		txpool:     core.NewTxPool(txconfig, params.TestChainConfig, cache),
+		txpool:     txpool.NewTxPool(txconfig, params.TestChainConfig, cache),
 	}
 }
 

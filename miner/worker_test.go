@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -44,7 +45,7 @@ import (
 
 var (
 	// Test chain configurations
-	testTxPoolConfig core.TxPoolConfig
+	testTxPoolConfig txpool.Config
 	chainConfig      *params.ChainConfig
 
 	// Test accounts
@@ -66,7 +67,7 @@ var (
 )
 
 func init() {
-	testTxPoolConfig = core.DefaultTxPoolConfig
+	testTxPoolConfig = txpool.DefaultConfig
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
 
@@ -96,7 +97,7 @@ func init() {
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
 type testWorkerBackend struct {
 	db         ethdb.Database
-	txPool     *core.TxPool
+	txPool     *txpool.TxPool
 	chain      *core.BlockChain
 	chainCache *core.BlockChainCache
 	engine     consensus.Engine
@@ -131,7 +132,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, blockChainCache)
+	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, blockChainCache)
 
 	// Generate a small n-block chain and an uncle block for it
 	if n > 0 {
@@ -160,7 +161,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 }
 
 func (b *testWorkerBackend) BlockChain() *core.BlockChain { return b.chain }
-func (b *testWorkerBackend) TxPool() *core.TxPool         { return b.txPool }
+func (b *testWorkerBackend) TxPool() *txpool.TxPool       { return b.txPool }
 func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
 	return nil, errors.New("not supported")
 }
@@ -168,7 +169,7 @@ func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
 	event := new(event.TypeMux)
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
-	core.NewExecutor(chainConfig, backend.chain, vm.Config{}, nil)
+	core.NewExecutor(chainConfig, backend.chain, vm.Config{})
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
