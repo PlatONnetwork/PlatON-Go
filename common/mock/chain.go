@@ -605,10 +605,11 @@ func (s *MockStateDB) AddLog(logInfo *types.Log) {
 	s.logSize++
 }
 
-func (s *MockStateDB) GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log {
+func (s *MockStateDB) GetLogs(hash common.Hash, blockNumber uint64, blockHash common.Hash) []*types.Log {
 	logs := s.Logs[hash]
 	for _, l := range logs {
 		l.BlockHash = blockHash
+		l.BlockNumber = blockNumber
 	}
 	return logs
 }

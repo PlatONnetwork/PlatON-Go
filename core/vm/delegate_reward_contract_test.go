@@ -187,7 +187,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, 0, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 			return err
 		}
 		var code string
@@ -259,7 +259,7 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 	}
 
 	var m [][]byte
-	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
+	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash, 0, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 		t.Error(err)
 		return
 	}
@@ -396,7 +396,7 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, hash)[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, 0, hash)[0].Data, &m); err != nil {
 			return err
 		}
 		var code string
