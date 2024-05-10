@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -64,6 +64,8 @@ const (
 	// will only be found every ~15K blocks or so.
 	defaultTracechainMemLimit = common.StorageSize(500 * 1024 * 1024)
 )
+
+var errTxNotFound = errors.New("transaction not found")
 
 // StateReleaseFunc is used to deallocate resources held by constructing a
 // historical state for tracing purposes.
@@ -850,9 +852,13 @@ func containsTx(block *types.Block, hash common.Hash) bool {
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
 func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *TraceConfig) (interface{}, error) {
-	_, blockHash, blockNumber, index, err := api.backend.GetTransaction(ctx, hash)
+	tx, blockHash, blockNumber, index, err := api.backend.GetTransaction(ctx, hash)
 	if err != nil {
 		return nil, err
+	}
+	// Only mined txes are supported
+	if tx == nil {
+		return nil, errTxNotFound
 	}
 	// It shouldn't happen in practice.
 	if blockNumber == 0 {
