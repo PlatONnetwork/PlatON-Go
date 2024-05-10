@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -56,7 +55,7 @@ func (t *revertReasonTracer) CaptureStart(env *vm.EVM, _ common.Address, _ commo
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (t *revertReasonTracer) CaptureEnd(output []byte, _ uint64, _ time.Duration, err error) {
+func (t *revertReasonTracer) CaptureEnd(output []byte, _ uint64, err error) {
 	if err != nil {
 		if err == vm.ErrExecutionReverted && len(output) > 4 && bytes.Equal(output[:4], revertSelector) {
 			errMsg, _ := abi.UnpackRevert(output)
