@@ -93,7 +93,7 @@ func TestHandshake(t *testing.T) {
 	}
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -151,7 +151,7 @@ func TestHandshake_norecord(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -191,7 +191,7 @@ func TestHandshake_rekey(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -226,7 +226,7 @@ func TestHandshake_rekey2(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
