@@ -562,7 +562,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 }
 
 // setFastSyncStatus set status to snapshot db when fast sync begin
-// if  the user close platon when sync not finish,set status fail
+// if the user close platon when sync not finish,set status fail
 // if the sync is complete,will del the key
 func (d *Downloader) setFastSyncStatus(status uint16) error {
 	key := []byte(KeyFastSyncStatus)
@@ -1100,7 +1100,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 				}
 			}
 		}
-		// If no headers have bene delivered, or all of them have been delayed,
+		// If no headers have been delivered, or all of them have been delayed,
 		// sleep a bit and retry. Take care with headers already consumed during
 		// skeleton filling
 		if len(headers) == 0 && !progressed {
