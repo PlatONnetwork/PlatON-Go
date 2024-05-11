@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"sync"
 	"time"
@@ -42,7 +41,6 @@ const (
 	lookupRequestLimit      = 3  // max requests against a single node during lookup
 	findnodeResultLimit     = 16 // applies in FINDNODE handler
 	totalNodesResponseLimit = 5  // applies in waitForNodes
-	nodesResponseItemLimit  = 3  // applies in sendNodes
 
 	respTimeoutV5 = 700 * time.Millisecond
 )
@@ -627,8 +625,8 @@ func (t *UDPv5) readLoop() {
 			t.log.Debug("Temporary UDP read error", "err", err)
 			continue
 		} else if err != nil {
-			// Shut down the loop for permament errors.
-			if err != io.EOF {
+			// Shut down the loop for permanent errors.
+			if !errors.Is(err, io.EOF) {
 				t.log.Debug("UDP read error", "err", err)
 			}
 			return
@@ -834,16 +832,28 @@ func packNodes(reqid []byte, nodes []*enode.Node) []*v5wire.Nodes {
 		return []*v5wire.Nodes{{ReqID: reqid, Total: 1}}
 	}
 
-	total := uint8(math.Ceil(float64(len(nodes)) / 3))
+	// This limit represents the available space for nodes in output packets. Maximum
+	// packet size is 1280, and out of this ~80 bytes will be taken up by the packet
+	// frame. So limiting to 1000 bytes here leaves 200 bytes for other fields of the
+	// NODES message, which is a lot.
+	const sizeLimit = 1000
+
 	var resp []*v5wire.Nodes
 	for len(nodes) > 0 {
-		p := &v5wire.Nodes{ReqID: reqid, Total: total}
-		items := min(nodesResponseItemLimit, len(nodes))
-		for i := 0; i < items; i++ {
-			p.Nodes = append(p.Nodes, nodes[i].Record())
+		p := &v5wire.Nodes{ReqID: reqid}
+		size := uint64(0)
+		for len(nodes) > 0 {
+			r := nodes[0].Record()
+			if size += r.Size(); size > sizeLimit {
+				break
+			}
+			p.Nodes = append(p.Nodes, r)
+			nodes = nodes[1:]
 		}
-		nodes = nodes[items:]
 		resp = append(resp, p)
+	}
+	for _, msg := range resp {
+		msg.Total = uint8(len(resp))
 	}
 	return resp
 }
