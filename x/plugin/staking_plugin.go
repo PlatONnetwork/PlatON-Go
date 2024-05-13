@@ -1536,7 +1536,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return staking.ErrBlockNumberDisordered
 	}
 
-	// caculate the new epoch start and end
+	// calculate the new epoch start and end
 	newVerifierArr := &staking.ValidatorArray{
 		Start: oldIndex.End + 1,
 		End:   oldIndex.End + xutil.CalcBlocksEachEpoch(),
@@ -2143,7 +2143,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		panic("The Current Epoch VerifierList is empty, blockNumber: " + fmt.Sprint(blockNumber))
 	}
 
-	// caculate the next round start and end
+	// calculate the next round start and end
 	start := curr.End + 1
 	end := curr.End + xutil.ConsensusSize()
 

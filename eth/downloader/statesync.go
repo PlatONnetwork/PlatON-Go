@@ -338,7 +338,7 @@ func (s *stateSync) Cancel() error {
 	return s.Wait()
 }
 
-// loop is the main event loop of a state trie sync. It it responsible for the
+// loop is the main event loop of a state trie sync. It is responsible for the
 // assignment of new tasks to peers (including sending it to them) as well as
 // for the processing of inbound data. Note, that the loop does not directly
 // receive data from peers, rather those are buffered up in the downloader and

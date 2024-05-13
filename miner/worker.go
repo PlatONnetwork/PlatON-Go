@@ -600,7 +600,7 @@ func (w *worker) mainLoop() {
 		select {
 		case req := <-w.newWorkCh:
 			if err := w.commitWork(req.interrupt, req.noempty, common.Millis(req.timestamp), req.commitBlock, req.blockDeadline); err != nil {
-				// If error during this committing, the task ends and change the CommitStatus to idle to allow the next commiting to be triggered
+				// If error during this committing, the task ends and change the CommitStatus to idle to allow the next committing to be triggered
 				log.Warn("Failed to commitNewWork", "baseBlockNumber", req.commitBlock.NumberU64(), "baseBlockHash", req.commitBlock.Hash(), "error", err)
 				w.commitWorkEnv.setCommitStatusIdle()
 			}
@@ -896,7 +896,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 
 // generateParams wraps various of settings for generating sealing task.
 type generateParams struct {
-	timestamp uint64       // The timstamp for sealing task
+	timestamp uint64       // The timestamp for sealing task
 	parent    *types.Block // Parent block hash, empty means the latest chain head
 }
 
