@@ -1262,12 +1262,6 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 	return infos
 }
 
-func (srv *Server) CloseDiscovery() {
-	srv.ntab.Close()
-	srv.discmix.Close()
-	srv.log.Info("Close ntab and discmix")
-}
-
 func (srv *Server) StartWatching(eventMux *event.TypeMux) {
 	srv.eventMux = eventMux
 	go srv.watching()

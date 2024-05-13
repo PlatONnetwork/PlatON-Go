@@ -241,7 +241,7 @@ func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount 
 		DelegateRewardPool := state.GetBalance(vm.DelegateRewardPoolAddr)
 
 		if DelegateRewardPool.Cmp(amount) < 0 {
-			return fmt.Errorf("DelegateRewardPool balance is not enougth,want %v have %v", amount, DelegateRewardPool)
+			return fmt.Errorf("DelegateRewardPool balance is not enough,want %v have %v", amount, DelegateRewardPool)
 		}
 
 		state.SubBalance(vm.DelegateRewardPoolAddr, amount)
