@@ -118,17 +118,17 @@ func MakeProtocols(backend Backend, dnsdisc enode.Iterator) []p2p.Protocol {
 // When this function terminates, the peer is disconnected.
 func Handle(backend Backend, peer *Peer) error {
 	for {
-		if err := handleMessage(backend, peer); err != nil {
+		if err := HandleMessage(backend, peer); err != nil {
 			peer.Log().Error("Message handling failed in `snap`", "err", err)
 			return err
 		}
 	}
 }
 
-// handleMessage is invoked whenever an inbound message is received from a
+// HandleMessage is invoked whenever an inbound message is received from a
 // remote peer on the `snap` protocol. The remote connection is torn down upon
 // returning any error.
-func handleMessage(backend Backend, peer *Peer) error {
+func HandleMessage(backend Backend, peer *Peer) error {
 	// Read the next message from the remote peer, and ensure it's fully consumed
 	msg, err := peer.rw.ReadMsg()
 	if err != nil {
@@ -139,7 +139,7 @@ func handleMessage(backend Backend, peer *Peer) error {
 	}
 	defer msg.Discard()
 	start := time.Now()
-	// Track the emount of time it takes to serve the request and run the handler
+	// Track the amount of time it takes to serve the request and run the handler
 	if metrics.Enabled {
 		h := fmt.Sprintf("%s/%s/%d/%#02x", p2p.HandleHistName, ProtocolName, peer.Version(), msg.Code)
 		defer func(start time.Time) {
