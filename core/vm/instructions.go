@@ -20,7 +20,8 @@ import (
 	"sync/atomic"
 
 	"github.com/holiman/uint256"
-	"golang.org/x/crypto/sha3"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -239,7 +240,7 @@ func opKeccak256(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) (
 	data := scope.Memory.GetPtr(int64(offset.Uint64()), int64(size.Uint64()))
 
 	if interpreter.hasher == nil {
-		interpreter.hasher = sha3.NewLegacyKeccak256().(keccakState)
+		interpreter.hasher = crypto.NewKeccakState()
 	} else {
 		interpreter.hasher.Reset()
 	}

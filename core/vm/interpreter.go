@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"hash"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -78,21 +78,13 @@ type ScopeContext struct {
 	Contract *Contract
 }
 
-// keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
-// Read to get a variable amount of data from the hash state. Read is faster than Sum
-// because it doesn't copy the internal state, but also modifies the internal state.
-type keccakState interface {
-	hash.Hash
-	Read([]byte) (int, error)
-}
-
 // EVMInterpreter represents an EVM interpreter
 type EVMInterpreter struct {
 	evm *EVM
 	cfg Config
 
-	hasher    keccakState // Keccak256 hasher instance shared across opcodes
-	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
+	hasher    crypto.KeccakState // Keccak256 hasher instance shared across opcodes
+	hasherBuf common.Hash        // Keccak256 hasher result array shared aross opcodes
 
 	readOnly   bool   // Whether to throw on stateful modifications
 	returnData []byte // Last CALL's return data for subsequent reuse
