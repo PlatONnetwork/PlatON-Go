@@ -98,8 +98,8 @@ var (
 	economicModelPrefix       = []byte("economicModel-key-")       // economicModel prefix for the db
 	economicModelExtendPrefix = []byte("economicModelExtend-key-") // economicModelExtend prefix for the db
 
-	// Chain index prefixes (use `i` + single byte to avoid mixing data types).
-	BloomBitsIndexPrefix = []byte("iB") // BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
+	// BloomBitsIndexPrefix is the data table of a chain indexer to track its progress
+	BloomBitsIndexPrefix = []byte("iB")
 
 	preimageCounter    = metrics.NewRegisteredCounter("db/preimage/total", nil)
 	preimageHitCounter = metrics.NewRegisteredCounter("db/preimage/hits", nil)
