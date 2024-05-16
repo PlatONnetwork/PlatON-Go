@@ -20,19 +20,21 @@ import (
 	"fmt"
 	"math/big"
 
+	big2 "github.com/holiman/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
+// Fuzz is the fuzzing entry-point.
 // The function must return
-// 1 if the fuzzer should increase priority of the
 //
-//	given input during subsequent fuzzing (for example, the input is lexically
-//	correct and was parsed successfully);
+//   - 1 if the fuzzer should increase priority of the
+//     given input during subsequent fuzzing (for example, the input is lexically
+//     correct and was parsed successfully);
+//   - -1 if the input must not be added to corpus even if gives new coverage; and
+//   - 0 otherwise
 //
-// -1 if the input must not be added to corpus even if gives new coverage; and
-// 0  otherwise
 // other values are reserved for future use.
 func Fuzz(input []byte) int {
 	if len(input) <= 96 {
@@ -55,18 +57,21 @@ func Fuzz(input []byte) int {
 	input = input[96:]
 	// Retrieve the operands and execute the exponentiation
 	var (
-		base = new(big.Int).SetBytes(getData(input, 0, baseLen))
-		exp  = new(big.Int).SetBytes(getData(input, baseLen, expLen))
-		mod  = new(big.Int).SetBytes(getData(input, baseLen+expLen, modLen))
+		base  = new(big.Int).SetBytes(getData(input, 0, baseLen))
+		exp   = new(big.Int).SetBytes(getData(input, baseLen, expLen))
+		mod   = new(big.Int).SetBytes(getData(input, baseLen+expLen, modLen))
+		base2 = new(big2.Int).SetBytes(getData(input, 0, baseLen))
+		exp2  = new(big2.Int).SetBytes(getData(input, baseLen, expLen))
+		mod2  = new(big2.Int).SetBytes(getData(input, baseLen+expLen, modLen))
 	)
 	if mod.BitLen() == 0 {
 		// Modulo 0 is undefined, return zero
 		return -1
 	}
-	var a = math.FastExp(new(big.Int).Set(base), new(big.Int).Set(exp), new(big.Int).Set(mod))
-	var b = base.Exp(base, exp, mod)
-	if a.Cmp(b) != 0 {
-		panic(fmt.Sprintf("Inequality %x != %x", a, b))
+	var a = new(big2.Int).Exp(base2, exp2, mod2).String()
+	var b = new(big.Int).Exp(base, exp, mod).String()
+	if a != b {
+		panic(fmt.Sprintf("Inequality %#x ^ %#x mod %#x \n have %s\n want %s", base, exp, mod, a, b))
 	}
 	return 1
 }
