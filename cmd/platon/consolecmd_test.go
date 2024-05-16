@@ -122,7 +122,7 @@ func TestWSAttachWelcome(t *testing.T) {
 }
 
 func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) {
-	// Attach to a running platon note and terminate immediately
+	// Attach to a running platon node and terminate immediately
 	attach := runPlatON(t, "attach", endpoint)
 	defer attach.ExpectExit()
 	attach.CloseStdin()
