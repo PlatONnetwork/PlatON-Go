@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
 )
 
@@ -87,7 +86,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T, typ
 			} else if err := json.Unmarshal(blob, test); err != nil {
 				t.Fatalf("failed to parse testcase: %v", err)
 			}
-			if err := rlp.DecodeBytes(common.FromHex(test.Input), tx); err != nil {
+			if err := tx.UnmarshalBinary(common.FromHex(test.Input)); err != nil {
 				t.Fatalf("failed to parse testcase input: %v", err)
 			}
 			// Configure a blockchain with the given prestate
@@ -106,6 +105,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T, typ
 					Time:        new(big.Int).SetUint64(uint64(test.Context.Time)),
 					Difficulty:  (*big.Int)(test.Context.Difficulty),
 					GasLimit:    uint64(test.Context.GasLimit),
+					BaseFee:     test.Genesis.BaseFee,
 				}
 				_, statedb = tests.MakePreState(rawdb.NewMemoryDatabase(), test.Genesis.Alloc, false)
 			)
