@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	// Force-load native and js pacakges, to trigger registration
+	// Force-load native and js packages, to trigger registration
 	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
 	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )

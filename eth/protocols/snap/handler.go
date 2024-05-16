@@ -345,7 +345,7 @@ func ServiceGetStorageRangesQuery(chain *core.BlockChain, req *GetStorageRangesP
 		req.Bytes = softResponseLimit
 	}
 	// TODO(karalabe): Do we want to enforce > 0 accounts and 1 account if origin is set?
-	// TODO(karalabe):   - Logging locally is not ideal as remote faulst annoy the local user
+	// TODO(karalabe):   - Logging locally is not ideal as remote faults annoy the local user
 	// TODO(karalabe):   - Dropping the remote peer is less flexible wrt client bugs (slow is better than non-functional)
 
 	// Calculate the hard limit at which to abort, even if mid storage trie

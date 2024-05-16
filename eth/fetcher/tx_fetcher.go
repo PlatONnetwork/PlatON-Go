@@ -220,7 +220,7 @@ func (f *TxFetcher) Notify(peer string, hashes []common.Hash) error {
 	log.Trace("TxFetcher Notify", "peer", peer, "hashes", len(hashes))
 
 	// Skip any transaction announcements that we already know of, or that we've
-	// previously marked as cheap and discarded. This check is of course racey,
+	// previously marked as cheap and discarded. This check is of course racy,
 	// because multiple concurrent notifies will still manage to pass it, but it's
 	// still valuable to check here because it runs concurrent  to the internal
 	// loop, so anything caught here is time saved internally.
