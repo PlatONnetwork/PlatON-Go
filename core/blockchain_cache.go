@@ -436,31 +436,31 @@ func processStatData(blockNumber *big.Int, statData *common.StatData) {
 			if nil != err {
 				log.Error("ProcessStatData error, on getCandidateInfo", "blockHash", statData.BlockHash, "nodeAddress", key)
 				fmt.Errorf("ProcessStatData error, on getCandidateInfo")
+			} else {
+				statData.Put.Candidate = append(statData.Put.Candidate, &common.Candidate{
+					NodeId:              common.NodeID(can.NodeId),
+					StakingAddress:      can.StakingAddress,
+					BenefitAddress:      can.BenefitAddress,
+					RewardPer:           can.RewardPer,
+					NextRewardPer:       can.NextRewardPer,
+					StakingTxIndex:      can.StakingTxIndex,
+					ProgramVersion:      can.ProgramVersion,
+					Status:              uint32(can.Status),
+					StakingBlockNum:     can.StakingBlockNum,
+					Shares:              can.Shares.ToInt(),
+					Released:            can.Released.ToInt(),
+					ReleasedHes:         can.ReleasedHes.ToInt(),
+					RestrictingPlan:     can.RestrictingPlan.ToInt(),
+					RestrictingPlanHes:  can.RestrictingPlanHes.ToInt(),
+					ExternalId:          can.ExternalId,
+					NodeName:            can.NodeName,
+					Website:             can.Website,
+					Details:             can.Details,
+					DelegateTotal:       can.DelegateTotal.ToInt(),
+					DelegateTotalHes:    can.DelegateTotalHes.ToInt(),
+					DelegateRewardTotal: can.DelegateRewardTotal.ToInt(),
+				})
 			}
-
-			statData.Put.Candidate = append(statData.Put.Candidate, &common.Candidate{
-				NodeId:              common.NodeID(can.NodeId),
-				StakingAddress:      can.StakingAddress,
-				BenefitAddress:      can.BenefitAddress,
-				RewardPer:           can.RewardPer,
-				NextRewardPer:       can.NextRewardPer,
-				StakingTxIndex:      can.StakingTxIndex,
-				ProgramVersion:      can.ProgramVersion,
-				Status:              uint32(can.Status),
-				StakingBlockNum:     can.StakingBlockNum,
-				Shares:              can.Shares.ToInt(),
-				Released:            can.Released.ToInt(),
-				ReleasedHes:         can.ReleasedHes.ToInt(),
-				RestrictingPlan:     can.RestrictingPlan.ToInt(),
-				RestrictingPlanHes:  can.RestrictingPlanHes.ToInt(),
-				ExternalId:          can.ExternalId,
-				NodeName:            can.NodeName,
-				Website:             can.Website,
-				Details:             can.Details,
-				DelegateTotal:       can.DelegateTotal.ToInt(),
-				DelegateTotalHes:    can.DelegateTotalHes.ToInt(),
-				DelegateRewardTotal: can.DelegateRewardTotal.ToInt(),
-			})
 		}
 	}
 	// 删除消息中 CandidateDeleted 和 CandidateChanged
