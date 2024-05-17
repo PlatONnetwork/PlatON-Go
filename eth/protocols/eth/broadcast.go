@@ -83,7 +83,7 @@ func (p *Peer) broadcastTransactions() {
 						tx = queue[i]
 					}
 					txs = append(txs, tx)
-					size += tx.Size()
+					size += common.StorageSize(tx.Size())
 				}
 				hashesCount++
 			}
