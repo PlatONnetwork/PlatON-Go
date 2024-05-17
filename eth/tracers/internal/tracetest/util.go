@@ -1,8 +1,6 @@
 package tracetest
 
 import (
-	"encoding/json"
-	"reflect"
 	"strings"
 	"unicode"
 
@@ -30,9 +28,11 @@ var makeTest = function(tx, rewind) {
   delete genesis.transactions;
   delete genesis.transactionsRoot;
   delete genesis.uncles;
+
   genesis.gasLimit  = genesis.gasLimit.toString();
   genesis.number    = genesis.number.toString();
   genesis.timestamp = genesis.timestamp.toString();
+
   genesis.alloc = debug.traceTransaction(tx, {tracer: "prestateTracer", rewind: rewind});
   for (var key in genesis.alloc) {
     var nonce = genesis.alloc[key].nonce;
@@ -41,9 +41,11 @@ var makeTest = function(tx, rewind) {
     }
   }
   genesis.config = admin.nodeInfo.protocols.eth.config;
+
   // Generate the call trace and produce the test input
   var result = debug.traceTransaction(tx, {tracer: "callTracer", rewind: rewind});
   delete result.time;
+
   console.log(JSON.stringify({
     genesis: genesis,
     context: {
@@ -58,22 +60,6 @@ var makeTest = function(tx, rewind) {
   }, null, 2));
 }
 */
-
-// jsonEqual is similar to reflect.DeepEqual, but does a 'bounce' via json prior to
-// comparison
-func jsonEqual(xi, yi, xt, yt interface{}) bool {
-	if xj, err := json.Marshal(xi); err == nil {
-		json.Unmarshal(xj, xt)
-	} else {
-		return false
-	}
-	if yj, err := json.Marshal(yi); err == nil {
-		json.Unmarshal(yj, yt)
-	} else {
-		return false
-	}
-	return reflect.DeepEqual(xt, yt)
-}
 
 // camel converts a snake cased input string into a camel cased output.
 func camel(str string) string {

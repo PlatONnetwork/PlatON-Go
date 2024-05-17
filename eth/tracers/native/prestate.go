@@ -68,12 +68,10 @@ type prestateTracer struct {
 }
 
 type prestateTracerConfig struct {
-	DiffMode bool `json:"diffMode"` // If true, this tracer will return all diff states
+	DiffMode bool `json:"diffMode"` // If true, this tracer will return state modifications
 }
 
 func newPrestateTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, error) {
-	// First callframe contains tx context info
-	// and is populated on start and end.
 	var config prestateTracerConfig
 	if cfg != nil {
 		if err := json.Unmarshal(cfg, &config); err != nil {
@@ -252,9 +250,9 @@ func (t *prestateTracer) GetResult() (json.RawMessage, error) {
 	var err error
 	if t.config.DiffMode {
 		res, err = json.Marshal(struct {
-			Pre  state `json:"pre"`
 			Post state `json:"post"`
-		}{t.pre, t.post})
+			Pre  state `json:"pre"`
+		}{t.post, t.pre})
 	} else {
 		res, err = json.Marshal(t.pre)
 	}
