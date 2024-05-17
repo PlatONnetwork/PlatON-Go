@@ -56,11 +56,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cespare/cp"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/signify"
 	"github.com/PlatONnetwork/PlatON-Go/internal/build"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/cespare/cp"
 )
 
 var (
@@ -1137,7 +1138,7 @@ func doXCodeFramework(cmdline []string) {
 	tc := new(build.GoToolchain)
 
 	// Build gomobile.
-	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
+	build.MustRun(tc.Install(GOBIN, "golang.org/x/mobile/cmd/gomobile@latest", "golang.org/x/mobile/cmd/gobind@latest"))
 
 	// Build the iOS XCode framework
 	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile")
