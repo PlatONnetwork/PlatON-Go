@@ -366,10 +366,10 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, owner common.Hash, roo
 		for i, key := range result.keys {
 			snapTrie.Update(key, result.vals[i])
 		}
-		root, nodes, err := snapTrie.Commit(false)
+		root, nodes, err := snapTrie.Commit(nil)
 		if err == nil && nodes != nil {
 			tdb.Update(trie.NewWithNodeSet(nodes))
-			tdb.Commit(root, false)
+			tdb.Commit(root, false, false)
 		}
 		resolver = func(owner common.Hash, path []byte, hash common.Hash) []byte {
 			return rawdb.ReadTrieNode(mdb, owner, path, hash, tdb.Scheme())
