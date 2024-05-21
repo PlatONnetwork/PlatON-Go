@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/PlatONnetwork/PlatON-Go/common/lru"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -75,21 +75,16 @@ type Backend interface {
 // FilterSystem holds resources shared by all filters.
 type FilterSystem struct {
 	backend   Backend
-	logsCache *lru.Cache
+	logsCache *lru.Cache[common.Hash, [][]*types.Log]
 	cfg       *Config
 }
 
 // NewFilterSystem creates a filter system.
 func NewFilterSystem(backend Backend, config Config) *FilterSystem {
 	config = config.withDefaults()
-
-	cache, err := lru.New(config.LogCacheSize)
-	if err != nil {
-		panic(err)
-	}
 	return &FilterSystem{
 		backend:   backend,
-		logsCache: cache,
+		logsCache: lru.NewCache[common.Hash, [][]*types.Log](config.LogCacheSize),
 		cfg:       &config,
 	}
 }
@@ -98,7 +93,7 @@ func NewFilterSystem(backend Backend, config Config) *FilterSystem {
 func (sys *FilterSystem) cachedGetLogs(ctx context.Context, blockHash common.Hash, number uint64) ([][]*types.Log, error) {
 	cached, ok := sys.logsCache.Get(blockHash)
 	if ok {
-		return cached.([][]*types.Log), nil
+		return cached, nil
 	}
 
 	logs, err := sys.backend.GetLogs(ctx, blockHash, number)

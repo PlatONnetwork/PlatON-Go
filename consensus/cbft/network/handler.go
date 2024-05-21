@@ -24,13 +24,16 @@ import (
 	"strconv"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
+	lru2 "github.com/PlatONnetwork/PlatON-Go/common/lru"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -85,8 +88,8 @@ type EngineManager struct {
 	sendQueue          chan *types.MsgPackage
 	quitSend           chan struct{}
 	sendQueueHook      func(*types.MsgPackage)
-	historyMessageHash *lru.ARCCache // Consensus message record that has been processed successfully.
-	blacklist          *lru.Cache    // Save node blacklist.
+	historyMessageHash *lru.ARCCache                  // Consensus message record that has been processed successfully.
+	blacklist          *lru2.Cache[string, time.Time] // Save node blacklist.
 }
 
 // NewEngineManger returns a new handler and do some initialization.
@@ -102,7 +105,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 		quitSend:           make(chan struct{}),
 		historyMessageHash: cache,
 	}
-	handler.blacklist, _ = lru.New(maxBlacklist)
+	handler.blacklist = lru2.NewCache[string, time.Time](maxBlacklist)
 	// init router
 	handler.router = newRouter(handler.Unregister, handler.getPeer, handler.ConsensusNodes, handler.peerList)
 	return handler
@@ -744,11 +747,9 @@ func (h *EngineManager) synchronize() {
 				if !exists {
 					continue
 				}
-				if t, ok := v.(time.Time); ok {
-					if t.Before(time.Now()) {
-						h.blacklist.Remove(k)
-						log.Debug("Remove blacklist success", "peerID", k)
-					}
+				if v.Before(time.Now()) {
+					h.blacklist.Remove(k)
+					log.Debug("Remove blacklist success", "peerID", k)
 				}
 			}
 
