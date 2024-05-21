@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -151,7 +151,6 @@ func (l *StructLogger) CaptureStart(env *vm.EVM, from common.Address, to common.
 func (l *StructLogger) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
 	// If tracing was interrupted, set the error and stop
 	if atomic.LoadUint32(&l.interrupt) > 0 {
-		l.env.Cancel()
 		return
 	}
 	// check if already accumulated the specified number of logs
