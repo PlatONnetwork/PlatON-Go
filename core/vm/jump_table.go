@@ -164,7 +164,7 @@ func newConstantinopleInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// NewByzantiumInstructionSet returns the frontier, homestead and
+// newByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.
 func newByzantiumInstructionSet() JumpTable {
 	instructionSet := newSpuriousDragonInstructionSet()
@@ -1049,4 +1049,15 @@ func newFrontierInstructionSet() JumpTable {
 	}
 
 	return validate(tbl)
+}
+
+func copyJumpTable(source *JumpTable) *JumpTable {
+	dest := *source
+	for i, op := range source {
+		if op != nil {
+			opCopy := *op
+			dest[i] = &opCopy
+		}
+	}
+	return &dest
 }
