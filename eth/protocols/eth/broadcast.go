@@ -144,14 +144,18 @@ func (p *Peer) announceTransactions() {
 		if done == nil && len(queue) > 0 {
 			// Pile transaction hashes until we reach our allowed network limit
 			var (
-				count   int
-				pending []common.Hash
-				size    common.StorageSize
+				count        int
+				pending      []common.Hash
+				pendingTypes []byte
+				pendingSizes []uint32
+				size         common.StorageSize
 			)
 			for count = 0; count < len(queue) && size < maxTxPacketSize; count++ {
 				// If the txgen plugin is enabled, there is no need to determine whether the transaction is in the txpool
-				if p.txpool.Get(queue[count]) != nil || p.runTxGenFun() {
+				if tx := p.txpool.Get(queue[count]); tx != nil || p.runTxGenFun() {
 					pending = append(pending, queue[count])
+					pendingTypes = append(pendingTypes, tx.Type())
+					pendingSizes = append(pendingSizes, uint32(tx.Size()))
 					size += common.HashLength
 				}
 			}
@@ -162,9 +166,16 @@ func (p *Peer) announceTransactions() {
 			if len(pending) > 0 {
 				done = make(chan struct{})
 				go func() {
-					if err := p.sendPooledTransactionHashes(pending); err != nil {
-						fail <- err
-						return
+					if p.version >= ETH68 {
+						if err := p.sendPooledTransactionHashes68(pending, pendingTypes, pendingSizes); err != nil {
+							fail <- err
+							return
+						}
+					} else {
+						if err := p.sendPooledTransactionHashes66(pending); err != nil {
+							fail <- err
+							return
+						}
 					}
 					close(done)
 					p.Log().Trace("Sent transaction announcements", "count", len(pending))
