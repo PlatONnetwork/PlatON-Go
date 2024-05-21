@@ -124,7 +124,10 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	engine.InsertChain(genesis)
 	bft := engine.(*consensus.BftMock)
 	bft.EventMux = mux
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	if err != nil {
+		t.Fatalf("core.NewBlockChain failed: %v", err)
+	}
 	blockChainCache := core.NewBlockChainCache(chain)
 
 	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db), nil)
