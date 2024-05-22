@@ -111,7 +111,7 @@ func (tasks *dialedTasks) size() int {
 }
 
 // clear queue
-/*func (tasks *dialedTasks) clear() bool {
+func (tasks *dialedTasks) clear() bool {
 	if tasks.isEmpty() {
 		log.Info("queue is empty!")
 		return false
@@ -121,7 +121,7 @@ func (tasks *dialedTasks) size() int {
 	}
 	tasks.queue = nil
 	return true
-}*/
+}
 
 // whether the queue is empty
 func (tasks *dialedTasks) isEmpty() bool {
