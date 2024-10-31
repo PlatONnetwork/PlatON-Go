@@ -149,7 +149,7 @@ func FakeViewChangeQC(t *testing.T, node *TestCBFT, epoch, viewNumber uint64, no
 	return viewChangeQC
 }
 
-// NewBlock returns a bad block for testing.
+// NewBadBlock returns a bad block for testing.
 func NewBadBlock(parent common.Hash, number uint64, node *TestCBFT) *types.Block {
 	header := &types.Header{
 		Number:      big.NewInt(int64(number)),
