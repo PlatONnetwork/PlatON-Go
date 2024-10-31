@@ -65,7 +65,7 @@ jobs:
       - name: Clone Repository
         uses: actions/checkout@master
       - name: Download code coverage results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: code-coverage-report
           path: coverage.txt

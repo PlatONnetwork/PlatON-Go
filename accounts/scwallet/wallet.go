@@ -744,7 +744,7 @@ func (w *Wallet) SignHash(account accounts.Account, text []byte) ([]byte, error)
 	return w.signHash(account, accounts.TextHash(text))
 }
 
-// SignTextWithPassphrase implements accounts.Wallet, attempting to sign the
+// SignHashWithPassphrase implements accounts.Wallet, attempting to sign the
 // given hash with the given account using passphrase as extra authentication
 func (w *Wallet) SignHashWithPassphrase(account accounts.Account, passphrase string, text []byte) ([]byte, error) {
 	return w.signHashWithPassphrase(account, passphrase, crypto.Keccak256(accounts.TextHash(text)))
