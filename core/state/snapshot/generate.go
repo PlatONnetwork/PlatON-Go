@@ -26,6 +26,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
+	"github.com/VictoriaMetrics/fastcache"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -33,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/VictoriaMetrics/fastcache"
 )
 
 var (
@@ -73,7 +74,7 @@ func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache i
 	rawdb.WriteSnapshotRoot(batch, root)
 	journalProgress(batch, genMarker, stats)
 	if err := batch.Write(); err != nil {
-		log.Crit("Failed to write initialized state marker ", "err", err)
+		log.Crit("Failed to write initialized state marker", "err", err)
 	}
 	base := &diskLayer{
 		diskdb:     diskdb,
@@ -368,7 +369,10 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, owner common.Hash, roo
 		for i, key := range result.keys {
 			snapTrie.Update(key, result.vals[i])
 		}
-		root, _, _ := snapTrie.Commit(nil)
+		root, nodes, _ := snapTrie.Commit(false)
+		if nodes != nil {
+			snapTrieDb.Update(trie.NewWithNodeSet(nodes))
+		}
 		snapTrieDb.Commit(root, false, false)
 	}
 	// Construct the trie for state iteration, reuse the trie
@@ -608,7 +612,6 @@ func generateAccounts(ctx *generatorContext, dl *diskLayer, accMarker []byte) er
 		if accMarker != nil && bytes.Equal(marker, accMarker) && len(dl.genMarker) > common.HashLength {
 			marker = dl.genMarker[:]
 		}
-
 		// If we've exceeded our batch allowance or termination was requested, flush to disk
 		if err := dl.checkAndFlush(ctx, marker); err != nil {
 			return err

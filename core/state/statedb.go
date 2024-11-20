@@ -1112,7 +1112,7 @@ func (s *StateDB) GetRefund() uint64 {
 	return s.refund
 }
 
-// Finalise finalises the state by removing the self destructed objects and clears
+// Finalise finalises the state by removing the destructed objects and clears
 // the journal as well as the refunds. Finalise, however, will not push any updates
 // into the tries just yet. Only IntermediateRoot or Commit will do that.
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
@@ -1314,7 +1314,11 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	s.db.TrieDB().IncrVersion()
 
 	// Commit objects to the trie, measuring the elapsed time
-	var storageCommitted int
+	var (
+		accountTrieNodes int
+		storageTrieNodes int
+		nodes            = trie.NewMergedNodeSet()
+	)
 	codeWriter := s.db.DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
 		if obj := s.stateObjects[addr]; !obj.deleted {
@@ -1324,11 +1328,17 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 				obj.dirtyCode = false
 			}
 			// Write any storage changes in the state object to its storage trie
-			committed, err := obj.CommitTrie(s.db)
+			set, err := obj.CommitTrie(s.db)
 			if err != nil {
 				return common.Hash{}, err
 			}
-			storageCommitted += committed
+			// Merge the dirty nodes of storage trie into global set
+			if set != nil {
+				if err := nodes.Merge(set); err != nil {
+					return common.Hash{}, err
+				}
+				storageTrieNodes += set.Len()
+			}
 		}
 	}
 	if len(s.stateObjectsDirty) > 0 {
@@ -1345,18 +1355,16 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		start = time.Now()
 	}
 	// Write trie changes.
-	root, accountCommitted, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash, _ []byte) error {
-		var account types.StateAccount
-		if err := rlp.DecodeBytes(leaf, &account); err != nil {
-			return nil
-		}
-		if account.Root != emptyRoot {
-			s.db.TrieDB().Reference(account.Root, parent)
-		}
-		return nil
-	})
+	root, set, err := s.trie.Commit(true)
 	if err != nil {
 		return common.Hash{}, err
+	}
+	// Merge the dirty nodes of account trie into global set
+	if set != nil {
+		if err := nodes.Merge(set); err != nil {
+			return common.Hash{}, err
+		}
+		accountTrieNodes = set.Len()
 	}
 	if metrics.EnabledExpensive {
 		s.AccountCommits += time.Since(start)
@@ -1365,8 +1373,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		storageUpdatedMeter.Mark(int64(s.StorageUpdated))
 		accountDeletedMeter.Mark(int64(s.AccountDeleted))
 		storageDeletedMeter.Mark(int64(s.StorageDeleted))
-		accountCommittedMeter.Mark(int64(accountCommitted))
-		storageCommittedMeter.Mark(int64(storageCommitted))
+		accountTrieCommittedMeter.Mark(int64(accountTrieNodes))
+		storageTriesCommittedMeter.Mark(int64(storageTrieNodes))
 		s.AccountUpdated, s.AccountDeleted = 0, 0
 		s.StorageUpdated, s.StorageDeleted = 0, 0
 	}
@@ -1393,46 +1401,14 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	if len(s.stateObjectsDestruct) > 0 {
 		s.stateObjectsDestruct = make(map[common.Address]struct{})
 	}
+	if err := s.db.TrieDB().Update(nodes); err != nil {
+		return common.Hash{}, err
+	}
 	return root, err
 }
 
-func (s *StateDB) SetInt32(addr common.Address, key []byte, value int32) {
-	s.SetState(addr, key, common.Int32ToBytes(value))
-}
-func (s *StateDB) SetInt64(addr common.Address, key []byte, value int64) {
-	s.SetState(addr, key, common.Int64ToBytes(value))
-}
-func (s *StateDB) SetFloat32(addr common.Address, key []byte, value float32) {
-	s.SetState(addr, key, common.Float32ToBytes(value))
-}
-func (s *StateDB) SetFloat64(addr common.Address, key []byte, value float64) {
-	s.SetState(addr, key, common.Float64ToBytes(value))
-}
 func (s *StateDB) SetString(addr common.Address, key []byte, value string) {
 	s.SetState(addr, key, []byte(value))
-}
-func (s *StateDB) SetByte(addr common.Address, key []byte, value byte) {
-	s.SetState(addr, key, []byte{value})
-}
-
-func (s *StateDB) GetInt32(addr common.Address, key []byte) int32 {
-	return common.BytesToInt32(s.GetState(addr, key))
-}
-func (s *StateDB) GetInt64(addr common.Address, key []byte) int64 {
-	return common.BytesToInt64(s.GetState(addr, key))
-}
-func (s *StateDB) GetFloat32(addr common.Address, key []byte) float32 {
-	return common.BytesToFloat32(s.GetState(addr, key))
-}
-func (s *StateDB) GetFloat64(addr common.Address, key []byte) float64 {
-	return common.BytesToFloat64(s.GetState(addr, key))
-}
-func (s *StateDB) GetString(addr common.Address, key []byte) string {
-	return string(s.GetState(addr, key))
-}
-func (s *StateDB) GetByte(addr common.Address, key []byte) byte {
-	ret := s.GetState(addr, key)
-	return ret[0]
 }
 
 func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {

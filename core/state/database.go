@@ -87,7 +87,14 @@ type Trie interface {
 	// TryDeleteAccount abstracts an account deletion from the trie.
 	TryDeleteAccount(key []byte) error
 
-	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
+	// Commit collects all dirty nodes in the trie and replace them with the
+	// corresponding node hash. All collected nodes(including dirty leaves if
+	// collectLeaf is true) will be encapsulated into a nodeset for return.
+	// The returned nodeset can be nil if the trie is clean(nothing to commit).
+	// Once the trie is committed, it's not usable anymore. A new trie must
+	// be created with new root and updated trie database for following usage
+	Commit(collectLeaf bool) (common.Hash, *trie.NodeSet, error)
+
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
