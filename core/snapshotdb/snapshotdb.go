@@ -108,7 +108,7 @@ type DB interface {
 	Compaction() error
 	SetEmpty() error
 
-	//ues to Revert failed tx
+	// use to Revert failed tx
 	RevertToSnapshot(hash common.Hash, revid int)
 	Snapshot(hash common.Hash) int
 }
