@@ -112,7 +112,7 @@ func TestHttpPostDeploy(t *testing.T) {
 	//if resp.Error.Code != 0 {
 	//	t.Fatalf("send transaction error ,error:%v", resp.Error.Message)
 	//}
-	//fmt.Printf("trasaction hash: %s\n", resp.Result)
+	//fmt.Printf("transaction hash: %s\n", resp.Result)
 	//
 	//// Get transaction receipt according to result
 	//ch := make(chan string, 1)
