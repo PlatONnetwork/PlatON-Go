@@ -15,11 +15,10 @@ require (
 	github.com/docker/docker v25.0.6+incompatible
 	github.com/dop251/goja v0.0.0-20211011172007-d99e4b8cbf48
 	github.com/fatih/color v1.7.0
-	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-errors/errors v1.0.2-0.20180813162953-d98b870cc4e0
 	github.com/go-stack/stack v1.8.0
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.4
 	github.com/golang/snappy v0.0.4
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.1.5
@@ -102,6 +101,6 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.0.0-20190126203739-365674df15fc // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
