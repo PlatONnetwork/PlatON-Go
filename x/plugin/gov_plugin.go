@@ -149,6 +149,12 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				}
 				log.Info("Successfully upgraded the new version 1.3.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
+			if versionProposal.NewVersion == params.FORKVERSION_1_5_0 {
+				if err := gov.UpdateGovernParamValue(gov.ModuleStaking, gov.KeyMaxValidators, fmt.Sprint(xcom.MaxValidatorsForVersion150), blockNumber+1, blockHash); err != nil {
+					return err
+				}
+				log.Info("Successfully upgraded the new version 1.5.0", "blockNumber", blockNumber, "blockHash", blockHash)
+			}
 
 			//stats
 			common.CollectActiveVersion(blockNumber, versionProposal.NewVersion)
