@@ -42,7 +42,7 @@ func PrintOrigins(print bool) {
 var locationEnabled uint32
 
 // locationLength is the maxmimum path length encountered, which all logs are
-// padded to to aid in alignment.
+// padded to aid in alignment.
 var locationLength uint32
 
 // fieldPadding is a global map with maximum field value lengths seen until now

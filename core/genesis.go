@@ -357,7 +357,7 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return errors.New("chainId configuration is missed")
 	}
 	if g.Config.PIP7ChainID == nil {
-		g.Config.PIP7ChainID = params.PrivatePIP7ChainID
+		g.Config.PIP7ChainID = g.Config.ChainID
 	}
 	if g.Config.GenesisVersion >= params.FORKVERSION_1_3_0 {
 		file.Seek(0, io.SeekStart)
