@@ -94,7 +94,7 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 
 	resp := parseResponse(r)
 
-	fmt.Printf("\ntrasaction hash: %s\n", resp.Result)
+	fmt.Printf("\ntransaction hash: %s\n", resp.Result)
 
 	// Get transaction receipt according to result
 	ch := make(chan string, 1)
@@ -238,7 +238,7 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 		}
 		fmt.Printf("\n result: []\n")
 	} else {
-		fmt.Printf("\n trasaction hash: %s\n", resp.Result)
+		fmt.Printf("\n transaction hash: %s\n", resp.Result)
 	}
 	return nil
 }
@@ -266,7 +266,7 @@ func getContractByAddress(addr string) bool {
 		fmt.Printf("platon_getCode error ,error:%v", resp.Error.Message)
 		return false
 	}
-	//fmt.Printf("trasaction hash: %s\n", resp.Result)
+	//fmt.Printf("transaction hash: %s\n", resp.Result)
 
 	if resp.Result != "" && len(resp.Result) > 2 {
 		return true

@@ -12,16 +12,16 @@ jobs:
     steps:
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go 1.x
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ^1.16
         id: go
 
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -42,7 +42,7 @@ jobs:
         run: go test -tags=test -covermode=atomic -coverprofile=coverage.txt  `go list ./...`
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.txt
           flags: unittests
@@ -50,7 +50,7 @@ jobs:
 
       - name: Archive code coverage results
         if: github.event.pull_request.head.repo.fork == false
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: coverage.txt
