@@ -51,12 +51,12 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tealeg/xlsx v1.0.5
-	golang.org/x/crypto v0.21.0
-	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.18.0
-	golang.org/x/text v0.14.0
+	golang.org/x/crypto v0.31.0
+	golang.org/x/sync v0.10.0
+	golang.org/x/sys v0.28.0
+	golang.org/x/text v0.21.0
 	golang.org/x/time v0.3.0
-	golang.org/x/tools v0.8.0
+	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6
@@ -70,7 +70,7 @@ require (
 require (
 	github.com/herumi/bls v1.37.0
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
-	golang.org/x/net v0.23.0
+	golang.org/x/net v0.33.0
 )
 
 require (
@@ -84,6 +84,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.1 // indirect
@@ -100,7 +101,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.0.0-20190126203739-365674df15fc // indirect
-	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
