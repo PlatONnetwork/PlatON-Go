@@ -1307,6 +1307,8 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 			nodes, _ := triedb.Size()
 			oversize = nodes > limit
 		} else {
+			size, _ := triedb.Size()
+			log.Warn("triedb size", "size", size, "limit", limit)
 			triedb.ReferenceVersion(root)
 			triedb.DereferenceDB(currentBlock.Root())
 

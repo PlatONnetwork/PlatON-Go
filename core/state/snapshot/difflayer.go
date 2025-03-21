@@ -77,7 +77,7 @@ var (
 	bloomAccountHasherOffset  = 0
 	bloomStorageHasherOffset  = 0
 
-	CapLayers = 128
+	CapLayers = 256
 )
 
 func init() {
