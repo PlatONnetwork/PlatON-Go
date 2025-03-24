@@ -523,20 +523,24 @@ func (db *Database) ReferenceVersion(root common.Hash) {
 	defer db.lock.RUnlock()
 
 	start := time.Now()
-	db.referenceVersion(root)
+	var recursion int
+	db.referenceVersion(root, &recursion)
 	if start.Add(400 * time.Millisecond).Before(time.Now()) {
 		log.Warn("ReferenceVersion overtime", "root", root.String(), "duration", time.Since(start))
 	}
+	size, _ := db.Size()
+	log.Warn("ReferenceVersion info", "livenodes", len(db.dirties), "totalSize", size, "recursion", recursion, "dirtiesSize", db.dirtiesSize, "childrenSize", db.childrenSize)
 }
 
 // referenceVersion is the private locked version of referenceVersion.
-func (db *Database) referenceVersion(hash common.Hash) {
+func (db *Database) referenceVersion(hash common.Hash, recursion *int) {
 	node, ok := db.dirties[hash]
 	if !ok {
 		return
 	}
+	*recursion++
 	node.forChilds(func(h common.Hash) {
-		db.referenceVersion(h)
+		db.referenceVersion(h, recursion)
 	})
 	node.version = db.NodeVersion()
 }
