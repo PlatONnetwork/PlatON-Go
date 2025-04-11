@@ -759,9 +759,11 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)
-	// view change maybe lags behind the other nodes,active sync prepare block
-	cbft.SyncPrepareBlock("", epoch, viewNumber, 0)
+
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
+	// view change maybe lags behind the other nodes,active sync prepare block
+	// 但同步请求不计入缓存，防止在少连接等极端情况下，后续无法正常同步prepareBlock
+	cbft.SyncPrepareBlockDirectly(epoch, viewNumber, 0)
 	cbft.log.Info("Success to change view, current view deadline", "deadline", cbft.state.Deadline())
 }
 
