@@ -206,7 +206,8 @@ func (d *AdditionalIssuanceData) AddIssuanceItem(address Address, amount *big.In
 }
 
 // 分配奖励，包括出块奖励，质押奖励
-//  注意：委托人不一定每次都能参与到出块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是可能已经不在当前结算周期的101备选人列表里了，那这个出块节点的委托人在当前结算周期，就不参与这个块的出块奖励分配）
+//
+//	注意：委托人不一定每次都能参与到出块奖励的分配中（共识论跨结算周期时会出现，此时节点虽然还在出块，但是可能已经不在当前结算周期的101备选人列表里了，那这个出块节点的委托人在当前结算周期，就不参与这个块的出块奖励分配）
 type RewardData struct {
 	BlockRewardAmount   *big.Int         `json:"blockRewardAmount,omitempty"`   //出块奖励
 	DelegatorReward     bool             `json:"delegatorReward"`               //出块奖励中，分配给委托人的奖励
@@ -247,8 +248,8 @@ type RestrictingReleaseItem struct {
 	LackingAmount *big.Int `json:"lackingAmount,omitempty"`         //欠释放金额
 }
 
-//todo:改名
-//撤消委托后领取的奖励（全部减持）
+// todo:改名
+// 撤消委托后领取的奖励（全部减持）
 type WithdrawDelegation struct {
 	TxHash          Hash     `json:"txHash,omitempty"`                    //委托用户撤销节点的全部委托的交易HASH
 	DelegateAddress Address  `json:"delegateAddress,omitempty,omitempty"` //委托用户地址
@@ -382,6 +383,7 @@ func CollectZeroSlashingItem(blockNumber uint64, nodeId NodeID, slashingAmount *
 	}
 }*/
 
+// stats: 收集隐含的转账交易
 func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, amount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedTransferTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "from", from.Bech32(), "to", to.Bech32(), "amount", amount)
@@ -390,6 +392,7 @@ func CollectEmbedTransferTx(blockNumber uint64, txHash Hash, from, to Address, a
 	}
 }
 
+// stats: 收集内置合约的交易(PPOS交易)
 func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddress Address, input []byte) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectEmbedContractTx", "blockNumber", blockNumber, "txHash", txHash.Hex(), "contractAddress", from.Bech32(), "input", Bytes2Hex(input))
@@ -397,7 +400,7 @@ func CollectEmbedContractTx(blockNumber uint64, txHash Hash, from, contractAddre
 	}
 }
 
-//撤消委托时，才需要收集委托奖励总金额
+// 撤消委托时，才需要收集委托奖励总金额
 func CollectWithdrawDelegation(blockNumber uint64, txHash Hash, delegateAddress Address, nodeId NodeID, delegationRewardAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
 		log.Debug("CollectWithdrawDelegation", "blockNumber", blockNumber, "txHash", txHash.Hex(), "delegateAddress", delegateAddress.Bech32(), "nodeId", Bytes2Hex(nodeId[:]), "delegationRewardAmount", delegationRewardAmount)

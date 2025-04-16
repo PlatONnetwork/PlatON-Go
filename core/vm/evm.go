@@ -373,11 +373,13 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 	log.Info("to check if called by contract", "invokedByContract", invokedByContract)
 	if invokedByContract {
 		if value.Sign() > 0 {
+			//stats: 收集隐含的转账交易
 			log.Info("collect embed transfer tx in Call()", "blockNumber", evm.Context.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", to.Address().Bech32(), "amount", value, "&value", &value)
 			common.CollectEmbedTransferTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), value)
 		}
 		if contract.CodeAddr != nil {
 			//codeAddr就是to.Address,参考to和setCodeAddress
+			//stats: 收集隐含的PPOS交易
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
 				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.Context.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", contract.CodeAddr.Bech32())
 				common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
@@ -590,7 +592,11 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	snapshotForSnapshotDB, snapshotForStateDB := evm.DBSnapshot()
 	evm.StateDB.CreateAccount(address)
 	evm.StateDB.SetNonce(address, 1)
+
 	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
+
+	//收集隐含转账交易
+	common.CollectEmbedTransferTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), address, value)
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
