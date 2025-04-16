@@ -194,12 +194,14 @@ func TestCreate(t *testing.T) {
 	}
 	// set the receiver's (the executing contract) code for execution.
 	vmenv.Create(
+		vm.InvokedByTx,
 		sender,
 		code,
 		cfg.GasLimit,
 		cfg.Value,
 	)
 	vmenv.Create2(
+		vm.InvokedByTx,
 		sender,
 		code,
 		cfg.GasLimit,
@@ -207,6 +209,7 @@ func TestCreate(t *testing.T) {
 		new(uint256.Int).SetBytes(cfg.Value.Bytes()),
 	)
 	vmenv.Create(
+		vm.InvokedByTx,
 		sender,
 		code,
 		1,

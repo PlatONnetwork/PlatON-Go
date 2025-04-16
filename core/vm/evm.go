@@ -379,7 +379,7 @@ func (evm *EVM) Call(invokedByContract bool, caller ContractRef, addr common.Add
 		}
 		if contract.CodeAddr != nil {
 			//codeAddr就是to.Address,参考to和setCodeAddress
-			//stats: 收集隐含的PPOS交易
+			//stats: 收集隐含内置合约交易（PPOS交易）
 			if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
 				log.Info("collect embed PlantON precompiled contract tx in Call()", "blockNumber", evm.Context.BlockNumber.Uint64(), "txHash", evm.StateDB.TxHash(), "caller", caller.Address().Bech32(), "to", contract.CodeAddr.Bech32())
 				common.CollectEmbedContractTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), to.Address(), input)
@@ -564,7 +564,7 @@ func (c *codeAndHash) Hash() common.Hash {
 }
 
 // create creates a new contract using code as deployment code.
-func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *big.Int, address common.Address, typ OpCode) ([]byte, common.Address, uint64, error) {
+func (evm *EVM) create(invokedByContract bool, caller ContractRef, codeAndHash *codeAndHash, gas uint64, value *big.Int, address common.Address, typ OpCode) ([]byte, common.Address, uint64, error) {
 	// Depth check execution. Fail if we're trying to execute above the
 	// limit.
 	if evm.depth > int(params.CallCreateDepth) {
@@ -595,8 +595,10 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 
 	evm.Context.Transfer(evm.StateDB, caller.Address(), address, value)
 
-	//收集隐含转账交易
-	common.CollectEmbedTransferTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), address, value)
+	//收集隐含转账交易。这里 address 是个合约地址，不会是内置合约地址，所以不需考虑收集内置合约交易（PPOS交易）
+	if invokedByContract && value.Sign() > 0 {
+		common.CollectEmbedTransferTx(evm.Context.BlockNumber.Uint64(), evm.StateDB.TxHash(), caller.Address(), address, value)
+	}
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
@@ -667,21 +669,21 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 }
 
 // Create creates a new contract using code as deployment code.
-func (evm *EVM) Create(caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create(invokedByContract bool, caller ContractRef, code []byte, gas uint64, value *big.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 	//合约地址，是根据caller + nonce计算出来的。
 	//在交易的回执中，会包含ContractAddress，但是Receipt.ContractAddress的值，不是这里返回的，而是按相同算法重新计算的。
 	contractAddr = crypto.CreateAddress(caller.Address(), evm.StateDB.GetNonce(caller.Address()))
-	return evm.create(caller, &codeAndHash{code: code}, gas, value, contractAddr, CREATE)
+	return evm.create(invokedByContract, caller, &codeAndHash{code: code}, gas, value, contractAddr, CREATE)
 }
 
 // Create2 creates a new contract using code as deployment code.
 //
 // The different between Create2 with Create is Create2 uses keccak256(0xff ++ msg.sender ++ salt ++ keccak256(init_code))[12:]
 // instead of the usual sender-and-nonce-hash as the address where the contract is initialized at.
-func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *uint256.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
+func (evm *EVM) Create2(invokedByContract bool, caller ContractRef, code []byte, gas uint64, endowment *big.Int, salt *uint256.Int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error) {
 	codeAndHash := &codeAndHash{code: code}
 	contractAddr = crypto.CreateAddress2(caller.Address(), common.Hash(salt.Bytes32()), codeAndHash.Hash().Bytes())
-	return evm.create(caller, codeAndHash, gas, endowment, contractAddr, CREATE2)
+	return evm.create(invokedByContract, caller, codeAndHash, gas, endowment, contractAddr, CREATE2)
 }
 
 // ChainConfig returns the environment's chain configuration

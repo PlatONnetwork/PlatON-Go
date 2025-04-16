@@ -95,6 +95,7 @@ func setDefaults(cfg *Config) {
 //
 // Execute sets up an in-memory, temporary, environment for the execution of
 // the given code. It makes sure that it's restored to its original state afterwards.
+// 这个目前只有 runtime/fuzz.go调用（这个工具只有以太坊测试网有，因此PlatON不会有谁调用此方法）
 func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
@@ -118,7 +119,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	cfg.State.SetCode(address, code)
 	// Call the code with the given configuration.
 	ret, _, err := vmenv.Call(
-		vm.InvokedByTx,
+		vm.InvokedByTx, //随便设置一个值，PlatON不会有人调用Execute方法
 		sender,
 		common.BytesToAddress([]byte("contract")),
 		input,
@@ -150,6 +151,7 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 
 	// Call the code with the given configuration.
 	code, address, leftOverGas, err := vmenv.Create(
+		vm.InvokedByTx,
 		sender,
 		input,
 		cfg.GasLimit,

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+//go:build gofuzz
 // +build gofuzz
 
 package runtime
@@ -23,6 +24,7 @@ package runtime
 // This returns 1 for valid parsable/runable code, 0
 // for invalid opcode.
 func Fuzz(input []byte) int {
+	//以太坊的一个测试网工具，PlatON没有
 	_, _, err := Execute(input, input, &Config{
 		GasLimit: 3000000,
 	})
