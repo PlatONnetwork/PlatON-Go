@@ -160,6 +160,8 @@ var (
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), PrivatePIP7ChainID, "lat", "", big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), &CbftConfig{Period: 3}, FORKVERSION_1_5_0, false, sync.RWMutex{}}
 
 	PrivatePIP7ChainID = new(big.Int).SetUint64(2203181)
+
+	MainPIP7ChainID = new(big.Int).SetUint64(210425)
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and

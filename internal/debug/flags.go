@@ -18,102 +18,83 @@ package debug
 
 import (
 	"fmt"
+	"github.com/mattn/go-isatty"
 	"io"
 	"net/http"
-	_ "net/http/pprof" // nolint: gosec
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 
-	"github.com/fjl/memsize/memsizeui"
-	"github.com/mattn/go-colorable"
-	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli/v2"
-
-	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
+	"github.com/fjl/memsize/memsizeui"
+	"github.com/mattn/go-colorable"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var Memsize memsizeui.Handler
 
 var (
-	verbosityFlag = &cli.IntFlag{
-		Name:     "verbosity",
-		Usage:    "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
-		Value:    3,
-		Category: flags.LoggingCategory,
+	verbosityFlag = cli.IntFlag{
+		Name:  "verbosity",
+		Usage: "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
+		Value: 3,
 	}
-	vmoduleFlag = &cli.StringFlag{
-		Name:     "vmodule",
-		Usage:    "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. eth/*=5,p2p=4)",
-		Value:    "",
-		Category: flags.LoggingCategory,
+	vmoduleFlag = cli.StringFlag{
+		Name:  "vmodule",
+		Usage: "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. eth/*=5,p2p=4)",
+		Value: "",
 	}
-	logjsonFlag = &cli.BoolFlag{
-		Name:     "log.json",
-		Usage:    "Format logs with JSON",
-		Category: flags.LoggingCategory,
+	logjsonFlag = cli.BoolFlag{
+		Name:  "log.json",
+		Usage: "Format logs with JSON",
 	}
-	logFileFlag = &cli.StringFlag{
-		Name:     "log.file",
-		Usage:    "Write logs to a file",
-		Category: flags.LoggingCategory,
+	backtraceAtFlag = cli.StringFlag{
+		Name:  "log.backtrace",
+		Usage: "Request a stack trace at a specific logging statement (e.g. \"block.go:271\")",
+		Value: "",
 	}
-	backtraceAtFlag = &cli.StringFlag{
-		Name:     "log.backtrace",
-		Usage:    "Request a stack trace at a specific logging statement (e.g. \"block.go:271\")",
-		Value:    "",
-		Category: flags.LoggingCategory,
+	debugFlag = cli.BoolFlag{
+		Name:  "log.debug",
+		Usage: "Prepends log messages with call-site location (file and line number)",
 	}
-	debugFlag = &cli.BoolFlag{
-		Name:     "log.debug",
-		Usage:    "Prepends log messages with call-site location (file and line number)",
-		Category: flags.LoggingCategory,
+	pprofFlag = cli.BoolFlag{
+		Name:  "pprof",
+		Usage: "Enable the pprof HTTP server",
 	}
-	pprofFlag = &cli.BoolFlag{
-		Name:     "pprof",
-		Usage:    "Enable the pprof HTTP server",
-		Category: flags.LoggingCategory,
+	pprofPortFlag = cli.IntFlag{
+		Name:  "pprof.port",
+		Usage: "pprof HTTP server listening port",
+		Value: 6060,
 	}
-	pprofPortFlag = &cli.IntFlag{
-		Name:     "pprof.port",
-		Usage:    "pprof HTTP server listening port",
-		Value:    6060,
-		Category: flags.LoggingCategory,
+	pprofAddrFlag = cli.StringFlag{
+		Name:  "pprof.addr",
+		Usage: "pprof HTTP server listening interface",
+		Value: "127.0.0.1",
 	}
-	pprofAddrFlag = &cli.StringFlag{
-		Name:     "pprof.addr",
-		Usage:    "pprof HTTP server listening interface",
-		Value:    "127.0.0.1",
-		Category: flags.LoggingCategory,
+	memprofilerateFlag = cli.IntFlag{
+		Name:  "pprof.memprofilerate",
+		Usage: "Turn on memory profiling with the given rate",
+		Value: runtime.MemProfileRate,
 	}
-	memprofilerateFlag = &cli.IntFlag{
-		Name:     "pprof.memprofilerate",
-		Usage:    "Turn on memory profiling with the given rate",
-		Value:    runtime.MemProfileRate,
-		Category: flags.LoggingCategory,
+	blockprofilerateFlag = cli.IntFlag{
+		Name:  "pprof.blockprofilerate",
+		Usage: "Turn on block profiling with the given rate",
 	}
-	blockprofilerateFlag = &cli.IntFlag{
-		Name:     "pprof.blockprofilerate",
-		Usage:    "Turn on block profiling with the given rate",
-		Category: flags.LoggingCategory,
+	cpuprofileFlag = cli.StringFlag{
+		Name:  "pprof.cpuprofile",
+		Usage: "Write CPU profile to the given file",
 	}
-	cpuprofileFlag = &cli.StringFlag{
-		Name:     "pprof.cpuprofile",
-		Usage:    "Write CPU profile to the given file",
-		Category: flags.LoggingCategory,
+	traceFlag = cli.StringFlag{
+		Name:  "trace",
+		Usage: "Write execution trace to the given file",
 	}
-	traceFlag = &cli.StringFlag{
-		Name:     "trace",
-		Usage:    "Write execution trace to the given file",
-		Category: flags.LoggingCategory,
-	}
-	wasmLogFileFlag = &cli.StringFlag{
-		Name:     "wasmlog",
-		Usage:    "output wasm contract log to file",
-		Value:    "",
-		Category: flags.LoggingCategory,
+
+	wasmLogFileFlag = cli.StringFlag{
+		Name:  "wasmlog",
+		Usage: "output wasm contract log to file",
+		Value: "",
 	}
 )
 
@@ -122,7 +103,6 @@ var Flags = []cli.Flag{
 	verbosityFlag,
 	vmoduleFlag,
 	logjsonFlag,
-	logFileFlag,
 	backtraceAtFlag,
 	debugFlag,
 	pprofFlag,
@@ -135,10 +115,7 @@ var Flags = []cli.Flag{
 	wasmLogFileFlag,
 }
 
-var (
-	glogger         *log.GlogHandler
-	logOutputStream log.Handler
-)
+var glogger *log.GlogHandler
 
 func init() {
 	glogger = log.NewGlogHandler(log.StreamHandler(os.Stderr, log.TerminalFormat(false)))
@@ -149,86 +126,74 @@ func init() {
 // Setup initializes profiling and logging based on the CLI flags.
 // It should be called as early as possible in the program.
 func Setup(ctx *cli.Context) error {
-	logFile := ctx.String(logFileFlag.Name)
-	useColor := logFile == "" && os.Getenv("TERM") != "dumb" && (isatty.IsTerminal(os.Stderr.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd()))
-
-	var logfmt log.Format
-	if ctx.Bool(logjsonFlag.Name) {
-		logfmt = log.JSONFormat()
+	var ostream log.Handler
+	output := io.Writer(os.Stderr)
+	if ctx.GlobalBool(logjsonFlag.Name) {
+		ostream = log.StreamHandler(output, log.JSONFormat())
 	} else {
-		logfmt = log.TerminalFormat(useColor)
-	}
-
-	if logFile != "" {
-		var err error
-		logOutputStream, err = log.FileHandler(logFile, logfmt)
-		if err != nil {
-			return err
-		}
-	} else {
-		output := io.Writer(os.Stderr)
-		if useColor {
+		usecolor := (isatty.IsTerminal(os.Stderr.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd())) && os.Getenv("TERM") != "dumb"
+		if usecolor {
 			output = colorable.NewColorableStderr()
 		}
-		logOutputStream = log.StreamHandler(output, logfmt)
+		ostream = log.StreamHandler(output, log.TerminalFormat(usecolor))
 	}
-	glogger.SetHandler(logOutputStream)
+	glogger.SetHandler(ostream)
 
 	// logging
-	verbosity := ctx.Int(verbosityFlag.Name)
+	verbosity := ctx.GlobalInt(verbosityFlag.Name)
 	glogger.Verbosity(log.Lvl(verbosity))
-	vmodule := ctx.String(vmoduleFlag.Name)
+	vmodule := ctx.GlobalString(vmoduleFlag.Name)
 	glogger.Vmodule(vmodule)
 
-	debug := ctx.Bool(debugFlag.Name)
-	if ctx.IsSet(debugFlag.Name) {
-		debug = ctx.Bool(debugFlag.Name)
+	debug := ctx.GlobalBool(debugFlag.Name)
+	if ctx.GlobalIsSet(debugFlag.Name) {
+		debug = ctx.GlobalBool(debugFlag.Name)
 	}
 	log.PrintOrigins(debug)
 
-	backtrace := ctx.String(backtraceAtFlag.Name)
+	backtrace := ctx.GlobalString(backtraceAtFlag.Name)
 	glogger.BacktraceAt(backtrace)
 
 	log.Root().SetHandler(glogger)
 
 	// profiling, tracing
 	runtime.MemProfileRate = memprofilerateFlag.Value
-	if ctx.IsSet(memprofilerateFlag.Name) {
-		runtime.MemProfileRate = ctx.Int(memprofilerateFlag.Name)
+	if ctx.GlobalIsSet(memprofilerateFlag.Name) {
+		runtime.MemProfileRate = ctx.GlobalInt(memprofilerateFlag.Name)
 	}
 
-	blockProfileRate := ctx.Int(blockprofilerateFlag.Name)
+	blockProfileRate := ctx.GlobalInt(blockprofilerateFlag.Name)
 	Handler.SetBlockProfileRate(blockProfileRate)
 
-	if traceFile := ctx.String(traceFlag.Name); traceFile != "" {
+	if traceFile := ctx.GlobalString(traceFlag.Name); traceFile != "" {
 		if err := Handler.StartGoTrace(traceFile); err != nil {
 			return err
 		}
 	}
 
-	if cpuFile := ctx.String(cpuprofileFlag.Name); cpuFile != "" {
+	if cpuFile := ctx.GlobalString(cpuprofileFlag.Name); cpuFile != "" {
 		if err := Handler.StartCPUProfile(cpuFile); err != nil {
 			return err
 		}
 	}
 
 	// pprof server
-	if ctx.Bool(pprofFlag.Name) {
-		listenHost := ctx.String(pprofAddrFlag.Name)
+	if ctx.GlobalBool(pprofFlag.Name) {
+		listenHost := ctx.GlobalString(pprofAddrFlag.Name)
 
-		port := ctx.Int(pprofPortFlag.Name)
+		port := ctx.GlobalInt(pprofPortFlag.Name)
 
 		address := fmt.Sprintf("%s:%d", listenHost, port)
 		// This context value ("metrics.addr") represents the utils.MetricsHTTPFlag.Name.
 		// It cannot be imported because it will cause a cyclical dependency.
-		StartPProf(address, !ctx.IsSet("metrics.addr"))
+		StartPProf(address, !ctx.GlobalIsSet("metrics.addr"))
 	}
 	return nil
 }
 
 func SetupWasmLog(ctx *cli.Context) error {
-	log.SetWasmLogLevel(log.Lvl(ctx.Int(verbosityFlag.Name)))
-	wasmFileName := ctx.String(wasmLogFileFlag.Name)
+	log.SetWasmLogLevel(log.Lvl(ctx.GlobalInt(verbosityFlag.Name)))
+	wasmFileName := ctx.GlobalString(wasmLogFileFlag.Name)
 
 	if wasmFileName == "" {
 		log.WasmRoot().SetHandler(log.Root().GetHandler())
@@ -268,7 +233,4 @@ func StartPProf(address string, withMetrics bool) {
 func Exit() {
 	Handler.StopCPUProfile()
 	Handler.StopGoTrace()
-	if closer, ok := logOutputStream.(io.Closer); ok {
-		closer.Close()
-	}
 }

@@ -3034,9 +3034,10 @@ func vrfElection(validatorList staking.ValidatorQueue, shiftLen int, nonce []byt
 		return nil, err
 	}
 	if len(preNonces) < len(validatorList) {
-		log.Error("Failed to vrfElection on Election", "blockNumber", blockNumber, "validatorListSize", len(validatorList),
-			"nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
-		return nil, staking.ErrWrongFuncParams
+		validatorList = validatorList[:len(preNonces)]
+		//log.Error("Failed to vrfElection on Election", "blockNumber", blockNumber, "validatorListSize", len(validatorList),
+		//	"nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
+		//return nil, staking.ErrWrongFuncParams
 	}
 	if len(preNonces) > len(validatorList) {
 		preNonces = preNonces[len(preNonces)-len(validatorList):]

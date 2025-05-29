@@ -24,7 +24,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -219,7 +218,7 @@ type Config struct {
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
-	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
+	cbftConfig *types.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
 	if engine == nil {
