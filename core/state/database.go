@@ -89,7 +89,7 @@ type Trie interface {
 	// TryDeleteAccount abstracts an account deletion from the trie.
 	TryDeleteAccount(key []byte) error
 
-	Commit(onleaf trie.LeafCallback) (common.Hash, int, error)
+	Commit(onleaf trie.LeafCallback) (common.Hash, int)
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
@@ -109,28 +109,38 @@ func NewDatabase(db ethdb.Database) Database {
 func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
-		db:            trie.NewDatabaseWithConfig(db, config),
 		disk:          db,
 		codeSizeCache: csc,
 		codeCache:     fastcache.New(codeCacheSize),
+		triedb:        trie.NewDatabaseWithConfig(db, config),
+	}
+}
+
+// NewDatabaseWithNodeDB creates a state database with an already initialized node database.
+func NewDatabaseWithNodeDB(db ethdb.Database, triedb *trie.Database) Database {
+	return &cachingDB{
+		disk:          db,
+		codeSizeCache: lru.NewCache[common.Hash, int](codeSizeCacheSize),
+		codeCache:     lru.NewSizeConstrainedCache[common.Hash, []byte](codeCacheSize),
+		triedb:        triedb,
 	}
 }
 
 type cachingDB struct {
-	db            *trie.Database
 	disk          ethdb.KeyValueStore
 	codeSizeCache *lru.Cache
 	codeCache     *fastcache.Cache
+	triedb        *trie.Database
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
-	return trie.NewStateTrie(common.Hash{}, root, db.db)
+	return trie.NewStateTrie(common.Hash{}, root, db.triedb)
 }
 
 // OpenStorageTrie opens the storage trie of an account.
 func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
-	return trie.NewStateTrie(addrHash, root, db.db)
+	return trie.NewStateTrie(addrHash, root, db.triedb)
 }
 
 // CopyTrie returns an independent copy of the given trie.
@@ -198,5 +208,5 @@ func (db *cachingDB) DiskDB() ethdb.KeyValueStore {
 
 // TrieDB retrieves any intermediate trie-node caching layer.
 func (db *cachingDB) TrieDB() *trie.Database {
-	return db.db
+	return db.triedb
 }

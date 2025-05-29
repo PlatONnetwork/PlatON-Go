@@ -165,7 +165,7 @@ type BlockContext struct {
 	Coinbase    common.Address // Provides information for COINBASE
 	GasLimit    uint64         // Provides information for GASLIMIT
 	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
+	Time        uint64         // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY  (This one must not be deleted, otherwise the solidity contract will be failed)
 	Nonce       types.BlockNonce
 	BaseFee     *big.Int     // Provides information for BASEFEE
@@ -238,7 +238,7 @@ func NewEVM(blockCtx BlockContext, txCtx TxContext, snapshotDB snapshotdb.DB, st
 		chainRules:   chainConfig.Rules(blockCtx.BlockNumber),
 		interpreters: make([]Interpreter, 0, 1),
 	}
-	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, config))
+	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm))
 	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, config))
 	evm.interpreter = evm.interpreters[0]
 
@@ -283,6 +283,13 @@ func (evm *EVM) Cancelled() bool {
 // Interpreter returns the current interpreter
 func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
+}
+
+// SetBlockContext updates the block context of the EVM.
+func (evm *EVM) SetBlockContext(blockCtx BlockContext) {
+	evm.Context = blockCtx
+	num := blockCtx.BlockNumber
+	evm.chainRules = evm.chainConfig.Rules(num)
 }
 
 // Call executes the contract associated with the addr with the given input as
@@ -434,7 +441,11 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 
 	// Invoke tracer hooks that signal entering/exiting a call frame
 	if evm.Config.Debug {
-		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, nil)
+		// NOTE: caller must, at all times be a contract. It should never happen
+		// that caller is something other than a Contract.
+		parent := caller.(*Contract)
+		// DELEGATECALL inherits value from parent call
+		evm.Config.Tracer.CaptureEnter(DELEGATECALL, caller.Address(), addr, input, gas, parent.value)
 		defer func(startGas uint64) {
 			evm.Config.Tracer.CaptureExit(ret, startGas-gas, err)
 		}(gas)

@@ -22,6 +22,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -1680,6 +1682,13 @@ func TestEIP1559Transition(t *testing.T) {
 		t.Fatalf("sender balance incorrect: expected %d, got %d", expected, actual)
 	}
 }
+<<<<<<< HEAD
+func TestEIP3651(t *testing.T) {
+	var (
+		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
+		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
+		engine = consensus.NewFaker()
+=======
 
 // TestTransientStorageReset ensures the transient storage is wiped correctly
 // between transactions.
@@ -1787,6 +1796,7 @@ func TestEIP3651(t *testing.T) {
 		bb = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
 		db = rawdb.NewMemoryDatabase()
 		//engine = consensus.NewFaker()
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -1831,6 +1841,17 @@ func TestEIP3651(t *testing.T) {
 		}
 	)
 
+<<<<<<< HEAD
+	gspec.Config.DiracBlock = big.NewInt(0)
+	signer := types.LatestSigner(gspec.Config, true)
+
+	db := rawdb.NewMemoryDatabase()
+	blocks, _ := GenerateChain(gspec.Config, gspec.MustCommit(db), engine, db, 1, func(i int, b *BlockGen) {
+		b.SetCoinbase(aa)
+		// One transaction to Coinbase
+		txdata := &types.DynamicFeeTx{
+			ChainID:    gspec.Config.ChainID,
+=======
 	gspec.Config.PauliBlock = common.Big0
 	gspec.Config.DiracBlock = common.Big0
 	//gspec.Config.ShanghaiTime = u64(0)
@@ -1844,6 +1865,7 @@ func TestEIP3651(t *testing.T) {
 		// One transaction to Coinbase
 		txdata := &types.DynamicFeeTx{
 			ChainID:    gspec.Config.PIP7ChainID,
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 			Nonce:      0,
 			To:         &bb,
 			Gas:        500000,
@@ -1861,8 +1883,11 @@ func TestEIP3651(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+<<<<<<< HEAD
+=======
 	engine.SetChain(chain)
 	NewExecutor(gspec.Config, chain, chain.vmConfig, nil)
+>>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}

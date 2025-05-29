@@ -882,7 +882,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 
 // generateParams wraps various of settings for generating sealing task.
 type generateParams struct {
-	timestamp uint64       // The timstamp for sealing task
+	timestamp uint64       // The timestamp for sealing task
 	parent    *types.Block // Parent block hash, empty means the latest chain head
 }
 
@@ -1089,7 +1089,7 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		return err
 	}
 
-	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts)
+	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts, nil)
 
 	if err != nil {
 		return err

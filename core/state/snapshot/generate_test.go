@@ -28,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -119,12 +118,12 @@ func checkSnapRoot(t *testing.T, snap *diskLayer, trieRoot common.Hash) {
 	accIt := snap.AccountIterator(common.Hash{})
 	defer accIt.Release()
 
-	snapRoot, err := generateTrieRoot(nil, accIt, common.Hash{}, stackTrieGenerate,
+	snapRoot, err := generateTrieRoot(nil, "", accIt, common.Hash{}, stackTrieGenerate,
 		func(db ethdb.KeyValueWriter, accountHash, codeHash common.Hash, stat *generateStats) (common.Hash, error) {
 			storageIt, _ := snap.StorageIterator(accountHash, common.Hash{})
 			defer storageIt.Release()
 
-			hash, err := generateTrieRoot(nil, storageIt, accountHash, stackTrieGenerate, nil, stat, false)
+			hash, err := generateTrieRoot(nil, "", storageIt, accountHash, stackTrieGenerate, nil, stat, false)
 			if err != nil {
 				return common.Hash{}, err
 			}
@@ -377,7 +376,7 @@ func TestGenerateCorruptAccountTrie(t *testing.T) {
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// without any storage slots to keep the test smaller.
 	var (
-		diskdb = memorydb.New()
+		diskdb = rawdb.NewMemoryDatabase()
 		triedb = trie.NewDatabase(diskdb)
 	)
 	tr, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)
@@ -421,7 +420,7 @@ func TestGenerateMissingStorageTrie(t *testing.T) {
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// two of which also has the same 3-slot storage trie attached.
 	var (
-		diskdb = memorydb.New()
+		diskdb = rawdb.NewMemoryDatabase()
 		triedb = trie.NewDatabase(diskdb)
 	)
 	stTrie, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)
@@ -480,7 +479,7 @@ func TestGenerateCorruptStorageTrie(t *testing.T) {
 	// a fake one manually. We're going with a small account trie of 3 accounts,
 	// two of which also has the same 3-slot storage trie attached.
 	var (
-		diskdb = memorydb.New()
+		diskdb = rawdb.NewMemoryDatabase()
 		triedb = trie.NewDatabase(diskdb)
 	)
 	stTrie, _ := trie.NewSecure(common.Hash{}, common.Hash{}, triedb)

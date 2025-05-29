@@ -42,9 +42,10 @@ type BlockGen struct {
 	header  *types.Header
 	statedb *state.StateDB
 
-	gasPool  *GasPool
-	txs      []*types.Transaction
-	receipts []*types.Receipt
+	gasPool     *GasPool
+	txs         []*types.Transaction
+	receipts    []*types.Receipt
+	withdrawals []*types.Withdrawal
 
 	config *params.ChainConfig
 	engine consensus.Engine
@@ -170,6 +171,26 @@ func (b *BlockGen) TxNonce(addr common.Address) uint64 {
 	return b.statedb.GetNonce(addr)
 }
 
+// AddWithdrawal adds a withdrawal to the generated block.
+func (b *BlockGen) AddWithdrawal(w *types.Withdrawal) {
+	// The withdrawal will be assigned the next valid index.
+	var idx uint64
+	for i := b.i - 1; i >= 0; i-- {
+		if wd := b.chain[i].Withdrawals(); len(wd) != 0 {
+			idx = wd[len(wd)-1].Index + 1
+			break
+		}
+		if i == 0 {
+			// Correctly set the index if no parent had withdrawals
+			if wd := b.parent.Withdrawals(); len(wd) != 0 {
+				idx = wd[len(wd)-1].Index + 1
+			}
+		}
+	}
+	w.Index = idx
+	b.withdrawals = append(b.withdrawals, w)
+}
+
 // PrevBlock returns a previously generated block by number. It panics if
 // num is greater or equal to the number of the block being generated.
 // For index -1, PrevBlock returns the parent block given to GenerateChain.
@@ -222,7 +243,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
 
 			// Write state changes to db
 			root, err := statedb.Commit(true)
@@ -280,7 +301,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
 
 			err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
@@ -322,7 +343,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
 
 			err := chain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {
@@ -377,7 +398,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts)
+			block, _ := b.engine.Finalize(chainreader, b.header, statedb, b.txs, b.receipts, b.withdrawals)
 
 			err := blockchain.WriteBlockWithState(block, b.receipts, nil, statedb, false, nil)
 			if err != nil {

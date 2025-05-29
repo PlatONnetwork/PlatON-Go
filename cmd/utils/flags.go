@@ -29,8 +29,6 @@ import (
 	"strings"
 	"time"
 
-	gopsutil "github.com/shirou/gopsutil/mem"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -38,6 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	types2 "github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -66,7 +65,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-
+	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
 )
 
@@ -89,6 +88,12 @@ var (
 		Name:     "remotedb",
 		Usage:    "URL for remote database",
 		Category: flags.LoggingCategory,
+	}
+	DBEngineFlag = &cli.StringFlag{
+		Name:     "db.engine",
+		Usage:    "Backing database implementation to use ('leveldb' or 'pebble')",
+		Value:    "leveldb",
+		Category: flags.EthCategory,
 	}
 	AncientFlag = &flags.DirectoryFlag{
 		Name:     "datadir.ancient",
@@ -314,6 +319,11 @@ var (
 		Name:     "bloomfilter.size",
 		Usage:    "Megabytes of memory allocated to bloom-filter for pruning",
 		Value:    2048,
+		Category: flags.EthCategory,
+	}
+	OverrideShanghai = &cli.Uint64Flag{
+		Name:     "override.shanghai",
+		Usage:    "Manually specify the Shanghai fork timestamp, overriding the bundled setting",
 		Category: flags.EthCategory,
 	}
 	CacheGCFlag = &cli.IntFlag{
@@ -559,6 +569,11 @@ var (
 		Usage:    "Allow for unprotected (non EIP155 signed) transactions to be submitted via RPC",
 		Category: flags.APICategory,
 	}
+	EnablePersonal = &cli.BoolFlag{
+		Name:     "rpc.enabledeprecatedpersonal",
+		Usage:    "Enables the (deprecated) personal namespace",
+		Category: flags.APICategory,
+	}
 
 	// Network Settings
 	MaxPeersFlag = &cli.IntFlag{
@@ -615,7 +630,7 @@ var (
 	}
 	NATFlag = &cli.StringFlag{
 		Name:     "nat",
-		Usage:    "NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>)",
+		Usage:    "NAT port mapping mechanism (any|none|upnp|pmp|pmp:<IP>|extip:<IP>)",
 		Value:    "any",
 		Category: flags.NetworkingCategory,
 	}
@@ -876,6 +891,12 @@ var (
 		RemoteDBFlag,
 	}
 )
+
+func init() {
+	if rawdb.PebbleEnabled {
+		DatabasePathFlags = append(DatabasePathFlags, DBEngineFlag)
+	}
+}
 
 // MakeDataDir retrieves the currently requested data directory, terminating
 // if none (or the empty string) is specified. If the node is starting a testnet,
@@ -1253,6 +1274,10 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.JWTSecret = ctx.String(JWTSecretFlag.Name)
 	}
 
+	if ctx.IsSet(EnablePersonal.Name) {
+		cfg.EnablePersonal = true
+	}
+
 	if ctx.IsSet(KeyStoreDirFlag.Name) {
 		cfg.KeyStoreDir = ctx.String(KeyStoreDirFlag.Name)
 	}
@@ -1261,6 +1286,14 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	}
 	if ctx.IsSet(InsecureUnlockAllowedFlag.Name) {
 		cfg.InsecureUnlockAllowed = ctx.Bool(InsecureUnlockAllowedFlag.Name)
+	}
+	if ctx.IsSet(DBEngineFlag.Name) {
+		dbEngine := ctx.String(DBEngineFlag.Name)
+		if dbEngine != "leveldb" && dbEngine != "pebble" {
+			Fatalf("Invalid choice for db.engine '%s', allowed 'leveldb' or 'pebble'", dbEngine)
+		}
+		log.Info(fmt.Sprintf("Using %s as db engine", dbEngine))
+		cfg.DBEngine = dbEngine
 	}
 }
 

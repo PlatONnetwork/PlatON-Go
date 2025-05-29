@@ -323,7 +323,7 @@ func XTestDelivery(t *testing.T) {
 					txsHashes[i] = types.DeriveSha(types.Transactions(txs), hasher)
 				}
 				time.Sleep(100 * time.Millisecond)
-				_, err := q.DeliverBodies(peer.id, txset, txsHashes, extraset)
+				_, err := q.DeliverBodies(peer.id, txset, txsHashes, extraset, nil, nil)
 				if err != nil {
 					fmt.Printf("delivered %d bodies %v\n", len(txset), err)
 				}

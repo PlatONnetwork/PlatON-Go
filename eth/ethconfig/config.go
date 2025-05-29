@@ -212,6 +212,9 @@ type Config struct {
 
 	// Checkpoint is a hardcoded checkpoint which can be nil.
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
+
+	// OverrideShanghai (TODO: remove after the fork)
+	OverrideShanghai *uint64 `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service

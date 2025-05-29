@@ -381,6 +381,9 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 		return newCompatError("hubble fork block", c.HubbleBlock, newcfg.HubbleBlock)
 	}
 
+	if isForkIncompatible(c.PauliBlock, newcfg.PauliBlock, head) {
+		return newCompatError("pauli fork block", c.PauliBlock, newcfg.PauliBlock)
+	}
 	return nil
 }
 

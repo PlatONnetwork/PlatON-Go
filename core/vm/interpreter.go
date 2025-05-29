@@ -20,6 +20,7 @@ import (
 	"hash"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -30,10 +31,6 @@ type Config struct {
 	Debug     bool      // Enables debugging
 	Tracer    EVMLogger // Opcode logger
 	NoBaseFee bool      // Forces the EIP-1559 baseFee to 0 (needed for 0 price calls)
-
-	// JumpTable contains the EVM instruction table. This
-	// may be left uninitialised and will be set to the default table.
-	JumpTable JumpTable
 
 	ExtraEips []int // Additional EIPS that are to be enabled
 
@@ -88,8 +85,8 @@ type keccakState interface {
 
 // EVMInterpreter represents an EVM interpreter
 type EVMInterpreter struct {
-	evm *EVM
-	cfg Config
+	evm   *EVM
+	table *JumpTable
 
 	hasher    keccakState // Keccak256 hasher instance shared across opcodes
 	hasherBuf common.Hash // Keccak256 hasher result array shared aross opcodes
@@ -99,24 +96,31 @@ type EVMInterpreter struct {
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
-func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
-	// We use the STOP instruction whether to see
-	// the jump table was initialised. If it was not
-	// we'll set the default jump table.
-	if cfg.JumpTable[STOP] == nil {
-		if evm.StateDB == nil {
-			cfg.JumpTable = shanghaiInstructionSet
-		} else if evm.chainRules.IsDirac || gov.Gte160VersionState(evm.StateDB) {
-			cfg.JumpTable = shanghaiInstructionSet
-		} else {
-			cfg.JumpTable = londonInstructionSet
-		}
+func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
+	var table *JumpTable
+	if evm.StateDB == nil {
+		table = &shanghaiInstructionSet
+	} else if evm.chainRules.IsDirac || gov.Gte160VersionState(evm.StateDB) {
+		table = &shanghaiInstructionSet
+	} else {
+		table = &londonInstructionSet
 	}
 
-	return &EVMInterpreter{
-		evm: evm,
-		cfg: cfg,
+	var extraEips []int
+	if len(evm.Config.ExtraEips) > 0 {
+		// Deep-copy jumptable to prevent modification of opcodes in other tables
+		table = copyJumpTable(table)
 	}
+	for _, eip := range evm.Config.ExtraEips {
+		if err := EnableEIP(eip, table); err != nil {
+			// Disable it, so caller can check if it's activated or not
+			log.Error("EIP activation failed", "eip", eip, "error", err)
+		} else {
+			extraEips = append(extraEips, eip)
+		}
+	}
+	evm.Config.ExtraEips = extraEips
+	return &EVMInterpreter{evm: evm, table: table}
 }
 
 // Run loops and evaluates the contract's code with the given input data and returns
@@ -168,22 +172,21 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		logged  bool   // deferred EVMLogger should ignore already logged steps
 		res     []byte // result of the opcode execution function
 	)
-	// Don't move this deferrred function, it's placed before the capturestate-deferred method,
+	// Don't move this deferred function, it's placed before the capturestate-deferred method,
 	// so that it get's executed _after_: the capturestate needs the stacks before
 	// they are returned to the pools
 	defer func() {
 		returnStack(stack)
-		returnRStack(returns)
 	}()
 	contract.Input = input
 
-	if in.cfg.Debug {
+	if in.evm.Config.Debug {
 		defer func() {
 			if err != nil {
 				if !logged {
-					in.cfg.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
+					in.evm.Config.Tracer.CaptureState(pcCopy, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 				} else {
-					in.cfg.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.evm.depth, err)
+					in.evm.Config.Tracer.CaptureFault(pcCopy, op, gasCopy, cost, callContext, in.evm.depth, err)
 				}
 			}
 		}()
@@ -193,15 +196,14 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 	// the execution of one of the operations or until the done flag is set by the
 	// parent context.
 	for {
-		if in.cfg.Debug {
+		if in.evm.Config.Debug {
 			// Capture pre-execution values for tracing.
 			logged, pcCopy, gasCopy = false, pc, contract.Gas
 		}
-
 		// Get the operation from the jump table and validate the stack to ensure there are
 		// enough stack items available to perform the operation.
 		op = contract.GetOp(pc)
-		operation := in.cfg.JumpTable[op]
+		operation := in.table[op]
 		cost = operation.constantGas // For tracing
 		// Validate stack
 		if sLen := stack.len(); sLen < operation.minStack {
@@ -239,15 +241,15 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 				return nil, ErrOutOfGas
 			}
 			// Do tracing before memory expansion
-			if in.cfg.Debug {
-				in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
+			if in.evm.Config.Debug {
+				in.evm.Config.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 				logged = true
 			}
 			if memorySize > 0 {
 				mem.Resize(memorySize)
 			}
-		} else if in.cfg.Debug {
-			in.cfg.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
+		} else if in.evm.Config.Debug {
+			in.evm.Config.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 			logged = true
 		}
 		// execute the operation

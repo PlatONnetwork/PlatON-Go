@@ -91,8 +91,8 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 		}
 	}()
 	ordering := make(map[*eth.Request]int)
-	timeouts := prque.New(func(data interface{}, index int) {
-		ordering[data.(*eth.Request)] = index
+	timeouts := prque.New[int64, *eth.Request](func(data *eth.Request, index int) {
+		ordering[data] = index
 	})
 
 	timeout := time.NewTimer(0)
@@ -268,14 +268,12 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 			// below is purely for to catch programming errors, given the correct
 			// code, there's no possible order of events that should result in a
 			// timeout firing for a non-existent event.
-			item, exp := timeouts.Peek()
+			req, exp := timeouts.Peek()
 			if now, at := time.Now(), time.Unix(0, -exp); now.Before(at) {
 				log.Error("Timeout triggered but not reached", "left", at.Sub(now))
 				timeout.Reset(at.Sub(now))
 				continue
 			}
-			req := item.(*eth.Request)
-
 			// Stop tracking the timed out request from a timing perspective,
 			// cancel it, so it's not considered in-flight anymore, but keep
 			// the peer marked busy to prevent assigning a second request and
@@ -284,11 +282,12 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 			stales[req.Peer] = req
 			delete(ordering, req)
 
-			timeouts.Pop()
+			timeouts.Pop() // Popping an item will reorder indices in `ordering`, delete after, otherwise will resurrect!
 			if timeouts.Size() > 0 {
 				_, exp := timeouts.Peek()
 				timeout.Reset(time.Until(time.Unix(0, -exp)))
 			}
+			delete(ordering, req)
 			// New timeout potentially set if there are more requests pending,
 			// reschedule the failed one to a free peer
 			fails := queue.unreserve(req.Peer)

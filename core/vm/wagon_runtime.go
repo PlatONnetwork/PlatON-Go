@@ -875,7 +875,7 @@ func Gas(proc *exec.Process) uint64 {
 func Timestamp(proc *exec.Process) int64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	return ctx.evm.Context.Time.Int64()
+	return int64(ctx.evm.Context.Time)
 }
 
 func Coinbase(proc *exec.Process, dst uint32) {

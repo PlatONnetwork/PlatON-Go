@@ -230,6 +230,7 @@ func (s *StateDB) Reset(root common.Hash) error {
 	s.stateObjects = make(map[common.Address]*stateObject)
 	s.stateObjectsPending = make(map[common.Address]struct{})
 	s.stateObjectsDirty = make(map[common.Address]struct{})
+	s.stateObjectsDestruct = make(map[common.Address]struct{})
 	s.thash = common.Hash{}
 	s.txIndex = 0
 	s.logs = make(map[common.Hash][]*types.Log)
@@ -1342,7 +1343,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		start = time.Now()
 	}
 	// Write trie changes.
-	root, accountCommitted, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash, _ []byte) error {
+	root, accountCommitted := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash, _ []byte) error {
 		var account types.StateAccount
 		if err := rlp.DecodeBytes(leaf, &account); err != nil {
 			return nil
@@ -1352,9 +1353,6 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		}
 		return nil
 	})
-	if err != nil {
-		return common.Hash{}, err
-	}
 	if metrics.EnabledExpensive {
 		s.AccountCommits += time.Since(start)
 

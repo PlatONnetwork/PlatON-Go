@@ -121,3 +121,281 @@ func (s *stateSync) Cancel() error {
 	})
 	return s.Wait()
 }
+
+// loop is the main event loop of a state trie sync. It is responsible for the
+// assignment of new tasks to peers (including sending it to them) as well as
+// for the processing of inbound data. Note, that the loop does not directly
+// receive data from peers, rather those are buffered up in the downloader and
+// pushed here async. The reason is to decouple processing from data receipt
+// and timeouts.
+func (s *stateSync) loop() (err error) {
+	// Listen for new peer events to assign tasks to them
+	newPeer := make(chan *peerConnection, 1024)
+	peerSub := s.d.peers.SubscribeNewPeers(newPeer)
+	defer peerSub.Unsubscribe()
+	defer func() {
+		cerr := s.commit(true)
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	// Keep assigning new tasks until the sync completes or aborts
+	for s.sched.Pending() > 0 {
+		if err = s.commit(false); err != nil {
+			return err
+		}
+		s.assignTasks()
+		// Tasks assigned, wait for something to happen
+		select {
+		case <-newPeer:
+			// New peer arrived, try to assign it download tasks
+
+		case <-s.cancel:
+			return errCancelStateFetch
+
+		case <-s.d.cancelCh:
+			return errCanceled
+
+		case req := <-s.deliver:
+			// Response, disconnect or timeout triggered, drop the peer if stalling
+			log.Trace("Received node data response", "peer", req.peer.id, "count", len(req.response), "dropped", req.dropped, "timeout", !req.dropped && req.timedOut())
+			if req.nItems <= 2 && !req.dropped && req.timedOut() {
+				// 2 items are the minimum requested, if even that times out, we've no use of
+				// this peer at the moment.
+				log.Warn("Stalling state sync, dropping peer", "peer", req.peer.id)
+				if s.d.dropPeer == nil {
+					// The dropPeer method is nil when `--copydb` is used for a local copy.
+					// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
+					req.peer.log.Warn("Downloader wants to drop peer, but peerdrop-function is not set", "peer", req.peer.id)
+				} else {
+					s.d.dropPeer(req.peer.id)
+
+					// If this peer was the master peer, abort sync immediately
+					s.d.cancelLock.RLock()
+					master := req.peer.id == s.d.cancelPeer
+					s.d.cancelLock.RUnlock()
+
+					if master {
+						s.d.cancel()
+						return errTimeout
+					}
+				}
+			}
+			// Process all the received blobs and check for stale delivery
+			delivered, err := s.process(req)
+			req.peer.SetNodeDataIdle(delivered, req.delivered)
+			if err != nil {
+				log.Warn("Node data write error", "err", err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *stateSync) commit(force bool) error {
+	if !force && s.bytesUncommitted < ethdb.IdealBatchSize {
+		return nil
+	}
+	start := time.Now()
+	b := s.d.stateDB.NewBatch()
+	if err := s.sched.Commit(b); err != nil {
+		return err
+	}
+	if err := b.Write(); err != nil {
+		return fmt.Errorf("DB write error: %v", err)
+	}
+	s.updateStats(s.numUncommitted, 0, 0, time.Since(start))
+	s.numUncommitted = 0
+	s.bytesUncommitted = 0
+	return nil
+}
+
+// assignTasks attempts to assign new tasks to all idle peers, either from the
+// batch currently being retried, or fetching new data from the trie sync itself.
+func (s *stateSync) assignTasks() {
+	// Iterate over all idle peers and try to assign them state fetches
+	peers, _ := s.d.peers.NodeDataIdlePeers()
+	for _, p := range peers {
+		// Assign a batch of fetches proportional to the estimated latency/bandwidth
+		cap := p.NodeDataCapacity(s.d.peers.rates.TargetRoundTrip())
+		req := &stateReq{peer: p, timeout: s.d.peers.rates.TargetTimeout()}
+
+		nodes, _, codes := s.fillTasks(cap, req)
+
+		// If the peer was assigned tasks to fetch, send the network request
+		if len(nodes)+len(codes) > 0 {
+			req.peer.log.Trace("Requesting batch of state data", "nodes", len(nodes), "codes", len(codes), "root", s.root)
+			select {
+			case s.d.trackStateReq <- req:
+				req.peer.FetchNodeData(append(nodes, codes...)) // Unified retrieval under eth/6x
+			case <-s.cancel:
+			case <-s.d.cancelCh:
+			}
+		}
+	}
+}
+
+// fillTasks fills the given request object with a maximum of n state download
+// tasks to send to the remote peer.
+func (s *stateSync) fillTasks(n int, req *stateReq) (nodes []common.Hash, paths []trie.SyncPath, codes []common.Hash) {
+	// Refill available tasks from the scheduler.
+	if fill := n - (len(s.trieTasks) + len(s.codeTasks)); fill > 0 {
+		nodes, paths, codes := s.sched.Missing(fill)
+		for i, hash := range nodes {
+			s.trieTasks[hash] = &trieTask{
+				path:     paths[i],
+				attempts: make(map[string]struct{}),
+			}
+		}
+		for _, hash := range codes {
+			s.codeTasks[hash] = &codeTask{
+				attempts: make(map[string]struct{}),
+			}
+		}
+	}
+	// Find tasks that haven't been tried with the request's peer. Prefer code
+	// over trie nodes as those can be written to disk and forgotten about.
+	nodes = make([]common.Hash, 0, n)
+	paths = make([]trie.SyncPath, 0, n)
+	codes = make([]common.Hash, 0, n)
+
+	req.trieTasks = make(map[common.Hash]*trieTask, n)
+	req.codeTasks = make(map[common.Hash]*codeTask, n)
+
+	for hash, t := range s.codeTasks {
+		// Stop when we've gathered enough requests
+		if len(nodes)+len(codes) == n {
+			break
+		}
+		// Skip any requests we've already tried from this peer
+		if _, ok := t.attempts[req.peer.id]; ok {
+			continue
+		}
+		// Assign the request to this peer
+		t.attempts[req.peer.id] = struct{}{}
+		codes = append(codes, hash)
+		req.codeTasks[hash] = t
+		delete(s.codeTasks, hash)
+	}
+	for hash, t := range s.trieTasks {
+		// Stop when we've gathered enough requests
+		if len(nodes)+len(codes) == n {
+			break
+		}
+		// Skip any requests we've already tried from this peer
+		if _, ok := t.attempts[req.peer.id]; ok {
+			continue
+		}
+		// Assign the request to this peer
+		t.attempts[req.peer.id] = struct{}{}
+
+		nodes = append(nodes, hash)
+		paths = append(paths, t.path)
+
+		req.trieTasks[hash] = t
+		delete(s.trieTasks, hash)
+	}
+	req.nItems = uint16(len(nodes) + len(codes))
+	return nodes, paths, codes
+}
+
+// process iterates over a batch of delivered state data, injecting each item
+// into a running state sync, re-queuing any items that were requested but not
+// delivered. Returns whether the peer actually managed to deliver anything of
+// value, and any error that occurred.
+func (s *stateSync) process(req *stateReq) (int, error) {
+	// Collect processing stats and update progress if valid data was received
+	duplicate, unexpected, successful := 0, 0, 0
+
+	defer func(start time.Time) {
+		if duplicate > 0 || unexpected > 0 {
+			s.updateStats(0, duplicate, unexpected, time.Since(start))
+		}
+	}(time.Now())
+
+	// Iterate over all the delivered data and inject one-by-one into the trie
+	for _, blob := range req.response {
+		hash, err := s.processNodeData(blob)
+		switch err {
+		case nil:
+			s.numUncommitted++
+			s.bytesUncommitted += len(blob)
+			successful++
+		case trie.ErrNotRequested:
+			unexpected++
+		case trie.ErrAlreadyProcessed:
+			duplicate++
+		default:
+			return successful, fmt.Errorf("invalid state node %s: %v", hash.TerminalString(), err)
+		}
+		// Delete from both queues (one delivery is enough for the syncer)
+		delete(req.trieTasks, hash)
+		delete(req.codeTasks, hash)
+	}
+	// Put unfulfilled tasks back into the retry queue
+	npeers := s.d.peers.Len()
+	for hash, task := range req.trieTasks {
+		// If the node did deliver something, missing items may be due to a protocol
+		// limit or a previous timeout + delayed delivery. Both cases should permit
+		// the node to retry the missing items (to avoid single-peer stalls).
+		if len(req.response) > 0 || req.timedOut() {
+			delete(task.attempts, req.peer.id)
+		}
+		// If we've requested the node too many times already, it may be a malicious
+		// sync where nobody has the right data. Abort.
+		if len(task.attempts) >= npeers {
+			return successful, fmt.Errorf("trie node %s failed with all peers (%d tries, %d peers)", hash.TerminalString(), len(task.attempts), npeers)
+		}
+		// Missing item, place into the retry queue.
+		s.trieTasks[hash] = task
+	}
+	for hash, task := range req.codeTasks {
+		// If the node did deliver something, missing items may be due to a protocol
+		// limit or a previous timeout + delayed delivery. Both cases should permit
+		// the node to retry the missing items (to avoid single-peer stalls).
+		if len(req.response) > 0 || req.timedOut() {
+			delete(task.attempts, req.peer.id)
+		}
+		// If we've requested the node too many times already, it may be a malicious
+		// sync where nobody has the right data. Abort.
+		if len(task.attempts) >= npeers {
+			return successful, fmt.Errorf("byte code %s failed with all peers (%d tries, %d peers)", hash.TerminalString(), len(task.attempts), npeers)
+		}
+		// Missing item, place into the retry queue.
+		s.codeTasks[hash] = task
+	}
+	return successful, nil
+}
+
+// processNodeData tries to inject a trie node data blob delivered from a remote
+// peer into the state trie, returning whether anything useful was written or any
+// error occurred.
+func (s *stateSync) processNodeData(blob []byte) (common.Hash, error) {
+	res := trie.SyncResult{Data: blob}
+	s.keccak.Reset()
+	s.keccak.Write(blob)
+	s.keccak.Read(res.Hash[:])
+	err := s.sched.Process(res)
+	return res.Hash, err
+}
+
+// updateStats bumps the various state sync progress counters and displays a log
+// message for the user to see.
+func (s *stateSync) updateStats(written, duplicate, unexpected int, duration time.Duration) {
+	s.d.syncStatsLock.Lock()
+	defer s.d.syncStatsLock.Unlock()
+
+	s.d.syncStatsState.pending = uint64(s.sched.Pending())
+	s.d.syncStatsState.processed += uint64(written)
+	s.d.syncStatsState.duplicate += uint64(duplicate)
+	s.d.syncStatsState.unexpected += uint64(unexpected)
+
+	if written > 0 || duplicate > 0 || unexpected > 0 {
+		log.Info("Imported new state entries", "count", written, "elapsed", common.PrettyDuration(duration), "processed", s.d.syncStatsState.processed, "pending", s.d.syncStatsState.pending, "trieretry", len(s.trieTasks), "coderetry", len(s.codeTasks), "duplicate", s.d.syncStatsState.duplicate, "unexpected", s.d.syncStatsState.unexpected)
+	}
+	if written > 0 {
+		rawdb.WriteFastTrieProgress(s.d.stateDB, s.d.syncStatsState.processed)
+	}
+}
