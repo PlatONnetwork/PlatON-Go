@@ -268,7 +268,7 @@ func (cs *CSMsgPool) AddPrepareQC(epoch, view uint64, blockIndex uint32, msg *Ms
 	}
 
 	cs.matchEpochCache(epoch).
-		matchViewCache(epoch).
+		matchViewCache(view).
 		addPrepareQC(blockIndex, msg)
 }
 
