@@ -29,17 +29,17 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 
 	"github.com/dop251/goja"
-
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
 	"github.com/PlatONnetwork/PlatON-Go/internal/web3ext"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
@@ -218,7 +218,7 @@ func (c *Console) initExtensions() error {
 	}
 
 	// Compute aliases from server-provided modules.
-	aliases := map[string]struct{}{"platon": {}, "personal": {}}
+	aliases := map[string]struct{}{"platon": {}}
 	for api := range apis {
 		if api == "web3" {
 			continue
@@ -263,6 +263,7 @@ func (c *Console) initPersonal(vm *goja.Runtime, bridge *bridge) {
 	if personal == nil || c.prompter == nil {
 		return
 	}
+	log.Warn("Enabling deprecated personal namespace")
 	jeth := vm.NewObject()
 	vm.Set("jplaton", jeth)
 	jeth.Set("openWallet", personal.Get("openWallet"))
@@ -308,12 +309,8 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	start := pos - 1
 	for ; start > 0; start-- {
 		// Skip all methods and namespaces (i.e. including the dot)
-		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
-			continue
-		}
-		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
-		if start >= 3 && line[start-3:start] == "web3" {
-			start -= 3
+		c := line[start]
+		if c == '.' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '1' && c <= '9') {
 			continue
 		}
 		// We've hit an unexpected character, autocomplete form here

@@ -196,10 +196,12 @@ type BlockChain struct {
 	chainConfig *params.ChainConfig // Chain & network configuration
 	cacheConfig *CacheConfig        // Cache configuration for pruning
 
-	db     ethdb.Database // Low level persistent database to store final content in
-	snaps  *snapshot.Tree // Snapshot tree for fast trie leaf access
-	triegc *prque.Prque   // Priority queue mapping block numbers to tries to gc
-	gcproc time.Duration  // Accumulates canonical block processing for trie dumping
+	db         ethdb.Database                   // Low level persistent database to store final content in
+	snaps      *snapshot.Tree                   // Snapshot tree for fast trie leaf access
+	triegc     *prque.Prque[int64, common.Hash] // Priority queue mapping block numbers to tries to gc
+	gcproc     time.Duration                    // Accumulates canonical block processing for trie dumping
+	triedb     *trie.Database                   // The database handler for maintaining trie nodes.
+	stateCache state.Database                   // State database to reuse between imports (contains state cache)
 
 	// txLookupLimit is the maximum number of blocks from head whose tx indices
 	// are reserved:
@@ -229,7 +231,6 @@ type BlockChain struct {
 	currentBlock     atomic.Value // Current head of the block chain
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
-	stateCache    state.Database                                      // State database to reuse between imports (contains state cache)
 	bodyCache     *lru.Cache[common.Hash, *types.Body]                // Cache for the most recent block bodies
 	bodyRLPCache  *lru.Cache[common.Hash, rlp.RawValue]               // Cache for the most recent block bodies in RLP encoded format
 	receiptsCache *lru.Cache[common.Hash, []*types.Receipt]           // Cache for the most recent receipts per block
@@ -260,16 +261,20 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if cacheConfig == nil {
 		cacheConfig = defaultCacheConfig
 	}
+
+	// Open trie database with provided config
+	triedb := trie.NewDatabaseWithConfig(db, &trie.Config{
+		Cache:     cacheConfig.TrieCleanLimit,
+		Journal:   cacheConfig.TrieCleanJournal,
+		Preimages: cacheConfig.Preimages,
+	})
+
 	bc := &BlockChain{
-		chainConfig: chainConfig,
-		cacheConfig: cacheConfig,
-		db:          db,
-		triegc:      prque.New(nil),
-		stateCache: state.NewDatabaseWithConfig(db, &trie.Config{
-			Cache:     cacheConfig.TrieCleanLimit,
-			Journal:   cacheConfig.TrieCleanJournal,
-			Preimages: cacheConfig.Preimages,
-		}),
+		chainConfig:    chainConfig,
+		cacheConfig:    cacheConfig,
+		db:             db,
+		triegc:         prque.New[int64, common.Hash](nil),
+		triedb:         triedb,
 		quit:           make(chan struct{}),
 		chainmu:        syncx.NewClosableMutex(),
 		shouldPreserve: shouldPreserve,
@@ -282,6 +287,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:         engine,
 		vmConfig:       vmConfig,
 	}
+	bc.stateCache = state.NewDatabaseWithNodeDB(bc.db, bc.triedb)
 
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	if chainConfig.Test() {
@@ -316,7 +322,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	}
 	// Make sure the state associated with the block is available
 	head := bc.CurrentBlock()
-	if _, err := state.New(head.Root(), bc.stateCache, bc.snaps); err != nil {
+	if !bc.HasState(head.Root()) {
 		log.Warn("Head state missing, repair not supported", "number", head.NumberU64(), "hash", head.Hash().String())
 		return nil, fmt.Errorf("head state missing, repair not supported, number:%d, hash:%s", head.NumberU64(), head.Hash().String())
 		/*
@@ -406,7 +412,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			NoBuild:    bc.cacheConfig.SnapshotNoBuild,
 			AsyncBuild: !bc.cacheConfig.SnapshotWait,
 		}
-		bc.snaps, _ = snapshot.New(snapconfig, bc.db, bc.stateCache.TrieDB(), head.Root())
+		bc.snaps, _ = snapshot.New(snapconfig, bc.db, bc.triedb, head.Root())
 	}
 
 	// Start future block processor.
@@ -419,11 +425,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			log.Warn("Sanitizing invalid trie cache journal time", "provided", bc.cacheConfig.TrieCleanRejournal, "updated", time.Minute)
 			bc.cacheConfig.TrieCleanRejournal = time.Minute
 		}
-		triedb := bc.stateCache.TrieDB()
 		bc.wg.Add(1)
 		go func() {
 			defer bc.wg.Done()
-			triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
+			bc.triedb.SaveCachePeriodically(bc.cacheConfig.TrieCleanJournal, bc.cacheConfig.TrieCleanRejournal, bc.quit)
 		}()
 	}
 	// Start tx indexer/unindexer if required.
@@ -680,7 +685,7 @@ func (bc *BlockChain) SnapSyncCommitHead(hash common.Hash) error {
 	if block == nil {
 		return fmt.Errorf("non existent block [%x..]", hash[:4])
 	}
-	if _, err := trie.NewStateTrie(common.Hash{}, block.Root(), bc.stateCache.TrieDB()); err != nil {
+	if _, err := trie.NewStateTrie(common.Hash{}, block.Root(), bc.triedb); err != nil {
 		return err
 	}
 	// If all checks out, manually set the head block
@@ -901,7 +906,7 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
-		triedb := bc.stateCache.TrieDB()
+		triedb := bc.triedb
 		if 0 >= bc.cacheConfig.TriesInMemory {
 			bc.cacheConfig.TriesInMemory = 128
 		}
@@ -923,21 +928,20 @@ func (bc *BlockChain) Stop() {
 			}
 		}
 		for !bc.triegc.Empty() {
-			triedb.Dereference(bc.triegc.PopItem().(common.Hash))
+			triedb.Dereference(bc.triegc.PopItem())
 		}
 		if size, _ := triedb.Size(); size != 0 {
 			log.Error("Dangling trie nodes after full cleanup")
 		}
 	}
 	// Flush the collected preimages to disk
-	if err := bc.stateCache.TrieDB().CommitPreimages(); err != nil {
+	if err := bc.triedb.CommitPreimages(); err != nil {
 		log.Error("Failed to commit trie preimages", "err", err)
 	}
 	// Ensure all live cached entries be saved into disk, so that we can skip
 	// cache warmup when node restarts.
 	if bc.cacheConfig.TrieCleanJournal != "" {
-		triedb := bc.stateCache.TrieDB()
-		triedb.SaveCache(bc.cacheConfig.TrieCleanJournal)
+		bc.triedb.SaveCache(bc.cacheConfig.TrieCleanJournal)
 	}
 	log.Info("Blockchain stopped")
 }
@@ -1296,7 +1300,6 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	// Irrelevant of the canonical status, write the block itself to the database
 	rawdb.WriteBlock(bc.db, block)
 
-	triedb := bc.stateCache.TrieDB()
 	root, err := state.Commit(true)
 
 	if err != nil {
@@ -1310,39 +1313,39 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		oversize := false
 		if !(bc.cacheConfig.DBGCMpt && !bc.cacheConfig.DBDisabledGC.IsSet()) {
 			//triedb.ReferenceVersion(root)
-			if err := triedb.Commit(root, false, false); err != nil {
+			if err := bc.triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
 			//triedb.Dereference(currentBlock.Root())
-			nodes, _ := triedb.Size()
+			nodes, _ := bc.triedb.Size()
 			oversize = nodes > limit
 		} else {
-			triedb.ReferenceVersion(root)
-			triedb.DereferenceDB(currentBlock.Root())
+			bc.triedb.ReferenceVersion(root)
+			bc.triedb.DereferenceDB(currentBlock.Root())
 
-			if err := triedb.Commit(root, false, false); err != nil {
+			if err := bc.triedb.Commit(root, false, false); err != nil {
 				log.Error("Commit to triedb error", "root", root)
 				return NonStatTy, err
 			}
 
-			if triedb.UselessSize() > bc.cacheConfig.DBGCBlock {
-				triedb.UselessGC(1)
+			if bc.triedb.UselessSize() > bc.cacheConfig.DBGCBlock {
+				bc.triedb.UselessGC(1)
 			}
 
-			nodes, _ := triedb.Size()
+			nodes, _ := bc.triedb.Size()
 			oversize = nodes > limit
 		}
 
 		if oversize {
-			triedb.CapNode(limit * defaultCapNodePercent)
-			triedb.ResetUseless()
+			bc.triedb.CapNode(limit * defaultCapNodePercent)
+			bc.triedb.ResetUseless()
 		}
 		log.Debug("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 	} else {
 		log.Debug("non-archive node put stateDB trie", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
-		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
+		bc.triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
 
 		if 0 >= bc.cacheConfig.TriesInMemory {
@@ -1352,11 +1355,11 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		if current := block.NumberU64(); current > (uint64)(bc.cacheConfig.TriesInMemory) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
-				nodes, imgs = triedb.Size()
+				nodes, imgs = bc.triedb.Size()
 				limit       = common.StorageSize(bc.cacheConfig.TrieDirtyLimit) * 1024 * 1024
 			)
 			if nodes > limit || imgs > 4*1024*1024 {
-				triedb.Cap(limit - ethdb.IdealBatchSize)
+				bc.triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
 			header := bc.GetHeaderByNumber(current - (uint64)(bc.cacheConfig.TriesInMemory))
@@ -1371,7 +1374,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 						float64(chosen-lastWrite)/(float64)(bc.cacheConfig.TriesInMemory))
 				}
 				// Flush an entire trie and restart the counters
-				triedb.Commit(header.Root, true, true)
+				bc.triedb.Commit(header.Root, true, true)
 				lastWrite = chosen
 				bc.gcproc = 0
 			}
@@ -1382,7 +1385,7 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 					bc.triegc.Push(root, number)
 					break
 				}
-				triedb.Dereference(root.(common.Hash))
+				bc.triedb.Dereference(root)
 			}
 		}
 	}
@@ -1601,7 +1604,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, er
 		}
 
 		blockInsertTimer.UpdateSince(start)
-		dirty, _ := bc.stateCache.TrieDB().Size()
+		dirty, _ := bc.triedb.Size()
 		stats.report(chain, it.index, dirty)
 	}
 

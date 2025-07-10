@@ -44,7 +44,7 @@ func HttpPost(param JsonParam) (string, error) {
 	req, _ := json.Marshal(param)
 	reqNew := bytes.NewBuffer(req)
 
-	request, _ := http.NewRequest("POST", config.Url, reqNew)
+	request, _ := http.NewRequest(http.MethodPost, config.Url, reqNew)
 	request.Header.Set("Content-type", "application/json")
 	response, err := client.Do(request)
 	if response == nil && err != nil {

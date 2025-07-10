@@ -882,7 +882,7 @@ func (diff *StateOverride) Apply(state *state.StateDB) error {
 type BlockOverrides struct {
 	Number     *hexutil.Big
 	Difficulty *hexutil.Big
-	Time       *hexutil.Big
+	Time       *hexutil.Uint64
 	GasLimit   *hexutil.Uint64
 	Coinbase   *common.Address
 	Random     *common.Hash
@@ -901,7 +901,7 @@ func (diff *BlockOverrides) Apply(blockCtx *vm.BlockContext) {
 		blockCtx.Difficulty = diff.Difficulty.ToInt()
 	}
 	if diff.Time != nil {
-		blockCtx.Time = diff.Time.ToInt()
+		blockCtx.Time = uint64(*diff.Time)
 	}
 	if diff.GasLimit != nil {
 		blockCtx.GasLimit = uint64(*diff.GasLimit)
@@ -1187,7 +1187,9 @@ func RPCMarshalHeader(head *types.Header, ethCompatible bool) map[string]interfa
 	if head.BaseFee != nil {
 		result["baseFeePerGas"] = (*hexutil.Big)(head.BaseFee)
 	}
-
+	if head.WithdrawalsHash != nil {
+		result["withdrawalsRoot"] = head.WithdrawalsHash
+	}
 	return result
 }
 
@@ -1217,9 +1219,12 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 			}
 		}
 		fields["transactions"] = transactions
+
 	}
 	if ethCompatible {
 		fields["uncles"] = make([]common.Hash, 0)
+		// inclTx also expands withdrawals
+		fields["withdrawals"] = block.Withdrawals()
 	}
 
 	return fields, nil
@@ -1232,6 +1237,10 @@ func (s *BlockChainAPI) rpcMarshalHeader(header *types.Header) map[string]interf
 	fields := RPCMarshalHeader(header, ethCompatible)
 	if ethCompatible {
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+
+		if header.WithdrawalsHash != nil {
+			fields["withdrawalsRoot"] = header.WithdrawalsHash
+		}
 	}
 	return fields
 }
@@ -1245,6 +1254,10 @@ func (s *BlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullTx bool
 	}
 	if inclTx && types.HttpEthCompatible {
 		fields["totalDifficulty"] = (*hexutil.Big)(new(big.Int))
+
+		if b.Header().WithdrawalsHash != nil {
+			fields["withdrawals"] = b.Withdrawals()
+		}
 	}
 	return fields, err
 }

@@ -279,7 +279,7 @@ func (p *Pruner) Prune(root common.Hash) error {
 	// Ensure the root is really present. The weak assumption
 	// is the presence of root can indicate the presence of the
 	// entire trie.
-	if !rawdb.HasTrieNode(p.db, root) {
+	if !rawdb.HasLegacyTrieNode(p.db, root) {
 		log.Error("Could not find the trie node corresponding to root", "root", root.TerminalString())
 		return fmt.Errorf("could not find the trie node corresponding to root:%s", root)
 	}
@@ -340,7 +340,7 @@ func RecoverPruning(datadir string, db ethdb.Database, trieCachePath string) err
 	}
 	headBlock := rawdb.ReadHeadBlock(db)
 	if headBlock == nil {
-		return errors.New("Failed to load head block")
+		return errors.New("failed to load head block")
 	}
 	// Initialize the snapshot tree in recovery mode to handle this special case:
 	// - Users run the `prune-state` command multiple times

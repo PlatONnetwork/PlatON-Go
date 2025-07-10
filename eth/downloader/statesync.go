@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AlayaNetwork/Alaya-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"

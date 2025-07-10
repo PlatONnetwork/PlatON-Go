@@ -738,6 +738,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Size() > txMaxSize {
 		return ErrOversizedData
 	}
+	// Check whether the init code size has been exceeded.
+	if pool.shanghai && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
+		return fmt.Errorf("%w: code size %v limit %v", core.ErrMaxInitCodeSizeExceeded, len(tx.Data()), params.MaxInitCodeSize)
+	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
 	if tx.Value().Sign() < 0 {
@@ -1599,7 +1603,7 @@ func (pool *TxPool) truncatePending() {
 
 	pendingBeforeCap := pending
 	// Assemble a spam order to penalize large transactors first
-	spammers := prque.New(nil)
+	spammers := prque.New[int64, common.Address](nil)
 	for addr, list := range pool.pending {
 		// Only evict transactions from high rollers
 		txLength := list.Len()
@@ -1612,12 +1616,12 @@ func (pool *TxPool) truncatePending() {
 	for pending > pool.config.GlobalSlots && !spammers.Empty() {
 		// Retrieve the next offender if not local address
 		offender, _ := spammers.Pop()
-		offenders = append(offenders, offender.(common.Address))
+		offenders = append(offenders, offender)
 
 		// Equalize balances until all the same or below threshold
 		if len(offenders) > 1 {
 			// Calculate the equalization threshold for all current offenders
-			threshold := pool.pending[offender.(common.Address)].Len()
+			threshold := pool.pending[offender].Len()
 
 			// Iteratively reduce all offenders until below limit or threshold reached
 			for pending > pool.config.GlobalSlots && pool.pending[offenders[len(offenders)-2]].Len() > threshold {

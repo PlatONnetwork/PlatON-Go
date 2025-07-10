@@ -107,15 +107,15 @@ func TestTracer(t *testing.T) {
 		{ // tests that we don't panic on bad arguments to memory access
 			code: "{depths: [], step: function(log) { this.depths.push(log.memory.slice(-1,-2)); }, fault: function() {}, result: function() { return this.depths; }}",
 			want: ``,
-			fail: "tracer accessed out of bound memory: offset -1, end -2 at step (<eval>:1:53(15))    in server-side tracer function 'step'",
+			fail: "tracer accessed out of bound memory: offset -1, end -2 at step (<eval>:1:53(13))    in server-side tracer function 'step'",
 		}, { // tests that we don't panic on bad arguments to stack peeks
 			code: "{depths: [], step: function(log) { this.depths.push(log.stack.peek(-1)); }, fault: function() {}, result: function() { return this.depths; }}",
 			want: ``,
-			fail: "tracer accessed out of bound stack: size 0, index -1 at step (<eval>:1:53(13))    in server-side tracer function 'step'",
+			fail: "tracer accessed out of bound stack: size 0, index -1 at step (<eval>:1:53(11))    in server-side tracer function 'step'",
 		}, { //  tests that we don't panic on bad arguments to memory getUint
 			code: "{ depths: [], step: function(log, db) { this.depths.push(log.memory.getUint(-64));}, fault: function() {}, result: function() { return this.depths; }}",
 			want: ``,
-			fail: "tracer accessed out of bound memory: available 0, offset -64, size 32 at step (<eval>:1:58(13))    in server-side tracer function 'step'",
+			fail: "tracer accessed out of bound memory: available 0, offset -64, size 32 at step (<eval>:1:58(11))    in server-side tracer function 'step'",
 		}, { // tests some general counting
 			code: "{count: 0, step: function() { this.count += 1; }, fault: function() {}, result: function() { return this.count; }}",
 			want: `3`,
@@ -150,7 +150,7 @@ func TestTracer(t *testing.T) {
 		}, {
 			code:     "{res: [], step: function(log) { if (log.op.toString() === 'STOP') { this.res.push(log.memory.slice(5, 1025 * 1024)) } }, fault: function() {}, result: function() { return this.res }}",
 			want:     "",
-			fail:     "tracer reached limit for padding memory slice: end 1049600, memorySize 32 at step (<eval>:1:83(23))    in server-side tracer function 'step'",
+			fail:     "tracer reached limit for padding memory slice: end 1049600, memorySize 32 at step (<eval>:1:83(20))    in server-side tracer function 'step'",
 			contract: []byte{byte(vm.PUSH1), byte(0xff), byte(vm.PUSH1), byte(0x00), byte(vm.MSTORE8), byte(vm.STOP)},
 		},
 	} {
@@ -225,6 +225,33 @@ func TestNoStepExec(t *testing.T) {
 		if have := execTracer(tt.code); tt.want != string(have) {
 			t.Errorf("testcase %d: expected return value to be %s got %s\n\tcode: %v", i, tt.want, string(have), tt.code)
 		}
+	}
+}
+
+func TestIsPrecompile(t *testing.T) {
+	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
+	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	blockCtx := vm.BlockContext{BlockNumber: big.NewInt(150)}
+	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, params.TestChainConfig, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(res) != "false" {
+		t.Errorf("tracer should not consider blake2f as precompile in byzantium")
+	}
+
+	tracer, _ = newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
+	blockCtx = vm.BlockContext{BlockNumber: big.NewInt(250)}
+	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, params.TestChainConfig, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	if string(res) != "true" {
+		t.Errorf("tracer should consider blake2f as precompile in istanbul")
 	}
 }
 

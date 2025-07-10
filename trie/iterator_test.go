@@ -329,7 +329,7 @@ func TestIteratorContinueAfterErrorDisk(t *testing.T)    { testIteratorContinueA
 func TestIteratorContinueAfterErrorMemonly(t *testing.T) { testIteratorContinueAfterError(t, true) }
 
 func testIteratorContinueAfterError(t *testing.T, memonly bool) {
-	diskdb := memorydb.New()
+	diskdb := rawdb.NewMemoryDatabase()
 	triedb := NewDatabase(diskdb)
 
 	tr := NewEmpty(triedb)
@@ -339,7 +339,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	_, nodes, _ := tr.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))
 	if !memonly {
-		triedb.Commit(tr.Hash(), true, true)
+		triedb.Commit(tr.Hash(), false, true)
 	}
 	wantNodeCount := checkIteratorNoDups(t, tr.NodeIterator(nil), nil)
 
@@ -421,7 +421,7 @@ func TestIteratorContinueAfterSeekErrorMemonly(t *testing.T) {
 
 func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	// Commit test trie to db, then remove the node containing "bars".
-	diskdb := memorydb.New()
+	diskdb := rawdb.NewMemoryDatabase()
 	triedb := NewDatabase(diskdb)
 
 	ctr := NewEmpty(triedb)
@@ -431,7 +431,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	root, nodes, _ := ctr.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))
 	if !memonly {
-		triedb.Commit(root, true, true)
+		triedb.Commit(root, false, true)
 	}
 	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (
@@ -534,7 +534,7 @@ func (l *loggingDb) Close() error {
 func makeLargeTestTrie() (*Database, *StateTrie, *loggingDb) {
 	// Create an empty trie
 	logDb := &loggingDb{0, memorydb.New()}
-	triedb := NewDatabase(logDb)
+	triedb := NewDatabase(rawdb.NewDatabase(logDb))
 	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, triedb)
 
 	// Fill it with some arbitrary data
@@ -570,7 +570,7 @@ func TestNodeIteratorLargeTrie(t *testing.T) {
 
 func TestIteratorNodeBlob(t *testing.T) {
 	var (
-		db     = memorydb.New()
+		db     = rawdb.NewMemoryDatabase()
 		triedb = NewDatabase(db)
 		trie   = NewEmpty(triedb)
 	)

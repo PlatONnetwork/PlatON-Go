@@ -270,8 +270,8 @@ func (bm *BftMock) Prepare(chain ChainReader, header *types.Header) error {
 // and assembles the final block.
 // Note: The block header and state database might be updated to reflect any
 // consensus rules that happen at finalization (e.g. block rewards).
-func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-	receipts []*types.Receipt) (*types.Block, error) {
+func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *state.StateDB,
+	txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
 
 	// Header seems complete, assemble into a block and return

@@ -1089,7 +1089,7 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		return err
 	}
 
-	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts)
+	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts, nil)
 
 	if err != nil {
 		return err

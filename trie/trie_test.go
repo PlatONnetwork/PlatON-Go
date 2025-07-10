@@ -32,8 +32,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/davecgh/go-spew/spew"
@@ -68,7 +66,7 @@ func TestNull(t *testing.T) {
 }
 
 func TestMissingRoot(t *testing.T) {
-	trie, err := New(common.Hash{}, common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(memorydb.New()))
+	trie, err := New(common.Hash{}, common.HexToHash("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"), NewDatabase(rawdb.NewMemoryDatabase()))
 	if trie != nil {
 		t.Error("New returned non-nil trie for invalid root")
 	}
@@ -81,7 +79,7 @@ func TestMissingNodeDisk(t *testing.T)    { testMissingNode(t, false) }
 func TestMissingNodeMemonly(t *testing.T) { testMissingNode(t, true) }
 
 func testMissingNode(t *testing.T, memonly bool) {
-	diskdb := memorydb.New()
+	diskdb := rawdb.NewMemoryDatabase()
 	triedb := NewDatabase(diskdb)
 
 	trie := NewEmpty(triedb)
@@ -417,7 +415,7 @@ func (randTest) Generate(r *rand.Rand, size int) reflect.Value {
 
 func runRandTest(rt randTest) bool {
 	var (
-		triedb   = NewDatabase(memorydb.New())
+		triedb   = NewDatabase(rawdb.NewMemoryDatabase())
 		tr       = NewEmpty(triedb)
 		values   = make(map[string]string) // tracks content of the trie
 		origTrie = NewEmpty(triedb)
@@ -647,7 +645,8 @@ func TestDeepCopy(t *testing.T) {
 		hexpath, parentPath []byte
 		nodes               *NodeSet
 	)
-	memdb := memorydb.New()
+	memdb := rawdb.NewMemoryDatabase()
+
 	triedb := NewDatabase(memdb)
 	root := common.Hash{}
 	tr, _ := NewSecure(common.Hash{}, root, triedb)
@@ -803,7 +802,7 @@ func TestOneTrieCollision(t *testing.T) {
 		return nil
 	}
 
-	mem := memorydb.New()
+	mem := rawdb.NewMemoryDatabase()
 	memdb := NewDatabase(mem)
 	trie := NewEmpty(memdb)
 	for _, d := range trieData1 {
@@ -853,9 +852,9 @@ func TestTwoTrieCollision(t *testing.T) {
 		{common.BytesToHash([]byte{2, 0}).Bytes()[:31], []byte{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3}},
 	}
 
-	mem1 := memorydb.New()
+	mem1 := rawdb.NewMemoryDatabase()
 	memdb1 := NewDatabase(mem1)
-	mem2 := memorydb.New()
+	mem2 := rawdb.NewMemoryDatabase()
 	memdb2 := NewDatabase(mem2)
 	trie1 := NewEmpty(memdb1)
 	trie2 := NewEmpty(memdb2)
@@ -988,7 +987,7 @@ func TestTrieHashByDisorderedData(t *testing.T) {
 	// Disrupted order
 	for i := 0; i < 1; i++ {
 		start = time.Now()
-		trie2 := NewEmpty(NewDatabase(memorydb.New()))
+		trie2 := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase()))
 		triekvPairs2 := orderDisrupted(triekvPairs)
 		for i := 0; i < len(triekvPairs2); i++ {
 			err := trie2.TryUpdate(triekvPairs2[i].k, triekvPairs2[i].v)
@@ -1031,7 +1030,7 @@ func TestTrieHashByUpdate(t *testing.T) {
 	// Dag Trie
 	for i := 0; i < 1; i++ {
 		start = time.Now()
-		trie2 := NewEmpty(NewDatabase(memorydb.New()))
+		trie2 := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase()))
 		for i := 0; i < len(triekvPairs); i++ {
 			err := trie2.TryUpdate(triekvPairs[i].k, triekvPairs[i].v)
 			if err != nil {

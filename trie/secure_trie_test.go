@@ -23,21 +23,20 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func newEmptySecure() *StateTrie {
-	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, NewDatabase(memorydb.New()))
+	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()))
 	return trie
 }
 
 // makeTestStateTrie creates a large enough secure trie for testing.
 func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 	// Create an empty trie
-	triedb := NewDatabase(memorydb.New())
+	triedb := NewDatabase(rawdb.NewMemoryDatabase())
 	trie, _ := NewStateTrie(common.Hash{}, common.Hash{}, triedb)
 
 	// Fill it with some arbitrary data

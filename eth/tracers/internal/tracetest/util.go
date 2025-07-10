@@ -19,6 +19,7 @@ var makeTest = function(tx, rewind) {
   // Generate the genesis block from the block, transaction and prestate data
   var block   = eth.getBlock(eth.getTransaction(tx).blockHash);
   var genesis = eth.getBlock(block.parentHash);
+
   delete genesis.gasUsed;
   delete genesis.logsBloom;
   delete genesis.parentHash;

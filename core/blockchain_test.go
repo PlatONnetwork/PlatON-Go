@@ -22,10 +22,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -1993,7 +1994,6 @@ func TestEIP3651(t *testing.T) {
 		bb = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
 		db = rawdb.NewMemoryDatabase()
 		//engine = consensus.NewFaker()
-
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -2044,8 +2044,7 @@ func TestEIP3651(t *testing.T) {
 	engine := consensus.NewFakerWithDataBase(db, genesis)
 	//signer := types.HomesteadSigner{}
 	signer := types.LatestSigner(gspec.Config, true)
-
-	blocks, _ := GenerateChain(gspec.Config, genesis, engine, db, 1, func(i int, b *BlockGen) {
+	blocks, _ := GenerateChain(gspec.Config, gspec.MustCommit(db), engine, db, 1, func(i int, b *BlockGen) {
 		b.SetCoinbase(aa)
 		// One transaction to Coinbase
 		txdata := &types.DynamicFeeTx{

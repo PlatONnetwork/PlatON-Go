@@ -111,8 +111,8 @@ func newBerlinInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newIstanbulInstructionSet returns the frontier, homestead
-// byzantium, contantinople and petersburg instructions.
+// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
+// contantinople, istanbul and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -124,10 +124,9 @@ func newIstanbulInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newConstantinopleInstructionSet returns the frontier, homestead
+// newConstantinopleInstructionSet returns the frontier, homestead,
 // byzantium and contantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
-	// instructions that can be executed during the byzantium phase.
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{
 		execute:     opSHL,
@@ -235,7 +234,7 @@ func newHomesteadInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// NewFrontierInstructionSet returns the frontier instructions
+// newFrontierInstructionSet returns the frontier instructions
 // that can be executed during the frontier phase.
 func newFrontierInstructionSet() JumpTable {
 	tbl := JumpTable{
