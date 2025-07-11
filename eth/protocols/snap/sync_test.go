@@ -1,4 +1,4 @@
-// Copyright 2020 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -1369,9 +1369,12 @@ func getCodeByHash(hash common.Hash) []byte {
 
 // makeAccountTrieNoStorage spits out a trie, along with the leafs
 func makeAccountTrieNoStorage(n int) (string, *trie.Trie, entrySlice) {
-	db := trie.NewDatabase(rawdb.NewMemoryDatabase())
-	accTrie := trie.NewEmpty(db)
-	var entries entrySlice
+	var (
+		db      = trie.NewDatabase(rawdb.NewMemoryDatabase())
+		accTrie = trie.NewEmpty(db)
+		entries entrySlice
+	)
+
 	for i := uint64(1); i <= uint64(n); i++ {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
@@ -1386,7 +1389,12 @@ func makeAccountTrieNoStorage(n int) (string, *trie.Trie, entrySlice) {
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
-	accTrie.Commit(nil)
+
+	// Commit the state changes into db and re-create the trie
+	// for accessing later.
+	root, nodes, _ := accTrie.Commit(false)
+	db.Update(trie.NewWithNodeSet(nodes))
+	accTrie, _ = trie.New(common.Hash{}, root, db)
 	return db.Scheme(), accTrie, entries
 }
 
@@ -1398,8 +1406,8 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 		entries    entrySlice
 		boundaries []common.Hash
 
-		db   = trie.NewDatabase(rawdb.NewMemoryDatabase())
-		trie = trie.NewEmpty(db)
+		db      = trie.NewDatabase(rawdb.NewMemoryDatabase())
+		accTrie = trie.NewEmpty(db)
 	)
 	// Initialize boundaries
 	var next common.Hash
@@ -1427,7 +1435,7 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{boundaries[i].Bytes(), value}
-		trie.Update(elem.k, elem.v)
+		accTrie.Update(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	// Fill other accounts if required
@@ -1440,12 +1448,18 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key32(i), value}
-		trie.Update(elem.k, elem.v)
+		accTrie.Update(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
-	trie.Commit(nil)
-	return db.Scheme(), trie, entries
+
+	// Commit the state changes into db and re-create the trie
+	// for accessing later.
+	root, nodes, _ := accTrie.Commit(false)
+	db.Update(trie.NewWithNodeSet(nodes))
+
+	accTrie, _ = trie.New(common.Hash{}, root, db)
+	return db.Scheme(), accTrie, entries
 }
 
 // makeAccountTrieWithStorageWithUniqueStorage creates an account trie where each accounts
@@ -1455,8 +1469,10 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 		db             = trie.NewDatabase(rawdb.NewMemoryDatabase())
 		accTrie        = trie.NewEmpty(db)
 		entries        entrySlice
+		storageRoots   = make(map[common.Hash]common.Hash)
 		storageTries   = make(map[common.Hash]*trie.Trie)
 		storageEntries = make(map[common.Hash]entrySlice)
+		nodes          = trie.NewMergedNodeSet()
 	)
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
@@ -1466,9 +1482,9 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 			codehash = getCodeHash(i)
 		}
 		// Create a storage trie
-		_, stTrie, stEntries := makeStorageTrieWithSeed(common.BytesToHash(key), uint64(slots), i, db)
-		stRoot := stTrie.Hash()
-		stTrie.Commit(nil)
+		stRoot, stNodes, stEntries := makeStorageTrieWithSeed(common.BytesToHash(key), uint64(slots), i, db)
+		nodes.Merge(stNodes)
+
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
 			Balance:          big.NewInt(int64(i)),
@@ -1480,13 +1496,27 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 		accTrie.Update(elem.k, elem.v)
 		entries = append(entries, elem)
 
-		storageTries[common.BytesToHash(key)] = stTrie.Copy()
+		storageRoots[common.BytesToHash(key)] = stRoot
 		storageEntries[common.BytesToHash(key)] = stEntries
 	}
 	sort.Sort(entries)
 
-	accTrie.Commit(nil)
+	// Commit account trie
+	root, set, _ := accTrie.Commit(true)
+	nodes.Merge(set)
+
+	// Commit gathered dirty nodes into database
+	db.Update(nodes)
+
+	// Re-create tries with new root
+	accTrie, _ = trie.New(common.Hash{}, root, db)
+	for i := uint64(1); i <= uint64(accounts); i++ {
+		key := key32(i)
+		trie, _ := trie.New(common.BytesToHash(key), storageRoots[common.BytesToHash(key)], db)
+		storageTries[common.BytesToHash(key)] = trie
+	}
 	return db.Scheme(), accTrie, entries, storageTries, storageEntries
+
 }
 
 // makeAccountTrieWithStorage spits out a trie, along with the leafs
@@ -1495,8 +1525,10 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 		db             = trie.NewDatabase(rawdb.NewMemoryDatabase())
 		accTrie        = trie.NewEmpty(db)
 		entries        entrySlice
+		storageRoots   = make(map[common.Hash]common.Hash)
 		storageTries   = make(map[common.Hash]*trie.Trie)
 		storageEntries = make(map[common.Hash]entrySlice)
+		nodes          = trie.NewMergedNodeSet()
 	)
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
@@ -1507,16 +1539,16 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 		}
 		// Make a storage trie
 		var (
-			stTrie    *trie.Trie
+			stRoot    common.Hash
+			stNodes   *trie.NodeSet
 			stEntries entrySlice
 		)
 		if boundary {
-			_, stTrie, stEntries = makeBoundaryStorageTrie(common.BytesToHash(key), slots, db)
+			stRoot, stNodes, stEntries = makeBoundaryStorageTrie(common.BytesToHash(key), slots, db)
 		} else {
-			_, stTrie, stEntries = makeStorageTrieWithSeed(common.BytesToHash(key), uint64(slots), 0, db)
+			stRoot, stNodes, stEntries = makeStorageTrieWithSeed(common.BytesToHash(key), uint64(slots), 0, db)
 		}
-		stRoot := stTrie.Hash()
-		stTrie.Commit(nil)
+		nodes.Merge(stNodes)
 
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
@@ -1528,19 +1560,41 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 		elem := &kv{key, value}
 		accTrie.Update(elem.k, elem.v)
 		entries = append(entries, elem)
+
 		// we reuse the same one for all accounts
-		storageTries[common.BytesToHash(key)] = stTrie.Copy()
+		storageRoots[common.BytesToHash(key)] = stRoot
 		storageEntries[common.BytesToHash(key)] = stEntries
 	}
 	sort.Sort(entries)
-	accTrie.Commit(nil)
+
+	// Commit account trie
+	root, set, _ := accTrie.Commit(true)
+	nodes.Merge(set)
+
+	// Commit gathered dirty nodes into database
+	db.Update(nodes)
+
+	// Re-create tries with new root
+	accTrie, err := trie.New(common.Hash{}, root, db)
+	if err != nil {
+		panic(err)
+	}
+	for i := uint64(1); i <= uint64(accounts); i++ {
+		key := key32(i)
+		trie, err := trie.New(common.BytesToHash(key), storageRoots[common.BytesToHash(key)], db)
+		if err != nil {
+			panic(err)
+		}
+		storageTries[common.BytesToHash(key)] = trie
+	}
 	return db.Scheme(), accTrie, entries, storageTries, storageEntries
+
 }
 
 // makeStorageTrieWithSeed fills a storage trie with n items, returning the
 // not-yet-committed trie and the sorted entries. The seeds can be used to ensure
 // that tries are unique.
-func makeStorageTrieWithSeed(owner common.Hash, n, seed uint64, db *trie.Database) (string, *trie.Trie, entrySlice) {
+func makeStorageTrieWithSeed(owner common.Hash, n, seed uint64, db *trie.Database) (common.Hash, *trie.NodeSet, entrySlice) {
 	trie, _ := trie.New(owner, common.Hash{}, db)
 	var entries entrySlice
 	for i := uint64(1); i <= n; i++ {
@@ -1556,14 +1610,15 @@ func makeStorageTrieWithSeed(owner common.Hash, n, seed uint64, db *trie.Databas
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
-	trie.Commit(nil)
-	return db.Scheme(), trie, entries
+
+	root, nodes, _ := trie.Commit(false)
+	return root, nodes, entries
 }
 
 // makeBoundaryStorageTrie constructs a storage trie. Instead of filling
 // storage slots normally, this function will fill a few slots which have
 // boundary hash.
-func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (string, *trie.Trie, entrySlice) {
+func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (common.Hash, *trie.NodeSet, entrySlice) {
 	var (
 		entries    entrySlice
 		boundaries []common.Hash
@@ -1607,8 +1662,9 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (strin
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
-	trie.Commit(nil)
-	return db.Scheme(), trie, entries
+
+	root, nodes, _ := trie.Commit(false)
+	return root, nodes, entries
 }
 
 func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {

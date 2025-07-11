@@ -1,4 +1,4 @@
-// Copyright 2017 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -63,7 +63,14 @@ const (
 	// For non-archive nodes, this limit _will_ be overblown, as disk-backed tries
 	// will only be found every ~15K blocks or so.
 	defaultTracechainMemLimit = common.StorageSize(500 * 1024 * 1024)
+
+	// maximumPendingTraceStates is the maximum number of states allowed waiting
+	// for tracing. The creation of trace state will be paused if the unused
+	// trace states exceed this limit.
+	maximumPendingTraceStates = 128
 )
+
+var errTxNotFound = errors.New("transaction not found")
 
 // StateReleaseFunc is used to deallocate resources held by constructing a
 // historical state for tracing purposes.
@@ -253,30 +260,6 @@ func (api *API) TraceChain(ctx context.Context, start, end rpc.BlockNumber, conf
 	return sub, nil
 }
 
-// releaser is a helper tool responsible for caching the release
-// callbacks of tracing state.
-type releaser struct {
-	releases []StateReleaseFunc
-	lock     sync.Mutex
-}
-
-func (r *releaser) add(release StateReleaseFunc) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	r.releases = append(r.releases, release)
-}
-
-func (r *releaser) call() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	for _, release := range r.releases {
-		release()
-	}
-	r.releases = r.releases[:0]
-}
-
 // traceChain configures a new tracer according to the provided configuration, and
 // executes all the transactions contained within. The tracing chain range includes
 // the end block but excludes the start one. The return value will be one item per
@@ -293,11 +276,11 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 		threads = blocks
 	}
 	var (
-		pend   = new(sync.WaitGroup)
-		ctx    = context.Background()
-		taskCh = make(chan *blockTraceTask, threads)
-		resCh  = make(chan *blockTraceTask, threads)
-		reler  = new(releaser)
+		pend    = new(sync.WaitGroup)
+		ctx     = context.Background()
+		taskCh  = make(chan *blockTraceTask, threads)
+		resCh   = make(chan *blockTraceTask, threads)
+		tracker = newStateTracker(maximumPendingTraceStates, start.NumberU64())
 	)
 	for th := 0; th < threads; th++ {
 		pend.Add(1)
@@ -327,8 +310,10 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 					task.statedb.Finalise(true)
 					task.results[i] = &txTraceResult{Result: res}
 				}
-				// Tracing state is used up, queue it for de-referencing
-				reler.add(task.release)
+				// Tracing state is used up, queue it for de-referencing. Note the
+				// state is the parent state of trace block, use block.number-1 as
+				// the state number.
+				tracker.releaseState(task.block.NumberU64()-1, task.release)
 
 				// Stream the result back to the result catcher or abort on teardown
 				select {
@@ -355,8 +340,8 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 			close(taskCh)
 			pend.Wait()
 
-			// Clean out any pending derefs.
-			reler.call()
+			// Clean out any pending release functions of trace states.
+			tracker.callReleases()
 
 			// Log the chain result
 			switch {
@@ -393,6 +378,13 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				failed = err
 				break
 			}
+			// Make sure the state creator doesn't go too far. Too many unprocessed
+			// trace state may cause the oldest state to become stale(e.g. in
+			// path-based scheme).
+			if err = tracker.wait(number); err != nil {
+				failed = err
+				break
+			}
 			// Prepare the statedb for tracing. Don't use the live database for
 			// tracing to avoid persisting state junks into the database. Switch
 			// over to `preferDisk` mode only if the memory usage exceeds the
@@ -408,18 +400,18 @@ func (api *API) traceChain(start, end *types.Block, config *TraceConfig, closed 
 				failed = err
 				break
 			}
-			// Clean out any pending derefs. Note this step must be done after
-			// constructing tracing state, because the tracing state of block
-			// next depends on the parent state and construction may fail if
-			// we release too early.
-			reler.call()
+			// Clean out any pending release functions of trace state. Note this
+			// step must be done after constructing tracing state, because the
+			// tracing state of block next depends on the parent state and construction
+			// may fail if we release too early.
+			tracker.callReleases()
 
 			// Send the block over to the concurrent tracers (if not in the fast-forward phase)
 			txs := next.Transactions()
 			select {
 			case taskCh <- &blockTraceTask{statedb: statedb.Copy(), block: next, release: release, results: make([]*txTraceResult, len(txs))}:
 			case <-closed:
-				reler.add(release)
+				tracker.releaseState(number, release)
 				return
 			}
 			traced += uint64(len(txs))
@@ -558,6 +550,9 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 		deleteEmptyObjects = true
 	)
 	for i, tx := range block.Transactions() {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		var (
 			msg, _    = tx.AsMessage(signer, block.BaseFee())
 			txContext = core.NewEVMTxContext(msg)
@@ -662,14 +657,13 @@ func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, stat
 		blockHash = block.Hash()
 		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 		results   = make([]*txTraceResult, len(txs))
-
-		pend = new(sync.WaitGroup)
-		jobs = make(chan *txTraceTask, len(txs))
+		pend      sync.WaitGroup
 	)
 	threads := runtime.NumCPU()
 	if threads > len(txs) {
 		threads = len(txs)
 	}
+	jobs := make(chan *txTraceTask, threads)
 	for th := 0; th < threads; th++ {
 		pend.Add(1)
 		go func() {
@@ -691,11 +685,19 @@ func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, stat
 			}
 		}()
 	}
+
 	// Feed the transactions into the tracers and return
 	var failed error
+txloop:
 	for i, tx := range txs {
 		// Send the trace task over for execution
-		jobs <- &txTraceTask{statedb: statedb.Copy(), index: i}
+		task := &txTraceTask{statedb: statedb.Copy(), index: i}
+		select {
+		case <-ctx.Done():
+			failed = ctx.Err()
+			break txloop
+		case jobs <- task:
+		}
 
 		// Generate the next state snapshot fast without tracing
 		msg, _ := tx.AsMessage(signer, block.BaseFee())
@@ -705,11 +707,12 @@ func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, stat
 
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
 			failed = err
-			break
+			break txloop
 		}
 		// Finalize the state so any modifications are written to the trie
 		statedb.Finalise(true)
 	}
+
 	close(jobs)
 	pend.Wait()
 
@@ -850,9 +853,13 @@ func containsTx(block *types.Block, hash common.Hash) bool {
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
 func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *TraceConfig) (interface{}, error) {
-	_, blockHash, blockNumber, index, err := api.backend.GetTransaction(ctx, hash)
+	tx, blockHash, blockNumber, index, err := api.backend.GetTransaction(ctx, hash)
 	if err != nil {
 		return nil, err
+	}
+	// Only mined txes are supported
+	if tx == nil {
+		return nil, errTxNotFound
 	}
 	// It shouldn't happen in practice.
 	if blockNumber == 0 {
@@ -959,6 +966,8 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 			return nil, err
 		}
 	}
+	vmenv := vm.NewEVM(vmctx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
+
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {
 		if timeout, err = time.ParseDuration(*config.Timeout); err != nil {
@@ -970,12 +979,11 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 		<-deadlineCtx.Done()
 		if errors.Is(deadlineCtx.Err(), context.DeadlineExceeded) {
 			tracer.Stop(errors.New("execution timeout"))
+			// Stop evm execution. Note cancellation is not necessarily immediate.
+			vmenv.Cancel()
 		}
 	}()
 	defer cancel()
-
-	// Run the transaction with tracing enabled.
-	vmenv := vm.NewEVM(vmctx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
 
 	// Call SetTxContext to clear out the statedb access list
 	statedb.SetTxContext(txctx.TxHash, txctx.TxIndex)

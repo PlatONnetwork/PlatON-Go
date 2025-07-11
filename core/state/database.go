@@ -20,9 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/VictoriaMetrics/fastcache"
-
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/PlatONnetwork/PlatON-Go/common/lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -89,7 +87,14 @@ type Trie interface {
 	// TryDeleteAccount abstracts an account deletion from the trie.
 	TryDeleteAccount(key []byte) error
 
-	Commit(onleaf trie.LeafCallback) (common.Hash, int)
+	// Commit collects all dirty nodes in the trie and replace them with the
+	// corresponding node hash. All collected nodes(including dirty leaves if
+	// collectLeaf is true) will be encapsulated into a nodeset for return.
+	// The returned nodeset can be nil if the trie is clean(nothing to commit).
+	// Once the trie is committed, it's not usable anymore. A new trie must
+	// be created with new root and updated trie database for following usage
+	Commit(collectLeaf bool) (common.Hash, *trie.NodeSet, error)
+
 	Hash() common.Hash
 	NodeIterator(startKey []byte) trie.NodeIterator
 	GetKey([]byte) []byte // TODO(fjl): remove this when SecureTrie is removed
@@ -107,11 +112,10 @@ func NewDatabase(db ethdb.Database) Database {
 // is safe for concurrent use and retains a lot of collapsed RLP trie nodes in a
 // large memory cache.
 func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
-	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		disk:          db,
-		codeSizeCache: csc,
-		codeCache:     fastcache.New(codeCacheSize),
+		codeSizeCache: lru.NewCache[common.Hash, int](codeSizeCacheSize),
+		codeCache:     lru.NewSizeConstrainedCache[common.Hash, []byte](codeCacheSize),
 		triedb:        trie.NewDatabaseWithConfig(db, config),
 	}
 }
@@ -128,8 +132,8 @@ func NewDatabaseWithNodeDB(db ethdb.Database, triedb *trie.Database) Database {
 
 type cachingDB struct {
 	disk          ethdb.KeyValueStore
-	codeSizeCache *lru.Cache
-	codeCache     *fastcache.Cache
+	codeSizeCache *lru.Cache[common.Hash, int]
+	codeCache     *lru.SizeConstrainedCache[common.Hash, []byte]
 	triedb        *trie.Database
 }
 
@@ -164,12 +168,13 @@ func (db *cachingDB) NewTrie(t Trie) Trie {
 
 // ContractCode retrieves a particular contract's code.
 func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	code, _ := db.codeCache.Get(codeHash)
+	if len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCode(db.disk, codeHash)
+	code = rawdb.ReadCode(db.disk, codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
@@ -180,12 +185,13 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 // code can't be found in the cache, then check the existence with **new**
 // db scheme.
 func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]byte, error) {
-	if code := db.codeCache.Get(nil, codeHash.Bytes()); len(code) > 0 {
+	code, _ := db.codeCache.Get(codeHash)
+	if len(code) > 0 {
 		return code, nil
 	}
-	code := rawdb.ReadCodeWithPrefix(db.disk, codeHash)
+	code = rawdb.ReadCodeWithPrefix(db.disk, codeHash)
 	if len(code) > 0 {
-		db.codeCache.Set(codeHash.Bytes(), code)
+		db.codeCache.Add(codeHash, code)
 		db.codeSizeCache.Add(codeHash, len(code))
 		return code, nil
 	}
@@ -195,7 +201,7 @@ func (db *cachingDB) ContractCodeWithPrefix(addrHash, codeHash common.Hash) ([]b
 // ContractCodeSize retrieves a particular contracts code's size.
 func (db *cachingDB) ContractCodeSize(addrHash, codeHash common.Hash) (int, error) {
 	if cached, ok := db.codeSizeCache.Get(codeHash); ok {
-		return cached.(int), nil
+		return cached, nil
 	}
 	code, err := db.ContractCode(addrHash, codeHash)
 	return len(code), err

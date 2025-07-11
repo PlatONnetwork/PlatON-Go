@@ -18,7 +18,6 @@
 //
 // Keys are stored as encrypted JSON files according to the Web3 Secret Storage specification.
 // See https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition for more information.
-
 package keystore
 
 import (
@@ -496,6 +495,14 @@ func (ks *KeyStore) ImportPreSaleKey(keyJSON []byte, passphrase string) (account
 	ks.cache.add(a)
 	ks.refreshWallets()
 	return a, nil
+}
+
+// isUpdating returns whether the event notification loop is running.
+// This method is mainly meant for tests.
+func (ks *KeyStore) isUpdating() bool {
+	ks.mu.RLock()
+	defer ks.mu.RUnlock()
+	return ks.updating
 }
 
 // zeroKey zeroes a private key in memory.

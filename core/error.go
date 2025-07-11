@@ -37,6 +37,10 @@ var (
 // - If the pre-checking happens in the block processing procedure, then a "BAD BLOCk"
 // error should be emitted.
 var (
+	// ErrNonceTooLow is returned if the nonce of a transaction is lower than the
+	// one present in the local chain.
+	ErrNonceTooLow = errors.New("nonce too low")
+
 	// ErrNonceTooHigh is returned if the nonce of a transaction is higher than the
 	// next one expected based on the local chain.
 	ErrNonceTooHigh = errors.New("nonce too high")
@@ -57,8 +61,16 @@ var (
 	// than init code size limit.
 	ErrMaxInitCodeSizeExceeded = errors.New("max initcode size exceeded")
 
+	// ErrInsufficientFunds is returned if the total cost of executing a transaction
+	// is higher than the balance of the user's account.
+	ErrInsufficientFunds = errors.New("insufficient funds for gas * price + value")
+
 	// ErrGasUintOverflow is returned when calculating gas usage.
 	ErrGasUintOverflow = errors.New("gas uint64 overflow")
+
+	// ErrIntrinsicGas is returned if the transaction is specified to use less gas
+	// than required to start the invocation.
+	ErrIntrinsicGas = errors.New("intrinsic gas too low")
 
 	// ErrTxTypeNotSupported is returned if a transaction is not supported in the
 	// current network configuration.
@@ -77,7 +89,7 @@ var (
 	ErrFeeCapVeryHigh = errors.New("max fee per gas higher than 2^256-1")
 
 	// ErrFeeCapTooLow is returned if the transaction fee cap is less than the
-	// the base fee of the block.
+	// base fee of the block.
 	ErrFeeCapTooLow = errors.New("max fee per gas less than block base fee")
 
 	// ErrSenderNoEOA is returned if the sender of a transaction is a contract.

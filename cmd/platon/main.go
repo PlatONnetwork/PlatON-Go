@@ -197,7 +197,7 @@ func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2024 The PlatON-Go Authors"
 	app.Commands = []*cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -278,7 +278,7 @@ func main() {
 	}
 }
 
-// platon is the main entry point into the system if no special subcommand is ran.
+// platon is the main entry point into the system if no special subcommand is run.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
 func platon(ctx *cli.Context) error {
@@ -296,8 +296,6 @@ func platon(ctx *cli.Context) error {
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
 func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
-	debug.Memsize.Add("node", stack)
-
 	// Start up the node itself
 	utils.StartNode(ctx, stack, isConsole)
 

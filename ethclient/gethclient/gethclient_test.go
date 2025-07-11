@@ -113,10 +113,6 @@ func TestGethClient(t *testing.T) {
 		test func(t *testing.T)
 	}{
 		{
-			"TestAccessList",
-			func(t *testing.T) { testAccessList(t, client) },
-		},
-		{
 			"TestGetProof",
 			func(t *testing.T) { testGetProof(t, client) },
 		}, {
@@ -129,14 +125,25 @@ func TestGethClient(t *testing.T) {
 			"TestGetNodeInfo",
 			func(t *testing.T) { testGetNodeInfo(t, client) },
 		}, {
-			"TestSetHead",
-			func(t *testing.T) { testSetHead(t, client) },
+			"TestSubscribePendingTxHashes",
+			func(t *testing.T) { testSubscribePendingTransactions(t, client) },
 		}, {
 			"TestSubscribePendingTxs",
-			func(t *testing.T) { testSubscribePendingTransactions(t, client) },
+			func(t *testing.T) { testSubscribeFullPendingTransactions(t, client) },
 		}, {
 			"TestCallContract",
 			func(t *testing.T) { testCallContract(t, client) },
+		},
+		// The testaccesslist is a bit time-sensitive: the newTestBackend imports
+		// one block. The `testAcessList` fails if the miner has not yet created a
+		// new pending-block after the import event.
+		// Hence: this test should be last, execute the tests serially.
+		{
+			"TestAccessList",
+			func(t *testing.T) { testAccessList(t, client) },
+		}, {
+			"TestSetHead",
+			func(t *testing.T) { testSetHead(t, client) },
 		},
 	}
 	t.Parallel()
@@ -303,6 +310,40 @@ func testSubscribePendingTransactions(t *testing.T, client *rpc.Client) {
 	hash := <-ch
 	if hash != signedTx.Hash() {
 		t.Fatalf("Invalid tx hash received, got %v, want %v", hash, signedTx.Hash())
+	}
+}
+
+func testSubscribeFullPendingTransactions(t *testing.T, client *rpc.Client) {
+	ec := New(client)
+	ethcl := ethclient.NewClient(client)
+	// Subscribe to Transactions
+	ch := make(chan *types.Transaction)
+	ec.SubscribeFullPendingTransactions(context.Background(), ch)
+	// Send a transaction
+	chainID, err := ethcl.ChainID(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Create transaction
+	tx := types.NewTransaction(1, common.Address{1}, big.NewInt(1), 22000, big.NewInt(1), nil)
+	signer := types.LatestSignerForChainID(chainID)
+	signature, err := crypto.Sign(signer.Hash(tx, chainID).Bytes(), testKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signedTx, err := tx.WithSignature(signer, signature)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Send transaction
+	err = ethcl.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check that the transaction was sent over the channel
+	tx = <-ch
+	if tx.Hash() != signedTx.Hash() {
+		t.Fatalf("Invalid tx hash received, got %v, want %v", tx.Hash(), signedTx.Hash())
 	}
 }
 

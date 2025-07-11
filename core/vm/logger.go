@@ -19,7 +19,6 @@ package vm
 import (
 	"bytes"
 	"math/big"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -36,7 +35,7 @@ type EVMLogger interface {
 	CaptureTxEnd(restGas uint64)
 	// Top call frame
 	CaptureStart(env *EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int)
-	CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error)
+	CaptureEnd(output []byte, gasUsed uint64, err error)
 	// Rest of call frames
 	CaptureEnter(typ OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int)
 	CaptureExit(output []byte, gasUsed uint64, err error)

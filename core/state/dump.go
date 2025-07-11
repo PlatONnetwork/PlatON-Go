@@ -29,7 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
-// DumpConfig is a set of options to control what portions of the statewill be
+// DumpConfig is a set of options to control what portions of the state will be
 // iterated and collected.
 type DumpConfig struct {
 	SkipCode          bool
@@ -201,7 +201,7 @@ func (s *StateDB) DumpToCollector(c DumpCollector, conf *DumpConfig) (nextKey []
 	return nextKey
 }
 
-// RawDump returns the entire state an a single large object
+// RawDump returns the entire state as a single large object
 func (s *StateDB) RawDump(opts *DumpConfig) Dump {
 	dump := &Dump{
 		Accounts: make(map[common.Address]DumpAccount),

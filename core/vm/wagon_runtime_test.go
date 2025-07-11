@@ -863,7 +863,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 0, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
@@ -932,7 +932,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 0, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}

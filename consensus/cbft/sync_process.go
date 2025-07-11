@@ -898,6 +898,15 @@ func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, b
 	}
 }
 
+func (cbft *Cbft) SyncPrepareBlockDirectly(epoch uint64, viewNumber uint64, blockIndex uint32) {
+	if msg := cbft.csPool.GetPrepareBlock(epoch, viewNumber, blockIndex); msg != nil {
+		go cbft.ReceiveMessage(msg)
+	}
+	msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
+	cbft.network.PartBroadcast(msg)
+	cbft.log.Debug("Send GetPrepareBlock by part broadcast directly", "msg", msg.String())
+}
+
 func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash, blockIndex uint32) {
 	if msg := cbft.csPool.GetPrepareQC(cbft.state.Epoch(), cbft.state.ViewNumber(), blockIndex); msg != nil {
 		go cbft.ReceiveMessage(msg)

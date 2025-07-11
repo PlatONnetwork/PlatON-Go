@@ -18,12 +18,13 @@ package trie
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"fmt"
 	"runtime"
 	"sync"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
@@ -57,9 +58,15 @@ func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 			trie.Update(key, val)
 		}
 	}
-	trie.Commit(nil)
-
-	// Return the generated trie
+	root, nodes, err := trie.Commit(false)
+	if err != nil {
+		panic(fmt.Errorf("failed to commit trie %v", err))
+	}
+	if err := triedb.Update(NewWithNodeSet(nodes)); err != nil {
+		panic(fmt.Errorf("failed to commit db %v", err))
+	}
+	// Re-create the trie based on the new state
+	trie, _ = NewSecure(common.Hash{}, root, triedb)
 	return triedb, trie, content
 }
 
@@ -112,10 +119,9 @@ func TestStateTrieConcurrency(t *testing.T) {
 	threads := runtime.NumCPU()
 	tries := make([]*StateTrie, threads)
 	for i := 0; i < threads; i++ {
-		cpy := *trie
-		tries[i] = &cpy
+		tries[i] = trie.Copy()
 	}
-	// Start a batch of goroutines interactng with the trie
+	// Start a batch of goroutines interacting with the trie
 	pend := new(sync.WaitGroup)
 	pend.Add(threads)
 	for i := 0; i < threads; i++ {
@@ -136,7 +142,7 @@ func TestStateTrieConcurrency(t *testing.T) {
 					tries[index].Update(key, val)
 				}
 			}
-			tries[index].Commit(nil)
+			tries[index].Commit(false)
 		}(i)
 	}
 	// Wait for all threads to finish

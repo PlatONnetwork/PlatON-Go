@@ -24,11 +24,13 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"math/big"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -202,7 +204,7 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 			SyncMode:        downloader.FullSync,
 			DatabaseCache:   256,
 			DatabaseHandles: 256,
-			TxPool:          core.DefaultTxPoolConfig,
+			TxPool:          txpool.DefaultConfig,
 			GPO:             ethconfig.Defaults.GPO,
 			MinerGasFloor:   genesis.GasLimit * 9 / 10,
 			MinerGasCeil:    genesis.GasLimit * 21 / 10,

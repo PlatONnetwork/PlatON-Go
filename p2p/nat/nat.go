@@ -30,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
-// An implementation of nat.Interface can map local ports to ports
+// Interface An implementation of nat.Interface can map local ports to ports
 // accessible from the Internet.
 type Interface interface {
 	// These methods manage a mapping between a port on the local
@@ -42,11 +42,11 @@ type Interface interface {
 	AddMapping(protocol string, extport, intport int, name string, lifetime time.Duration) error
 	DeleteMapping(protocol string, extport, intport int) error
 
-	// This method should return the external (Internet-facing)
+	// ExternalIP should return the external (Internet-facing)
 	// address of the gateway device.
 	ExternalIP() (net.IP, error)
 
-	// Should return name of the method. This is used for logging.
+	// String should return name of the method. This is used for logging.
 	String() string
 }
 

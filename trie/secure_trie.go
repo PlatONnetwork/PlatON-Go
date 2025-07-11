@@ -207,7 +207,7 @@ func (t *StateTrie) GetKey(shaKey []byte) []byte {
 // All cached preimages will be also flushed if preimages recording is enabled.
 // Once the trie is committed, it's not usable anymore. A new trie must
 // be created with new root and updated trie database for following usage
-func (t *StateTrie) Commit(onleaf LeafCallback) (root common.Hash, committed int, err error) {
+func (t *StateTrie) Commit(collectLeaf bool) (common.Hash, *NodeSet, error) {
 	// Write all the pre-images to the actual disk database
 	if len(t.getSecKeyCache()) > 0 {
 		if t.preimages != nil {
@@ -220,7 +220,7 @@ func (t *StateTrie) Commit(onleaf LeafCallback) (root common.Hash, committed int
 		t.secKeyCache = make(map[string][]byte)
 	}
 	// Commit the trie to its intermediate node database
-	return t.trie.Commit(onleaf)
+	return t.trie.Commit(collectLeaf)
 }
 
 // Hash returns the root hash of StateTrie. It does not write to the

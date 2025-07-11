@@ -930,7 +930,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		parentGasLimit := parent.GasLimit()
 		if !w.chainConfig.IsPauli(parent.Number()) {
 			// Bump by 2x
-			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+			parentGasLimit = parent.GasLimit() * w.chainConfig.ElasticityMultiplier()
 		}
 		gasCeil := core.CalcGasCeil(parent, snapshotdb.Instance())
 		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, gasCeil)

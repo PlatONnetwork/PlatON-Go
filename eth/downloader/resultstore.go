@@ -124,7 +124,7 @@ func (r *resultStore) getFetchResult(headerNumber uint64) (item *fetchResult, in
 	return item, index, stale, throttle, nil
 }
 
-// hasCompletedItems returns true if there are processable items available
+// HasCompletedItems returns true if there are processable items available
 // this method is cheaper than countCompleted
 func (r *resultStore) HasCompletedItems() bool {
 	r.lock.RLock()
@@ -142,7 +142,7 @@ func (r *resultStore) HasCompletedItems() bool {
 // countCompleted returns the number of items ready for delivery, stopping at
 // the first non-complete item.
 //
-// The mthod assumes (at least) rlock is held.
+// The method assumes (at least) rlock is held.
 func (r *resultStore) countCompleted() int {
 	// We iterate from the already known complete point, and see
 	// if any more has completed since last count

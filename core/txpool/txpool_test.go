@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package txpool
 
 import (
 	"crypto/ecdsa"
@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -43,14 +44,14 @@ import (
 var (
 	// testTxPoolConfig is a transaction pool configuration without stateful disk
 	// sideeffects used during testing.
-	testTxPoolConfig TxPoolConfig
+	testTxPoolConfig Config
 
 	// eip1559Config is a chain config with EIP-1559 enabled at block 0.
 	eip1559Config *params.ChainConfig
 )
 
 func init() {
-	testTxPoolConfig = DefaultTxPoolConfig
+	testTxPoolConfig = DefaultConfig
 	testTxPoolConfig.Journal = ""
 
 	eip1559Config = params.TestChainConfig
@@ -129,12 +130,12 @@ func validateTxPoolInternals(pool *TxPool) error {
 	// Ensure the total transaction set is consistent with pending + queued
 	pending, queued := pool.stats()
 	if total := pool.all.Count(); total != pending+queued {
-		return fmt.Errorf("total transaction count %d != %d pending + %d queued", total, pending, queued)
+		return fmt.Errorf("total transaction Count %d != %d pending + %d queued", total, pending, queued)
 	}
 	pool.priced.Reheap()
 	priced, remote := pool.priced.urgent.Len()+pool.priced.floating.Len(), pool.all.RemoteCount()
 	if priced != remote {
-		return fmt.Errorf("total priced transaction count %d != %d", priced, remote)
+		return fmt.Errorf("total priced transaction Count %d != %d", priced, remote)
 	}
 	// Ensure the next nonce to assign is the correct one
 	for addr, txs := range pool.pending {
@@ -154,7 +155,7 @@ func validateTxPoolInternals(pool *TxPool) error {
 
 // validateEvents checks that the correct number of transaction addition events
 // were fired on the pool's event feed.
-func validateEvents(events chan NewTxsEvent, count int) error {
+func validateEvents(events chan core.NewTxsEvent, count int) error {
 	var received []*types.Transaction
 
 	for len(received) < count {
@@ -274,7 +275,7 @@ func TestInvalidTransactions(t *testing.T) {
 	from, _ := deriveSender(tx, pool.chainconfig.PIP7ChainID)
 
 	testAddBalance(pool, from, big.NewInt(1))
-	if err := pool.AddRemote(tx); !errors.Is(err, ErrInsufficientFunds) {
+	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrInsufficientFunds) {
 		t.Error("expected", err)
 	}
 
@@ -282,15 +283,15 @@ func TestInvalidTransactions(t *testing.T) {
 
 	balance := new(big.Int).Add(tx.Value(), new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice()))
 	testAddBalance(pool, from, balance)
-	if err := pool.AddRemote(tx); !errors.Is(err, ErrIntrinsicGas) {
-		t.Error("expected", ErrIntrinsicGas, "got", err)
+	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrIntrinsicGas) {
+		t.Error("expected", core.ErrIntrinsicGas, "got", err)
 	}
 
 	testSetNonce(pool, from, 1)
 	testAddBalance(pool, from, big.NewInt(0xffffffffffffff))
 	tx = transaction(0, 100000, key, pool.chainconfig.PIP7ChainID)
-	if err := pool.AddRemote(tx); !errors.Is(err, ErrNonceTooLow) {
-		t.Error("expected", ErrNonceTooLow, err)
+	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrNonceTooLow) {
+		t.Error("expected", core.ErrNonceTooLow, err)
 	}
 
 	tx = transaction(1, 100000, key, pool.chainconfig.PIP7ChainID)
@@ -406,8 +407,8 @@ func TestTransactionTipAboveFeeCap(t *testing.T) {
 
 	tx := dynamicFeeTx(0, 100, big.NewInt(1), big.NewInt(2), key)
 
-	if err := pool.AddRemote(tx); err != ErrTipAboveFeeCap {
-		t.Error("expected", ErrTipAboveFeeCap, "got", err)
+	if err := pool.AddRemote(tx); err != core.ErrTipAboveFeeCap {
+		t.Error("expected", core.ErrTipAboveFeeCap, "got", err)
 	}
 }
 func TestTransactionVeryHighValues(t *testing.T) {
@@ -420,13 +421,13 @@ func TestTransactionVeryHighValues(t *testing.T) {
 	veryBigNumber.Lsh(veryBigNumber, 300)
 
 	tx := dynamicFeeTx(0, 100, big.NewInt(1), veryBigNumber, key)
-	if err := pool.AddRemote(tx); err != ErrTipVeryHigh {
-		t.Error("expected", ErrTipVeryHigh, "got", err)
+	if err := pool.AddRemote(tx); err != core.ErrTipVeryHigh {
+		t.Error("expected", core.ErrTipVeryHigh, "got", err)
 	}
 
 	tx2 := dynamicFeeTx(0, 100, veryBigNumber, big.NewInt(1), key)
-	if err := pool.AddRemote(tx2); err != ErrFeeCapVeryHigh {
-		t.Error("expected", ErrFeeCapVeryHigh, "got", err)
+	if err := pool.AddRemote(tx2); err != core.ErrFeeCapVeryHigh {
+		t.Error("expected", core.ErrFeeCapVeryHigh, "got", err)
 	}
 }
 
@@ -474,7 +475,7 @@ func TestTransactionDoubleNonce(t *testing.T) {
 	if tx := pool.pending[addr].txs.items[0]; tx.Hash() != tx2.Hash() {
 		t.Errorf("transaction mismatch: have %x, want %x", tx.Hash(), tx2.Hash())
 	}
-	// Ensure the total transaction count is correct
+	// Ensure the total transaction Count is correct
 	if pool.all.Count() != 1 {
 		t.Error("expected 1 total transactions, got", pool.all.Count())
 	}
@@ -550,7 +551,7 @@ func TestTransactionDropping(t *testing.T) {
 	)
 	pendinglist, ok := pool.pending[account]
 	if !ok {
-		pendinglist = newTxList(true)
+		pendinglist = newList(true)
 		pool.pending[account] = pendinglist
 	}
 
@@ -636,7 +637,7 @@ func TestTransactionDropping(t *testing.T) {
 	}
 }
 
-func newTestTxPool(config TxPoolConfig, chainconfig *params.ChainConfig) *TxPool {
+func newTestTxPool(config Config, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
 	blockchain := &testBlockChain{1000000, statedb, new(event.Feed)}
@@ -769,7 +770,7 @@ func TestTransactionGapFilling(t *testing.T) {
 	testAddBalance(pool, account, big.NewInt(1000000))
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, testTxPoolConfig.AccountQueue+5)
+	events := make(chan core.NewTxsEvent, testTxPoolConfig.AccountQueue+5)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -810,7 +811,7 @@ func TestTransactionGapFilling(t *testing.T) {
 	}
 }
 
-// Tests that if the transaction count belonging to a single account goes above
+// Tests that if the transaction Count belonging to a single account goes above
 // some threshold, the higher transactions are dropped to prevent DOS attacks.
 func TestTransactionQueueAccountLimiting(t *testing.T) {
 	t.Parallel()
@@ -845,7 +846,7 @@ func TestTransactionQueueAccountLimiting(t *testing.T) {
 	}
 }
 
-// Tests that if the transaction count belonging to multiple accounts go above
+// Tests that if the transaction Count belonging to multiple accounts go above
 // some threshold, the higher transactions are dropped to prevent DOS attacks.
 //
 // This logic should not hold for local transactions, unless the local tracking
@@ -926,7 +927,7 @@ func testTransactionQueueGlobalLimiting(t *testing.T, nolocals bool) {
 		}
 		// Also ensure no local transactions are ever dropped, even if above global limits
 		if queued := pool.queue[crypto.PubkeyToAddress(local.PublicKey)].Len(); uint64(queued) != 3*config.GlobalQueue {
-			t.Fatalf("local account queued transaction count mismatch: have %v, want %v", queued, 3*config.GlobalQueue)
+			t.Fatalf("local account queued transaction Count mismatch: have %v, want %v", queued, 3*config.GlobalQueue)
 		}
 	}
 }
@@ -1002,7 +1003,7 @@ func testTransactionQueueTimeLimiting(t *testing.T, nolocals bool) {
 	}
 }
 
-// Tests that even if the transaction count belonging to a single account goes
+// Tests that even if the transaction Count belonging to a single account goes
 // above some threshold, as long as the transactions are executable, they are
 // accepted.
 func TestTransactionPendingLimiting(t *testing.T) {
@@ -1016,7 +1017,7 @@ func TestTransactionPendingLimiting(t *testing.T) {
 	testAddBalance(pool, account, big.NewInt(1000000))
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, testTxPoolConfig.AccountQueue+5)
+	events := make(chan core.NewTxsEvent, testTxPoolConfig.AccountQueue+5)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1082,13 +1083,13 @@ func testTransactionLimitingEquivalency(t *testing.T, origin uint64) {
 
 	// Ensure the batch optimization honors the same pool mechanics
 	if len(pool1.pending) != len(pool2.pending) {
-		t.Errorf("pending transaction count mismatch: one-by-one algo: %d, batch algo: %d", len(pool1.pending), len(pool2.pending))
+		t.Errorf("pending transaction Count mismatch: one-by-one algo: %d, batch algo: %d", len(pool1.pending), len(pool2.pending))
 	}
 	if len(pool1.queue) != len(pool2.queue) {
-		t.Errorf("queued transaction count mismatch: one-by-one algo: %d, batch algo: %d", len(pool1.queue), len(pool2.queue))
+		t.Errorf("queued transaction Count mismatch: one-by-one algo: %d, batch algo: %d", len(pool1.queue), len(pool2.queue))
 	}
 	if pool1.all.Count() != pool2.all.Count() {
-		t.Errorf("total transaction count mismatch: one-by-one algo %d, batch algo %d", pool1.all.Count(), pool2.all.Count())
+		t.Errorf("total transaction Count mismatch: one-by-one algo %d, batch algo %d", pool1.all.Count(), pool2.all.Count())
 	}
 	if err := validateTxPoolInternals(pool1); err != nil {
 		t.Errorf("pool 1 internal state corrupted: %v", err)
@@ -1098,7 +1099,7 @@ func testTransactionLimitingEquivalency(t *testing.T, origin uint64) {
 	}
 }
 
-// Tests that if the transaction count belonging to multiple accounts go above
+// Tests that if the transaction Count belonging to multiple accounts go above
 // some hard threshold, the higher transactions are dropped to prevent DOS
 // attacks.
 func TestTransactionPendingGlobalLimiting(t *testing.T) {
@@ -1172,8 +1173,8 @@ func TestTransactionCapClearsFromAll(t *testing.T) {
 	}
 }
 
-// Tests that if the transaction count belonging to multiple accounts go above
-// some hard threshold, if they are under the minimum guaranteed slot count then
+// Tests that if the transaction Count belonging to multiple accounts go above
+// some hard threshold, if they are under the minimum guaranteed slot Count then
 // the transactions are still kept.
 func TestTransactionPendingMinimumAllowance(t *testing.T) {
 	t.Parallel()
@@ -1228,7 +1229,7 @@ func TestTransactionPoolRepricing(t *testing.T) {
 	defer pool.Stop()
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1349,7 +1350,7 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 	defer pool.Stop()
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1547,7 +1548,7 @@ func TestTransactionPoolUnderpricing(t *testing.T) {
 	defer pool.Stop()
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1650,7 +1651,7 @@ func TestTransactionPoolStableUnderpricing(t *testing.T) {
 	defer pool.Stop()
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1714,7 +1715,7 @@ func TestTransactionPoolUnderpricingDynamicFee(t *testing.T) {
 	pool.config.GlobalQueue = 2
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -1848,7 +1849,7 @@ func TestDualHeapEviction(t *testing.T) {
 		}
 		pending, queued := pool.Stats()
 		if pending+queued != 20 {
-			t.Fatalf("transaction count mismatch: have %d, want %d", pending+queued, 10)
+			t.Fatalf("transaction Count mismatch: have %d, want %d", pending+queued, 10)
 		}
 	}
 
@@ -1889,7 +1890,7 @@ func TestTransactionDeduplication(t *testing.T) {
 	}
 	errs := pool.AddRemotesSync(firsts)
 	if len(errs) != len(firsts) {
-		t.Fatalf("first add mismatching result count: have %d, want %d", len(errs), len(firsts))
+		t.Fatalf("first add mismatching result Count: have %d, want %d", len(errs), len(firsts))
 	}
 	for i, err := range errs {
 		if err != nil {
@@ -1906,7 +1907,7 @@ func TestTransactionDeduplication(t *testing.T) {
 	// Try to add all of them now and ensure previous ones error out as knowns
 	errs = pool.AddRemotesSync(txs)
 	if len(errs) != len(txs) {
-		t.Fatalf("all add mismatching result count: have %d, want %d", len(errs), len(txs))
+		t.Fatalf("all add mismatching result Count: have %d, want %d", len(errs), len(txs))
 	}
 	for i, err := range errs {
 		if i%2 == 0 && err == nil {
@@ -1938,7 +1939,7 @@ func TestTransactionReplacement(t *testing.T) {
 	defer pool.Stop()
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -2015,7 +2016,7 @@ func TestTransactionReplacementDynamicFee(t *testing.T) {
 	testAddBalance(pool, crypto.PubkeyToAddress(key.PublicKey), big.NewInt(1000000000))
 
 	// Keep track of transaction events to ensure all executables get announced
-	events := make(chan NewTxsEvent, 32)
+	events := make(chan core.NewTxsEvent, 32)
 	sub := pool.txFeed.Subscribe(events)
 	defer sub.Unsubscribe()
 
@@ -2040,7 +2041,7 @@ func TestTransactionReplacementDynamicFee(t *testing.T) {
 	stages := []string{"pending", "queued"}
 	for _, stage := range stages {
 		// Since state is empty, 0 nonce txs are "executable" and can go
-		// into pending immediately. 2 nonce txs are "happed
+		// into pending immediately. 2 nonce txs are "gapped"
 		nonce := uint64(0)
 		if stage == "queued" {
 			nonce = 2
@@ -2295,7 +2296,7 @@ func benchmarkPendingDemotion(b *testing.B, size int) {
 
 	pendinglist, ok := pool.pending[account]
 	if !ok {
-		pendinglist = newTxList(true)
+		pendinglist = newList(true)
 		pool.pending[account] = pendinglist
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -93,7 +93,7 @@ func TestHandshake(t *testing.T) {
 	}
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -151,7 +151,7 @@ func TestHandshake_norecord(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -191,7 +191,7 @@ func TestHandshake_rekey(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -226,7 +226,7 @@ func TestHandshake_rekey2(t *testing.T) {
 	net.nodeB.expectDecode(t, FindnodeMsg, findnode)
 
 	// A <- B   NODES
-	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{Total: 1})
+	nodes, _ := net.nodeB.encode(t, net.nodeA, &Nodes{RespCount: 1})
 	net.nodeA.expectDecode(t, NodesMsg, nodes)
 }
 
@@ -505,8 +505,8 @@ type handshakeTestNode struct {
 
 func newHandshakeTest() *handshakeTest {
 	t := new(handshakeTest)
-	t.nodeA.init(testKeyA, net.IP{127, 0, 0, 1}, &t.clock)
-	t.nodeB.init(testKeyB, net.IP{127, 0, 0, 1}, &t.clock)
+	t.nodeA.init(testKeyA, net.IP{127, 0, 0, 1}, &t.clock, DefaultProtocolID)
+	t.nodeB.init(testKeyB, net.IP{127, 0, 0, 1}, &t.clock, DefaultProtocolID)
 	return t
 }
 
@@ -515,11 +515,11 @@ func (t *handshakeTest) close() {
 	t.nodeB.ln.Database().Close()
 }
 
-func (n *handshakeTestNode) init(key *ecdsa.PrivateKey, ip net.IP, clock mclock.Clock) {
+func (n *handshakeTestNode) init(key *ecdsa.PrivateKey, ip net.IP, clock mclock.Clock, protocolID [6]byte) {
 	db, _ := enode.OpenDB("")
 	n.ln = enode.NewLocalNode(db, key)
 	n.ln.SetStaticIP(ip)
-	n.c = NewCodec(n.ln, key, clock)
+	n.c = NewCodec(n.ln, key, clock, nil)
 }
 
 func (n *handshakeTestNode) encode(t testing.TB, to handshakeTestNode, p Packet) ([]byte, Nonce) {

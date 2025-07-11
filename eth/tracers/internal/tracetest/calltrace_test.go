@@ -36,10 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
-
-	// Force-load native and js pacakges, to trigger registration
-	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
-	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 type callContext struct {
@@ -153,8 +149,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
 			}
-			st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-			er, err := st.TransitionDb()
+			vmRet, err := core.ApplyMessage(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
 			if err != nil {
 				t.Fatalf("failed to execute transaction: %v", err)
 			}
@@ -187,12 +182,13 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			if err := json.Unmarshal(res, &topCall); err != nil {
 				t.Fatalf("failed to unmarshal top calls gasUsed: %v", err)
 			}
-			if uint64(topCall.GasUsed) != er.UsedGas {
-				t.Fatalf("top call has invalid gasUsed. have: %d want: %d", topCall.GasUsed, er.UsedGas)
+			if uint64(topCall.GasUsed) != vmRet.UsedGas {
+				t.Fatalf("top call has invalid gasUsed. have: %d want: %d", topCall.GasUsed, vmRet.UsedGas)
 			}
 		})
 	}
 }
+
 func BenchmarkTracers(b *testing.B) {
 	files, err := os.ReadDir(filepath.Join("testdata", "call_tracer"))
 	if err != nil {
