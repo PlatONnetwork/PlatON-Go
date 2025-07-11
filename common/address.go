@@ -369,7 +369,7 @@ func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
 
-// BytesToAddress returns Address with value b.
+// BytesToNodeAddress returns NodeAddress with value b.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToNodeAddress(b []byte) NodeAddress {
 	var a NodeAddress

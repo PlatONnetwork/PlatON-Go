@@ -12,11 +12,11 @@ require (
 	github.com/cespare/cp v0.1.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.1.0
-	github.com/deepmap/oapi-codegen v1.8.2 // indirect
-	github.com/docker/docker v25.0.6+incompatible
+	github.com/docker/docker v24.0.7+incompatible
 	github.com/dop251/goja v0.0.0-20230605162241-28ee0ee714f3
 	github.com/fatih/color v1.13.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
+	github.com/fjl/memsize v0.0.2
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-errors/errors v1.4.2
 	github.com/go-stack/stack v1.8.1
@@ -24,11 +24,10 @@ require (
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.3.0
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/graph-gophers/graphql-go v1.3.0
 	github.com/hashicorp/go-bexpr v0.1.10
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
 	github.com/huin/goupnp v1.3.0
@@ -70,6 +69,7 @@ require (
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/herumi/bls v1.37.0
+	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/karalabe/usb v0.0.2
 	github.com/urfave/cli/v2 v2.25.7
@@ -88,6 +88,7 @@ require (
 	github.com/cockroachdb/redact v1.1.5 // indirect
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.1-0.20190108065903-904c4ced31cd // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
