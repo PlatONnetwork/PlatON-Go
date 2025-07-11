@@ -26,12 +26,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/olekukonko/tablewriter"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/olekukonko/tablewriter"
 )
 
 // freezerdb is a database wrapper that enabled freezer data retrievals.
@@ -499,17 +500,21 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			bloomBits.Add(size)
 		case bytes.HasPrefix(key, BloomBitsIndexPrefix):
 			bloomBits.Add(size)
-		case bytes.HasPrefix(key, []byte("clique-")) && len(key) == 7+common.HashLength:
+		case bytes.HasPrefix(key, CliqueSnapshotPrefix) && len(key) == 7+common.HashLength:
 			cliqueSnaps.Add(size)
-		case bytes.HasPrefix(key, []byte("cht-")) && len(key) == 4+common.HashLength:
+		case bytes.HasPrefix(key, ChtTablePrefix) ||
+			bytes.HasPrefix(key, ChtIndexTablePrefix) ||
+			bytes.HasPrefix(key, ChtPrefix): // Canonical hash trie
 			chtTrieNodes.Add(size)
-		case bytes.HasPrefix(key, []byte("blt-")) && len(key) == 4+common.HashLength:
+		case bytes.HasPrefix(key, BloomTrieTablePrefix) ||
+			bytes.HasPrefix(key, BloomTrieIndexPrefix) ||
+			bytes.HasPrefix(key, BloomTriePrefix): // Bloomtrie sub
 			bloomTrieNodes.Add(size)
 		default:
 			var accounted bool
 			for _, meta := range [][]byte{
-				databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey, lastPivotKey,
-				fastTrieProgressKey, snapshotDisabledKey, SnapshotRootKey, snapshotJournalKey,
+				databaseVersionKey, headHeaderKey, headBlockKey, headFastBlockKey,
+				lastPivotKey, fastTrieProgressKey, snapshotDisabledKey, SnapshotRootKey, snapshotJournalKey,
 				snapshotGeneratorKey, snapshotRecoveryKey, txIndexTailKey, fastTxLookupLimitKey,
 				uncleanShutdownKey, badBlockKey,
 			} {

@@ -172,10 +172,10 @@ func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainCon
 				},
 			}
 		} else {
-			receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
+			receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash)
 		}
 	} else {
-		receipt.Logs = statedb.GetLogs(tx.Hash(), blockHash)
+		receipt.Logs = statedb.GetLogs(tx.Hash(), blockNumber.Uint64(), blockHash)
 	}
 	// create a bloom for filtering
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})

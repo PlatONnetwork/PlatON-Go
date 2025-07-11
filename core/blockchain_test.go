@@ -27,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -1059,6 +1058,212 @@ func BenchmarkBlockChain_1x1000Executions(b *testing.B) {
 	benchmarkLargeNumberOfValueToNonexisting(b, numTxs, numBlocks, recipientFn, dataFn)
 }
 
+/*// TestTxIndexer tests the tx indexes are updated correctly.
+func TestTxIndexer(t *testing.T) {
+	var (
+		testBankKey, _  = crypto.GenerateKey()
+		testBankAddress = crypto.PubkeyToAddress(testBankKey.PublicKey)
+		testBankFunds   = big.NewInt(1000000000000000000)
+
+		gspec = &Genesis{
+			Config:  params.TestChainConfig,
+			Alloc:   GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
+			BaseFee: big.NewInt(params.InitialBaseFee),
+		}
+		engine = ethash.NewFaker()
+		nonce  = uint64(0)
+	)
+	_, blocks, receipts := GenerateChainWithGenesis(gspec, engine, 128, func(i int, gen *BlockGen) {
+		tx, _ := types.SignTx(types.NewTransaction(nonce, common.HexToAddress("0xdeadbeef"), big.NewInt(1000), params.TxGas, big.NewInt(10*params.InitialBaseFee), nil), types.HomesteadSigner{}, testBankKey)
+		gen.AddTx(tx)
+		nonce += 1
+	})
+
+	// verifyIndexes checks if the transaction indexes are present or not
+	// of the specified block.
+	verifyIndexes := func(db ethdb.Database, number uint64, exist bool) {
+		if number == 0 {
+			return
+		}
+		block := blocks[number-1]
+		for _, tx := range block.Transactions() {
+			lookup := rawdb.ReadTxLookupEntry(db, tx.Hash())
+			if exist && lookup == nil {
+				t.Fatalf("missing %d %x", number, tx.Hash().Hex())
+			}
+			if !exist && lookup != nil {
+				t.Fatalf("unexpected %d %x", number, tx.Hash().Hex())
+			}
+		}
+	}
+	// verifyRange runs verifyIndexes for a range of blocks, from and to are included.
+	verifyRange := func(db ethdb.Database, from, to uint64, exist bool) {
+		for number := from; number <= to; number += 1 {
+			verifyIndexes(db, number, exist)
+		}
+	}
+	verify := func(db ethdb.Database, expTail uint64) {
+		tail := rawdb.ReadTxIndexTail(db)
+		if tail == nil {
+			t.Fatal("Failed to write tx index tail")
+		}
+		if *tail != expTail {
+			t.Fatalf("Unexpected tx index tail, want %v, got %d", expTail, *tail)
+		}
+		if *tail != 0 {
+			verifyRange(db, 0, *tail-1, false)
+		}
+		verifyRange(db, *tail, 128, true)
+	}
+
+	var cases = []struct {
+		limitA uint64
+		tailA  uint64
+		limitB uint64
+		tailB  uint64
+		limitC uint64
+		tailC  uint64
+	}{
+		{
+			// LimitA: 0
+			// TailA:  0
+			//
+			// all blocks are indexed
+			limitA: 0,
+			tailA:  0,
+
+			// LimitB: 1
+			// TailB:  128
+			//
+			// block-128 is indexed
+			limitB: 1,
+			tailB:  128,
+
+			// LimitB: 64
+			// TailB:  65
+			//
+			// block [65, 128] are indexed
+			limitC: 64,
+			tailC:  65,
+		},
+		{
+			// LimitA: 64
+			// TailA:  65
+			//
+			// block [65, 128] are indexed
+			limitA: 64,
+			tailA:  65,
+
+			// LimitB: 1
+			// TailB:  128
+			//
+			// block-128 is indexed
+			limitB: 1,
+			tailB:  128,
+
+			// LimitB: 64
+			// TailB:  65
+			//
+			// block [65, 128] are indexed
+			limitC: 64,
+			tailC:  65,
+		},
+		{
+			// LimitA: 127
+			// TailA:  2
+			//
+			// block [2, 128] are indexed
+			limitA: 127,
+			tailA:  2,
+
+			// LimitB: 1
+			// TailB:  128
+			//
+			// block-128 is indexed
+			limitB: 1,
+			tailB:  128,
+
+			// LimitB: 64
+			// TailB:  65
+			//
+			// block [65, 128] are indexed
+			limitC: 64,
+			tailC:  65,
+		},
+		{
+			// LimitA: 128
+			// TailA:  1
+			//
+			// block [2, 128] are indexed
+			limitA: 128,
+			tailA:  1,
+
+			// LimitB: 1
+			// TailB:  128
+			//
+			// block-128 is indexed
+			limitB: 1,
+			tailB:  128,
+
+			// LimitB: 64
+			// TailB:  65
+			//
+			// block [65, 128] are indexed
+			limitC: 64,
+			tailC:  65,
+		},
+		{
+			// LimitA: 129
+			// TailA:  0
+			//
+			// block [0, 128] are indexed
+			limitA: 129,
+			tailA:  0,
+
+			// LimitB: 1
+			// TailB:  128
+			//
+			// block-128 is indexed
+			limitB: 1,
+			tailB:  128,
+
+			// LimitB: 64
+			// TailB:  65
+			//
+			// block [65, 128] are indexed
+			limitC: 64,
+			tailC:  65,
+		},
+	}
+	for _, c := range cases {
+		frdir := t.TempDir()
+		db, _ := rawdb.NewDatabaseWithFreezer(rawdb.NewMemoryDatabase(), frdir, "", false)
+		rawdb.WriteAncientBlocks(db, append([]*types.Block{gspec.ToBlock()}, blocks...), append([]types.Receipts{{}}, receipts...), big.NewInt(0))
+
+		// Index the initial blocks from ancient store
+		chain, _ := NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, &c.limitA)
+		chain.indexBlocks(nil, 128, make(chan struct{}))
+		verify(db, c.tailA)
+
+		chain.SetTxLookupLimit(c.limitB)
+		chain.indexBlocks(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}))
+		verify(db, c.tailB)
+
+		chain.SetTxLookupLimit(c.limitC)
+		chain.indexBlocks(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}))
+		verify(db, c.tailC)
+
+		// Recover all indexes
+		chain.SetTxLookupLimit(0)
+		chain.indexBlocks(rawdb.ReadTxIndexTail(db), 128, make(chan struct{}))
+		verify(db, 0)
+
+		chain.Stop()
+		db.Close()
+		os.RemoveAll(frdir)
+	}
+}*/
+
 /*
 // TestDeleteRecreateAccount tests a state-transition that contains deletion of a
 // contract with storage, and a recreate of the same contract via a
@@ -1682,13 +1887,6 @@ func TestEIP1559Transition(t *testing.T) {
 		t.Fatalf("sender balance incorrect: expected %d, got %d", expected, actual)
 	}
 }
-<<<<<<< HEAD
-func TestEIP3651(t *testing.T) {
-	var (
-		aa     = common.HexToAddress("0x000000000000000000000000000000000000aaaa")
-		bb     = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
-		engine = consensus.NewFaker()
-=======
 
 // TestTransientStorageReset ensures the transient storage is wiped correctly
 // between transactions.
@@ -1796,8 +1994,6 @@ func TestEIP3651(t *testing.T) {
 		bb = common.HexToAddress("0x000000000000000000000000000000000000bbbb")
 		db = rawdb.NewMemoryDatabase()
 		//engine = consensus.NewFaker()
->>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
-
 		// A sender who makes transactions, has some funds
 		key1, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 		key2, _ = crypto.HexToECDSA("8a1f9a8f95be41cd7ccb6168179afb4504aefe388d1e14474d32c45c72ce7b7a")
@@ -1841,17 +2037,6 @@ func TestEIP3651(t *testing.T) {
 		}
 	)
 
-<<<<<<< HEAD
-	gspec.Config.DiracBlock = big.NewInt(0)
-	signer := types.LatestSigner(gspec.Config, true)
-
-	db := rawdb.NewMemoryDatabase()
-	blocks, _ := GenerateChain(gspec.Config, gspec.MustCommit(db), engine, db, 1, func(i int, b *BlockGen) {
-		b.SetCoinbase(aa)
-		// One transaction to Coinbase
-		txdata := &types.DynamicFeeTx{
-			ChainID:    gspec.Config.ChainID,
-=======
 	gspec.Config.PauliBlock = common.Big0
 	gspec.Config.DiracBlock = common.Big0
 	//gspec.Config.ShanghaiTime = u64(0)
@@ -1859,13 +2044,11 @@ func TestEIP3651(t *testing.T) {
 	engine := consensus.NewFakerWithDataBase(db, genesis)
 	//signer := types.HomesteadSigner{}
 	signer := types.LatestSigner(gspec.Config, true)
-
-	blocks, _ := GenerateChain(gspec.Config, genesis, engine, db, 1, func(i int, b *BlockGen) {
+	blocks, _ := GenerateChain(gspec.Config, gspec.MustCommit(db), engine, db, 1, func(i int, b *BlockGen) {
 		b.SetCoinbase(aa)
 		// One transaction to Coinbase
 		txdata := &types.DynamicFeeTx{
 			ChainID:    gspec.Config.PIP7ChainID,
->>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
 			Nonce:      0,
 			To:         &bb,
 			Gas:        500000,
@@ -1883,11 +2066,8 @@ func TestEIP3651(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
-<<<<<<< HEAD
-=======
 	engine.SetChain(chain)
-	NewExecutor(gspec.Config, chain, chain.vmConfig, nil)
->>>>>>> 2afbce83a0df666af1e2d171ee9ab8256167eefa
+	NewExecutor(gspec.Config, chain, chain.vmConfig)
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}

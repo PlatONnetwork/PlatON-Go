@@ -31,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -273,7 +274,7 @@ func (b *EthAPIBackend) TxPoolContentFrom(addr common.Address) (types.Transactio
 	return b.eth.TxPool().ContentFrom(addr)
 }
 
-func (b *EthAPIBackend) TxPool() *core.TxPool {
+func (b *EthAPIBackend) TxPool() *txpool.TxPool {
 	return b.eth.TxPool()
 }
 
@@ -353,9 +354,9 @@ func (b *EthAPIBackend) StartMining() error {
 }
 
 func (b *EthAPIBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, tracers.StateReleaseFunc, error) {
-	return b.eth.StateAtBlock(block, reexec, base, readOnly, preferDisk)
+	return b.eth.StateAtBlock(ctx, block, reexec, base, readOnly, preferDisk)
 }
 
 func (b *EthAPIBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, tracers.StateReleaseFunc, error) {
-	return b.eth.stateAtTransaction(block, txIndex, reexec)
+	return b.eth.stateAtTransaction(ctx, block, txIndex, reexec)
 }

@@ -374,7 +374,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 			size += receipt.Size()
 		}
 		for _, tx := range result.Transactions {
-			size += tx.Size()
+			size += common.StorageSize(tx.Size())
 		}
 		q.resultSize = common.StorageSize(blockCacheSizeWeight)*size +
 			(1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
@@ -638,7 +638,7 @@ func (q *queue) ExpireReceipts(peer string) int {
 // lock is not obtained in here is that the parameters already need to access
 // the queue, so they already need a lock anyway.
 func (q *queue) expire(peer string, pendPool map[string]*fetchRequest, taskQueue interface{}) int {
-	// Retrieve the request being expired and log an error if it's non-existnet,
+	// Retrieve the request being expired and log an error if it's non-existent,
 	// as there's no order of events that should lead to such expirations.
 	req := pendPool[peer]
 	if req == nil {

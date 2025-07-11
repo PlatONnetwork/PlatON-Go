@@ -34,7 +34,7 @@ func VerifyEip1559Header(config *params.ChainConfig, parent, header *types.Heade
 	// Verify that the gas limit remains within allowed bounds
 	parentGasLimit := parent.GasLimit
 	if !config.IsPauli(parent.Number) {
-		parentGasLimit = parent.GasLimit * params.ElasticityMultiplier
+		parentGasLimit = parent.GasLimit * config.ElasticityMultiplier()
 	}
 	if err := VerifyGaslimit(parentGasLimit, header.GasLimit); err != nil {
 		return err
@@ -60,9 +60,9 @@ func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 	}
 
 	var (
-		parentGasTarget          = parent.GasLimit / params.ElasticityMultiplier
+		parentGasTarget          = parent.GasLimit / config.ElasticityMultiplier()
 		parentGasTargetBig       = new(big.Int).SetUint64(parentGasTarget)
-		baseFeeChangeDenominator = new(big.Int).SetUint64(params.BaseFeeChangeDenominator)
+		baseFeeChangeDenominator = new(big.Int).SetUint64(config.BaseFeeChangeDenominator())
 		baseFee                  = new(big.Int).SetUint64(params.InitialBaseFee)
 	)
 	// If the parent gasUsed is the same as the target, the baseFee remains unchanged.

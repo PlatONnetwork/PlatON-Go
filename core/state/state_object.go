@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -390,29 +391,30 @@ func (s *stateObject) updateRoot(db Database) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
 	}
-	//s.data.Root = s.trie.Hash()
 	s.data.Root = s.trie.Hash()
 }
 
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
-func (s *stateObject) CommitTrie(db Database) (int, error) {
+func (s *stateObject) CommitTrie(db Database) (*trie.NodeSet, error) {
 	// If nothing changed, don't bother with hashing anything
 	if s.updateTrie(db) == nil {
-		return 0, nil
+		return nil, nil
 	}
 	if s.dbErr != nil {
-		return 0, s.dbErr
+		return nil, s.dbErr
 	}
 
 	// Track the amount of time wasted on committing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, committed := s.trie.Commit(nil)
+	root, nodes, err := s.trie.Commit(false)
 
-	s.data.Root = root
-	return committed, nil
+	if err == nil {
+		s.data.Root = root
+	}
+	return nodes, err
 }
 
 // AddBalance adds amount to s's balance.
@@ -483,7 +485,7 @@ func (s *stateObject) copy(db *StateDB) *stateObject {
 // Attribute accessors
 //
 
-// Returns the address of the contract/account
+// Address returns the address of the contract/account
 func (s *stateObject) Address() common.Address {
 	return s.address
 }
@@ -561,7 +563,7 @@ func (s *stateObject) Nonce() uint64 {
 	return s.data.Nonce
 }
 
-// Never called, but must be present to allow stateObject to be used
+// Value is never called, but must be present to allow stateObject to be used
 // as a vm.Account interface that also satisfies the vm.ContractRef
 // interface. Interfaces are awesome.
 func (s *stateObject) Value() *big.Int {

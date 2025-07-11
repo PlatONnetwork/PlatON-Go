@@ -442,7 +442,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		header.BaseFee = misc.CalcBaseFee(chain.Config(), parent.Header())
 		parentGasLimit := parent.GasLimit()
 		if !chain.Config().IsPauli(parent.Number()) {
-			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+			parentGasLimit = parent.GasLimit() * chain.Config().ElasticityMultiplier()
 		}
 		header.GasLimit = CalcGasLimit1559(parentGasLimit, parentGasLimit)
 	}

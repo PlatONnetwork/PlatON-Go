@@ -21,7 +21,6 @@ import (
 	"math/big"
 	"strconv"
 	"sync/atomic"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -47,7 +46,6 @@ func init() {
 //	  0xc281d19e-0: 1
 //	}
 type fourByteTracer struct {
-	env               *vm.EVM
 	ids               map[string]int   // ids aggregates the 4byte ids found
 	interrupt         uint32           // Atomic flag to signal execution interruption
 	reason            error            // Textual reason for the interruption
@@ -81,8 +79,6 @@ func (t *fourByteTracer) store(id []byte, size int) {
 
 // CaptureStart implements the EVMLogger interface to initialize the tracing operation.
 func (t *fourByteTracer) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
-	t.env = env
-
 	// Update list of precompiles based on current block
 	rules := env.ChainConfig().Rules(env.Context.BlockNumber)
 	t.activePrecompiles = vm.ActivePrecompilesByRules(rules)
@@ -101,7 +97,6 @@ func (t *fourByteTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64,
 func (t *fourByteTracer) CaptureEnter(op vm.OpCode, from common.Address, to common.Address, input []byte, gas uint64, value *big.Int) {
 	// Skip if tracing was interrupted
 	if atomic.LoadUint32(&t.interrupt) > 0 {
-		t.env.Cancel()
 		return
 	}
 	if len(input) < 4 {
@@ -129,7 +124,7 @@ func (t *fourByteTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64,
 }
 
 // CaptureEnd is called after the call finishes to finalize the tracing.
-func (t *fourByteTracer) CaptureEnd(output []byte, gasUsed uint64, _ time.Duration, err error) {
+func (t *fourByteTracer) CaptureEnd(output []byte, gasUsed uint64, err error) {
 }
 
 func (*fourByteTracer) CaptureTxStart(gasLimit uint64) {}

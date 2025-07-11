@@ -17,10 +17,16 @@
 package downloader
 
 import (
+	"fmt"
 	"sync"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 // syncState starts downloading state with the given root hash.

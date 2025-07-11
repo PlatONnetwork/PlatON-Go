@@ -460,7 +460,7 @@ func (s *PersonalAccountAPI) signTransaction(ctx context.Context, args *Transact
 // passwd isn't able to decrypt the key it fails.
 func (s *PersonalAccountAPI) SendTransaction(ctx context.Context, args TransactionArgs, passwd string) (common.Hash, error) {
 	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// Hold the mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.from())
 		defer s.nonceLock.UnlockAddr(args.from())
@@ -699,6 +699,9 @@ func (s *BlockChainAPI) GetProof(ctx context.Context, address common.Address, st
 func decodeHash(s string) (common.Hash, error) {
 	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		s = s[2:]
+	}
+	if (len(s) & 1) > 0 {
+		s = "0" + s
 	}
 	b, err := hex.DecodeString(s)
 	if err != nil {
@@ -1034,7 +1037,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 		available := new(big.Int).Set(balance)
 		if args.Value != nil {
 			if args.Value.ToInt().Cmp(available) >= 0 {
-				return 0, errors.New("insufficient funds for transfer")
+				return 0, core.ErrInsufficientFundsForTransfer
 			}
 			available.Sub(available, args.Value.ToInt())
 		}
@@ -1734,7 +1737,7 @@ func (s *TransactionAPI) SendTransaction(ctx context.Context, args TransactionAr
 	}
 
 	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+		// Hold the mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
 		s.nonceLock.LockAddr(args.from())
 		defer s.nonceLock.UnlockAddr(args.from())

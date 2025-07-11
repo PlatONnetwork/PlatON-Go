@@ -31,7 +31,7 @@ func NewApp(gitCommit, gitDate, usage string) *cli.App {
 	app.EnableBashCompletion = true
 	app.Version = params.VersionWithCommit(gitCommit, gitDate)
 	app.Usage = usage
-	app.Copyright = "Copyright 2013-2023 The PlatON-Go Authors"
+	app.Copyright = "Copyright 2013-2024 The PlatON-Go Authors"
 	app.Before = func(ctx *cli.Context) error {
 		MigrateGlobalFlags(ctx)
 		return nil

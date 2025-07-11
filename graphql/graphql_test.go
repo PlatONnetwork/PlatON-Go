@@ -1,4 +1,4 @@
-// Copyright 2018 The go-ethereum Authors
+// Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -326,10 +326,11 @@ func TestGraphQLTransactionLogs(t *testing.T) {
 
 func createNode(t *testing.T) *node.Node {
 	stack, err := node.New(&node.Config{
-		HTTPHost: "127.0.0.1",
-		HTTPPort: 0,
-		WSHost:   "127.0.0.1",
-		WSPort:   0,
+		HTTPHost:     "127.0.0.1",
+		HTTPPort:     0,
+		WSHost:       "127.0.0.1",
+		WSPort:       0,
+		HTTPTimeouts: node.DefaultConfig.HTTPTimeouts,
 	})
 	if err != nil {
 		t.Fatalf("could not create node: %v", err)

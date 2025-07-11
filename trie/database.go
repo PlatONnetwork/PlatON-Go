@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/VictoriaMetrics/fastcache"
 
@@ -320,6 +321,10 @@ func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
 	return db
 }
 
+func (db *Database) DiskDB() ethdb.KeyValueStore {
+	return db.diskdb
+}
+
 func (db *Database) NodeVersion() uint64 {
 	return db.nodeVersion
 }
@@ -336,8 +341,7 @@ func (db *Database) resetFreshNode() {
 	db.freshNodes = make(map[common.Hash]struct{})
 }
 
-// insert inserts a collapsed trie node into the memory database.
-// The blob size must be specified to allow proper size tracking.
+// insert inserts a simplified trie node into the memory database.
 // All nodes inserted by this function will be reference tracked
 // and in theory should only used for **trie nodes** insertion.
 func (db *Database) insert(hash common.Hash, size int, node node) {
@@ -349,7 +353,8 @@ func (db *Database) insert(hash common.Hash, size int, node node) {
 
 	// Create the cached entry for this node
 	entry := &cachedNode{
-		node:      simplifyNode(node),
+		//node:      simplifyNode(node),
+		node:      node,
 		size:      uint16(size),
 		flushPrev: db.newest,
 		version:   db.NodeVersion(),
@@ -964,6 +969,43 @@ func (c *cleaner) Put(key []byte, rlp []byte) error {
 
 func (c *cleaner) Delete(key []byte) error {
 	panic("not implemented")
+}
+
+// Update inserts the dirty nodes in provided nodeset into database and
+// link the account trie with multiple storage tries if necessary.
+func (db *Database) Update(nodes *MergedNodeSet) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+
+	// Insert dirty nodes into the database. In the same tree, it must be
+	// ensured that children are inserted first, then parent so that children
+	// can be linked with their parent correctly. The order of writing between
+	// different tries(account trie, storage tries) is not required.
+	for owner, subset := range nodes.sets {
+		for _, path := range subset.paths {
+			n, ok := subset.nodes[path]
+			if !ok {
+				return fmt.Errorf("missing node %x %v", owner, path)
+			}
+			db.insert(n.hash, int(n.size), n.node)
+			db.insertFreshNode(n.hash)
+		}
+	}
+	// Link up the account trie and storage trie if the node points
+	// to an account trie leaf.
+	if set, present := nodes.sets[common.Hash{}]; present {
+		for _, n := range set.leaves {
+			var account types.StateAccount
+			if err := rlp.DecodeBytes(n.blob, &account); err != nil {
+				return err
+			}
+			if account.Root != emptyRoot {
+				//db.Reference(account.Root, n.parent)
+				db.reference(account.Root, n.parent)
+			}
+		}
+	}
+	return nil
 }
 
 // Size returns the current storage size of the memory cache in front of the

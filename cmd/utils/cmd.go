@@ -31,6 +31,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/urfave/cli/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -42,7 +44,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/urfave/cli/v2"
 )
 
 const (
@@ -119,9 +120,6 @@ func StartNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
 }
 
 func monitorFreeDiskSpace(sigc chan os.Signal, path string, freeDiskSpaceCritical uint64) {
-	if path == "" {
-		return
-	}
 	for {
 		freeSpace, err := getFreeDiskSpace(path)
 		if err != nil {
@@ -129,11 +127,11 @@ func monitorFreeDiskSpace(sigc chan os.Signal, path string, freeDiskSpaceCritica
 			break
 		}
 		if freeSpace < freeDiskSpaceCritical {
-			log.Error("Low disk space. Gracefully shutting down PlatON to prevent database corruption.", "available", common.StorageSize(freeSpace))
+			log.Error("Low disk space. Gracefully shutting down PlatON to prevent database corruption.", "available", common.StorageSize(freeSpace), "path", path)
 			sigc <- syscall.SIGTERM
 			break
 		} else if freeSpace < 2*freeDiskSpaceCritical {
-			log.Warn("Disk space is running low. PlatON will shutdown if disk space runs below critical level.", "available", common.StorageSize(freeSpace), "critical_level", common.StorageSize(freeDiskSpaceCritical))
+			log.Warn("Disk space is running low. PlatON will shutdown if disk space runs below critical level.", "available", common.StorageSize(freeSpace), "critical_level", common.StorageSize(freeDiskSpaceCritical), "path", path)
 		}
 		time.Sleep(30 * time.Second)
 	}

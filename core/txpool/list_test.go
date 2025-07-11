@@ -14,21 +14,20 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package txpool
 
 import (
 	"math/rand"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // Tests that transactions can be added to strict lists and list contents and
 // nonce boundaries are correctly maintained.
-func TestStrictTxListAdd(t *testing.T) {
+func TestStrictListAdd(t *testing.T) {
 	// Generate a list of transactions to insert
 	key, _ := crypto.GenerateKey()
 
@@ -37,13 +36,13 @@ func TestStrictTxListAdd(t *testing.T) {
 		txs[i] = transaction(uint64(i), 0, key, common.Big1)
 	}
 	// Insert the transactions in a random order
-	list := newTxList(true)
+	list := newList(true)
 	for _, v := range rand.Perm(len(txs)) {
-		list.Add(txs[v], DefaultTxPoolConfig.PriceBump)
+		list.Add(txs[v], DefaultConfig.PriceBump)
 	}
 	// Verify internal state
 	if len(list.txs.items) != len(txs) {
-		t.Errorf("transaction count mismatch: have %d, want %d", len(list.txs.items), len(txs))
+		t.Errorf("transaction Count mismatch: have %d, want %d", len(list.txs.items), len(txs))
 	}
 	for i, tx := range txs {
 		if list.txs.items[tx.Nonce()] != tx {

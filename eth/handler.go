@@ -140,14 +140,16 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		config.EventMux = new(event.TypeMux) // Nicety initialization for tests
 	}
 	h := &handler{
-		networkID: config.Network,
-		eventMux:  config.EventMux,
-		database:  config.Database,
-		txpool:    config.TxPool,
-		chain:     config.Chain,
-		peers:     newPeerSet(),
-		quitSync:  make(chan struct{}),
-		engine:    config.Chain.Engine(),
+		networkID:      config.Network,
+		eventMux:       config.EventMux,
+		database:       config.Database,
+		txpool:         config.TxPool,
+		chain:          config.Chain,
+		peers:          newPeerSet(),
+		quitSync:       make(chan struct{}),
+		handlerDoneCh:  make(chan struct{}),
+		handlerStartCh: make(chan struct{}),
+		engine:         config.Chain.Engine(),
 	}
 	if config.Sync == downloader.FullSync {
 		// The database seems empty as the current block is the genesis. Yet the snap
@@ -222,6 +224,26 @@ func newHandler(config *handlerConfig) (*handler, error) {
 	h.txFetcher = fetcher.NewTxFetcher(h.txpool.Has, h.txpool.AddRemotes, fetchTx)
 	h.chainSync = newChainSyncer(h)
 	return h, nil
+}
+
+// protoTracker tracks the number of active protocol handlers.
+func (h *handler) protoTracker() {
+	defer h.wg.Done()
+	var active int
+	for {
+		select {
+		case <-h.handlerStartCh:
+			active++
+		case <-h.handlerDoneCh:
+			active--
+		case <-h.quitSync:
+			// Wait for all active handlers to finish.
+			for ; active > 0; active-- {
+				<-h.handlerDoneCh
+			}
+			return
+		}
+	}
 }
 
 // incHandlers signals to increment the number of active handlers if not
@@ -446,6 +468,10 @@ func (h *handler) Start(maxPeers int) {
 	// start sync handlers
 	h.wg.Add(1)
 	go h.chainSync.loop()
+
+	// start peer handler tracker
+	h.wg.Add(1)
+	go h.protoTracker()
 }
 
 func (h *handler) Stop() {

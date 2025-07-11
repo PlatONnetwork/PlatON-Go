@@ -178,7 +178,7 @@ var eth66 = map[uint64]msgHandler{
 	NewBlockHashesMsg:             handleNewBlockhashes,
 	NewBlockMsg:                   handleNewBlock,
 	TransactionsMsg:               handleTransactions,
-	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
+	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes66,
 	// eth66 messages with request-id
 	GetBlockHeadersMsg:       handleGetBlockHeaders66,
 	BlockHeadersMsg:          handleBlockHeaders66,
@@ -203,7 +203,29 @@ var eth67 = map[uint64]msgHandler{
 	NewBlockHashesMsg:             handleNewBlockhashes,
 	NewBlockMsg:                   handleNewBlock,
 	TransactionsMsg:               handleTransactions,
-	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes,
+	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes66,
+	// eth66 messages with request-id
+	GetBlockHeadersMsg:       handleGetBlockHeaders66,
+	BlockHeadersMsg:          handleBlockHeaders66,
+	GetBlockBodiesMsg:        handleGetBlockBodies66,
+	BlockBodiesMsg:           handleBlockBodies66,
+	GetReceiptsMsg:           handleGetReceipts66,
+	ReceiptsMsg:              handleReceipts66,
+	GetPooledTransactionsMsg: handleGetPooledTransactions66,
+	PooledTransactionsMsg:    handlePooledTransactions66,
+	// PPOS messages
+	GetPPOSStorageMsg:    handleGetPPOSStorageMsg,
+	PPOSStorageMsg:       handlePPosStorageMsg,
+	PPOSStorageV2Msg:     handlePPosStorageV2Msg,
+	GetOriginAndPivotMsg: handleGetOriginAndPivotMsg,
+	OriginAndPivotMsg:    handleOriginAndPivotMsg,
+}
+
+var eth68 = map[uint64]msgHandler{
+	NewBlockHashesMsg:             handleNewBlockhashes,
+	NewBlockMsg:                   handleNewBlock,
+	TransactionsMsg:               handleTransactions,
+	NewPooledTransactionHashesMsg: handleNewPooledTransactionHashes68,
 	// eth66 messages with request-id
 	GetBlockHeadersMsg:       handleGetBlockHeaders66,
 	BlockHeadersMsg:          handleBlockHeaders66,
@@ -235,8 +257,11 @@ func handleMessage(backend Backend, peer *Peer) error {
 	defer msg.Discard()
 
 	var handlers = eth66
-	if peer.Version() >= ETH67 {
+	if peer.Version() == ETH67 {
 		handlers = eth67
+	}
+	if peer.Version() >= ETH68 {
+		handlers = eth68
 	}
 
 	// Track the amount of time it takes to serve the request and run the handler

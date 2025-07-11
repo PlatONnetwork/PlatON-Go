@@ -20,12 +20,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/urfave/cli/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
 	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -47,7 +46,7 @@ See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     flags.Merge([]cli.Flag{utils.DataDirFlag}, consoleFlags),
+		Flags:     flags.Merge([]cli.Flag{utils.DataDirFlag, utils.HttpHeaderFlag}, consoleFlags),
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -118,14 +117,13 @@ func remoteConsole(ctx *cli.Context) error {
 	if ctx.Args().Len() > 1 {
 		utils.Fatalf("invalid command-line: too many arguments")
 	}
-
 	endpoint := ctx.Args().First()
 	if endpoint == "" {
 		cfg := defaultNodeConfig()
 		utils.SetDataDir(ctx, &cfg)
 		endpoint = cfg.IPCEndpoint()
 	}
-	client, err := dialRPC(endpoint)
+	client, err := utils.DialRPCWithHeaders(endpoint, ctx.StringSlice(utils.HttpHeaderFlag.Name))
 	if err != nil {
 		utils.Fatalf("Unable to attach to remote platon: %v", err)
 	}
@@ -163,18 +161,4 @@ func ephemeralConsole(ctx *cli.Context) error {
 	utils.Fatalf(`The "js" command is deprecated. Please use the following instead:
 geth --exec "%s" console`, b.String())
 	return nil
-}
-
-// dialRPC returns a RPC client which connects to the given endpoint.
-// The check for empty endpoint implements the defaulting logic
-// for "platon attach" with no argument.
-func dialRPC(endpoint string) (*rpc.Client, error) {
-	if endpoint == "" {
-		endpoint = node.DefaultIPCEndpoint(clientIdentifier)
-	} else if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
-		// Backwards compatibility with platon < 1.5 which required
-		// these prefixes.
-		endpoint = endpoint[4:]
-	}
-	return rpc.Dial(endpoint)
 }

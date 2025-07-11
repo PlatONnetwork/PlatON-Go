@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -100,7 +101,7 @@ var Defaults = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool:        core.DefaultTxPoolConfig,
+	TxPool:        txpool.DefaultConfig,
 	RPCGasCap:     50000000,
 	RPCEVMTimeout: 5 * time.Second,
 	GPO:           FullNodeGPO,
@@ -183,7 +184,7 @@ type Config struct {
 	DefaultBroadcastInterval time.Duration
 
 	// Transaction pool options
-	TxPool core.TxPoolConfig
+	TxPool txpool.Config
 
 	// Gas Price Oracle options
 	GPO gasprice.Config

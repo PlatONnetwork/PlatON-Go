@@ -1,4 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover/v5wire"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/PlatONnetwork/PlatON-Go/internal/testlog"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -161,7 +163,7 @@ func TestUDPv5_findnodeHandling(t *testing.T) {
 	defer test.close()
 
 	// Create test nodes and insert them into the table.
-	nodes253 := nodesAtDistance(test.table.self().ID(), 253, 10)
+	nodes253 := nodesAtDistance(test.table.self().ID(), 253, 16)
 	nodes249 := nodesAtDistance(test.table.self().ID(), 249, 4)
 	nodes248 := nodesAtDistance(test.table.self().ID(), 248, 10)
 	fillTable(test.table, wrapNodes(nodes253))
@@ -186,7 +188,7 @@ func TestUDPv5_findnodeHandling(t *testing.T) {
 
 	// This request gets all the distance-253 nodes.
 	test.packetIn(&v5wire.Findnode{ReqID: []byte{4}, Distances: []uint{253}})
-	test.expectNodes([]byte{4}, 4, nodes253)
+	test.expectNodes([]byte{4}, 1, nodes253)
 
 	// This request gets all the distance-249 nodes and some more at 248 because
 	// the bucket at 249 is not full.
@@ -194,7 +196,7 @@ func TestUDPv5_findnodeHandling(t *testing.T) {
 	var nodes []*enode.Node
 	nodes = append(nodes, nodes249...)
 	nodes = append(nodes, nodes248[:10]...)
-	test.expectNodes([]byte{5}, 5, nodes)
+	test.expectNodes([]byte{5}, 1, nodes)
 }
 
 func (test *udpV5Test) expectNodes(wantReqID []byte, wantTotal uint8, wantNodes []*enode.Node) {
@@ -208,11 +210,8 @@ func (test *udpV5Test) expectNodes(wantReqID []byte, wantTotal uint8, wantNodes 
 			if !bytes.Equal(p.ReqID, wantReqID) {
 				test.t.Fatalf("wrong request ID %v in response, want %v", p.ReqID, wantReqID)
 			}
-			if len(p.Nodes) > 3 {
-				test.t.Fatalf("too many nodes in response")
-			}
-			if p.Total != wantTotal {
-				test.t.Fatalf("wrong total response count %d, want %d", p.Total, wantTotal)
+			if p.RespCount != wantTotal {
+				test.t.Fatalf("wrong total response count %d, want %d", p.RespCount, wantTotal)
 			}
 			for _, record := range p.Nodes {
 				n, _ := enode.New(enode.ValidSchemesForTesting, record)
@@ -304,14 +303,14 @@ func TestUDPv5_findnodeCall(t *testing.T) {
 			t.Fatalf("wrong distances in request: %v", p.Distances)
 		}
 		test.packetIn(&v5wire.Nodes{
-			ReqID: p.ReqID,
-			Total: 2,
-			Nodes: nodesToRecords(nodes[:4]),
+			ReqID:     p.ReqID,
+			RespCount: 2,
+			Nodes:     nodesToRecords(nodes[:4]),
 		})
 		test.packetIn(&v5wire.Nodes{
-			ReqID: p.ReqID,
-			Total: 2,
-			Nodes: nodesToRecords(nodes[4:]),
+			ReqID:     p.ReqID,
+			RespCount: 2,
+			Nodes:     nodesToRecords(nodes[4:]),
 		})
 	})
 
@@ -412,16 +411,16 @@ func TestUDPv5_callTimeoutReset(t *testing.T) {
 	test.waitPacketOut(func(p *v5wire.Findnode, addr *net.UDPAddr, _ v5wire.Nonce) {
 		time.Sleep(respTimeout - 50*time.Millisecond)
 		test.packetIn(&v5wire.Nodes{
-			ReqID: p.ReqID,
-			Total: 2,
-			Nodes: nodesToRecords(nodes[:4]),
+			ReqID:     p.ReqID,
+			RespCount: 2,
+			Nodes:     nodesToRecords(nodes[:4]),
 		})
 
 		time.Sleep(respTimeout - 50*time.Millisecond)
 		test.packetIn(&v5wire.Nodes{
-			ReqID: p.ReqID,
-			Total: 2,
-			Nodes: nodesToRecords(nodes[4:]),
+			ReqID:     p.ReqID,
+			RespCount: 2,
+			Nodes:     nodesToRecords(nodes[4:]),
 		})
 	})
 	if err := <-done; err != nil {
@@ -518,6 +517,42 @@ func TestUDPv5_talkRequest(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
+}
+
+// This test checks that lookupDistances works.
+func TestUDPv5_lookupDistances(t *testing.T) {
+	test := newUDPV5Test(t)
+	lnID := test.table.self().ID()
+
+	t.Run("target distance of 1", func(t *testing.T) {
+		node := nodeAtDistance(lnID, 1, intIP(0))
+		dists := lookupDistances(lnID, node.ID())
+		require.Equal(t, []uint{1, 2, 3}, dists)
+	})
+
+	t.Run("target distance of 2", func(t *testing.T) {
+		node := nodeAtDistance(lnID, 2, intIP(0))
+		dists := lookupDistances(lnID, node.ID())
+		require.Equal(t, []uint{2, 3, 1}, dists)
+	})
+
+	t.Run("target distance of 128", func(t *testing.T) {
+		node := nodeAtDistance(lnID, 128, intIP(0))
+		dists := lookupDistances(lnID, node.ID())
+		require.Equal(t, []uint{128, 129, 127}, dists)
+	})
+
+	t.Run("target distance of 255", func(t *testing.T) {
+		node := nodeAtDistance(lnID, 255, intIP(0))
+		dists := lookupDistances(lnID, node.ID())
+		require.Equal(t, []uint{255, 256, 254}, dists)
+	})
+
+	t.Run("target distance of 256", func(t *testing.T) {
+		node := nodeAtDistance(lnID, 256, intIP(0))
+		dists := lookupDistances(lnID, node.ID())
+		require.Equal(t, []uint{256, 255, 254}, dists)
+	})
 }
 
 // This test checks that lookup works.

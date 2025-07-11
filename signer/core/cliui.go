@@ -1,23 +1,24 @@
 // Copyright 2018 The go-ethereum Authors
-// This file is part of go-ethereum.
+// This file is part of the go-ethereum library.
 //
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
+// The go-ethereum library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// go-ethereum is distributed in the hope that it will be useful,
+// The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
+// GNU Lesser General Public License for more details.
 //
-// You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU Lesser General Public License
+// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 package core
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -32,8 +33,9 @@ import (
 )
 
 type CommandlineUI struct {
-	in *bufio.Reader
-	mu sync.Mutex
+	in  *bufio.Reader
+	mu  sync.Mutex
+	api *UIServerAPI
 }
 
 func NewCommandlineUI() *CommandlineUI {
@@ -41,7 +43,7 @@ func NewCommandlineUI() *CommandlineUI {
 }
 
 func (ui *CommandlineUI) RegisterUIServer(api *UIServerAPI) {
-	// noop
+	ui.api = api
 }
 
 // readString reads a single line from stdin, trimming if from spaces, enforcing
@@ -241,9 +243,33 @@ func (ui *CommandlineUI) OnApprovedTx(tx ethapi.SignTransactionResult) {
 	}
 }
 
+func (ui *CommandlineUI) showAccounts() {
+	accounts, err := ui.api.ListAccounts(context.Background())
+	if err != nil {
+		log.Error("Error listing accounts", "err", err)
+		return
+	}
+	if len(accounts) == 0 {
+		fmt.Print("No accounts found\n")
+		return
+	}
+	var msg string
+	var out = new(strings.Builder)
+	if limit := 20; len(accounts) > limit {
+		msg = fmt.Sprintf("\nFirst %d accounts listed (%d more available).\n", limit, len(accounts)-limit)
+		accounts = accounts[:limit]
+	}
+	fmt.Fprint(out, "\n------- Available accounts -------\n")
+	for i, account := range accounts {
+		fmt.Fprintf(out, "%d. %s at %s\n", i, account.Address, account.URL)
+	}
+	fmt.Print(out.String(), msg)
+}
+
 func (ui *CommandlineUI) OnSignerStartup(info StartupInfo) {
-	fmt.Printf("------- Signer info -------\n")
+	fmt.Print("\n------- Signer info -------\n")
 	for k, v := range info.Info {
 		fmt.Printf("* %v : %v\n", k, v)
 	}
+	go ui.showAccounts()
 }
