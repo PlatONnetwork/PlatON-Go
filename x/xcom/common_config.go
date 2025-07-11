@@ -68,7 +68,7 @@ const (
 	ElectionBasePIP3 = 43
 
 	MainNetECHash = "0x259176769541cdb61bc19806cbf5a3f3489f4829b6b69f804f45f947a0c9c3e9"
-	
+
 	MaxValidatorsForVersion150 = 225
 )
 
