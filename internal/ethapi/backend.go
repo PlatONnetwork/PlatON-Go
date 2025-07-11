@@ -23,6 +23,7 @@ import (
 	"time"
 
 	PlatON "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -90,6 +91,10 @@ type Backend interface {
 	// eth/filters needs to be initialized from this backend type, so methods needed by
 	// it must also be included here.
 	GetBody(ctx context.Context, hash common.Hash, number rpc.BlockNumber) (*types.Body, error)
+
+	// eth/filters needs to be initialized from this backend type, so methods needed by
+	// it must also be included here.
+	filters.Backend
 }
 
 func GetAPIs(apiBackend Backend) []rpc.API {

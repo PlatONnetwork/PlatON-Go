@@ -17,7 +17,7 @@ eg： ./ctool deploy -abi "D:\\resource\\temp\\contractc.cpp.abi.json" -code "D:
 ```
 ./ctool invoke
 -addr     contract address (must)
--func     functon name and param (must)
+-func     function name and param (must)
 -abi      abi json file path (must)
 -type     transaction type ,default 2 (optional)
 
@@ -50,7 +50,7 @@ eg: ./ctool invoke -addr "lat1l3p70ayph8flwhx0ljxj86k9yt5kmetsusy5z0" -func "tra
 ##### 6.Prepare transaction stability test account
 ```
 ./ctool prepare
--pkfile      account private key file path,defalut "./test/privatekeys.txt" (optional)
+-pkfile      account private key file path,default "./test/privatekeys.txt" (optional)
 -size        the number of accounts,default 10 (optional)
 -value       transfer value (must)
 -config      config path (optional)
@@ -69,7 +69,7 @@ eg: ./ctool.exe pre -size 10 -pkfile "./test/privateKeys.txt" -value 0xDE0B6B3A7
 eg:  ./ctool.exe stab -pkfile "./test/privateKeys.txt" -times 10000 -interval 10
 ```
 
-note: If the command exits normally,the next time you can continue to run with the generated accounts and the command exits abnormally, you need to re-use the pre command to generate the test accounts.
+note: If the command exits normally,the next time you can continue to run with the generated accounts and the command exits abnormally, you need to reuse the pre command to generate the test accounts.
 
 ##### Config Description： The config parameter is not passed in the command, and the `config.json` file in the current directory is read by default.
 
