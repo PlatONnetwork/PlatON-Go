@@ -376,9 +376,8 @@ func createStorageRequestResponse(t *testPeer, root common.Hash, accounts []comm
 	return hashes, slots, proofs
 }
 
-//	the createStorageRequestResponseAlwaysProve tests a cornercase, where it always
-//
-// supplies the proof for the last account, even if it is 'complete'.h
+// createStorageRequestResponseAlwaysProve tests a cornercase, where the peer always
+// supplies the proof for the last account, even if it is 'complete'.
 func createStorageRequestResponseAlwaysProve(t *testPeer, root common.Hash, accounts []common.Hash, bOrigin, bLimit []byte, max uint64) (hashes [][]common.Hash, slots [][][]byte, proofs [][]byte) {
 	var size uint64
 	max = max * 3 / 4
@@ -1394,7 +1393,8 @@ func makeAccountTrieNoStorage(n int) (string, *trie.Trie, entrySlice) {
 	// for accessing later.
 	root, nodes, _ := accTrie.Commit(false)
 	db.Update(trie.NewWithNodeSet(nodes))
-	accTrie, _ = trie.New(common.Hash{}, root, db)
+
+	accTrie, _ = trie.New(trie.StateTrieID(root), db)
 	return db.Scheme(), accTrie, entries
 }
 
@@ -1458,7 +1458,7 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 	root, nodes, _ := accTrie.Commit(false)
 	db.Update(trie.NewWithNodeSet(nodes))
 
-	accTrie, _ = trie.New(common.Hash{}, root, db)
+	accTrie, _ = trie.New(trie.StateTrieID(root), db)
 	return db.Scheme(), accTrie, entries
 }
 
@@ -1509,14 +1509,14 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 	db.Update(nodes)
 
 	// Re-create tries with new root
-	accTrie, _ = trie.New(common.Hash{}, root, db)
+	accTrie, _ = trie.New(trie.StateTrieID(root), db)
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		trie, _ := trie.New(common.BytesToHash(key), storageRoots[common.BytesToHash(key)], db)
+		id := trie.StorageTrieID(root, common.BytesToHash(key), storageRoots[common.BytesToHash(key)])
+		trie, _ := trie.New(id, db)
 		storageTries[common.BytesToHash(key)] = trie
 	}
 	return db.Scheme(), accTrie, entries, storageTries, storageEntries
-
 }
 
 // makeAccountTrieWithStorage spits out a trie, along with the leafs
@@ -1575,13 +1575,14 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 	db.Update(nodes)
 
 	// Re-create tries with new root
-	accTrie, err := trie.New(common.Hash{}, root, db)
+	accTrie, err := trie.New(trie.StateTrieID(root), db)
 	if err != nil {
 		panic(err)
 	}
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		trie, err := trie.New(common.BytesToHash(key), storageRoots[common.BytesToHash(key)], db)
+		id := trie.StorageTrieID(root, common.BytesToHash(key), storageRoots[common.BytesToHash(key)])
+		trie, err := trie.New(id, db)
 		if err != nil {
 			panic(err)
 		}
@@ -1595,7 +1596,7 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 // not-yet-committed trie and the sorted entries. The seeds can be used to ensure
 // that tries are unique.
 func makeStorageTrieWithSeed(owner common.Hash, n, seed uint64, db *trie.Database) (common.Hash, *trie.NodeSet, entrySlice) {
-	trie, _ := trie.New(owner, common.Hash{}, db)
+	trie, _ := trie.New(trie.StorageTrieID(common.Hash{}, owner, common.Hash{}), db)
 	var entries entrySlice
 	for i := uint64(1); i <= n; i++ {
 		// store 'x' at slot 'x'
@@ -1622,7 +1623,7 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 	var (
 		entries    entrySlice
 		boundaries []common.Hash
-		trie, _    = trie.New(owner, common.Hash{}, db)
+		trie, _    = trie.New(trie.StorageTrieID(common.Hash{}, owner, common.Hash{}), db)
 	)
 	// Initialize boundaries
 	var next common.Hash
@@ -1670,7 +1671,7 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 	t.Helper()
 	triedb := trie.NewDatabase(rawdb.NewDatabase(db))
-	accTrie, err := trie.New(common.Hash{}, root, triedb)
+	accTrie, err := trie.New(trie.StateTrieID(root), triedb)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1689,7 +1690,8 @@ func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 		}
 		accounts++
 		if acc.Root != emptyRoot {
-			storeTrie, err := trie.NewStateTrie(common.BytesToHash(accIt.Key), acc.Root, triedb)
+			id := trie.StorageTrieID(root, common.BytesToHash(accIt.Key), acc.Root)
+			storeTrie, err := trie.NewStateTrie(id, triedb)
 			if err != nil {
 				t.Fatal(err)
 			}

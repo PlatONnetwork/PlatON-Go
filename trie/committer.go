@@ -40,16 +40,18 @@ type committer struct {
 	tmp         sliceBuffer
 	encbuf      rlp.EncoderBuffer
 	nodes       *NodeSet
+	tracer      *tracer
 	collectLeaf bool
 }
 
 // newCommitter creates a new committer or picks one from the pool.
-func newCommitter(owner common.Hash, collectLeaf bool) *committer {
+func newCommitter(owner common.Hash, tracer *tracer, collectLeaf bool) *committer {
 	return &committer{
 		tmp:         make(sliceBuffer, 0, 550), // cap is as large as a full fullNode.
 		sha:         sha3.NewLegacyKeccak256().(crypto.KeccakState),
 		encbuf:      rlp.NewEncoderBuffer(nil),
 		nodes:       NewNodeSet(owner),
+		tracer:      tracer,
 		collectLeaf: collectLeaf,
 	}
 }
@@ -80,6 +82,12 @@ func (c *committer) commit(path []byte, n node, force bool) (node, node, error) 
 	// the dirty flag in commit mode. It's fine to assign these values directly
 	// without copying the node first because hashChildren copies it.
 	cachedHash, _ := hashed.(hashNode)
+
+	// Mark the node as deleted if it's present in database previously.
+	// It's equivalent as deletion from database's perspective.
+	if prev := c.tracer.getPrev(path); len(prev) != 0 {
+		c.nodes.markDeleted(path, prev)
+	}
 
 	switch cn := cached.(type) {
 	case *shortNode:
@@ -164,7 +172,7 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 		}
 	)
 	// Collect the dirty node to nodeset for return.
-	c.nodes.add(string(path), mnode)
+	c.nodes.markUpdated(path, mnode, c.tracer.getPrev(path))
 
 	// Collect the corresponding leaf node if it's required. We don't check
 	// full node since it's impossible to store value in fullNode. The key
