@@ -17,6 +17,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/fjl/gencodec v0.0.0-20230517082657-f9840df7b83e
 	github.com/fjl/memsize v0.0.2
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-errors/errors v1.4.2
 	github.com/go-stack/stack v1.8.1
@@ -44,7 +45,6 @@ require (
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/tsdb v0.10.0
-	github.com/rjeczalik/notify v0.9.1
 	github.com/robfig/cron v1.2.1-0.20190616124356-61d93e07d1be
 	github.com/rs/cors v1.7.0
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible
