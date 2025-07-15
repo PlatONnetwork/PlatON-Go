@@ -413,13 +413,21 @@ func (s *StateDB) GetProofByHash(addrHash common.Hash) ([][]byte, error) {
 
 // GetStorageProof returns the Merkle proof for given storage slot.
 func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, error) {
-	var proof proofList
-	trie := s.StorageTrie(a)
-	if trie == nil {
-		return proof, errors.New("storage trie for requested address does not exist")
+	trie, err := s.StorageTrie(a)
+	if err != nil {
+		return nil, err
 	}
-	err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
-	return [][]byte(proof), err
+	if trie == nil {
+		return nil, errors.New("storage trie for requested address does not exist")
+	}
+	//err := trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	//return [][]byte(proof), err
+	var proof proofList
+	err = trie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof)
+	if err != nil {
+		return nil, err
+	}
+	return proof, nil
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
@@ -436,15 +444,19 @@ func (s *StateDB) Database() Database {
 	return s.db
 }
 
-// StorageTrie returns the storage trie of an account.
-// The return value is a copy and is nil for non-existent accounts.
-func (s *StateDB) StorageTrie(addr common.Address) Trie {
+// StorageTrie returns the storage trie of an account. The return value is a copy
+// and is nil for non-existent accounts. An error will be returned if storage trie
+// is existent but can't be loaded correctly.
+func (s *StateDB) StorageTrie(addr common.Address) (Trie, error) {
 	stateObject := s.getStateObject(addr)
 	if stateObject == nil {
-		return nil
+		return nil, nil
 	}
 	cpy := stateObject.deepCopy(s)
-	return cpy.updateTrie(s.db)
+	if _, err := cpy.updateTrie(s.db); err != nil {
+		return nil, err
+	}
+	return cpy.getTrie(s.db)
 }
 
 func (s *StateDB) HasSuicided(addr common.Address) bool {
@@ -922,13 +934,18 @@ func (s *StateDB) TxIdx() uint32 {
 	return uint32(s.txIndex)
 }
 
-func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) {
+func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte) bool) error {
 	so := db.getStateObject(addr)
 	if so == nil {
-		return
+		return nil
 	}
 
-	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
+	tr, err := so.getTrie(db.db)
+	if err != nil {
+		return err
+	}
+	it := trie.NewIterator(tr.NodeIterator(nil))
+
 	for it.Next() {
 		key := db.trie.GetKey(it.Key)
 		if value, ok := so.dirtyStorage[string(key)]; ok {
@@ -938,6 +955,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte
 
 		cb(key, it.Value)
 	}
+	return nil
 }
 
 func (db *StateDB) MigrateStorage(from, to common.Address) {

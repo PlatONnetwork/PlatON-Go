@@ -152,16 +152,18 @@ func (s *stateObject) touch() {
 	}
 }
 
-func (s *stateObject) getTrie(db Database) Trie {
+// getTrie returns the associated storage trie. The trie will be opened
+// if it's not loaded previously. An error will be returned if trie can't
+// be loaded.
+func (s *stateObject) getTrie(db Database) (Trie, error) {
 	if s.trie == nil {
-		var err error
-		s.trie, err = db.OpenStorageTrie(s.db.originalRoot, s.addrHash, s.data.Root)
+		tr, err := db.OpenStorageTrie(s.db.originalRoot, s.addrHash, s.data.Root)
 		if err != nil {
-			s.trie, _ = db.OpenStorageTrie(s.db.originalRoot, s.addrHash, common.Hash{})
-			s.setError(fmt.Errorf("can't create storage trie: %v", err))
+			return nil, err
 		}
+		s.trie = tr
 	}
-	return s.trie
+	return s.trie, nil
 }
 
 // GetState retrieves a value from the account storage trie.
@@ -242,15 +244,17 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 		}
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key[:]))
 	}
-	// If snapshot unavailable or reading from it failed, load from the database
+	// If the snapshot is unavailable or reading from it fails, load from the database.
 	if s.db.snap == nil || err != nil {
 		if metrics.EnabledExpensive {
 			defer func(start time.Time) { s.db.StorageReads += time.Since(start) }(time.Now())
 		}
-		if enc, err = s.getTrie(db).TryGet(key[:]); err != nil {
+		tr, err := s.getTrie(db)
+		if err != nil {
 			s.setError(err)
 			return []byte{}
 		}
+		enc, err = tr.TryGet(key[:])
 	}
 	value := make([]byte, 0)
 	if len(enc) > 0 {
@@ -326,11 +330,13 @@ func (s *stateObject) finalise() {
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
-func (s *stateObject) updateTrie(db Database) Trie {
+// It will return nil if the trie has not been loaded and no changes have been
+// made. An error will be returned if the trie can't be loaded/updated correctly.
+func (s *stateObject) updateTrie(db Database) (Trie, error) {
 	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise()
 	if len(s.pendingStorage) == 0 {
-		return s.trie
+		return s.trie, nil
 	}
 	// Track the amount of time wasted on updating the storage trie
 	if metrics.EnabledExpensive {
@@ -347,7 +353,11 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		}
 	}
 	// Insert all the pending updates into the trie
-	tr := s.getTrie(db)
+	tr, err := s.getTrie(db)
+	if err != nil {
+		s.setError(err)
+		return nil, err
+	}
 	for key, value := range s.pendingStorage {
 		// Skip noop changes, persist actual changes
 		oldValue := s.originStorage[key]
@@ -359,12 +369,18 @@ func (s *stateObject) updateTrie(db Database) Trie {
 
 		var v []byte
 		if len(value) == 0 {
-			s.setError(tr.TryDelete([]byte(key)))
+			if err := tr.TryDelete([]byte(key)); err != nil {
+				s.setError(err)
+				return nil, err
+			}
 			s.db.StorageDeleted += 1
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ = rlp.EncodeToBytes(value[:])
-			s.setError(tr.TryUpdate([]byte(key), v))
+			if err := tr.TryUpdate([]byte(key), v); err != nil {
+				s.setError(err)
+				return nil, err
+			}
 			s.db.StorageUpdated += 1
 		}
 		// If state snapshotting is active, cache the data til commit
@@ -377,39 +393,47 @@ func (s *stateObject) updateTrie(db Database) Trie {
 		s.pendingStorage = make(ValueStorage)
 	}
 
-	return tr
+	return tr, nil
 }
 
-// UpdateRoot sets the trie root to the current root hash of
+// UpdateRoot sets the trie root to the current root hash of. An error
+// will be returned if trie root hash is not computed correctly.
 func (s *stateObject) updateRoot(db Database) {
-	// If nothing changed, don't bother with hashing anything
-	if s.updateTrie(db) == nil {
+	tr, err := s.updateTrie(db)
+	if err != nil {
+		s.setError(fmt.Errorf("updateRoot (%x) error: %w", s.address, err))
 		return
 	}
-
+	// If nothing changed, don't bother with hashing anything
+	if tr == nil {
+		return
+	}
 	// Track the amount of time wasted on hashing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageHashes += time.Since(start) }(time.Now())
 	}
-	s.data.Root = s.trie.Hash()
+	s.data.Root = tr.Hash()
 }
 
-// CommitTrie the storage trie of the object to db.
-// This updates the trie root.
+// commitTrie submits the storage changes into the storage trie and re-computes
+// the root. Besides, all trie changes will be collected in a nodeset and returned.
 func (s *stateObject) CommitTrie(db Database) (*trie.NodeSet, error) {
-	// If nothing changed, don't bother with hashing anything
-	if s.updateTrie(db) == nil {
-		return nil, nil
+	tr, err := s.updateTrie(db)
+	if err != nil {
+		return nil, err
 	}
 	if s.dbErr != nil {
 		return nil, s.dbErr
 	}
-
+	// If nothing changed, don't bother with committing anything
+	if tr == nil {
+		return nil, nil
+	}
 	// Track the amount of time wasted on committing the storage trie
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.db.StorageCommits += time.Since(start) }(time.Now())
 	}
-	root, nodes, err := s.trie.Commit(false)
+	root, nodes, err := tr.Commit(false)
 
 	if err == nil {
 		s.data.Root = root

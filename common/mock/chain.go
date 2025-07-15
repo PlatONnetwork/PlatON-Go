@@ -617,14 +617,15 @@ func (s *MockStateDB) GetLogs(hash common.Hash, blockNumber uint64, blockHash co
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
 }
 
-func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) {
+func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) error {
 	state, ok := s.State[addr]
 	if !ok {
-		return
+		return nil
 	}
 	for k, v := range state {
 		fn([]byte(k), v)
 	}
+	return nil
 }
 
 func (s *MockStateDB) TxHash() common.Hash {
