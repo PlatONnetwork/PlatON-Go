@@ -15,17 +15,19 @@ import (
 
 type account struct{}
 
-func (account) SubBalance(amount *big.Int)                                 {}
-func (account) AddBalance(amount *big.Int)                                 {}
-func (account) SetAddress(common.Address)                                  {}
-func (account) Value() *big.Int                                            { return nil }
-func (account) SetBalance(*big.Int)                                        {}
-func (account) SetNonce(uint64)                                            {}
-func (account) Balance() *big.Int                                          { return nil }
-func (account) Address() common.Address                                    { return common.Address{} }
-func (account) ReturnGas(*big.Int)                                         {}
-func (account) SetCode(common.Hash, []byte)                                {}
-func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) {}
+func (account) SubBalance(amount *big.Int)  {}
+func (account) AddBalance(amount *big.Int)  {}
+func (account) SetAddress(common.Address)   {}
+func (account) Value() *big.Int             { return nil }
+func (account) SetBalance(*big.Int)         {}
+func (account) SetNonce(uint64)             {}
+func (account) Balance() *big.Int           { return nil }
+func (account) Address() common.Address     { return common.Address{} }
+func (account) ReturnGas(*big.Int)          {}
+func (account) SetCode(common.Hash, []byte) {}
+func (account) ForEachStorage(cb func(key common.Hash, value []byte) bool) error {
+	return nil
+}
 
 func NewEVMWithCtx(cfg *Config) *vm.EVM {
 	vmenv := NewEnv(cfg)

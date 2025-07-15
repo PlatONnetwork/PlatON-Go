@@ -21,8 +21,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
@@ -120,8 +119,10 @@ func Generate(input []byte) randTest {
 
 // The function must return
 // 1 if the fuzzer should increase priority of the
-//    given input during subsequent fuzzing (for example, the input is lexically
-//    correct and was parsed successfully);
+//
+//	given input during subsequent fuzzing (for example, the input is lexically
+//	correct and was parsed successfully);
+//
 // -1 if the input must not be added to corpus even if gives new coverage; and
 // 0  otherwise
 // other values are reserved for future use.
@@ -137,7 +138,7 @@ func Fuzz(input []byte) int {
 }
 
 func runRandTest(rt randTest) error {
-	triedb := trie.NewDatabase(memorydb.New())
+	triedb := trie.NewDatabase(rawdb.NewMemoryDatabase())
 
 	tr := trie.NewEmpty(triedb)
 	values := make(map[string]string) // tracks content of the trie
@@ -168,7 +169,7 @@ func runRandTest(rt randTest) error {
 					return err
 				}
 			}
-			newtr, err := trie.New(common.Hash{}, hash, triedb)
+			newtr, err := trie.New(trie.TrieID(hash), triedb)
 			if err != nil {
 				return err
 			}
