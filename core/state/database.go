@@ -70,8 +70,13 @@ type Trie interface {
 	// trie.MissingNodeError is returned.
 	TryGet(key []byte) ([]byte, error)
 
-	// TryGetAccount abstract an account read from the trie.
-	TryGetAccount(key []byte) (*types.StateAccount, error)
+	// TryGetAccount abstracts an account read from the trie. It retrieves the
+	// account blob from the trie with provided account address and decodes it
+	// with associated decoding algorithm. If the specified account is not in
+	// the trie, nil will be returned. If the trie is corrupted(e.g. some nodes
+	// are missing or the account blob is incorrect for decoding), an error will
+	// be returned.
+	TryGetAccount(address common.Address) (*types.StateAccount, error)
 
 	// TryUpdate associates key with value in the trie. If value has length zero, any
 	// existing value is deleted from the trie. The value bytes must not be modified
@@ -79,13 +84,15 @@ type Trie interface {
 	// database, a trie.MissingNodeError is returned.
 	TryUpdate(key, value []byte) error
 
-	// TryUpdateAccount abstract an account write in the trie.
-	TryUpdateAccount(key []byte, account *types.StateAccount) error
+	// TryUpdateAccount abstracts an account write to the trie. It encodes the
+	// provided account object with associated algorithm and then updates it
+	// in the trie with provided address.
+	TryUpdateAccount(address common.Address, account *types.StateAccount) error
 
 	TryDelete(key []byte) error
 
 	// TryDeleteAccount abstracts an account deletion from the trie.
-	TryDeleteAccount(key []byte) error
+	TryDeleteAccount(address common.Address) error
 
 	// Commit collects all dirty nodes in the trie and replace them with the
 	// corresponding node hash. All collected nodes(including dirty leaves if

@@ -419,7 +419,7 @@ func ServiceGetStorageRangesQuery(chain *core.BlockChain, req *GetStorageRangesP
 			if err != nil {
 				return nil, nil
 			}
-			acc, err := accTrie.TryGetAccountWithPreHashedKey(account[:])
+			acc, err := accTrie.TryGetAccountByHash(account)
 			if err != nil || acc == nil {
 				return nil, nil
 			}
