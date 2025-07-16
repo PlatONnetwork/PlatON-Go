@@ -295,7 +295,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	if len(line) == 0 || pos == 0 {
 		return "", nil, ""
 	}
-	// Chunck data to relevant part for autocompletion
+	// Chunk data to relevant part for autocompletion
 	// E.g. in case of nested lines platon.getBalance(platon.coinb<tab><tab>
 	start := pos - 1
 	for ; start > 0; start-- {
