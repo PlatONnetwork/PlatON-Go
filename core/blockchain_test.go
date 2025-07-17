@@ -49,33 +49,32 @@ func init() {
 
 // newCanonical creates a chain database, and injects a deterministic canonical
 // chain. Depending on the full flag, if creates either a full block chain or a
-// header only chain.
-func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *BlockChain, error) {
+// header only chain. The database and genesis specification for block generation
+// are also returned in case more test blocks are needed later.
+func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *Genesis, *BlockChain, error) {
 	var (
-		db    = rawdb.NewMemoryDatabase()
-		gspec = &Genesis{
+		genesis = &Genesis{
 			BaseFee: big.NewInt(params.InitialBaseFee),
 			Config:  params.AllEthashProtocolChanges,
 		}
-		genesis = gspec.MustCommit(db)
 	)
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), nil, genesis, nil, engine, vm.Config{}, nil, nil)
 	// Create and inject the requested chain
 	if n == 0 {
-		return db, blockchain, nil
+		return rawdb.NewMemoryDatabase(), genesis, blockchain, nil
 	}
 	if full {
 		// Full block-chain requested
-		blocks := makeBlockChain(genesis, n, engine, db, canonicalSeed)
+		genDb, blocks := makeBlockChainWithGenesis(genesis, n, engine, canonicalSeed)
 		// Inserted is bft_mock instead of the real chain
 		_, err := blockchain.InsertChain(blocks)
-		return db, blockchain, err
+		return genDb, genesis, blockchain, err
 	}
 	// Header-only chain requested
-	headers := makeHeaderChain(genesis.Header(), n, engine, db, canonicalSeed)
+	genDb, headers := makeHeaderChainWithGenesis(genesis, n, engine, canonicalSeed)
 	_, err := blockchain.InsertHeaderChain(headers, 1)
-	return db, blockchain, err
+	return genDb, genesis, blockchain, err
 }
 
 // testBlockChainImport tries to process a chain of blocks, writing them into
@@ -143,7 +142,7 @@ func TestLastBlock(t *testing.T) {
 	bft := consensus.NewFaker()
 	bft.InsertChain(genesis)
 
-	blocks := makeBlockChain(bft.CurrentBlock(), 1, consensus.NewFaker(), db, 0)
+	blocks := makeBlockChain(params.TestChainConfig, bft.CurrentBlock(), 1, consensus.NewFaker(), db, 0)
 	for _, block := range blocks {
 		bft.InsertChain(block)
 		rawdb.WriteHeadBlockHash(db, bft.CurrentBlock().Hash())
@@ -160,7 +159,7 @@ func TestBrokenBlockChain(t *testing.T)  { testBrokenChain(t, true) }
 
 func testBrokenChain(t *testing.T, full bool) {
 	// Make chain starting from genesis
-	db, blockchain, err := newCanonical(consensus.NewFaker(), 10, full)
+	genDb, _, blockchain, err := newCanonical(consensus.NewFaker(), 10, full)
 	if err != nil {
 		t.Fatalf("failed to make new canonical chain: %v", err)
 	}
@@ -169,14 +168,14 @@ func testBrokenChain(t *testing.T, full bool) {
 	// Create a forked chain, and try to insert with a missing link
 	if full {
 		engine := consensus.NewFailFaker(4)
-		chain := makeBlockChain(blockchain.CurrentBlock(), 5, engine, db, forkSeed)[1:]
+		chain := makeBlockChain(blockchain.chainConfig, blockchain.CurrentBlock(), 5, engine, genDb, forkSeed)[1:]
 		blockchain.engine = engine
 		if err := testBlockChainImport(chain, blockchain); err == nil {
 			t.Errorf("broken block chain not reported")
 		}
 	} else {
 		engine := consensus.NewFailFaker(14)
-		chain := makeHeaderChain(blockchain.CurrentHeader(), 5, engine, db, forkSeed)[1:]
+		chain := makeHeaderChain(blockchain.chainConfig, blockchain.CurrentHeader(), 5, engine, genDb, forkSeed)[1:]
 		blockchain.engine = engine
 		if err := testHeaderChainImport(chain, blockchain); err == nil {
 			t.Errorf("broken header chain not reported")
@@ -218,17 +217,17 @@ func testReorgLong(t *testing.T, full bool) {
 
 func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 	// Create a pristine chain and database
-	db, blockchain, err := newCanonical(consensus.NewFaker(), 0, full)
+	genDb, _, blockchain, err := newCanonical(consensus.NewFaker(), 0, full)
 	if err != nil {
 		t.Fatalf("failed to create pristine chain: %v", err)
 	}
 	defer blockchain.Stop()
 
 	// Insert an easy and a difficult chain afterwards
-	easyBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), db, len(first), func(i int, b *BlockGen) {
+	easyBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), genDb, len(first), func(i int, b *BlockGen) {
 		b.OffsetTime(first[i])
 	})
-	diffBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), db, len(second), func(i int, b *BlockGen) {
+	diffBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), genDb, len(second), func(i int, b *BlockGen) {
 		b.OffsetTime(second[i])
 	})
 	if full {
