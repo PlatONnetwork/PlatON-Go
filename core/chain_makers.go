@@ -271,7 +271,8 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	return blocks, receipts
 }
 
-func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) (*BlockChain, []*types.Block) {
+func GenerateBlockChain2(gspec *Genesis, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) (*BlockChain, []*types.Block) {
+	config := gspec.Config
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -289,7 +290,7 @@ func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine
 		SnapshotLimit:   256,
 	}
 	chainreader := &fakeChainReader{config: config}
-	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, cacheConfig, gspec, nil, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}
@@ -369,7 +370,8 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 	return chain
 }
 
-func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
+func GenerateBlockChain(gspec *Genesis, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
+	config := gspec.Config
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -386,7 +388,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		DBGCTimeout:     time.Minute,
 	}
 	chainreader := &fakeChainReader{config: config}
-	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, cacheConfig, gspec, nil, engine, vm.Config{}, nil, nil)
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, parent: parent, chain: blocks, statedb: statedb, config: config, engine: engine}

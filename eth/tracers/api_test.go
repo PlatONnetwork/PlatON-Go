@@ -67,12 +67,12 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 	var gendb = rawdb.NewMemoryDatabase()
 	var genesis = gspec.MustCommit(gendb)
 	backend := &testBackend{
-		chainConfig: params.TestChainConfig,
+		chainConfig: gspec.Config,
 		engine:      consensus.NewFakerWithDataBase(gendb, genesis),
 		chaindb:     gendb,
 	}
 	// Generate blocks for testing
-	gspec.Config = backend.chainConfig
+	//gspec.Config = backend.chainConfig
 	//blocks, _ := core.GenerateChain(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
 
 	// Import the canonical chain
@@ -90,7 +90,7 @@ func newTestBackend(t *testing.T, n int, gspec *core.Genesis, generator func(i i
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}*/
-	backend.chain, _ = core.GenerateBlockChain2(backend.chainConfig, genesis, backend.engine, gendb, n, generator)
+	backend.chain, _ = core.GenerateBlockChain2(gspec, genesis, backend.engine, gendb, n, generator)
 	return backend
 }
 
@@ -194,6 +194,7 @@ func TestTraceCall(t *testing.T) {
 	// Initialize test accounts
 	accounts := newAccounts(3)
 	genesis := &core.Genesis{
+		Config: params.TestChainConfig,
 		Alloc: core.GenesisAlloc{
 			accounts[0].addr: {Balance: big.NewInt(params.LAT)},
 			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
@@ -335,6 +336,7 @@ func TestTraceTransaction(t *testing.T) {
 		accounts[1].addr: {Balance: big.NewInt(params.LAT)},
 	},
 		BaseFee: big.NewInt(params.InitialBaseFee),
+		Config:  params.TestChainConfig,
 	}
 	target := common.Hash{}
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
@@ -384,6 +386,7 @@ func TestTraceBlock(t *testing.T) {
 			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
 		},
 		BaseFee: big.NewInt(params.InitialBaseFee),
+		Config:  params.TestChainConfig,
 	}
 	genBlocks := 10
 	signer := types.MakeSigner(params.TestChainConfig, new(big.Int).SetUint64(1), true)
@@ -472,6 +475,7 @@ func TestTracingWithOverrides(t *testing.T) {
 		},
 	},
 		BaseFee: big.NewInt(params.InitialBaseFee),
+		Config:  params.TestChainConfig,
 	}
 	genBlocks := 10
 	signer := types.HomesteadSigner{}
