@@ -62,7 +62,7 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 
 	block, _ := gen.Commit(db, snapshotdb.Instance())
 
-	return GenerateBlockChain(gen.Config, block, new(consensus.BftMock), db, 200, func(i int, block *BlockGen) {
+	return GenerateBlockChain(&gen, block, new(consensus.BftMock), db, 200, func(i int, block *BlockGen) {
 		block.statedb.SetState(testAddress, []byte(fmt.Sprintf("abc_%d", i+1)), []byte(fmt.Sprintf("abccccccc_%d", i+1)))
 	}), nil
 }

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -209,32 +208,41 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 	}
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	//chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	//
+	//if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
+	//	return nil, genesisErr
+	//}
 
-	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
-		return nil, genesisErr
-	}
+	//if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
+	//	chainConfig.Cbft.Period = config.CbftConfig.Period
+	//	chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	//}
+	//
+	//log.Info("")
+	//log.Info(strings.Repeat("-", 153))
+	//for _, line := range strings.Split(chainConfig.String(), "\n") {
+	//	log.Info(line)
+	//}
+	//log.Info(strings.Repeat("-", 153))
+	//log.Info("")
 
-	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
-		chainConfig.Cbft.Period = config.CbftConfig.Period
-		chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	genesisChainConfig, storedGenesisHash, err := core.LoadGenesisChainConfig(chainDb, config.Genesis)
+	if err != nil {
+		return nil, err
 	}
-
-	log.Info("")
-	log.Info(strings.Repeat("-", 153))
-	for _, line := range strings.Split(chainConfig.String(), "\n") {
-		log.Info(line)
+	if genesisChainConfig.Cbft.Period == 0 || genesisChainConfig.Cbft.Amount == 0 {
+		genesisChainConfig.Cbft.Period = config.CbftConfig.Period
+		genesisChainConfig.Cbft.Amount = config.CbftConfig.Amount
 	}
-	log.Info(strings.Repeat("-", 153))
-	log.Info("")
-	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
+	stack.SetP2pChainID(genesisChainConfig.ChainID, genesisChainConfig.PIP7ChainID)
 
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            ethconfig.CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
+		engine:            ethconfig.CreateConsensusEngine(stack, genesisChainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -289,13 +297,16 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, eth.shouldPreserve, &config.TxLookupLimit)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, snapshotBaseDB, eth.engine, vmConfig, eth.shouldPreserve, &config.TxLookupLimit)
 	if err != nil {
 		return nil, err
 	}
+	if storedGenesisHash != (common.Hash{}) && storedGenesisHash != eth.blockchain.Genesis().Hash() {
+		return nil, &core.GenesisMismatchError{storedGenesisHash, eth.blockchain.Genesis().Hash()}
+	}
 
 	//todo this is a hard code for 1.5.0
-	if chainConfig.PauliBlock == nil {
+	if eth.blockchain.Config().PauliBlock == nil {
 		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Header().Root)
 		if err != nil {
 			return nil, err
@@ -306,8 +317,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		if len(ActiveVersionList) > 0 {
 			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
-				chainConfig.SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
-				log.Info("Initialised chain configuration for 1.5.0", "config", chainConfig)
+				eth.blockchain.Config().SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
+				log.Info("Initialised chain configuration for 1.5.0", "config", eth.blockchain.Config())
 			}
 		}
 	}
@@ -316,19 +327,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
-	// Rewind the chain in case of an incompatible config upgrade.
-	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
-		log.Warn("upgrade configuration", "err", compat)
-		//return nil, compat
-		//eth.blockchain.SetHead(compat.RewindTo)
-		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
-	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = txpool.NewTxPool(config.TxPool, chainConfig, txpool.NewTxPoolBlockChain(blockChainCache))
+	eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), txpool.NewTxPoolBlockChain(blockChainCache))
 
 	core.SenderCacher.SetTxPool(eth.txPool)
 
@@ -362,21 +366,21 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		// - inner (via inner contract)eth/handler.go
 		// - ppos
 
-		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
-			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+		log.Debug("Validator mode", "mode", eth.blockchain.Config().Cbft.ValidatorMode)
+		if eth.blockchain.Config().Cbft.ValidatorMode == "" || eth.blockchain.Config().Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
+			agency = validator.NewStaticAgency(eth.blockchain.Config().Cbft.InitialNodes)
 			reactor.Start(common.STATIC_VALIDATOR_MODE)
-		} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
-			blocksPerNode := int(chainConfig.Cbft.Amount)
+		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
+			blocksPerNode := int(eth.blockchain.Config().Cbft.Amount)
 			offset := blocksPerNode * 2
-			agency = validator.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			agency = validator.NewInnerAgency(eth.blockchain.Config().Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 			reactor.Start(common.INNER_VALIDATOR_MODE)
-		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
+		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(vrfhandler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, chainConfig, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, eth.blockchain.Config(), config.DBValidatorsHistory)
 			agency = reactor
 
 			//register Govern parameter verifiers

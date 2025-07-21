@@ -22,6 +22,7 @@ var (
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 	testDB      = rawdb.NewMemoryDatabase()
 	testGenesis = core.GenesisBlockForTesting(testDB, testAddress, big.NewInt(1000000000000000))
+	testGspec   = core.GenesisForTesting(testAddress, big.NewInt(1000000000000000))
 )
 
 // The common prefix of all test chains:
@@ -40,7 +41,7 @@ func init() {
 	fsHeaderSafetyNet = 256
 	fsHeaderContCheck = 500 * time.Millisecond
 
-	testChainBase = newTestChain(blockCacheMaxItems+200, testGenesis)
+	testChainBase = newTestChain(blockCacheMaxItems+200, testGspec)
 
 	//var forkLen = int(fullMaxForkAncestry + 50)
 	var wg sync.WaitGroup
@@ -99,11 +100,12 @@ type testChain struct {
 }
 
 // newTestChain creates a blockchain of the given length.
-func newTestChain(length int, genesis *types.Block) *testChain {
+func newTestChain(length int, gspec *core.Genesis) *testChain {
+	genesisBlock := gspec.MustCommit(testDB)
 	tc := &testChain{
-		blocks: []*types.Block{genesis},
+		blocks: []*types.Block{genesisBlock},
 	}
-	tc.generate(length-1, 0, genesis, false)
+	tc.generate(length-1, 0, gspec, genesisBlock, false)
 	return tc
 }
 
@@ -137,8 +139,8 @@ func (tc *testChain) copy(newlen int) *testChain {
 // the returned hash chain is ordered head->parent. In addition, every 22th block
 // contains a transaction and every 5th an uncle to allow testing correct block
 // reassembly.
-func (tc *testChain) generate(n int, seed byte, parent *types.Block, heavy bool) {
-	_, blocks := core.GenerateBlockChain2(params.TestChainConfig, parent, consensus.NewFakerWithDataBase(testDB, parent), testDB, n, func(i int, block *core.BlockGen) {
+func (tc *testChain) generate(n int, seed byte, gspec *core.Genesis, parent *types.Block, heavy bool) {
+	_, blocks := core.GenerateBlockChain2(gspec, parent, consensus.NewFakerWithDataBase(testDB, parent), testDB, n, func(i int, block *core.BlockGen) {
 		block.SetCoinbase(common.Address{seed})
 		// If a heavy chain is requested, delay blocks to raise difficulty
 		if heavy {
@@ -192,7 +194,7 @@ func newTestBlockchain(blocks []*types.Block) *core.BlockChain {
 		db := rawdb.NewMemoryDatabase()
 		gesis := core.GenesisBlockForTesting(db, testAddress, big.NewInt(1000000000000000))
 		mockConsensus := consensus.NewFakerWithDataBase(db, gesis)
-		chain, err := core.NewBlockChain(db, nil, params.TestChainConfig, mockConsensus, vm.Config{}, nil, nil)
+		chain, err := core.NewBlockChain(db, nil, testGspec, nil, mockConsensus, vm.Config{}, nil, nil)
 		if err != nil {
 			panic(err)
 		}

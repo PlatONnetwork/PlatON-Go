@@ -20,13 +20,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -186,11 +187,11 @@ func TestBlockSubscription(t *testing.T) {
 		db           = rawdb.NewMemoryDatabase()
 		backend, sys = newTestFilterSystem(t, db, Config{})
 		api          = NewFilterAPI(sys, false)
-		genesis      = (&core.Genesis{BaseFee: big.NewInt(params.InitialBaseFee)}).MustCommit(db)
-
+		addr         = common.BytesToAddress([]byte("platon"))
+		genesis      = core.GenesisForTesting(addr, big.NewInt(1000000))
 		//ctx         = node.NewServiceContext(&node.Config{DataDir: ""}, nil, new(event.TypeMux), nil)
 		//chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, ctx), db, 10, func(i int, gen *core.BlockGen) {})
-		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, consensus.NewFaker(), db, 10, func(i int, gen *core.BlockGen) {})
+		_, chain, _ = core.GenerateChainWithGenesis(genesis, consensus.NewFaker(), 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 

@@ -69,12 +69,13 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, 
 		db     = rawdb.NewMemoryDatabase()
 		config = params.TestChainConfig
 	)
-	genesis := (&core.Genesis{
+	gspec := &core.Genesis{
 		Config: config,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
-	}).MustCommit(db)
+	}
+	gBlock := gspec.MustCommit(db)
 
-	chain, _ := core.GenerateBlockChain2(params.TestChainConfig, genesis, consensus.NewFakerWithDataBase(db, genesis), db, blocks, generator)
+	chain, _ := core.GenerateBlockChain2(gspec, gBlock, consensus.NewFakerWithDataBase(db, gBlock), db, blocks, generator)
 	cache := core.NewBlockChainCache(chain)
 
 	txconfig := txpool.DefaultConfig
