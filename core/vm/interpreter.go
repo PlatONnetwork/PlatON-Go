@@ -94,8 +94,10 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 		table = &shanghaiInstructionSet
 	} else if evm.chainRules.IsDirac || gov.Gte160VersionState(evm.StateDB) {
 		table = &shanghaiInstructionSet
-	} else {
+	} else if evm.chainRules.IsPauli || gov.Gte150VersionState(evm.StateDB) {
 		table = &londonInstructionSet
+	} else {
+		table = &istanbulInstructionSet
 	}
 
 	var extraEips []int

@@ -52,7 +52,7 @@ var (
 	//homesteadInstructionSet      = newHomesteadInstructionSet()
 	//byzantiumInstructionSet      = newByzantiumInstructionSet()
 	//constantinopleInstructionSet = newConstantinopleInstructionSet()
-	//istanbulInstructionSet = newIstanbulInstructionSet()
+	istanbulInstructionSet = newIstanbulInstructionSet()
 	//berlinInstructionSet   = newBerlinInstructionSet()
 	londonInstructionSet   = newLondonInstructionSet()
 	shanghaiInstructionSet = newShanghaiInstructionSet()
