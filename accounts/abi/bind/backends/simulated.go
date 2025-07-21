@@ -86,7 +86,7 @@ func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.Genesis
 	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, GasLimit: gasLimit, Alloc: alloc}
 	xcom.GetEc(xcom.DefaultUnitTestNet)
 	gBlock := genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, consensus.NewFakerWithDataBase(database, gBlock), vm.Config{}, nil, nil)
+	blockchain, _ := core.NewBlockChain(database, nil, &genesis, nil, consensus.NewFakerWithDataBase(database, gBlock), vm.Config{}, nil, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,

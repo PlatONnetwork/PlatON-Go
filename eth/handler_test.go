@@ -134,12 +134,14 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 	// Create a database pre-initialize with a genesis block
 	xcom.GetEc(xcom.DefaultUnitTestNet)
 	db := rawdb.NewMemoryDatabase()
-	gBlock := (&core.Genesis{
+	gspec := &core.Genesis{
 		Config: params.TestChainConfig,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(1000000)}},
-	}).MustCommit(db)
+	}
+	gBlock := gspec.MustCommit(db)
 	engine := consensus.NewFakerWithDataBase(db, gBlock)
-	chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, engine, vm.Config{}, nil, nil)
+
+	chain, _ := core.NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, nil)
 
 	engine.InsertChain(chain.CurrentBlock())
 	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), engine, db, blocks, nil)

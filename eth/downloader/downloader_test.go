@@ -70,14 +70,19 @@ func newTester(t *testing.T) *downloadTester {
 	t.Cleanup(func() {
 		db.Close()
 	})
-	genesis := core.GenesisBlockForTesting(db, testAddress, big.NewInt(1000000000000000))
+	//genesis := core.GenesisBlockForTesting(db, testAddress, big.NewInt(1000000000000000))
+	gspec := &core.Genesis{
+		Alloc:   core.GenesisAlloc{testAddress: {Balance: big.NewInt(1000000000000000)}},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
+	genesisBlock := gspec.MustCommit(db)
 
 	sdb, err := snapshotdb.OpenWithStorage(storage.NewMemStorage(), 0, 0, false)
 	if err != nil {
 		panic(err)
 	}
-	cbft := consensus.NewFakerWithDataBase(db, genesis)
-	chain, err := core.NewBlockChain(db, nil, params.TestChainConfig, cbft, vm.Config{}, nil, nil)
+	cbft := consensus.NewFakerWithDataBase(db, genesisBlock)
+	chain, err := core.NewBlockChain(db, nil, gspec, nil, cbft, vm.Config{}, nil, nil)
 	if err != nil {
 		panic(err)
 	}

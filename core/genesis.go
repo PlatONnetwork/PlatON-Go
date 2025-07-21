@@ -382,6 +382,43 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	return nil
 }
 
+func LoadGenesisChainConfig(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+	// Load the stored chain config from the database. It can be nil
+	// in case the database is empty. Notably, we only care about the
+	// chain config corresponds to the canonical chain.
+	stored := rawdb.ReadCanonicalHash(db, 0)
+	if stored != (common.Hash{}) {
+		storedcfg := rawdb.ReadChainConfig(db, stored)
+		if storedcfg != nil {
+			return storedcfg, stored, nil
+		}
+	}
+	if genesis == nil {
+		log.Info("Default main-net genesis block")
+		genesis = DefaultGenesisBlock()
+	}
+	// Load the config from the provided genesis specification.
+	if genesis != nil {
+		// Reject invalid genesis spec without valid chain config
+		if genesis.Config == nil {
+			return nil, stored, errGenesisNoConfig
+		}
+		// If the canonical genesis header is present, but the chain
+		// config is missing(initialize the empty leveldb with an
+		// external ancient chain segment), ensure the provided genesis
+		// is matched.
+		// 此处注释，backend处再做校验
+		//if stored != (common.Hash{}) && genesis.ToBlock().Hash() != stored {
+		//	return nil, &GenesisMismatchError{stored, genesis.ToBlock().Hash()}
+		//}
+		return genesis.Config, stored, nil
+	}
+	// There is no stored chain config and no new config provided,
+	// In this case the default chain config(mainnet) will be used,
+	// namely ethash is the specified consensus engine, return nil.
+	return nil, stored, nil
+}
+
 func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
@@ -593,6 +630,14 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}
 	return g.MustCommit(db)
+}
+
+func GenesisForTesting(addr common.Address, balance *big.Int) *Genesis {
+	return &Genesis{
+		Config:  params.TestChainConfig,
+		Alloc:   GenesisAlloc{addr: {Balance: balance}},
+		BaseFee: big.NewInt(params.InitialBaseFee),
+	}
 }
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.

@@ -102,7 +102,8 @@ func (t *BlockTest) Run(snapshotter bool) error {
 
 	// import pre accounts & construct test genesis block & state root
 	db := rawdb.NewMemoryDatabase()
-	gblock, err := t.genesis(config).Commit(db, snapshotdb.Instance())
+	gspec := t.genesis(config)
+	gblock, err := gspec.Commit(db, snapshotdb.Instance())
 	if err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (t *BlockTest) Run(snapshotter bool) error {
 		cache.SnapshotLimit = 1
 		cache.SnapshotWait = true
 	}
-	chain, err := core.NewBlockChain(db, cache, config, nil, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(db, cache, gspec, nil, nil, vm.Config{}, nil, nil)
 	if err != nil {
 		return err
 	}
