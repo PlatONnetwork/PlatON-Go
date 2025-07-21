@@ -65,7 +65,7 @@ func (self ValueStorage) Copy() ValueStorage {
 // The usage pattern is as follows:
 // First you need to obtain a state object.
 // Account values can be accessed and modified through the object.
-// Finally, call CommitTrie to write the modified storage trie into a database.
+// Finally, call commitTrie to write the modified storage trie into a database.
 type stateObject struct {
 	address  common.Address
 	addrHash common.Hash // hash of ethereum address of the account
@@ -417,7 +417,7 @@ func (s *stateObject) updateRoot(db Database) {
 
 // commitTrie submits the storage changes into the storage trie and re-computes
 // the root. Besides, all trie changes will be collected in a nodeset and returned.
-func (s *stateObject) CommitTrie(db Database) (*trie.NodeSet, error) {
+func (s *stateObject) commitTrie(db Database) (*trie.NodeSet, error) {
 	tr, err := s.updateTrie(db)
 	if err != nil {
 		return nil, err
