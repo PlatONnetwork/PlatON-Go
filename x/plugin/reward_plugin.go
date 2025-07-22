@@ -398,9 +398,9 @@ func (rmp *RewardMgrPlugin) rewardStakingByValidatorList(state xcom.StateDB, lis
 	totalValidatorReward, totalValidatorDelegateReward := new(big.Int), new(big.Int)
 
 	for _, value := range list {
-		stakingReward := new(big.Int).Set(everyValidatorReward)
+		delegateReward, stakingReward := new(big.Int), new(big.Int).Set(everyValidatorReward)
 		if value.ShouldGiveDelegateReward() {
-			delegateReward, stakingReward := rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
+			delegateReward, stakingReward = rmp.CalDelegateRewardAndNodeReward(everyValidatorReward, value.RewardPer)
 			totalValidatorDelegateReward.Add(totalValidatorDelegateReward, delegateReward)
 			log.Debug("allocate delegate reward of staking one-by-one", "nodeId", value.NodeId.TerminalString(), "staking reward", stakingReward, "per", value.RewardPer, "delegateReward", delegateReward)
 			//the  CurrentEpochDelegateReward will use by cal delegate reward Per
