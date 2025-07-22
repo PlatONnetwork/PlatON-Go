@@ -955,6 +955,8 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
+			//todo: 节点解除质押后，资金将会被锁定一段时间，锁定时间到期后，将会自动转账到节点的质押账户
+			//todo: 此过程没有交易，因此也没有log，所以，要在此处采集信息
 			state.AddBalance(can.StakingAddress, balance)
 			state.SubBalance(vm.StakingContractAddr, balance)
 			return new(big.Int).SetInt64(0)
