@@ -1,0 +1,37 @@
+run:
+  timeout: 30m
+  issues-exit-code: 1
+  tests: false # Exclude test files from linting
+
+linters-settings:
+  govet:
+    check-shadowing: true
+  gofmt:
+    extra-rules: true
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  nolintlint:
+    allow-unused: false
+    require-explanation: true
+    require-specific: true
+
+linters:
+  enable-all: true # Enable all available linters
+  disable:
+    - depguard
+    - lll
+    - funlen
+    - cyclop
+    - godot
+    - wsl
+    - maligned
+    - prealloc
+    - goimports # goimports handles formatting, but can be disabled if you use gofmt
+
+issues:
+  exclude-use-default: false
+  max-per-linter: 0
+  max-issues-per-file: 0
+  exclude-dirs:
+    - tests

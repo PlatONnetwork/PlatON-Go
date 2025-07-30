@@ -9,12 +9,12 @@ jobs:
     steps:
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: ^1.16
+          go-version: ^1.22
         id: go
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: make
         run: bash ./build/build_deps.sh
@@ -24,9 +24,7 @@ jobs:
           go mod download
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           version: 'latest'
-          args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --skip-dirs="tests" --skip-dirs-use-default=true --disable-all   --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen
-          skip-go-installation: true
-          skip-pkg-cache: true
+          args: --config=.golangci.yml
