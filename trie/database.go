@@ -454,6 +454,14 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 	return nil, errors.New("not found")
 }
 
+func (db *Database) NodeExistsInMemory(hash common.Hash) bool {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+
+	_, ok := db.dirties[hash]
+	return ok
+}
+
 // Nodes retrieves the hashes of all the nodes cached within the memory database.
 // This method is extremely expensive and should only be used to validate internal
 // states in test code.
@@ -1065,6 +1073,10 @@ func (reader *hashReader) Node(_ common.Hash, _ []byte, hash common.Hash) (node,
 func (reader *hashReader) NodeBlob(_ common.Hash, _ []byte, hash common.Hash) ([]byte, error) {
 	blob, _ := reader.db.Node(hash)
 	return blob, nil
+}
+
+func (reader *hashReader) NodeExistsInMemory(_ common.Hash, _ []byte, hash common.Hash) bool {
+	return reader.db.NodeExistsInMemory(hash)
 }
 
 // saveCache saves clean state cache to given directory path

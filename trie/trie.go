@@ -648,7 +648,7 @@ func (t *Trie) copyNode(n node) {
 	case *shortNode:
 		if _, ok := n.Val.(valueNode); !ok {
 			if _, dirty := n.Val.cache(); !dirty {
-				if hash, _ := n.Val.cache(); len(hash) != 0 {
+				if hash, _ := n.Val.cache(); len(hash) != 0 && t.reader.nodeExistsInMemory(common.BytesToHash(hash)) {
 					n.Val = hash
 				}
 			} else {
@@ -667,7 +667,7 @@ func (t *Trie) copyNode(n node) {
 			if n.Children[i] != nil {
 				if _, ok := n.Children[i].(valueNode); !ok {
 					if _, dirty := n.Children[i].cache(); !dirty {
-						if hash, _ := n.Children[i].cache(); len(hash) != 0 {
+						if hash, _ := n.Children[i].cache(); len(hash) != 0 && t.reader.nodeExistsInMemory(common.BytesToHash(hash)) {
 							n.Children[i] = hash
 						}
 					} else {
