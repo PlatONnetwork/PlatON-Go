@@ -42,6 +42,7 @@ func (fc *fileCache) scan(keyDir string) (mapset.Set[string], mapset.Set[string]
 
 	// List all the files from the keystore folder
 	files, err := os.ReadDir(keyDir)
+
 	if err != nil {
 		return nil, nil, nil, err
 	}
