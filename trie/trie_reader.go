@@ -33,6 +33,8 @@ type Reader interface {
 	// identifier, hexary node path and the corresponding node hash.
 	// No error will be returned if the node is not found.
 	NodeBlob(owner common.Hash, path []byte, hash common.Hash) ([]byte, error)
+
+	NodeExistsInMemory(owner common.Hash, path []byte, hash common.Hash) bool
 }
 
 // NodeReader wraps all the necessary functions for accessing trie node.
@@ -103,4 +105,11 @@ func (r *trieReader) nodeBlob(path []byte, hash common.Hash) ([]byte, error) {
 		return nil, &MissingNodeError{Owner: r.owner, NodeHash: hash, Path: path, err: err}
 	}
 	return blob, nil
+}
+
+func (r *trieReader) nodeExistsInMemory(hash common.Hash) bool {
+	if r.reader == nil {
+		return false
+	}
+	return r.reader.NodeExistsInMemory(r.owner, []byte{}, hash)
 }
