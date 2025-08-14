@@ -41,11 +41,11 @@ const ProtocolName = "platon"
 
 // ProtocolVersions are the supported versions of the `eth` protocol (first
 // is primary).
-var ProtocolVersions = []uint{ETH68, ETH67, ETH66}
+var ProtocolVersions = []uint{ETH68, ETH66}
 
 // protocolLengths are the number of implemented message corresponding to
 // different protocol versions.
-var protocolLengths = map[uint]uint64{ETH68: 40, ETH67: 40, ETH66: 40}
+var protocolLengths = map[uint]uint64{ETH68: 40, ETH66: 40}
 
 // maxMessageSize is the maximum cap on the size of a protocol message.
 const maxMessageSize = 10 * 1024 * 1024
