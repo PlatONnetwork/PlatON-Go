@@ -277,9 +277,9 @@ type TxPool struct {
 	signer types.Signer
 	mu     sync.RWMutex
 
-	eip2718  bool // Fork indicator whether we are using EIP-2718 type transactions.
-	eip1559  bool // Fork indicator whether we are using EIP-1559 type transactions.
-	shanghai bool // Fork indicator whether we are in the Shanghai stage.
+	eip2718 bool // Fork indicator whether we are using EIP-2718 type transactions.
+	eip1559 bool // Fork indicator whether we are using EIP-1559 type transactions.
+	dirac   bool // Fork indicator whether we are in the ETH's Shanghai stage.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *noncer        // Pending state tracking virtual nonces
@@ -354,6 +354,11 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 			if gte150 := gov.Gte150VersionState(stateDB); gte150 {
 				pool.eip2718, pool.eip1559 = true, true
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
+			}
+			if gte160 := gov.Gte160VersionState(stateDB); gte160 {
+				pool.dirac = true
+			} else {
+				pool.dirac = false
 			}
 		}
 	}
@@ -601,6 +606,9 @@ func (pool *TxPool) SetGasPrice(price *big.Int) {
 // Nonce returns the next nonce of an account, with all transactions executable
 // by the pool already applied on top.
 func (pool *TxPool) Nonce(addr common.Address) uint64 {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
 	return pool.pendingNonces.get(addr)
 }
 
@@ -739,7 +747,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrOversizedData
 	}
 	// Check whether the init code size has been exceeded.
-	if pool.shanghai && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
+	if pool.dirac && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
 		return fmt.Errorf("%w: code size %v limit %v", core.ErrMaxInitCodeSizeExceeded, len(tx.Data()), params.MaxInitCodeSize)
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -781,7 +789,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return core.ErrInsufficientFunds
 	}
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.shanghai)
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.dirac)
 	if err != nil {
 		return err
 	}
@@ -1507,9 +1515,9 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	pool.cacheAccountNeedPromoted.signer = pool.signer
 	gte160 := gov.Gte160VersionState(statedb)
 	if gte160 {
-		pool.shanghai = true
+		pool.dirac = true
 	} else {
-		pool.shanghai = false
+		pool.dirac = false
 	}
 }
 
