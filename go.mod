@@ -65,6 +65,7 @@ require (
 
 require (
 	github.com/cockroachdb/pebble v1.1.0
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
