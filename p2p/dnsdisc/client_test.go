@@ -20,11 +20,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/internal/testlog"
