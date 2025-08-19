@@ -721,7 +721,7 @@ func (dl *diskLayer) generate(stats *generatorStats) {
 	}
 	ctx.batch.Reset()
 
-	log.Error("Generated state snapshot", "accounts", stats.accounts, "slots", stats.slots,
+	log.Info("Generated state snapshot", "accounts", stats.accounts, "slots", stats.slots,
 		"storage", stats.storage, "dangling", stats.dangling, "elapsed", common.PrettyDuration(time.Since(stats.start)))
 
 	dl.lock.Lock()

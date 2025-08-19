@@ -336,7 +336,7 @@ func buildBlock(t *testing.T, maxNumber int, stateDb xcom.StateDB) (*ecdsa.Priva
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
 		blockNum := big.NewInt(int64(i + 1))
-		if i == int(1) {
+		if i == 1 {
 			sk = pri2
 		}
 		header := &types.Header{

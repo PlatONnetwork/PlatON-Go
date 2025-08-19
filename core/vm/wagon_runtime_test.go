@@ -101,12 +101,12 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: BlockContext{
-				Time: big.NewInt(93),
+				Time: 93,
 			}}},
 		funcName: "platon_timestamp_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time.Uint64())
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time)
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},

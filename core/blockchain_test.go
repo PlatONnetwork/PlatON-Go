@@ -18,6 +18,7 @@ package core
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"os"
 	"testing"
@@ -58,8 +59,9 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *G
 			Config:  params.AllEthashProtocolChanges,
 		}
 	)
+
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), nil, genesis, nil, engine, vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), nil, genesis, snapshotdb.Instance(), engine, vm.Config{}, nil, nil)
 	// Create and inject the requested chain
 	if n == 0 {
 		return rawdb.NewMemoryDatabase(), genesis, blockchain, nil
@@ -187,7 +189,7 @@ func testBrokenChain(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgShortHeaders(t *testing.T) { testReorgShort(t, false) }
 
-//func TestReorgShortBlocks(t *testing.T)  { testReorgShort(t, true) }
+func TestReorgShortBlocks(t *testing.T)  { testReorgShort(t, true) }
 
 func testReorgShort(t *testing.T, full bool) {
 	// Create a long easy chain vs. a short heavy one. Due to difficulty adjustment
@@ -209,7 +211,7 @@ func testReorgShort(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgLongHeaders(t *testing.T) { testReorgLong(t, false) }
 
-//func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
+func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
 
 func testReorgLong(t *testing.T, full bool) {
 	testReorg(t, []int64{0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)

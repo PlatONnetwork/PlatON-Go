@@ -712,7 +712,7 @@ func TestOpTstore(t *testing.T) {
 		stack          = newstack()
 		rstack         = newReturnStack()
 		mem            = NewMemory()
-		evmInterpreter = NewEVMInterpreter(env, env.Config)
+		evmInterpreter = NewEVMInterpreter(env)
 		caller         = common.Address{}
 		to             = common.Address{1}
 		contractRef    = contractRef{caller}
