@@ -55,8 +55,9 @@ func init() {
 func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *Genesis, *BlockChain, error) {
 	var (
 		genesis = &Genesis{
-			BaseFee: big.NewInt(params.InitialBaseFee),
-			Config:  params.AllEthashProtocolChanges,
+			BaseFee:       big.NewInt(params.InitialBaseFee),
+			Config:        params.AllEthashProtocolChanges,
+			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 		}
 	)
 
@@ -189,7 +190,7 @@ func testBrokenChain(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgShortHeaders(t *testing.T) { testReorgShort(t, false) }
 
-func TestReorgShortBlocks(t *testing.T)  { testReorgShort(t, true) }
+func TestReorgShortBlocks(t *testing.T) { testReorgShort(t, true) }
 
 func testReorgShort(t *testing.T, full bool) {
 	// Create a long easy chain vs. a short heavy one. Due to difficulty adjustment
@@ -211,7 +212,7 @@ func testReorgShort(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgLongHeaders(t *testing.T) { testReorgLong(t, false) }
 
-func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
+func TestReorgLongBlocks(t *testing.T) { testReorgLong(t, true) }
 
 func testReorgLong(t *testing.T, full bool) {
 	testReorg(t, []int64{0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)
