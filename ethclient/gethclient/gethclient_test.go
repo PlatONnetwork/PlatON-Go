@@ -396,20 +396,19 @@ func TestOverrideAccountMarshal(t *testing.T) {
 	}
 
 	expected := `{
-  "0x1100000000000000000000000000000000000000": {},
-  "0xaa00000000000000000000000000000000000000": {
+  "lat14gqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqttljlt": {
     "nonce": "0x5"
   },
-  "0xbb00000000000000000000000000000000000000": {
-    "code": "0x01"
-  },
-  "0xcc00000000000000000000000000000000000000": {
+  "lat1esqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqx62utv": {
     "code": "0x",
     "balance": "0x0",
     "state": {}
-  }
+  },
+  "lat1hvqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq9c4gex": {
+    "code": "0x01"
+  },
+  "lat1zyqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6xqxus": {}
 }`
-
 	if string(marshalled) != expected {
 		t.Error("wrong output:", string(marshalled))
 		t.Error("want:", expected)
