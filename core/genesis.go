@@ -634,9 +634,10 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 func GenesisForTesting(addr common.Address, balance *big.Int) *Genesis {
 	return &Genesis{
-		Config:  params.TestChainConfig,
-		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.InitialBaseFee),
+		Config:        params.TestChainConfig,
+		Alloc:         GenesisAlloc{addr: {Balance: balance}},
+		BaseFee:       big.NewInt(params.InitialBaseFee),
+		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 	}
 }
 
