@@ -123,7 +123,7 @@ var (
 	}
 	MainnetFlag = &cli.BoolFlag{
 		Name:     "mainnet",
-		Usage:    "Ethereum mainnet",
+		Usage:    "PlatON mainnet",
 		Category: flags.EthCategory,
 	}
 	TestnetFlag = &cli.BoolFlag{
@@ -678,7 +678,7 @@ var (
 	HttpHeaderFlag = &cli.StringSliceFlag{
 		Name:     "header",
 		Aliases:  []string{"H"},
-		Usage:    "Pass custom headers to the RPC server when using --" + RemoteDBFlag.Name + " or the PlatON attach console. This flag can be given multiple times.",
+		Usage:    "Pass custom headers to the RPC server when using --" + RemoteDBFlag.Name + " or the platon attach console. This flag can be given multiple times.",
 		Category: flags.APICategory,
 	}
 

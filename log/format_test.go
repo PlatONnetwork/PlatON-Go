@@ -1,9 +1,11 @@
 package log
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
+	"strings"
 	"testing"
 )
 

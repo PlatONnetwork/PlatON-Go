@@ -101,12 +101,12 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: BlockContext{
-				Time: big.NewInt(93),
+				Time: 93,
 			}}},
 		funcName: "platon_timestamp_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time.Uint64())
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time)
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},
@@ -863,7 +863,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 0, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 13, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
@@ -932,7 +932,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 0, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 13, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
