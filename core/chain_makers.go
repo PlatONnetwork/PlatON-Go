@@ -319,6 +319,7 @@ func GenerateBlockChain2(gspec *Genesis, parent *types.Block, engine consensus.E
 		if err != nil {
 			panic(err)
 		}
+		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
 		block, receipt := genblock(i, parent, statedb)
 		errCh := make(chan error, 1)
 		errCh <- engine.InsertChain(block)
