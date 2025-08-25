@@ -18,16 +18,15 @@ package core
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
@@ -2071,8 +2070,16 @@ func TestEIP3651(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
+	if bcr != nil {
+		bcr.Start(common.INNER_VALIDATOR_MODE)
+
+	}
+	exu := GetExecutor()
+	if exu != nil {
+		exu.chainConfig = gspec.Config
+	}
+
 	engine.SetChain(chain)
-	NewExecutor(gspec.Config, chain, chain.vmConfig)
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}
