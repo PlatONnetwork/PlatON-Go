@@ -453,7 +453,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit:   parent.GasLimit(),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
-		Extra:      make([]byte, 65),
+		Extra:      make([]byte, 97),
 	}
 
 	if chain.Config().IsPauli(header.Number) {

@@ -72,6 +72,7 @@ func newTester(t *testing.T) *downloadTester {
 	})
 	//genesis := core.GenesisBlockForTesting(db, testAddress, big.NewInt(1000000000000000))
 	gspec := &core.Genesis{
+		Config:  params.TestChainConfig,
 		Alloc:   core.GenesisAlloc{testAddress: {Balance: big.NewInt(1000000000000000)}},
 		BaseFee: big.NewInt(params.InitialBaseFee),
 	}

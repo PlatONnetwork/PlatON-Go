@@ -55,16 +55,18 @@ func init() {
 func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *Genesis, *BlockChain, error) {
 	var (
 		genesis = &Genesis{
-			BaseFee: big.NewInt(params.InitialBaseFee),
-			Config:  params.AllEthashProtocolChanges,
+			BaseFee:       big.NewInt(params.InitialBaseFee),
+			Config:        params.AllEthashProtocolChanges,
+			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 		}
 	)
 
+	db := rawdb.NewMemoryDatabase()
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := NewBlockChain(rawdb.NewMemoryDatabase(), nil, genesis, snapshotdb.Instance(), engine, vm.Config{}, nil, nil)
+	blockchain, _ := NewBlockChain(db, nil, genesis, snapshotdb.Instance(), engine, vm.Config{}, nil, nil)
 	// Create and inject the requested chain
 	if n == 0 {
-		return rawdb.NewMemoryDatabase(), genesis, blockchain, nil
+		return db, genesis, blockchain, nil
 	}
 	if full {
 		// Full block-chain requested
@@ -189,7 +191,7 @@ func testBrokenChain(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgShortHeaders(t *testing.T) { testReorgShort(t, false) }
 
-func TestReorgShortBlocks(t *testing.T)  { testReorgShort(t, true) }
+func TestReorgShortBlocks(t *testing.T) { testReorgShort(t, true) }
 
 func testReorgShort(t *testing.T, full bool) {
 	// Create a long easy chain vs. a short heavy one. Due to difficulty adjustment
@@ -202,7 +204,7 @@ func testReorgShort(t *testing.T, full bool) {
 	}
 	diff := make([]int64, len(easy)-1)
 	for i := 0; i < len(diff); i++ {
-		diff[i] = -9
+		diff[i] = 60 // platon does not need to test difficulty
 	}
 	testReorg(t, easy, diff, 12615120, full)
 }
@@ -211,10 +213,10 @@ func testReorgShort(t *testing.T, full bool) {
 // overwrites the canonical numbers and links in the database.
 func TestReorgLongHeaders(t *testing.T) { testReorgLong(t, false) }
 
-func TestReorgLongBlocks(t *testing.T)  { testReorgLong(t, true) }
+func TestReorgLongBlocks(t *testing.T) { testReorgLong(t, true) }
 
 func testReorgLong(t *testing.T, full bool) {
-	testReorg(t, []int64{0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)
+	testReorg(t, []int64{0, 0, 0, -9}, []int64{0, 0, 0, -9}, 393280, full)
 }
 
 func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
@@ -2046,7 +2048,8 @@ func TestEIP3651(t *testing.T) {
 	engine := consensus.NewFakerWithDataBase(db, genesis)
 	//signer := types.HomesteadSigner{}
 	signer := types.LatestSigner(gspec.Config, true)
-	blocks, _ := GenerateChain(gspec.Config, gspec.MustCommit(db), engine, db, 1, func(i int, b *BlockGen) {
+	sdb := snapshotdb.Instance()
+	blocks, _ := GenerateChain(gspec.Config, gspec.ToBlock(db, sdb), engine, db, 1, func(i int, b *BlockGen) {
 		b.SetCoinbase(aa)
 		// One transaction to Coinbase
 		txdata := &types.DynamicFeeTx{
@@ -2064,7 +2067,7 @@ func TestEIP3651(t *testing.T) {
 
 		b.AddTx(tx)
 	})
-	chain, err := NewBlockChain(db, nil, gspec, nil, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, nil, nil)
+	chain, err := NewBlockChain(db, nil, gspec, sdb, engine, vm.Config{Tracer: logger.NewMarkdownLogger(&logger.Config{}, os.Stderr)}, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to create tester chain: %v", err)
 	}
