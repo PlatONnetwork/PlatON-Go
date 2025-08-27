@@ -223,6 +223,8 @@ func encodeAsV3StoredReceiptRLP(want *Receipt) ([]byte, error) {
 
 // Tests that receipt data can be correctly derived from the contextual infos
 func TestDeriveFields(t *testing.T) {
+	// Re-derive receipts.
+	basefee := big.NewInt(1000)
 	// Create a few transactions to have receipts for
 	to2 := common.HexToAddress("0x2")
 	to3 := common.HexToAddress("0x3")
@@ -290,7 +292,7 @@ func TestDeriveFields(t *testing.T) {
 	hash := common.BytesToHash([]byte{0x03, 0x14})
 
 	clearComputedFieldsOnReceipts(t, receipts)
-	if err := receipts.DeriveFields(params.TestChainConfig, hash, number.Uint64(), txs); err != nil {
+	if err := receipts.DeriveFields(params.TestChainConfig, hash, number.Uint64(), basefee, txs); err != nil {
 		t.Fatalf("DeriveFields(...) = %v, want <nil>", err)
 	}
 	// Iterate over all the computed fields and check that they're correct

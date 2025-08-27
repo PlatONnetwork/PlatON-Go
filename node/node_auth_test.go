@@ -77,7 +77,7 @@ func (at *authTest) Run(t *testing.T) {
 		t.Fatalf("method was silent but did not return expected value: %q", x)
 	}
 
-	err = cl.CallContext(ctx, &x, "eth_helloWorld")
+	err = cl.CallContext(ctx, &x, "platon_helloWorld")
 	if at.expectCall2Fail {
 		if err == nil {
 			t.Fatal("expected call 2 to fail")
@@ -88,7 +88,7 @@ func (at *authTest) Run(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to call rpc endpoint: %v", err)
 	}
-	if x != "hello eth" {
+	if x != "hello platon" {
 		t.Fatalf("method was silent but did not return expected value: %q", x)
 	}
 }
@@ -113,8 +113,8 @@ func TestAuthEndpoints(t *testing.T) {
 		AuthPort:  0,
 		JWTSecret: jwtPath,
 
-		WSModules:   []string{"eth", "engine"},
-		HTTPModules: []string{"eth", "engine"},
+		WSModules:   []string{"platon", "engine"},
+		HTTPModules: []string{"platon", "engine"},
 	}
 	node, err := New(conf)
 	if err != nil {
@@ -130,9 +130,9 @@ func TestAuthEndpoints(t *testing.T) {
 			Authenticated: true,
 		},
 		{
-			Namespace:     "eth",
+			Namespace:     "platon",
 			Version:       "1.0",
-			Service:       helloRPC("hello eth"),
+			Service:       helloRPC("hello platon"),
 			Public:        true,
 			Authenticated: true,
 		},
