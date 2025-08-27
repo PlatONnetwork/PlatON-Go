@@ -154,9 +154,14 @@ func (p *Peer) announceTransactions() {
 				// If the txgen plugin is enabled, there is no need to determine whether the transaction is in the txpool
 				if tx := p.txpool.Get(queue[count]); tx != nil || p.runTxGenFun() {
 					pending = append(pending, queue[count])
-					pendingTypes = append(pendingTypes, tx.Type())
-					pendingSizes = append(pendingSizes, uint32(tx.Size()))
 					size += common.HashLength
+					if !p.runTxGenFun() {
+						pendingTypes = append(pendingTypes, tx.Type())
+						pendingSizes = append(pendingSizes, uint32(tx.Size()))
+					} else { // 压测插件节点，交易不会进入交易池，因此 tx 为空，这种场景下加上固定的 type 和 size，以便对端处理 NewPooledTransactionHashesMsg 消息
+						pendingTypes = append(pendingTypes, types.DynamicFeeTxType)
+						pendingSizes = append(pendingSizes, uint32(100))
+					}
 				}
 			}
 			// Shift and trim queue
