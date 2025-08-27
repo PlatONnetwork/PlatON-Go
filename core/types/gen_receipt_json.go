@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
