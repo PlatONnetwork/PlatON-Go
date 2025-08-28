@@ -231,6 +231,10 @@ func TestNoStepExec(t *testing.T) {
 }
 
 func TestIsPrecompile(t *testing.T) {
+	chaincfg := params.TestChainConfig
+	chaincfg.EinsteinBlock = big.NewInt(100)
+	chaincfg.HubbleBlock = big.NewInt(200)
+	chaincfg.PauliBlock = big.NewInt(300)
 	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
 	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	if err != nil {
@@ -238,7 +242,7 @@ func TestIsPrecompile(t *testing.T) {
 	}
 
 	blockCtx := vm.BlockContext{BlockNumber: big.NewInt(150)}
-	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, params.TestChainConfig, nil)
+	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -248,7 +252,9 @@ func TestIsPrecompile(t *testing.T) {
 
 	tracer, _ = newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	blockCtx = vm.BlockContext{BlockNumber: big.NewInt(250)}
-	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, params.TestChainConfig, nil)
+	chaincfg = params.TestChainConfig
+	chaincfg.HubbleBlock = big.NewInt(200)
+	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
 	if err != nil {
 		t.Error(err)
 	}
