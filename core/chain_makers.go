@@ -455,6 +455,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
 		Extra:      make([]byte, 97),
+		BaseFee:    big.NewInt(0),
 	}
 
 	if chain.Config().IsPauli(header.Number) {
