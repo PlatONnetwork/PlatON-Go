@@ -45,7 +45,9 @@ func newTestPeer(name string, version uint, backend Backend) (*testPeer, <-chan 
 	var id enode.ID
 	rand.Read(id[:])
 
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net, backend.TxPool(), nil)
+	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net, backend.TxPool(), func() bool {
+		return false
+	})
 	errc := make(chan error, 1)
 	go func() {
 		defer app.Close()
