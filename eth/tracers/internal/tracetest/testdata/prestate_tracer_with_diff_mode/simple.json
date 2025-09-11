@@ -87,16 +87,13 @@
         "balance": "0x6f05b59d3b20000"
       },
       "0x1585936b53834b021f68cc13eeefdec2efc8e724": {
-        "balance": "0x420eed1bd6c00"
+        "balance": "0x4004cdb15dc00"
       },
       "0x3b873a919aa0512d5a0f09e6dcceaa4a6727fafe": {
-        "balance": "0x4d869a3b70062eb9bd5",
-        "storage": {
-          "0x0000000000000000000000000000000000000000000000000000000000000003": "0x000000000000000000000000000000000000000000000000000000005a37b95e"
-        }
+        "balance": "0x4d869a3b70062eb9bd5"
       },
       "0xb436ba50d378d4bbc8660d312a13df6af6e89dfb": {
-        "balance": "0x1780d7725724a9044b75",
+        "balance": "0x1780d77277c69fabdb75",
         "nonce": 29073
       }
     }

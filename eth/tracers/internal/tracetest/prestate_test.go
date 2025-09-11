@@ -18,6 +18,7 @@ package tracetest
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -34,14 +35,25 @@ import (
 )
 
 // prestateTrace is the result of a prestateTrace run.
-type prestateTrace = map[common.Address]*account
+type prestateTrace = map[common.NodeAddress]*account
 
 type account struct {
-	Balance string                      `json:"balance"`
-	Code    string                      `json:"code"`
-	Nonce   uint64                      `json:"nonce"`
-	Storage map[common.Hash]common.Hash `json:"storage"`
+	Balance string                        `json:"balance"`
+	Code    string                        `json:"code"`
+	Nonce   uint64                        `json:"nonce"`
+	Storage map[common.Hash]hexutil.Bytes `json:"storage"`
 }
+
+type prestateTrace2 = map[common.Address]*account2
+
+type account2 struct {
+	Balance string                        `json:"balance,omitempty"`
+	Code    string                        `json:"code,omitempty"`
+	Nonce   uint64                        `json:"nonce,omitempty"`
+	Storage map[common.Hash]hexutil.Bytes `json:"storage,omitempty"`
+}
+
+type prestateTraceString = map[string]*prestateTrace2
 
 // testcase defines a single test to check the stateDiff tracer against.
 type testcase struct {
@@ -129,6 +141,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to retrieve trace result: %v", err)
 			}
+			t.Log("res", string(res))
 			// The legacy javascript calltracer marshals json in js, which
 			// is not deterministic (as opposed to the golang json encoder).
 			if strings.HasSuffix(dirPath, "_legacy") {
@@ -141,6 +154,17 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			want, err := json.Marshal(test.Result)
 			if err != nil {
 				t.Fatalf("failed to marshal test: %v", err)
+			}
+			if dirPath == "prestate_tracer" {
+				var x prestateTrace2
+				if err := json.Unmarshal(want, &x); err != nil {
+					t.Fatalf("failed to unmarshal test: %v", err)
+				}
+				want, _ = json.Marshal(x)
+			} else if dirPath == "prestate_tracer_with_diff_mode" {
+				var x prestateTraceString
+				json.Unmarshal(want, &x)
+				want, _ = json.Marshal(x)
 			}
 			if string(want) != string(res) {
 				t.Fatalf("trace mismatch\n have: %v\n want: %v\n", string(res), string(want))

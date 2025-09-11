@@ -38,8 +38,8 @@
       }
     },
     "config": {
-      "chainId": 3,
-      "pip7ChainId": 3,
+      "chainId": 1,
+      "pip7ChainId": 1,
       "homesteadBlock": 1150000,
       "daoForkBlock": 1920000,
       "daoForkSupport": true,
@@ -84,11 +84,11 @@
     },
     "post": {
       "0x808b4da0be6c9512e948521452227efc619bea52": {
-        "balance": "0x2cd72a36dd031f089",
+        "balance": "0x2cd730df8a2593735",
         "nonce": 1223933
       },
       "0x8f03f1a3f10c05e7cccf75c1fd10168e06659be7": {
-        "balance": "0x38079c19423e44b30e"
+        "balance": "0x3807e186c6d5eaf81c"
       }
     }
   }
