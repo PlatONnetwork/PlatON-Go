@@ -70,7 +70,7 @@ const (
 	// and waste round trip times. If it's too high, we're capping responses and
 	// waste bandwidth.
 	//
-	// Depoyed bytecodes are currently capped at 24KB, so the minimum request
+	// Deployed bytecodes are currently capped at 24KB, so the minimum request
 	// size should be maxRequestSize / 24K. Assuming that most contracts do not
 	// come close to that, requesting 4x should be a good approximation.
 	maxCodeRequestCount = maxRequestSize / (24 * 1024) * 4
@@ -364,7 +364,7 @@ type SyncPeer interface {
 	RequestAccountRange(id uint64, root, origin, limit common.Hash, bytes uint64) error
 
 	// RequestStorageRanges fetches a batch of storage slots belonging to one or
-	// more accounts. If slots from only one accout is requested, an origin marker
+	// more accounts. If slots from only one account is requested, an origin marker
 	// may also be used to retrieve from there.
 	RequestStorageRanges(id uint64, root common.Hash, accounts []common.Hash, origin, limit []byte, bytes uint64) error
 
