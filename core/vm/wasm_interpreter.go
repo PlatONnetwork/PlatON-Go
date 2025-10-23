@@ -28,7 +28,6 @@ type WASMInterpreter struct {
 
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
-
 	return &WASMInterpreter{
 		evm:      evm,
 		cfg:      cfg,
@@ -118,7 +117,6 @@ var creators = map[WasmInsType]wasmEngineCreator{
 }
 
 func NewWasmEngineCreator(vm WasmInsType) (wasmEngineCreator, error) {
-
 	if creator, ok := creators[vm]; ok {
 		return creator, nil
 	}

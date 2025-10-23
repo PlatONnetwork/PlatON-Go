@@ -80,8 +80,8 @@ type Cleaner struct {
 	scope     event.SubscriptionScope
 	cleanCh   chan *CleanupEvent
 
-	batch      CleanBatch
-	lock       sync.RWMutex
+	batch CleanBatch
+	//lock       sync.RWMutex
 	blockchain *BlockChain
 }
 
@@ -205,5 +205,4 @@ func (c *Cleaner) cleanup() {
 		atomic.StoreUint64(&c.lastNumber, number-1)
 		db.Put(lastNumberKey, common.Uint64ToBytes(number-1))
 	}
-
 }

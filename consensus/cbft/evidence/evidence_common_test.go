@@ -67,7 +67,6 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 	pk, sk := GenerateKeys(num)
 	nodes := make([]*cbfttypes.ValidateNode, num)
 	for i := 0; i < num; i++ {
-
 		nodes[i] = &cbfttypes.ValidateNode{
 			Index:   uint32(i),
 			Address: crypto.PubkeyToNodeAddress(pk[i].PublicKey),
@@ -75,7 +74,6 @@ func createValidateNode(num int) ([]*cbfttypes.ValidateNode, []*bls.SecretKey) {
 			NodeID:  enode.PubkeyToIDV4(&pk[i].PublicKey),
 		}
 		nodes[i].BlsPubKey = sk[i].GetPublicKey()
-
 	}
 	return nodes, sk
 }

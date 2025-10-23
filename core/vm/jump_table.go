@@ -48,13 +48,14 @@ type operation struct {
 }
 
 var (
-	frontierInstructionSet       = newFrontierInstructionSet()
-	homesteadInstructionSet      = newHomesteadInstructionSet()
-	byzantiumInstructionSet      = newByzantiumInstructionSet()
-	constantinopleInstructionSet = newConstantinopleInstructionSet()
-	istanbulInstructionSet       = newIstanbulInstructionSet()
-	berlinInstructionSet         = newBerlinInstructionSet()
-	londonInstructionSet         = newLondonInstructionSet()
+	//frontierInstructionSet       = newFrontierInstructionSet()
+	//homesteadInstructionSet      = newHomesteadInstructionSet()
+	//byzantiumInstructionSet      = newByzantiumInstructionSet()
+	//constantinopleInstructionSet = newConstantinopleInstructionSet()
+	istanbulInstructionSet = newIstanbulInstructionSet()
+	//berlinInstructionSet   = newBerlinInstructionSet()
+	londonInstructionSet   = newLondonInstructionSet()
+	shanghaiInstructionSet = newShanghaiInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -63,7 +64,7 @@ type JumpTable [256]*operation
 func validate(jt JumpTable) JumpTable {
 	for i, op := range jt {
 		if op == nil {
-			panic(fmt.Sprintf("op 0x%x is not set", i))
+			panic(fmt.Sprintf("op %#x is not set", i))
 		}
 		// The interpreter has an assumption that if the memorySize function is
 		// set, then the dynamicGas function is also set. This is a somewhat
@@ -77,6 +78,12 @@ func validate(jt JumpTable) JumpTable {
 	}
 	return jt
 }
+func newShanghaiInstructionSet() JumpTable {
+	instructionSet := newLondonInstructionSet()
+	enable3860(&instructionSet) // Limit and meter initcode
+	enable1153(&instructionSet)
+	return validate(instructionSet)
+}
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,
 // contantinople, istanbul, petersburg, berlin and london instructions.
@@ -87,7 +94,7 @@ func newLondonInstructionSet() JumpTable {
 	enable3855(&instructionSet) // PUSH0 instruction
 
 	//this is merge op code
-	instructionSet[RANDOM] = &operation{
+	instructionSet[PREVRANDAO] = &operation{
 		execute:     opRandom,
 		constantGas: GasQuickStep,
 		minStack:    minStack(0, 1),
@@ -105,8 +112,8 @@ func newBerlinInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newIstanbulInstructionSet returns the frontier, homestead
-// byzantium, contantinople and petersburg instructions.
+// newIstanbulInstructionSet returns the frontier, homestead, byzantium,
+// contantinople, istanbul and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -118,10 +125,9 @@ func newIstanbulInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// newConstantinopleInstructionSet returns the frontier, homestead
+// newConstantinopleInstructionSet returns the frontier, homestead,
 // byzantium and contantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
-	// instructions that can be executed during the byzantium phase.
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{
 		execute:     opSHL,
@@ -158,7 +164,7 @@ func newConstantinopleInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// NewByzantiumInstructionSet returns the frontier, homestead and
+// newByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.
 func newByzantiumInstructionSet() JumpTable {
 	instructionSet := newSpuriousDragonInstructionSet()
@@ -199,7 +205,6 @@ func newSpuriousDragonInstructionSet() JumpTable {
 	instructionSet := newTangerineWhistleInstructionSet()
 	instructionSet[EXP].dynamicGas = gasExpEIP158
 	return validate(instructionSet)
-
 }
 
 // EIP 150 a.k.a Tangerine Whistle
@@ -230,7 +235,7 @@ func newHomesteadInstructionSet() JumpTable {
 	return validate(instructionSet)
 }
 
-// NewFrontierInstructionSet returns the frontier instructions
+// newFrontierInstructionSet returns the frontier instructions
 // that can be executed during the frontier phase.
 func newFrontierInstructionSet() JumpTable {
 	tbl := JumpTable{
@@ -1044,4 +1049,15 @@ func newFrontierInstructionSet() JumpTable {
 	}
 
 	return validate(tbl)
+}
+
+func copyJumpTable(source *JumpTable) *JumpTable {
+	dest := *source
+	for i, op := range source {
+		if op != nil {
+			opCopy := *op
+			dest[i] = &opCopy
+		}
+	}
+	return &dest
 }

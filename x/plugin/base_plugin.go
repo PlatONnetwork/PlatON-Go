@@ -22,14 +22,13 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	gerr "github.com/go-errors/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -47,7 +46,6 @@ var (
 )
 
 func VerifyTxData(input []byte, command map[uint16]interface{}) (cnCode uint16, fn interface{}, FnParams []reflect.Value, err error) {
-
 	defer func() {
 		if er := recover(); nil != er {
 			fn, FnParams, err = nil, nil, fmt.Errorf("parse tx data is failed: %s", er)
@@ -68,7 +66,6 @@ func VerifyTxData(input []byte, command map[uint16]interface{}) (cnCode uint16, 
 	if fn, ok := command[fnCode]; !ok {
 		return 0, nil, nil, FuncNotExistErr
 	} else {
-
 		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 		//fmt.Println("The FuncName is", funcName)
 

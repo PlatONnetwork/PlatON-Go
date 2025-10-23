@@ -337,13 +337,13 @@ func NewEvidenceData() *EvidenceData {
 func ClassifyEvidence(evds consensus.Evidences) *EvidenceData {
 	ed := NewEvidenceData()
 	for _, e := range evds {
-		switch e.(type) {
+		switch evidence := e.(type) {
 		case *DuplicatePrepareBlockEvidence:
-			ed.DP = append(ed.DP, e.(*DuplicatePrepareBlockEvidence))
+			ed.DP = append(ed.DP, evidence)
 		case *DuplicatePrepareVoteEvidence:
-			ed.DV = append(ed.DV, e.(*DuplicatePrepareVoteEvidence))
+			ed.DV = append(ed.DV, evidence)
 		case *DuplicateViewChangeEvidence:
-			ed.DC = append(ed.DC, e.(*DuplicateViewChangeEvidence))
+			ed.DC = append(ed.DC, evidence)
 		}
 	}
 	return ed

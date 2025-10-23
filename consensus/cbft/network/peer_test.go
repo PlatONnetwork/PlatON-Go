@@ -82,7 +82,6 @@ func Test_NewPeer(t *testing.T) {
 	}
 	t.Log(string(json))
 	assert.Contains(t, string(json), "{")
-
 }
 
 func Test_PeerSet_Register(t *testing.T) {

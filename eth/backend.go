@@ -24,49 +24,39 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
-	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
-
-	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
-	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
+	"github.com/PlatONnetwork/PlatON-Go/eth/ethconfig"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/internal/shutdowncheck"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/dnsdisc"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -76,7 +66,7 @@ type Ethereum struct {
 	config *ethconfig.Config
 
 	// Handlers
-	txPool             *core.TxPool
+	txPool             *txpool.TxPool
 	blockchain         *core.BlockChain
 	handler            *handler
 	ethDialCandidates  enode.Iterator
@@ -98,7 +88,7 @@ type Ethereum struct {
 	miner         *miner.Miner
 	gasPrice      *big.Int
 	networkID     uint64
-	netRPCService *ethapi.PublicNetAPI
+	netRPCService *ethapi.NetAPI
 
 	p2pServer *p2p.Server
 
@@ -113,9 +103,6 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
 		return nil, errors.New("can't run PlatON in light sync mode, use les.LightPlatON")
-	}
-	if config.SyncMode == downloader.SnapSync {
-		return nil, errors.New("can't run PlatON in snap sync mode now")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -221,26 +208,41 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 	}
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	//chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, snapshotBaseDB, config.Genesis)
+	//
+	//if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
+	//	return nil, genesisErr
+	//}
 
-	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
-		return nil, genesisErr
+	//if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
+	//	chainConfig.Cbft.Period = config.CbftConfig.Period
+	//	chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	//}
+	//
+	//log.Info("")
+	//log.Info(strings.Repeat("-", 153))
+	//for _, line := range strings.Split(chainConfig.String(), "\n") {
+	//	log.Info(line)
+	//}
+	//log.Info(strings.Repeat("-", 153))
+	//log.Info("")
+
+	genesisChainConfig, storedGenesisHash, err := core.LoadGenesisChainConfig(chainDb, config.Genesis)
+	if err != nil {
+		return nil, err
 	}
-
-	if chainConfig.Cbft.Period == 0 || chainConfig.Cbft.Amount == 0 {
-		chainConfig.Cbft.Period = config.CbftConfig.Period
-		chainConfig.Cbft.Amount = config.CbftConfig.Amount
+	if genesisChainConfig.Cbft.Period == 0 || genesisChainConfig.Cbft.Amount == 0 {
+		genesisChainConfig.Cbft.Period = config.CbftConfig.Period
+		genesisChainConfig.Cbft.Amount = config.CbftConfig.Amount
 	}
-
-	log.Info("Initialised chain configuration", "config", chainConfig)
-	stack.SetP2pChainID(chainConfig.ChainID, chainConfig.PIP7ChainID)
+	stack.SetP2pChainID(genesisChainConfig.ChainID, genesisChainConfig.PIP7ChainID)
 
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
-		engine:            ethconfig.CreateConsensusEngine(stack, chainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
+		engine:            ethconfig.CreateConsensusEngine(stack, genesisChainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
 		closeBloomHandler: make(chan struct{}),
 		networkID:         config.NetworkId,
 		gasPrice:          config.Miner.GasPrice,
@@ -295,13 +297,16 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	)
 	cacheConfig.DBDisabledGC.Set(config.DBDisabledGC)
 
-	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, chainConfig, eth.engine, vmConfig, eth.shouldPreserve, &config.TxLookupLimit)
+	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, config.Genesis, snapshotBaseDB, eth.engine, vmConfig, eth.shouldPreserve, &config.TxLookupLimit)
 	if err != nil {
 		return nil, err
 	}
+	if storedGenesisHash != (common.Hash{}) && storedGenesisHash != eth.blockchain.Genesis().Hash() {
+		return nil, &core.GenesisMismatchError{storedGenesisHash, eth.blockchain.Genesis().Hash()}
+	}
 
 	//todo this is a hard code for 1.5.0
-	if chainConfig.PauliBlock == nil {
+	if eth.blockchain.Config().PauliBlock == nil {
 		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Header().Root)
 		if err != nil {
 			return nil, err
@@ -312,8 +317,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		}
 		if len(ActiveVersionList) > 0 {
 			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
-				chainConfig.SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
-				log.Info("Initialised chain configuration for 1.5.0", "config", chainConfig)
+				eth.blockchain.Config().SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
+				log.Info("Initialised chain configuration for 1.5.0", "config", eth.blockchain.Config())
 			}
 		}
 	}
@@ -322,19 +327,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
-	// Rewind the chain in case of an incompatible config upgrade.
-	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
-		log.Warn("upgrade configuration", "err", compat)
-		//return nil, compat
-		//eth.blockchain.SetHead(compat.RewindTo)
-		rawdb.WriteChainConfig(chainDb, genesisHash, chainConfig)
-	}
 	eth.bloomIndexer.Start(eth.blockchain)
 
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = stack.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, chainConfig, core.NewTxPoolBlockChain(blockChainCache))
+	eth.txPool = txpool.NewTxPool(config.TxPool, eth.blockchain.Config(), txpool.NewTxPoolBlockChain(blockChainCache))
 
 	core.SenderCacher.SetTxPool(eth.txPool)
 
@@ -362,27 +360,27 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	if engine, ok := eth.engine.(consensus.Bft); ok {
 		var agency consensus.Agency
-		core.NewExecutor(eth.blockchain.Config(), eth.blockchain, vmConfig, eth.txPool)
+		core.NewExecutor(eth.blockchain.Config(), eth.blockchain, vmConfig)
 		// validatorMode:
 		// - static (default)
 		// - inner (via inner contract)eth/handler.go
 		// - ppos
 
-		log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-		if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
-			agency = validator.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+		log.Debug("Validator mode", "mode", eth.blockchain.Config().Cbft.ValidatorMode)
+		if eth.blockchain.Config().Cbft.ValidatorMode == "" || eth.blockchain.Config().Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
+			agency = validator.NewStaticAgency(eth.blockchain.Config().Cbft.InitialNodes)
 			reactor.Start(common.STATIC_VALIDATOR_MODE)
-		} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
-			blocksPerNode := int(chainConfig.Cbft.Amount)
+		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
+			blocksPerNode := int(eth.blockchain.Config().Cbft.Amount)
 			offset := blocksPerNode * 2
-			agency = validator.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			agency = validator.NewInnerAgency(eth.blockchain.Config().Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 			reactor.Start(common.INNER_VALIDATOR_MODE)
-		} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
+		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
 			reactor.SetVRFhandler(vrfhandler.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 			reactor.SetPluginEventMux()
 			reactor.SetPrivateKey(stack.Config().NodeKey())
-			handlePlugin(reactor, chainDb, chainConfig, config.DBValidatorsHistory)
+			handlePlugin(reactor, chainDb, eth.blockchain.Config(), config.DBValidatorsHistory)
 			agency = reactor
 
 			//register Govern parameter verifiers
@@ -442,7 +440,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// Start the RPC service
-	eth.netRPCService = ethapi.NewPublicNetAPI(eth.p2pServer, config.NetworkId)
+	eth.netRPCService = ethapi.NewNetAPI(eth.p2pServer, config.NetworkId)
 
 	// Register the backend on the node
 	stack.RegisterAPIs(eth.APIs())
@@ -488,47 +486,26 @@ func (s *Ethereum) APIs() []rpc.API {
 	return append(apis, []rpc.API{
 		{
 			Namespace: "platon",
-			Version:   "1.0",
-			Service:   downloader.NewPublicDownloaderAPI(s.handler.downloader, s.eventMux),
-			Public:    true,
+			Service:   downloader.NewDownloaderAPI(s.handler.downloader, s.eventMux),
 		}, {
 			Namespace: "miner",
-			Version:   "1.0",
-			Service:   NewPrivateMinerAPI(s),
-			Public:    false,
-		}, {
-			Namespace: "platon",
-			Version:   "1.0",
-			Service:   filters.NewPublicFilterAPI(s.APIBackend, false, 5*time.Minute),
-			Public:    true,
+			Service:   NewMinerAPI(s),
 		}, {
 			Namespace: "admin",
-			Version:   "1.0",
-			Service:   NewPrivateAdminAPI(s),
+			Service:   NewAdminAPI(s),
 		}, {
 			Namespace: "debug",
-			Version:   "1.0",
-			Service:   NewPublicDebugAPI(s),
-			Public:    true,
+			Service:   NewDebugAPI(s),
 		}, {
 			Namespace: "debug",
-			Version:   "1.0",
-			Service:   NewPrivateDebugAPI(s),
-		}, {
-			Namespace: "debug",
-			Version:   "1.0",
 			Service:   xplugin.NewPublicPPOSAPI(),
 		}, {
 			Namespace: "net",
-			Version:   "1.0",
 			Service:   s.netRPCService,
-			Public:    true,
 		},
 		{
 			Namespace: "txgen",
-			Version:   "1.0",
 			Service:   NewTxGenAPI(s),
-			Public:    true,
 		},
 	}...)
 }
@@ -618,7 +595,7 @@ func (s *Ethereum) Miner() *miner.Miner { return s.miner }
 
 func (s *Ethereum) AccountManager() *accounts.Manager  { return s.accountManager }
 func (s *Ethereum) BlockChain() *core.BlockChain       { return s.blockchain }
-func (s *Ethereum) TxPool() *core.TxPool               { return s.txPool }
+func (s *Ethereum) TxPool() *txpool.TxPool             { return s.txPool }
 func (s *Ethereum) EventMux() *event.TypeMux           { return s.eventMux }
 func (s *Ethereum) Engine() consensus.Engine           { return s.engine }
 func (s *Ethereum) ChainDb() ethdb.Database            { return s.chainDb }
@@ -724,5 +701,4 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 	// set rule order
 	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
 	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
-
 }

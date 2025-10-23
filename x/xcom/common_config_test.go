@@ -17,11 +17,13 @@
 package xcom
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestDefaultEMConfig(t *testing.T) {

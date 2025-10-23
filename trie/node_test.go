@@ -18,8 +18,9 @@ package trie
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func newTestFullNode(v []byte) []interface{} {

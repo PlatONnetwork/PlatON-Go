@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package protocols
 
 import (
@@ -577,7 +576,6 @@ func (s *PrepareBlockHash) MsgHash() common.Hash {
 		common.Uint32ToBytes(s.BlockIndex), common.Uint64ToBytes(s.ViewNumber)))
 	s.messageHash.Store(v)
 	return v
-
 }
 
 func (s *PrepareBlockHash) BHash() common.Hash {
@@ -675,7 +673,6 @@ func (s *GetLatestStatus) MsgHash() common.Hash {
 			common.Uint64ToBytes(s.LBlockNumber), s.BlockHash.Bytes(), s.LBlockHash.Bytes()))
 	s.messageHash.Store(v)
 	return v
-
 }
 
 func (s *GetLatestStatus) BHash() common.Hash {

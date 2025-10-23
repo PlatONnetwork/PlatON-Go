@@ -1,12 +1,12 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 func TestParallelStateObject(t *testing.T) {

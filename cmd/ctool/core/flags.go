@@ -14,91 +14,90 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
-import "gopkg.in/urfave/cli.v1"
+import "github.com/urfave/cli/v2"
 
 var (
-	ConfigPathFlag = cli.StringFlag{
+	ConfigPathFlag = &cli.StringFlag{
 		Name:  "config",
 		Usage: "config path",
 	}
-	PKFilePathFlag = cli.StringFlag{
+	PKFilePathFlag = &cli.StringFlag{
 		Name:  "pkfile",
 		Value: "",
 		Usage: "private key file path",
 	}
-	StabExecTimesFlag = cli.IntFlag{
+	StabExecTimesFlag = &cli.IntFlag{
 		Name:  "times",
 		Value: 1000,
 		Usage: "execute times",
 	}
-	SendTxIntervalFlag = cli.IntFlag{
+	SendTxIntervalFlag = &cli.IntFlag{
 		Name:  "interval",
 		Value: 10,
 		Usage: "Time interval for sending transactions",
 	}
-	AccountSizeFlag = cli.IntFlag{
+	AccountSizeFlag = &cli.IntFlag{
 		Name:  "size",
 		Value: 10,
 		Usage: "account size",
 	}
-	TxJsonDataFlag = cli.StringFlag{
+	TxJsonDataFlag = &cli.StringFlag{
 		Name:  "data",
 		Usage: "transaction data",
 	}
-	ContractWasmFilePathFlag = cli.StringFlag{
+	ContractWasmFilePathFlag = &cli.StringFlag{
 		Name:  "code",
 		Usage: "wasm file path",
 	}
-	ContractAddrFlag = cli.StringFlag{
+	ContractAddrFlag = &cli.StringFlag{
 		Name: "addr",
 
 		Usage: "the contract address",
 	}
-	ContractFuncNameFlag = cli.StringFlag{
+	ContractFuncNameFlag = &cli.StringFlag{
 		Name:  "func",
 		Usage: "function and param ,eg :set(1,\"a\")",
 	}
-	TransactionTypeFlag = cli.IntFlag{
+	TransactionTypeFlag = &cli.IntFlag{
 		Name:  "type",
 		Value: 2,
 		Usage: "tx type ,default 2",
 	}
-	ContractAbiFilePathFlag = cli.StringFlag{
+	ContractAbiFilePathFlag = &cli.StringFlag{
 		Name:  "abi",
 		Usage: "abi file path",
 	}
-	TransactionHashFlag = cli.StringFlag{
+	TransactionHashFlag = &cli.StringFlag{
 		Name:  "hash",
 		Usage: "tx hash",
 	}
-	TxFromFlag = cli.StringFlag{
+	TxFromFlag = &cli.StringFlag{
 		Name:  "from",
 		Usage: "transaction sender addr",
 	}
-	TxToFlag = cli.StringFlag{
+	TxToFlag = &cli.StringFlag{
 		Name:  "to",
 		Usage: "transaction acceptor addr",
 	}
-	TransferValueFlag = cli.StringFlag{
+	TransferValueFlag = &cli.StringFlag{
 		Name:  "value",
 		Value: "0xDE0B6B3A7640000", //one
 		Usage: "transfer value",
 	}
 
-	TxStressSourceFilesPathFlag = cli.StringSliceFlag{
+	TxStressSourceFilesPathFlag = &cli.StringSliceFlag{
 		Name:  "sourceFile",
 		Usage: "the tps source file path",
 	}
 
-	TxStressStatisticTimeFlag = cli.IntFlag{
+	TxStressStatisticTimeFlag = &cli.IntFlag{
 		Name:  "statisticTime",
 		Usage: "Statistics every few seconds",
 	}
 
-	TxStressOutPutFileFlag = cli.StringFlag{
+	TxStressOutPutFileFlag = &cli.StringFlag{
 		Name:  "output",
 		Usage: "the output file path",
 	}

@@ -38,9 +38,6 @@ var (
 	receiptDropMeter    = metrics.NewRegisteredMeter("eth/downloader/receipts/drop", nil)
 	receiptTimeoutMeter = metrics.NewRegisteredMeter("eth/downloader/receipts/timeout", nil)
 
-	stateInMeter   = metrics.NewRegisteredMeter("eth/downloader/states/in", nil)
-	stateDropMeter = metrics.NewRegisteredMeter("eth/downloader/states/drop", nil)
-
 	pposStorageInMeter   = metrics.NewRegisteredMeter("eth/downloader/pposStorage/in", nil)
 	pposStorageDropMeter = metrics.NewRegisteredMeter("eth/downloader/pposStorage/drop", nil)
 

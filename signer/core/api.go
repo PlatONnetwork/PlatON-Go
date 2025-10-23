@@ -17,10 +17,17 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
+	"reflect"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/scwallet"
@@ -32,9 +39,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
-	"math/big"
-	"os"
-	"reflect"
 )
 
 const (
@@ -318,7 +322,6 @@ func (api *SignerAPI) openTrezor(url accounts.URL) {
 		log.Warn("failed to open wallet", "wallet", url, "err", err)
 		return
 	}
-
 }
 
 // startUSBListener starts a listener for USB events, for hardware wallet interaction
@@ -327,7 +330,6 @@ func (api *SignerAPI) startUSBListener() {
 	am := api.am
 	am.Subscribe(events)
 	go func() {
-
 		// Open any wallets already attached
 		for _, wallet := range am.Wallets() {
 			if err := wallet.Open(""); err != nil {
@@ -406,7 +408,7 @@ func (api *SignerAPI) List(ctx context.Context) ([]common.Address, error) {
 
 // New creates a new password protected Account. The private key is protected with
 // the given password. Users are responsible to backup the private key that is stored
-// in the keystore location thas was specified when this API was created.
+// in the keystore location that was specified when this API was created.
 func (api *SignerAPI) New(ctx context.Context) (common.Address, error) {
 	if be := api.am.Backends(keystore.KeyStoreType); len(be) == 0 {
 		return common.Address{}, errors.New("password based accounts not supported")
@@ -608,7 +610,6 @@ func (api *SignerAPI) SignTransaction(ctx context.Context, args apitypes.SendTxA
 	api.UI.OnApprovedTx(response)
 	// ...and to the external caller
 	return &response, nil
-
 }
 
 func (api *SignerAPI) SignGnosisSafeTx(ctx context.Context, signerAddress common.MixedcaseAddress, gnosisTx GnosisSafeTx, methodSelector *string) (*GnosisSafeTx, error) {
@@ -625,7 +626,26 @@ func (api *SignerAPI) SignGnosisSafeTx(ctx context.Context, signerAddress common
 		}
 	}
 	typedData := gnosisTx.ToTypedData()
+	// might aswell error early.
+	// we are expected to sign. If our calculated hash does not match what they want,
+	// The gnosis safetx input contains a 'safeTxHash' which is the expected safeTxHash that
+	sighash, _, err := apitypes.TypedDataAndHash(typedData)
+	if err != nil {
+		return nil, err
+	}
+	if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
+		// It might be the case that the json is missing chain id.
+		if gnosisTx.ChainId == nil {
+			gnosisTx.ChainId = (*math.HexOrDecimal256)(api.chainID)
+			typedData = gnosisTx.ToTypedData()
+			sighash, _, _ = apitypes.TypedDataAndHash(typedData)
+			if !bytes.Equal(sighash, gnosisTx.InputExpHash.Bytes()) {
+				return nil, fmt.Errorf("mismatched safeTxHash; have %#x want %#x", sighash, gnosisTx.InputExpHash[:])
+			}
+		}
+	}
 	signature, preimage, err := api.signTypedData(ctx, signerAddress, typedData, msgs)
+
 	if err != nil {
 		return nil, err
 	}
@@ -633,7 +653,7 @@ func (api *SignerAPI) SignGnosisSafeTx(ctx context.Context, signerAddress common
 
 	gnosisTx.Signature = signature
 	gnosisTx.SafeTxHash = common.BytesToHash(preimage)
-	gnosisTx.Sender = *checkSummedSender // Must be checksumed to be accepted by relay
+	gnosisTx.Sender = *checkSummedSender // Must be checksummed to be accepted by relay
 
 	return &gnosisTx, nil
 }

@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package state
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTimer(t *testing.T) {
@@ -30,10 +30,8 @@ func TestTimer(t *testing.T) {
 	viewTimer := &viewTimer{timer: timer, timeInterval: viewTimeInterval{baseMs: uint64(1 * time.Second), exponentBase: exponentBase, maxExponent: maxExponent}}
 	viewTimer.setupTimer(1)
 	assert.False(t, viewTimer.isDeadline())
-	select {
-	case <-viewTimer.timerChan():
-		assert.True(t, viewTimer.isDeadline())
-	}
+	<-viewTimer.timerChan()
+	assert.True(t, viewTimer.isDeadline())
 }
 
 func TestCalViewInterval(t *testing.T) {
@@ -57,7 +55,6 @@ func TestCalViewInterval(t *testing.T) {
 			assert.Equal(t, c.out, timer.calViewInterval(c.in), "row:%d, cul:%d, pre:%d in:%d, out:%d", row, cul, timer.preViewInterval, c.in, c.out)
 		}
 	}
-
 }
 
 func TestInterval(t *testing.T) {
@@ -75,5 +72,4 @@ func TestInterval(t *testing.T) {
 	assert.Equal(t, uint64(10*time.Second), uint64(in.getViewTimeInterval(1)))
 	assert.Equal(t, uint64(15*time.Second), uint64(in.getViewTimeInterval(2)))
 	assert.Equal(t, uint64(22*time.Second+500*time.Millisecond), uint64(in.getViewTimeInterval(3)))
-
 }

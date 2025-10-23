@@ -15,6 +15,7 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package wal implements the similar write-ahead logging for cbft consensus.
+
 package wal
 
 import (

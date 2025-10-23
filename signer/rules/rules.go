@@ -19,19 +19,16 @@ package rules
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 	"os"
 	"strings"
 
+	"github.com/dop251/goja"
+
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/signer/core"
 	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
-	"github.com/dop251/goja"
-)
-
-var (
-	BigNumber_JS = deps.MustAsset("bignumber.js")
 )
 
 // consoleOutput is an override for the console.log and console.error methods to
@@ -63,6 +60,7 @@ func NewRuleEvaluator(next core.UIClientAPI, jsbackend storage.Storage) (*rulese
 	return c, nil
 }
 func (r *rulesetUI) RegisterUIServer(api *core.UIServerAPI) {
+	r.next.RegisterUIServer(api)
 	// TODO, make it possible to query from js
 }
 
@@ -71,7 +69,6 @@ func (r *rulesetUI) Init(javascriptRules string) error {
 	return nil
 }
 func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error) {
-
 	// Instantiate a fresh vm engine every time
 	vm := goja.New()
 
@@ -99,7 +96,7 @@ func (r *rulesetUI) execute(jsfunc string, jsarg interface{}) (goja.Value, error
 	vm.Set("storage", storageObj)
 
 	// Load bootstrap libraries
-	script, err := goja.Compile("bignumber.js", string(BigNumber_JS), true)
+	script, err := goja.Compile("bignumber.js", deps.BigNumberJS, true)
 	if err != nil {
 		log.Warn("Failed loading libraries", "err", err)
 		return goja.Undefined(), err

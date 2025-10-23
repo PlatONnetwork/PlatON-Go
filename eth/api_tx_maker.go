@@ -15,20 +15,16 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-
 	"github.com/mroth/weightedrand"
 
-	"github.com/PlatONnetwork/PlatON-Go/event"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -54,10 +50,7 @@ func (t BlockInfos) Len() int {
 }
 
 func (t BlockInfos) Less(i, j int) bool {
-	if t[i].ProduceTime < (t[j].ProduceTime) {
-		return true
-	}
-	return false
+	return t[i].ProduceTime < (t[j].ProduceTime)
 }
 
 func (t BlockInfos) Swap(i, j int) {
@@ -158,7 +151,6 @@ func (txg *TxGenAPI) makeTransaction(txType uint, tx, evm, wasm uint, totalTxPer
 					signDoneTxCh <- newTx
 				}
 			}
-
 		}()
 	}
 
@@ -379,7 +371,7 @@ func (txg *TxGenAPI) DeployContracts(prikey string, configPath string) error {
 				if err != nil {
 					return err
 				}
-				if err := txg.eth.TxPool().AddRemote(newTx); err != nil {
+				if err := txg.eth.TxPool().AddRemotes([]*types.Transaction{newTx}); err[0] != nil {
 					return fmt.Errorf("DeployContracts fail,err:%v,input:%v", err, config.Type)
 				}
 				config.DeployTxHash = newTx.Hash().String()
@@ -401,7 +393,6 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 				tx, blockHash, _, index := rawdb.ReadTransaction(txg.eth.ChainDb(), hash)
 				if tx == nil {
 					return fmt.Errorf("the tx not find yet,tx:%s", hash.String())
-
 				}
 				receipts := txg.eth.blockchain.GetReceiptsByHash(blockHash)
 				if len(receipts) <= int(index) {
@@ -413,7 +404,6 @@ func (txg *TxGenAPI) UpdateConfig(configPath string) error {
 				}
 				config.ContractsAddress = receipt.ContractAddress.String()
 			}
-
 		}
 		return nil
 	})
@@ -809,7 +799,7 @@ func NewTxMakeManger(tx, evm, wasm uint, totalTxPer, activeTxPer, txFrequency, a
 
 	t.blockProduceTime = time.Now()
 
-	rand.Seed(time.Now().UTC().UnixNano()) // always seed random!
+	rand.New(rand.NewSource(time.Now().UTC().UnixNano())) // always seed random!
 
 	t.sendTx = tx
 	t.sendEvm = tx + evm

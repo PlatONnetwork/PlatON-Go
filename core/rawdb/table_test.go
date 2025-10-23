@@ -18,8 +18,9 @@ package rawdb
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 func TestTableDatabase(t *testing.T)            { testTableDatabase(t, "prefix") }

@@ -102,7 +102,7 @@ func Test_ViewChangeQC_MaxBlock(t *testing.T) {
 	assert.Equal(t, certs[4].BlockNumber, blockNumber)
 
 	viewChangeQC.QCs = nil
-	epoch, viewNumber, blockEpoch, blockViewNumber, blockHash, blockNumber = viewChangeQC.MaxBlock()
+	epoch, _, _, _, _, _ = viewChangeQC.MaxBlock()
 	assert.Equal(t, uint64(0), epoch)
 }
 

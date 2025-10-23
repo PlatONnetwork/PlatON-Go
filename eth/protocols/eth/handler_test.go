@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -22,12 +22,12 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -44,6 +44,8 @@ var (
 	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
 )
 
+func u64(val uint64) *uint64 { return &val }
+
 // testBackend is a mock implementation of the live Ethereum message handler. Its
 // purpose is to allow testing the request/reply workflows and wire serialization
 // in the `eth` protocol without actually doing any data processing.
@@ -51,42 +53,39 @@ type testBackend struct {
 	db         ethdb.Database
 	chain      *core.BlockChain
 	chainCache *core.BlockChainCache
-	txpool     *core.TxPool
+	txpool     *txpool.TxPool
 }
 
 // newTestBackend creates an empty chain and wraps it into a mock backend.
 func newTestBackend(blocks int) *testBackend {
-	return newTestBackendWithGenerator(blocks, nil)
+	return newTestBackendWithGenerator(blocks, false, nil)
 }
 
 // newTestBackend creates a chain with a number of explicitly defined blocks and
 // wraps it into a mock backend.
-func newTestBackendWithGenerator(blocks int, generator func(int, *core.BlockGen)) *testBackend {
-	// Create a database pre-initialize with a genesis block
-	db := rawdb.NewMemoryDatabase()
-	genesis := (&core.Genesis{
-		Config: params.TestChainConfig,
+func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, *core.BlockGen)) *testBackend {
+	var (
+		// Create a database pre-initialize with a genesis block
+		db     = rawdb.NewMemoryDatabase()
+		config = params.TestChainConfig
+	)
+	gspec := &core.Genesis{
+		Config: config,
 		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
-	}).MustCommit(db)
+	}
+	gBlock := gspec.MustCommit(db)
 
-	//chain, _ := core.NewBlockChain(db, nil, params.TestChainConfig, consensus.NewFakerWithDataBase(db), vm.Config{}, nil, nil)
-	/*cache := core.NewBlockChainCache(chain)
-	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), consensus.NewFakerWithDataBase(db), db, blocks, generator)
-	if _, err := chain.InsertChain(bs); err != nil {
-		panic(err)
-	}*/
-
-	chain := core.GenerateBlockChain2(params.TestChainConfig, genesis, consensus.NewFakerWithDataBase(db), db, blocks, generator)
+	chain, _ := core.GenerateBlockChain2(gspec, gBlock, consensus.NewFakerWithDataBase(db, gBlock), db, blocks, generator)
 	cache := core.NewBlockChainCache(chain)
 
-	txconfig := core.DefaultTxPoolConfig
+	txconfig := txpool.DefaultConfig
 	txconfig.Journal = "" // Don't litter the disk with test journals
 
 	return &testBackend{
 		db:         db,
 		chain:      chain,
 		chainCache: cache,
-		txpool:     core.NewTxPool(txconfig, params.TestChainConfig, cache),
+		txpool:     txpool.NewTxPool(txconfig, params.TestChainConfig, cache),
 	}
 }
 
@@ -124,8 +123,9 @@ func (b *testBackend) Handle(*Peer, Packet) error {
 }
 
 // Tests that block headers can be retrieved from a remote chain based on user queries.
-func TestGetBlockHeaders65(t *testing.T) { testGetBlockHeaders(t, ETH65) }
 func TestGetBlockHeaders66(t *testing.T) { testGetBlockHeaders(t, ETH66) }
+func TestGetBlockHeaders67(t *testing.T) { testGetBlockHeaders(t, ETH67) }
+func TestGetBlockHeaders68(t *testing.T) { testGetBlockHeaders(t, ETH68) }
 
 func testGetBlockHeaders(t *testing.T, protocol uint) {
 	t.Parallel()
@@ -147,11 +147,13 @@ func testGetBlockHeaders(t *testing.T, protocol uint) {
 		query  *GetBlockHeadersPacket // The query to execute for header retrieval
 		expect []common.Hash          // The hashes of the block whose headers are expected
 	}{
-		// A single random block should be retrievable by hash and number too
+		// A single random block should be retrievable by hash
 		{
 			&GetBlockHeadersPacket{Origin: HashOrNumber{Hash: backend.chain.GetBlockByNumber(limit / 2).Hash()}, Amount: 1},
 			[]common.Hash{backend.chain.GetBlockByNumber(limit / 2).Hash()},
-		}, {
+		},
+		// A single random block should be retrievable by number
+		{
 			&GetBlockHeadersPacket{Origin: HashOrNumber{Number: limit / 2}, Amount: 1},
 			[]common.Hash{backend.chain.GetBlockByNumber(limit / 2).Hash()},
 		},
@@ -191,8 +193,13 @@ func testGetBlockHeaders(t *testing.T, protocol uint) {
 		{
 			&GetBlockHeadersPacket{Origin: HashOrNumber{Number: 0}, Amount: 1},
 			[]common.Hash{backend.chain.GetBlockByNumber(0).Hash()},
-		}, {
+		},
+		{
 			&GetBlockHeadersPacket{Origin: HashOrNumber{Number: backend.chain.CurrentBlock().NumberU64()}, Amount: 1},
+			[]common.Hash{backend.chain.CurrentBlock().Hash()},
+		},
+		{ // If the peer requests a bit into the future, we deliver what we have
+			&GetBlockHeadersPacket{Origin: HashOrNumber{Number: backend.chain.CurrentBlock().NumberU64()}, Amount: 10},
 			[]common.Hash{backend.chain.CurrentBlock().Hash()},
 		},
 		// Ensure protocol limits are honored
@@ -268,44 +275,30 @@ func testGetBlockHeaders(t *testing.T, protocol uint) {
 			headers = append(headers, backend.chain.GetBlockByHash(hash).Header())
 		}
 		// Send the hash request and verify the response
-		if protocol <= ETH65 {
-			p2p.Send(peer.app, GetBlockHeadersMsg, tt.query)
-			if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, headers); err != nil {
-				t.Errorf("test %d: headers mismatch: %v", i, err)
-			}
-		} else {
-			p2p.Send(peer.app, GetBlockHeadersMsg, GetBlockHeadersPacket66{
-				RequestId:             123,
-				GetBlockHeadersPacket: tt.query,
-			})
-			if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, BlockHeadersPacket66{
-				RequestId:          123,
-				BlockHeadersPacket: headers,
-			}); err != nil {
-				t.Errorf("test %d: headers mismatch: %v", i, err)
-			}
+		p2p.Send(peer.app, GetBlockHeadersMsg, GetBlockHeadersPacket66{
+			RequestId:             123,
+			GetBlockHeadersPacket: tt.query,
+		})
+		if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, BlockHeadersPacket66{
+			RequestId:          123,
+			BlockHeadersPacket: headers,
+		}); err != nil {
+			t.Errorf("test %d: headers mismatch: %v", i, err)
 		}
 		// If the test used number origins, repeat with hashes as the too
 		if tt.query.Origin.Hash == (common.Hash{}) {
 			if origin := backend.chain.GetBlockByNumber(tt.query.Origin.Number); origin != nil {
 				tt.query.Origin.Hash, tt.query.Origin.Number = origin.Hash(), 0
 
-				if protocol <= ETH65 {
-					p2p.Send(peer.app, GetBlockHeadersMsg, tt.query)
-					if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, headers); err != nil {
-						t.Errorf("test %d: headers mismatch: %v", i, err)
-					}
-				} else {
-					p2p.Send(peer.app, GetBlockHeadersMsg, GetBlockHeadersPacket66{
-						RequestId:             456,
-						GetBlockHeadersPacket: tt.query,
-					})
-					if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, BlockHeadersPacket66{
-						RequestId:          456,
-						BlockHeadersPacket: headers,
-					}); err != nil {
-						t.Errorf("test %d: headers mismatch: %v", i, err)
-					}
+				p2p.Send(peer.app, GetBlockHeadersMsg, GetBlockHeadersPacket66{
+					RequestId:             456,
+					GetBlockHeadersPacket: tt.query,
+				})
+				if err := p2p.ExpectMsg(peer.app, BlockHeadersMsg, BlockHeadersPacket66{
+					RequestId:          456,
+					BlockHeadersPacket: headers,
+				}); err != nil {
+					t.Errorf("test %d by hash: headers mismatch: %v", i, err)
 				}
 			}
 		}
@@ -313,13 +306,24 @@ func testGetBlockHeaders(t *testing.T, protocol uint) {
 }
 
 // Tests that block contents can be retrieved from a remote chain based on their hashes.
-func TestGetBlockBodies65(t *testing.T) { testGetBlockBodies(t, ETH65) }
 func TestGetBlockBodies66(t *testing.T) { testGetBlockBodies(t, ETH66) }
+func TestGetBlockBodies67(t *testing.T) { testGetBlockBodies(t, ETH67) }
+func TestGetBlockBodies68(t *testing.T) { testGetBlockBodies(t, ETH68) }
 
 func testGetBlockBodies(t *testing.T, protocol uint) {
 	t.Parallel()
 
-	backend := newTestBackend(maxBodiesServe + 15)
+	gen := func(n int, g *core.BlockGen) {
+		if n%2 == 0 {
+			w := &types.Withdrawal{
+				Address: common.Address{0xaa},
+				Amount:  42,
+			}
+			g.AddWithdrawal(w)
+		}
+	}
+
+	backend := newTestBackendWithGenerator(maxBodiesServe+15, true, gen)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)
@@ -354,7 +358,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 	}
 	// Run each of the tests and verify the results against the chain
 	for i, tt := range tests {
-		// Collect the hashes to request, and the response to expectva
+		// Collect the hashes to request, and the response to expect
 		var (
 			hashes []common.Hash
 			bodies []*BlockBody
@@ -369,7 +373,7 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 					block := backend.chain.GetBlockByNumber(uint64(num))
 					hashes = append(hashes, block.Hash())
 					if len(bodies) < tt.expected {
-						bodies = append(bodies, &BlockBody{Transactions: block.Transactions()})
+						bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 					}
 					break
 				}
@@ -379,35 +383,29 @@ func testGetBlockBodies(t *testing.T, protocol uint) {
 			hashes = append(hashes, hash)
 			if tt.available[j] && len(bodies) < tt.expected {
 				block := backend.chain.GetBlockByHash(hash)
-				bodies = append(bodies, &BlockBody{Transactions: block.Transactions()})
+				bodies = append(bodies, &BlockBody{Transactions: block.Transactions(), Withdrawals: block.Withdrawals()})
 			}
 		}
 		// Send the hash request and verify the response
-		if protocol <= ETH65 {
-			p2p.Send(peer.app, GetBlockBodiesMsg, hashes)
-			if err := p2p.ExpectMsg(peer.app, BlockBodiesMsg, bodies); err != nil {
-				t.Errorf("test %d: bodies mismatch: %v", i, err)
-			}
-		} else {
-			p2p.Send(peer.app, GetBlockBodiesMsg, GetBlockBodiesPacket66{
-				RequestId:            123,
-				GetBlockBodiesPacket: hashes,
-			})
-			if err := p2p.ExpectMsg(peer.app, BlockBodiesMsg, BlockBodiesPacket66{
-				RequestId:         123,
-				BlockBodiesPacket: bodies,
-			}); err != nil {
-				t.Errorf("test %d: bodies mismatch: %v", i, err)
-			}
+		p2p.Send(peer.app, GetBlockBodiesMsg, GetBlockBodiesPacket66{
+			RequestId:            123,
+			GetBlockBodiesPacket: hashes,
+		})
+		if err := p2p.ExpectMsg(peer.app, BlockBodiesMsg, BlockBodiesPacket66{
+			RequestId:         123,
+			BlockBodiesPacket: bodies,
+		}); err != nil {
+			t.Fatalf("test %d: bodies mismatch: %v", i, err)
 		}
 	}
 }
 
 // Tests that the state trie nodes can be retrieved based on hashes.
-func TestGetNodeData65(t *testing.T) { testGetNodeData(t, ETH65) }
-func TestGetNodeData66(t *testing.T) { testGetNodeData(t, ETH66) }
+func TestGetNodeData66(t *testing.T) { testGetNodeData(t, ETH66, false) }
+func TestGetNodeData67(t *testing.T) { testGetNodeData(t, ETH67, true) }
+func TestGetNodeData68(t *testing.T) { testGetNodeData(t, ETH68, true) }
 
-func testGetNodeData(t *testing.T, protocol uint) {
+func testGetNodeData(t *testing.T, protocol uint, drop bool) {
 	t.Parallel()
 
 	// Define three accounts to simulate transactions with
@@ -444,7 +442,7 @@ func testGetNodeData(t *testing.T, protocol uint) {
 		}
 	}
 	// Assemble the test environment
-	backend := newTestBackendWithGenerator(4, generator)
+	backend := newTestBackendWithGenerator(4, false, generator)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)
@@ -452,7 +450,6 @@ func testGetNodeData(t *testing.T, protocol uint) {
 
 	// Collect all state tree hashes.
 	var hashes []common.Hash
-
 	it := backend.db.NewIterator(nil, nil)
 	for it.Next() {
 		if key := it.Key(); len(key) == common.HashLength {
@@ -461,34 +458,33 @@ func testGetNodeData(t *testing.T, protocol uint) {
 	}
 	it.Release()
 
-	if protocol <= ETH65 {
-		p2p.Send(peer.app, GetNodeDataMsg, hashes)
-	} else {
-		// Request all hashes.
-		p2p.Send(peer.app, GetNodeDataMsg, GetNodeDataPacket66{
-			RequestId:         123,
-			GetNodeDataPacket: hashes,
-		})
-	}
+	// Request all hashes.
+	p2p.Send(peer.app, GetNodeDataMsg, GetNodeDataPacket66{
+		RequestId:         123,
+		GetNodeDataPacket: hashes,
+	})
 	msg, err := peer.app.ReadMsg()
-	if err != nil {
-		t.Fatalf("failed to read node data response: %v", err)
+	if !drop {
+		if err != nil {
+			t.Fatalf("failed to read node data response: %v", err)
+		}
+	} else {
+		if err != nil {
+			return
+		}
+		t.Fatalf("succeeded to read node data response on non-supporting protocol: %v", msg)
 	}
 	if msg.Code != NodeDataMsg {
 		t.Fatalf("response packet code mismatch: have %x, want %x", msg.Code, NodeDataMsg)
 	}
-	var data [][]byte
-	if protocol <= ETH65 {
-		if err := msg.Decode(&data); err != nil {
-			t.Fatalf("failed to decode response node data: %v", err)
-		}
-	} else {
-		var res NodeDataPacket66
-		if err := msg.Decode(&res); err != nil {
-			t.Fatalf("failed to decode response node data: %v", err)
-		}
-		data = res.NodeDataPacket
+	var (
+		data [][]byte
+		res  NodeDataPacket66
+	)
+	if err := msg.Decode(&res); err != nil {
+		t.Fatalf("failed to decode response node data: %v", err)
 	}
+	data = res.NodeDataPacket
 	// Verify that all hashes correspond to the requested data, and reconstruct a state tree
 	for i, want := range hashes {
 		if hash := crypto.Keccak256Hash(data[i]); hash != want {
@@ -519,8 +515,9 @@ func testGetNodeData(t *testing.T, protocol uint) {
 }
 
 // Tests that the transaction receipts can be retrieved based on hashes.
-func TestGetBlockReceipts65(t *testing.T) { testGetBlockReceipts(t, ETH65) }
 func TestGetBlockReceipts66(t *testing.T) { testGetBlockReceipts(t, ETH66) }
+func TestGetBlockReceipts67(t *testing.T) { testGetBlockReceipts(t, ETH67) }
+func TestGetBlockReceipts68(t *testing.T) { testGetBlockReceipts(t, ETH68) }
 
 func testGetBlockReceipts(t *testing.T, protocol uint) {
 	t.Parallel()
@@ -559,7 +556,7 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 		}
 	}
 	// Assemble the test environment
-	backend := newTestBackendWithGenerator(4, generator)
+	backend := newTestBackendWithGenerator(4, false, generator)
 	defer backend.close()
 
 	peer, _ := newTestPeer("peer", protocol, backend)
@@ -577,21 +574,14 @@ func testGetBlockReceipts(t *testing.T, protocol uint) {
 		receipts = append(receipts, backend.chain.GetReceiptsByHash(block.Hash()))
 	}
 	// Send the hash request and verify the response
-	if protocol <= ETH65 {
-		p2p.Send(peer.app, GetReceiptsMsg, hashes)
-		if err := p2p.ExpectMsg(peer.app, ReceiptsMsg, receipts); err != nil {
-			t.Errorf("receipts mismatch: %v", err)
-		}
-	} else {
-		p2p.Send(peer.app, GetReceiptsMsg, GetReceiptsPacket66{
-			RequestId:         123,
-			GetReceiptsPacket: hashes,
-		})
-		if err := p2p.ExpectMsg(peer.app, ReceiptsMsg, ReceiptsPacket66{
-			RequestId:      123,
-			ReceiptsPacket: receipts,
-		}); err != nil {
-			t.Errorf("receipts mismatch: %v", err)
-		}
+	p2p.Send(peer.app, GetReceiptsMsg, GetReceiptsPacket66{
+		RequestId:         123,
+		GetReceiptsPacket: hashes,
+	})
+	if err := p2p.ExpectMsg(peer.app, ReceiptsMsg, ReceiptsPacket66{
+		RequestId:      123,
+		ReceiptsPacket: receipts,
+	}); err != nil {
+		t.Errorf("receipts mismatch: %v", err)
 	}
 }

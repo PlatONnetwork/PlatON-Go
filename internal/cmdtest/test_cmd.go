@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -84,7 +83,7 @@ func (tt *TestCmd) Run(name string, args ...string) {
 // InputLine writes the given text to the child's stdin.
 // This method can also be called from an expect template, e.g.:
 //
-//     platon.expect(`Passphrase: {{.InputLine "password"}}`)
+//	platon.expect(`Passphrase: {{.InputLine "password"}}`)
 func (tt *TestCmd) InputLine(s string) string {
 	io.WriteString(tt.stdin, s+"\n")
 	return ""
@@ -103,7 +102,6 @@ func (tt *TestCmd) SetTemplateFunc(name string, fn interface{}) {
 // If the template starts with a newline, the newline is removed
 // before matching.
 func (tt *TestCmd) Expect(tplsource string) {
-
 	// Generate the expected output by running the template.
 	tpl := template.Must(template.New("").Funcs(tt.Func).Parse(tplsource))
 	wantbuf := new(bytes.Buffer)
@@ -122,14 +120,12 @@ func (tt *TestCmd) Expect(tplsource string) {
 }
 
 func (tt *TestCmd) matchExactOutput(want []byte) error {
-
 	buf := make([]byte, len(want))
 	n := 0
 	tt.withKillTimeout(func() { n, _ = io.ReadFull(tt.stdout, buf) })
 	buf = buf[:n]
 	tt.Log(string(buf))
 	if n < len(want) || !bytes.Equal(buf, want) {
-
 		// Grab any additional buffered output in case of mismatch
 		// because it might help with debugging.
 		buf = append(buf, make([]byte, tt.stdout.Buffered())...)
@@ -184,7 +180,7 @@ func (tt *TestCmd) ExpectRegexp(regex string) (*regexp.Regexp, []string) {
 func (tt *TestCmd) ExpectExit() {
 	var output []byte
 	tt.withKillTimeout(func() {
-		output, _ = ioutil.ReadAll(tt.stdout)
+		output, _ = io.ReadAll(tt.stdout)
 	})
 	tt.WaitExit()
 	if tt.Cleanup != nil {

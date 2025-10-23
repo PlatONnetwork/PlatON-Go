@@ -7,20 +7,17 @@ import (
 	"sync"
 	"time"
 
-	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
 	"github.com/panjf2000/ants/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 var (
@@ -34,7 +31,6 @@ type Executor struct {
 	vmCfg        vm.Config
 
 	workerPool *ants.PoolWithFunc
-	txpool     *TxPool
 }
 
 type TaskArgs struct {
@@ -43,7 +39,7 @@ type TaskArgs struct {
 	intrinsicGas uint64
 }
 
-func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config, txpool *TxPool) {
+func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmCfg vm.Config) {
 	executorOnce.Do(func() {
 		log.Info("Init parallel executor ...")
 		executor = Executor{}
@@ -59,7 +55,6 @@ func NewExecutor(chainConfig *params.ChainConfig, chainContext ChainContext, vmC
 		executor.chainContext = chainContext
 
 		executor.vmCfg = vmCfg
-		executor.txpool = txpool
 	})
 }
 
@@ -104,7 +99,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false, false)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue
@@ -261,7 +256,6 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 	toObj.AddBalance(msg.Value())
 
 	ctx.buildTransferSuccessResult(idx, fromObj, toObj, intrinsicGas, minerEarnings)
-	return
 }
 
 func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
@@ -272,7 +266,7 @@ func (exe *Executor) executeContractTransaction(ctx *ParallelContext, idx int) {
 	tx := ctx.GetTx(idx)
 
 	//log.Debug("execute contract", "txHash", tx.Hash(), "txIdx", idx, "gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas())
-	ctx.GetState().Prepare(tx.Hash(), int(ctx.GetState().TxIdx()))
+	ctx.GetState().SetTxContext(tx.Hash(), int(ctx.GetState().TxIdx()))
 	receipt, err := ApplyTransaction(exe.chainConfig, exe.chainContext, ctx.GetGasPool(), ctx.GetState(), ctx.GetHeader(), tx, ctx.GetBlockGasUsedHolder(), exe.vmCfg)
 	if err != nil {
 		log.Warn("Execute contract transaction failed", "blockNumber", ctx.GetHeader().Number.Uint64(), "txHash", tx.Hash(), "gasPool", ctx.GetGasPool().Gas(), "txGasLimit", tx.Gas(), "err", err.Error())

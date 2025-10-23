@@ -15,6 +15,7 @@
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
 // platon is the official command-line client for Ethereum.
+
 package main
 
 import (
@@ -30,7 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/console/prompt"
 
 	"github.com/panjf2000/ants/v2"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -58,17 +59,15 @@ var (
 	gitCommit = ""
 	gitDate   = ""
 	// The app that holds all commands and flags.
-	app = flags.NewApp(gitCommit, gitDate, "the platon-go command line interface")
+	app = flags.NewApp(gitCommit, gitDate, "the PlatON-Go command line interface")
 	// flags that configure the node
-	nodeFlags = []cli.Flag{
+	nodeFlags = flags.Merge([]cli.Flag{
 		utils.IdentityFlag,
 		utils.UnlockedAccountFlag,
 		utils.PasswordFileFlag,
 		utils.BootnodesFlag,
 		utils.BootnodesV4Flag,
 		//	utils.BootnodesV5Flag,
-		utils.DataDirFlag,
-		utils.AncientFlag,
 		utils.MinFreeDiskSpaceFlag,
 		utils.KeyStoreDirFlag,
 		utils.TxPoolLocalsFlag,
@@ -97,7 +96,10 @@ var (
 		utils.CacheSnapshotFlag,
 		utils.CacheTrieDBFlag,
 		utils.CachePreimagesFlag,
+		utils.CacheLogSizeFlag,
+		utils.FDLimitFlag,
 		utils.ListenPortFlag,
+		utils.DiscoveryPortFlag,
 		utils.MaxPeersFlag,
 		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
@@ -109,25 +111,26 @@ var (
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		//	utils.DNSDiscoveryFlag,
-		utils.MainFlag,
-		utils.TestnetFlag,
 		utils.NetworkIdFlag,
 		//utils.EthStatsURLFlag,
 		//utils.NoCompactionFlag,
 		utils.GpoBlocksFlag,
-		utils.LegacyGpoBlocksFlag,
 		utils.GpoPercentileFlag,
-		utils.LegacyGpoPercentileFlag,
 		utils.GpoMaxGasPriceFlag,
 		utils.GpoIgnoreGasPriceFlag,
+		utils.IgnoreLegacyReceiptsFlag,
 		configFileFlag,
-	}
+	}, utils.NetworkFlags, utils.DatabasePathFlags)
 
 	rpcFlags = []cli.Flag{
 		utils.HTTPEnabledFlag,
 		utils.HTTPListenAddrFlag,
 		utils.HTTPPortFlag,
 		utils.HTTPCORSDomainFlag,
+		utils.AuthListenFlag,
+		utils.AuthPortFlag,
+		utils.AuthVirtualHostsFlag,
+		utils.JWTSecretFlag,
 		utils.HTTPVirtualHostsFlag,
 		utils.GraphQLEnabledFlag,
 		utils.GraphQLCORSDomainFlag,
@@ -137,14 +140,10 @@ var (
 		utils.HTTPEnabledEthCompatibleFlag,
 		utils.WSEnabledFlag,
 		utils.WSListenAddrFlag,
-		utils.LegacyWSListenAddrFlag,
 		utils.WSPortFlag,
-		utils.LegacyWSPortFlag,
 		utils.WSApiFlag,
-		utils.LegacyWSApiFlag,
 		utils.WSAllowedOriginsFlag,
 		utils.WSPathPrefixFlag,
-		utils.LegacyWSAllowedOriginsFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,
 		utils.InsecureUnlockAllowedFlag,
@@ -198,8 +197,8 @@ func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2023 The PlatON-Go Authors"
-	app.Commands = []cli.Command{
+	app.Copyright = "Copyright 2024 The PlatON-Go Authors"
+	app.Commands = []*cli.Command{
 		// See chaincmd.go:
 		initCommand,
 		//importCommand,
@@ -228,17 +227,16 @@ func init() {
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
-	app.Flags = append(app.Flags, nodeFlags...)
-	app.Flags = append(app.Flags, rpcFlags...)
-	app.Flags = append(app.Flags, consoleFlags...)
-	app.Flags = append(app.Flags, debug.Flags...)
-	//app.Flags = append(app.Flags, whisperFlags...)
-	app.Flags = append(app.Flags, metricsFlags...)
-
-	// for cbft
-	app.Flags = append(app.Flags, cbftFlags...)
-	app.Flags = append(app.Flags, dbFlags...)
-	app.Flags = append(app.Flags, vmFlags...)
+	app.Flags = flags.Merge(
+		nodeFlags,
+		rpcFlags,
+		consoleFlags,
+		debug.Flags,
+		metricsFlags,
+		cbftFlags,
+		dbFlags,
+		vmFlags,
+	)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -246,7 +244,7 @@ func init() {
 		if err != nil {
 			return err
 		}
-
+		flags.MigrateGlobalFlags(ctx)
 		if err := debug.Setup(ctx); err != nil {
 			return err
 		}
@@ -280,11 +278,11 @@ func main() {
 	}
 }
 
-// platon is the main entry point into the system if no special subcommand is ran.
+// platon is the main entry point into the system if no special subcommand is run.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
 func platon(ctx *cli.Context) error {
-	if args := ctx.Args(); len(args) > 0 {
+	if args := ctx.Args().Slice(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
 	stack, backend := makeFullNode(ctx)
@@ -349,7 +347,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 	}()
 	// Start auxiliary services if enabled
 	// Mining only makes sense if a full Ethereum node is running
-	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
+	if ctx.String(utils.SyncModeFlag.Name) == "light" {
 		utils.Fatalf("Light clients do not support mining")
 	}
 	ethBackend, ok := backend.(*eth.EthAPIBackend)
@@ -357,7 +355,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 		utils.Fatalf("Ethereum service not running")
 	}
 	// Set the gas price to the limits from the CLI and start mining
-	gasprice := utils.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
+	gasprice := flags.GlobalBig(ctx, utils.MinerGasPriceFlag.Name)
 
 	ethBackend.TxPool().SetGasPrice(gasprice)
 
@@ -369,7 +367,7 @@ func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isCon
 // unlockAccounts unlocks any account specifically requested.
 func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	var unlocks []string
-	inputs := strings.Split(ctx.GlobalString(utils.UnlockedAccountFlag.Name), ",")
+	inputs := strings.Split(ctx.String(utils.UnlockedAccountFlag.Name), ",")
 	for _, input := range inputs {
 		if trimmed := strings.TrimSpace(input); trimmed != "" {
 			unlocks = append(unlocks, trimmed)

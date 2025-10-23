@@ -34,5 +34,4 @@ func (t *Timer) End() float64 {
 	tns := time.Since(t.start).Nanoseconds()
 	tms := float64(tns) / float64(1e6)
 	return tms
-
 }

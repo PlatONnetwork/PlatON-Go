@@ -18,38 +18,35 @@ package main
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/urfave/cli/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/console"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"gopkg.in/urfave/cli.v1"
-	"path/filepath"
-	"strings"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 )
 
 var (
 	consoleFlags = []cli.Flag{utils.JSpathFlag, utils.ExecFlag, utils.PreloadJSFlag}
 
-	consoleCommand = cli.Command{
-		Action: utils.MigrateFlags(localConsole),
+	consoleCommand = &cli.Command{
+		Action: localConsole,
 		Name:   "console",
 		Usage:  "Start an interactive JavaScript environment",
-		//Flags:    append(append(append(nodeFlags, rpcFlags...), consoleFlags...), whisperFlags...),
-		Flags:    append(append(append(nodeFlags, rpcFlags...), consoleFlags...)),
-		Category: "CONSOLE COMMANDS",
+		Flags:  flags.Merge(nodeFlags, rpcFlags, consoleFlags),
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
 See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.`,
 	}
 
-	attachCommand = cli.Command{
-		Action:    utils.MigrateFlags(remoteConsole),
+	attachCommand = &cli.Command{
+		Action:    remoteConsole,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     append(consoleFlags, utils.DataDirFlag),
-		Category:  "CONSOLE COMMANDS",
+		Flags:     flags.Merge([]cli.Flag{utils.DataDirFlag, utils.HttpHeaderFlag}, consoleFlags),
 		Description: `
 The platon console is an interactive shell for the JavaScript runtime environment
 which exposes a node admin interface as well as the Ðapp JavaScript API.
@@ -57,13 +54,12 @@ See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console.
 This command allows to open a console on a running platon node.`,
 	}
 
-	javascriptCommand = cli.Command{
-		Action:    utils.MigrateFlags(ephemeralConsole),
+	javascriptCommand = &cli.Command{
+		Action:    ephemeralConsole,
 		Name:      "js",
-		Usage:     "Execute the specified JavaScript files",
+		Usage:     "(DEPRECATED) Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
-		Flags:     append(nodeFlags, consoleFlags...),
-		Category:  "CONSOLE COMMANDS",
+		Flags:     flags.Merge(nodeFlags, consoleFlags),
 		Description: `
 The JavaScript VM exposes a node admin interface as well as the Ðapp
 JavaScript API. See https://github.com/ethereum/go-ethereum/wiki/JavaScript-Console`,
@@ -81,23 +77,23 @@ func localConsole(ctx *cli.Context) error {
 	// Attach to the newly started node and create the JavaScript console
 	client, err := stack.Attach()
 	if err != nil {
-		return fmt.Errorf("Failed to attach to the inproc platon: %v", err)
+		return fmt.Errorf("failed to attach to the inproc platon: %v", err)
 	}
 	config := console.Config{
 		DataDir: utils.MakeDataDir(ctx),
-		DocRoot: ctx.GlobalString(utils.JSpathFlag.Name),
+		DocRoot: ctx.String(utils.JSpathFlag.Name),
 		Client:  client,
 		Preload: utils.MakeConsolePreloads(ctx),
 	}
 
 	console, err := console.New(config)
 	if err != nil {
-		return fmt.Errorf("Failed to start the JavaScript console: %v", err)
+		return fmt.Errorf("failed to start the JavaScript console: %v", err)
 	}
 	defer console.Stop(false)
 
 	// If only a short execution was requested, evaluate and return.
-	if script := ctx.GlobalString(utils.ExecFlag.Name); script != "" {
+	if script := ctx.String(utils.ExecFlag.Name); script != "" {
 		console.Evaluate(script)
 		return nil
 	}
@@ -118,26 +114,22 @@ func localConsole(ctx *cli.Context) error {
 // remoteConsole will connect to a remote platon instance, attaching a JavaScript
 // console to it.
 func remoteConsole(ctx *cli.Context) error {
+	if ctx.Args().Len() > 1 {
+		utils.Fatalf("invalid command-line: too many arguments")
+	}
 	endpoint := ctx.Args().First()
 	if endpoint == "" {
-		path := node.DefaultDataDir()
-		if ctx.GlobalIsSet(utils.DataDirFlag.Name) {
-			path = ctx.GlobalString(utils.DataDirFlag.Name)
-		}
-		if path != "" {
-			if ctx.GlobalBool(utils.TestnetFlag.Name) {
-				path = filepath.Join(path, "testnet")
-			}
-		}
-		endpoint = fmt.Sprintf("%s/platon.ipc", path)
+		cfg := defaultNodeConfig()
+		utils.SetDataDir(ctx, &cfg)
+		endpoint = cfg.IPCEndpoint()
 	}
-	client, err := dialRPC(endpoint)
+	client, err := utils.DialRPCWithHeaders(endpoint, ctx.StringSlice(utils.HttpHeaderFlag.Name))
 	if err != nil {
 		utils.Fatalf("Unable to attach to remote platon: %v", err)
 	}
 	config := console.Config{
 		DataDir: utils.MakeDataDir(ctx),
-		DocRoot: ctx.GlobalString(utils.JSpathFlag.Name),
+		DocRoot: ctx.String(utils.JSpathFlag.Name),
 		Client:  client,
 		Preload: utils.MakeConsolePreloads(ctx),
 	}
@@ -147,7 +139,7 @@ func remoteConsole(ctx *cli.Context) error {
 	}
 	defer console.Stop(false)
 
-	if script := ctx.GlobalString(utils.ExecFlag.Name); script != "" {
+	if script := ctx.String(utils.ExecFlag.Name); script != "" {
 		console.Evaluate(script)
 		return nil
 	}
@@ -158,61 +150,15 @@ func remoteConsole(ctx *cli.Context) error {
 	return nil
 }
 
-// dialRPC returns a RPC client which connects to the given endpoint.
-// The check for empty endpoint implements the defaulting logic
-// for "platon attach" with no argument.
-func dialRPC(endpoint string) (*rpc.Client, error) {
-	if endpoint == "" {
-		endpoint = node.DefaultIPCEndpoint(clientIdentifier)
-	} else if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
-		// Backwards compatibility with platon < 1.5 which required
-		// these prefixes.
-		endpoint = endpoint[4:]
-	}
-	return rpc.Dial(endpoint)
-}
-
-// ephemeralConsole starts a new platon node, attaches an ephemeral JavaScript
+// ephemeralConsole starts a new geth node, attaches an ephemeral JavaScript
 // console to it, executes each of the files specified as arguments and tears
 // everything down.
 func ephemeralConsole(ctx *cli.Context) error {
-	// Create and start the node based on the CLI flags
-	stack, backend := makeFullNode(ctx)
-	startNode(ctx, stack, backend, false)
-	defer stack.Close()
-
-	// Attach to the newly started node and start the JavaScript console
-	client, err := stack.Attach()
-	if err != nil {
-		return fmt.Errorf("Failed to attach to the inproc platon: %v", err)
+	var b strings.Builder
+	for _, file := range ctx.Args().Slice() {
+		b.Write([]byte(fmt.Sprintf("loadScript('%s');", file)))
 	}
-	config := console.Config{
-		DataDir: utils.MakeDataDir(ctx),
-		DocRoot: ctx.GlobalString(utils.JSpathFlag.Name),
-		Client:  client,
-		Preload: utils.MakeConsolePreloads(ctx),
-	}
-
-	console, err := console.New(config)
-	if err != nil {
-		return fmt.Errorf("Failed to start the JavaScript console: %v", err)
-	}
-	defer console.Stop(false)
-
-	// Interrupt the JS interpreter when node is stopped.
-	go func() {
-		stack.Wait()
-		console.Stop(false)
-	}()
-
-	// Evaluate each of the specified JavaScript files.
-	for _, file := range ctx.Args() {
-		if err = console.Execute(file); err != nil {
-			return fmt.Errorf("Failed to execute %s: %v", file, err)
-		}
-	}
-
-	// The main script is now done, but keep running timers/callbacks.
-	console.Stop(true)
+	utils.Fatalf(`The "js" command is deprecated. Please use the following instead:
+geth --exec "%s" console`, b.String())
 	return nil
 }
