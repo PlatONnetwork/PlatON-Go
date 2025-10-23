@@ -36,6 +36,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
+  
+	// Force-load native and js packages, to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 type callContext struct {
