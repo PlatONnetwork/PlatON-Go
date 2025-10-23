@@ -932,6 +932,16 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 
 	refundReleaseFn := func(balance *big.Int) *big.Int {
 		if balance.Cmp(common.Big0) > 0 {
+			//todo: 节点解除质押后，资金将会被锁定一段时间，锁定时间到期后，将会自动转账到节点的质押账户
+			//todo: 此过程没有交易，因此也没有log，所以，要在此处采集信息
+
+			//点解除质押后，资金将会被锁定一段时间，锁定时间到期后，将会自动转账到节点的质押账户
+			// 此过程没有交易，因此也没有log，所以，要在此处采集信息
+			//stats: 保存解质押冻结期满后自动到账的信息。
+			//todo: 2025/07/22 lvxiaoyi 现在这个解质押后自动到账，是由跟踪系统客户端，自己计算的。不推荐这样做，因为这个逻辑在底层是比较复杂的，跟踪系统客户端自己计算，需要喝底层的逻辑一致才行。
+
+			//common.CollectUnStakingAutoReceivedItem(blockNumber, common.NodeID(can.NodeId), can.StakingAddress, balance)
+
 			state.AddBalance(can.StakingAddress, balance)
 			state.SubBalance(vm.StakingContractAddr, balance)
 			return new(big.Int).SetInt64(0)
@@ -939,7 +949,9 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 		return balance
 	}
 
+	//退回到stakingAddress的犹豫期自有资金
 	can.ReleasedHes = refundReleaseFn(can.ReleasedHes)
+	//退回到stakingAddress的自有资金
 	can.Released = refundReleaseFn(can.Released)
 
 	refundRestrictFn := func(title string, balance *big.Int) (*big.Int, error) {

@@ -238,8 +238,16 @@ type StakingSetting struct {
 type StakingFrozenItem struct {
 	NodeID        NodeID  `json:"nodeId,omitempty"`        //备选节点ID
 	NodeAddress   Address `json:"nodeAddress,omitempty"`   //备选节点地址
-	FrozenEpochNo uint64  `json:"frozenEpochNo,omitempty"` //质押资金，被解冻的结算周期（此周期最后一个块的endBlocker里）
+	FrozenEpochNo uint64  `json:"frozenEpochNo,omitempty"` //解质押资金被解冻直到此结算周期结束（此周期最后一个块的endBlocker里）
 	Recovery      bool    `json:"recovery"`                //Recover=true；表示冻结期结束后，质押将变成有效质押；Recover=false, 表示冻结期结束后，质押将原来退回质押钱包（或者和锁仓合约）
+}
+
+//todo: 2025/07/22 lvxiaoyi 现在这个解质押后自动到账，是由跟踪系统客户端，自己计算的。不推荐这样做，因为这个逻辑在底层是比较复杂的，跟踪系统客户端自己计算，需要喝底层的逻辑一致才行。
+
+type UnStakingAutoReceivedItem struct {
+	NodeID             NodeID   `json:"nodeId,omitempty"`         //节点ID
+	StakingAddress     Address  `json:"stakingAddress,omitempty"` //质押地址
+	AmountAutoReceived *big.Int `json:"slashingAmount,omitempty"` //自动到账金额(解质押的金额）
 }
 
 type RestrictingReleaseItem struct {
@@ -269,8 +277,10 @@ func PopExeBlockData(blockNumber uint64) *ExeBlockData {
 
 func InitExeBlockData(blockNumber uint64) {
 	exeBlockData := &ExeBlockData{
-		ZeroSlashingItemList:       make([]*ZeroSlashingItem, 0),
-		StakingFrozenItemList:      make([]*StakingFrozenItem, 0),
+		ZeroSlashingItemList:  make([]*ZeroSlashingItem, 0),
+		StakingFrozenItemList: make([]*StakingFrozenItem, 0),
+		//todo: 2025/07/22 lvxiaoyi 现在这个解质押后自动到账，是由跟踪系统客户端，自己计算的。不推荐这样做，因为这个逻辑在底层是比较复杂的，跟踪系统客户端自己计算，需要喝底层的逻辑一致才行。
+		//UnStakingAutoReceivedItemList: make([]*UnStakingAutoReceivedItem, 0),
 		RestrictingReleaseItemList: make([]*RestrictingReleaseItem, 0),
 		EmbedTransferTxList:        make([]*EmbedTransferTx, 0),
 		EmbedContractTxList:        make([]*EmbedContractTx, 0),
@@ -292,14 +302,16 @@ type ExeBlockData struct {
 	DuplicatedSignSlashingSetting *DuplicatedSignSlashingSetting `json:"duplicatedSignSlashingSetting,omitempty"`
 	StakingSetting                *StakingSetting                `json:"stakingSetting,omitempty"`
 	StakingFrozenItemList         []*StakingFrozenItem           `json:"stakingFrozenItemList,omitempty"`
-	RestrictingReleaseItemList    []*RestrictingReleaseItem      `json:"restrictingReleaseItemList,omitempty"`
-	EmbedTransferTxList           []*EmbedTransferTx             `json:"embedTransferTxList,omitempty"`    //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
-	EmbedContractTxList           []*EmbedContractTx             `json:"embedContractTxList,omitempty"`    //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
-	WithdrawDelegationList        []*WithdrawDelegation          `json:"withdrawDelegationList,omitempty"` //当委托用户撤回节点的全部委托时，需要的统计信息（由于Alaya在运行中，只能兼容Alaya的bug）
-	AutoStakingMap                map[Hash]*AutoStakingTx        `json:"autoStakingTxMap,omitempty"`
-	EpochElection                 []NodeID                       `json:"epochElection,omitempty"`
-	ConsensusElection             []NodeID                       `json:"consensusElection,omitempty"`
-	EpochNumber                   uint64                         `json:"epochNumber,omitempty"` //当前增发周期的结算周期数
+	//todo: 2025/07/22 lvxiaoyi 现在这个解质押后自动到账，是由跟踪系统客户端，自己计算的。不推荐这样做，因为这个逻辑在底层是比较复杂的，跟踪系统客户端自己计算，需要喝底层的逻辑一致才行。
+	//UnStakingAutoReceivedItemList []*UnStakingAutoReceivedItem   `json:"unStakingAutoReceivedItemList,omitempty"`
+	RestrictingReleaseItemList []*RestrictingReleaseItem `json:"restrictingReleaseItemList,omitempty"`
+	EmbedTransferTxList        []*EmbedTransferTx        `json:"embedTransferTxList,omitempty"`    //一个显式交易引起的内置转账交易：一般有两种情况：1是部署，或者调用合约时，带上了value，则这个value会转账给合约地址；2是调用合约，合约内部调用transfer()函数完成转账
+	EmbedContractTxList        []*EmbedContractTx        `json:"embedContractTxList,omitempty"`    //一个显式交易引起的内置合约交易。这个显式交易显然也是个合约交易，在这个合约里，又调用了其他合约（包括内置合约）
+	WithdrawDelegationList     []*WithdrawDelegation     `json:"withdrawDelegationList,omitempty"` //当委托用户撤回节点的全部委托时，需要的统计信息（由于Alaya在运行中，只能兼容Alaya的bug）
+	AutoStakingMap             map[Hash]*AutoStakingTx   `json:"autoStakingTxMap,omitempty"`
+	EpochElection              []NodeID                  `json:"epochElection,omitempty"`
+	ConsensusElection          []NodeID                  `json:"consensusElection,omitempty"`
+	EpochNumber                uint64                    `json:"epochNumber,omitempty"` //当前增发周期的结算周期数
 }
 
 func CollectAdditionalIssuance(blockNumber uint64, additionalIssuanceData *AdditionalIssuanceData) {
@@ -316,6 +328,16 @@ func CollectStakingFrozenItem(blockNumber uint64, nodeId NodeID, nodeAddress Nod
 		exeBlockData.StakingFrozenItemList = append(exeBlockData.StakingFrozenItemList, &StakingFrozenItem{NodeID: nodeId, NodeAddress: Address(nodeAddress), FrozenEpochNo: frozenEpochNo, Recovery: recovery})
 	}
 }
+
+// 点解除质押后，资金将会被锁定一段时间，锁定时间到期后，将会自动转账到节点的质押账户
+// 此过程没有交易，因此也没有log，所以，要在此处采集信息
+//todo: 2025/07/22 lvxiaoyi 现在这个解质押后自动到账，是由跟踪系统客户端，自己计算的。不推荐这样做，因为这个逻辑在底层是比较复杂的，跟踪系统客户端自己计算，需要喝底层的逻辑一致才行。
+/*func CollectUnStakingAutoReceivedItem(blockNumber uint64, nodeId NodeID, stakingAddress Address, amountAutoReceived *big.Int) {
+	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
+		log.Debug("CollectUnStakingAutoReceivedItem", "blockNumber", blockNumber, "nodeId", Bytes2Hex(nodeId[:]), "stakingAddress", stakingAddress.Hex(), "amountAutoReceived", amountAutoReceived)
+		exeBlockData.UnStakingAutoReceivedItemList = append(exeBlockData.UnStakingAutoReceivedItemList, &UnStakingAutoReceivedItem{NodeID: nodeId, StakingAddress: stakingAddress, AmountAutoReceived: amountAutoReceived})
+	}
+}*/
 
 func CollectRestrictingReleaseItem(blockNumber uint64, destAddress Address, releaseAmount *big.Int, lackingAmount *big.Int) {
 	if exeBlockData, ok := ExeBlockDataCollector[blockNumber]; ok && exeBlockData != nil {
