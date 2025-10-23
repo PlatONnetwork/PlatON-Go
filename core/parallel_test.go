@@ -18,6 +18,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	state2 "github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -25,7 +27,6 @@ import (
 	cvm "github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -116,7 +117,6 @@ func initTx(fromAccountList []*account, contractAccountList []*account) types.Tr
 					hexutil.MustDecode("0xf853838207d0b842b84006463ca71944647572a3ffcf96ab229f2e607651a40d89ff3ec36759fbc62b9f72ba1c07a9a6de87f61ec0e9574ebe338914da0931f1701a8bba3ca4162c23378a89746578745049504944")),
 				signer,
 				fromAccount.priKey)
-
 		} else if txType == 2 {
 			tx, _ = types.SignTx(
 				types.NewTransaction(
@@ -184,7 +184,7 @@ func initChain(fromAccountList []*account, toAccountList []*account, contractAcc
 		WasmType:      cvm.Wagon,
 	}
 
-	blockchain, _ := NewBlockChain(db, nil, gspec.Config, consensus.NewFaker(), vmConfig, nil, nil)
+	blockchain, _ := NewBlockChain(db, nil, gspec, nil, consensus.NewFaker(), vmConfig, nil, nil)
 
 	parent := blockchain.Genesis()
 	_, header := NewBlock(parent.Hash(), parent.NumberU64()+1)
@@ -305,7 +305,7 @@ func TestParallel_PackParallel_VerifySerial(t *testing.T) {
 func parallelMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header, tempContractCache map[common.Address]struct{}) *types.Block {
 	//initState := stateDb.Copy()
 
-	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
+	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	ctx := NewParallelContext(stateDb, header, common.Hash{}, gp, true, types.MakeSigner(chainConfig, header.Number, true), tempContractCache)
@@ -352,14 +352,14 @@ func TestParallel_PackSerial_VerifySerial(t *testing.T) {
 
 func serialMode(t testing.TB, testTxList types.Transactions, blockchain *BlockChain, stateDb *state2.StateDB, header *types.Header) {
 	//initState := stateDb.Copy()
-	NewExecutor(chainConfig, blockchain, blockchain.vmConfig, nil)
+	NewExecutor(chainConfig, blockchain, blockchain.vmConfig)
 
 	gp := new(GasPool).AddGas(header.GasLimit)
 	//start := time.Now()
 	txs := types.Transactions{}
 	var receipts = types.Receipts{}
 	for idx, tx := range testTxList {
-		stateDb.Prepare(tx.Hash(), idx)
+		stateDb.SetTxContext(tx.Hash(), idx)
 		receipt, err := ApplyTransaction(chainConfig, blockchain, gp, stateDb, header, tx, &header.GasUsed, blockchain.vmConfig)
 
 		if err != nil {

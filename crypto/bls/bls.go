@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"unsafe"
@@ -107,7 +106,7 @@ func LoadBLS(file string) (*SecretKey, error) {
 
 func SaveBLS(file string, key *SecretKey) error {
 	k := hex.EncodeToString(key.GetLittleEndian())
-	return ioutil.WriteFile(file, []byte(k), 0600)
+	return os.WriteFile(file, []byte(k), 0600)
 }
 
 func GenerateKey() *SecretKey {
@@ -249,7 +248,6 @@ func (pe PublicKeyHex) MarshalText() ([]byte, error) {
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 func (pe *PublicKeyHex) UnmarshalText(text []byte) error {
-
 	var p PublicKeyHex
 	b, err := hex.DecodeString(strings.TrimPrefix(string(text), "0x"))
 	if err != nil {
@@ -271,7 +269,6 @@ func (pe *PublicKeyHex) ParseBlsPubKey() (*PublicKey, error) {
 
 	var blsPk PublicKey
 	if err := blsPk.UnmarshalText(pubKeyByte); nil != err {
-
 		return nil, err
 	}
 	return &blsPk, nil
@@ -439,8 +436,8 @@ func DHKeyExchange(sec *SecretKey, pub *PublicKey) (out PublicKey) {
 	return out
 }
 
-//add@20190716
-//get G2
+// add@20190716
+// get G2
 func GetGeneratorOfG2() (pub *PublicKey) {
 	pub = new(PublicKey)
 	C.blsGetGeneratorOfPublicKey(pub.getPointer())
@@ -625,7 +622,6 @@ type Proof struct {
 // Serialize --
 func (pf *Proof) Serialize() []byte {
 	return append(pf.C.Serialize(), (pf.R.Serialize())...)
-
 }
 
 // Deserialize --
@@ -713,8 +709,7 @@ func SchnorrNIZKVerify(curve int, proof Proof, P PublicKey) error {
 	r := proof.R
 	G := GetGeneratorOfG2()
 	//	V1 = G * r + A * c     c = H(G || pk || V’)
-	var Pr PublicKey
-	Pr = *G
+	var Pr PublicKey = *G
 	Pr.Mul(&r)
 	Pc := P
 	Pc.Mul(&c)

@@ -58,7 +58,6 @@ func (c *testchain) reOpenSnapshotDB() {
 	c.db.walCh = make(chan *BlockData, 2)
 	c.db.walLoopCtx, c.db.walLoopCancel = context.WithCancel(context.Background())
 	go c.db.loopWriteWal()
-
 }
 
 func (c *testchain) insert(addBlock bool, kvs kvs, f func(db *snapshotDB, kvs kvs, header *types.Header) error) error {

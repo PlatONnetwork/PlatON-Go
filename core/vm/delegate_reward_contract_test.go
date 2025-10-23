@@ -94,7 +94,7 @@ func generateStk(rewardPer uint16, delegateTotal *big.Int, blockNumber uint64) (
 		StakingBlockNum: canBase.StakingBlockNum,
 	})
 
-	return stakingValIndex, validatorQueue, staking.Candidate{&canBase, &canMu}, delegation
+	return stakingValIndex, validatorQueue, staking.Candidate{CandidateBase: &canBase, CandidateMutable: &canMu}, delegation
 }
 
 func TestWithdrawDelegateRewardWithReward(t *testing.T) {
@@ -158,7 +158,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 				return err
 			}
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
 				verifierList, err := contact.Plugin.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
 				if err != nil {
 					return err
@@ -170,14 +169,12 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
 				}
-
 			}
 			return nil
 		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
-
 	}
 
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
@@ -190,7 +187,7 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, 0, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 			return err
 		}
 		var code string
@@ -225,7 +222,6 @@ func TestWithdrawDelegateRewardWithReward(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-
 }
 
 func newRewardContact(add common.Address, chain *mock.Chain, initGas uint64) *DelegateRewardContract {
@@ -263,7 +259,7 @@ func TestWithdrawDelegateRewardWithEmptyReward(t *testing.T) {
 	}
 
 	var m [][]byte
-	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
+	if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txHash, 0, chain.CurrentHeader().Hash())[0].Data, &m); err != nil {
 		t.Error(err)
 		return
 	}
@@ -372,7 +368,6 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 				return err
 			}
 			if xutil.IsEndOfEpoch(header.Number.Uint64()) {
-
 				verifierList, err := contact.Plugin.AllocateStakingReward(header.Number.Uint64(), hash, stakingReward, chain.StateDB)
 				if err != nil {
 					return err
@@ -384,14 +379,12 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 				if err := stkDB.SetEpochValList(hash, index[xutil.CalculateEpoch(header.Number.Uint64())].Start, index[xutil.CalculateEpoch(header.Number.Uint64())].End, queue); err != nil {
 					return err
 				}
-
 			}
 			return nil
 		}, nil, nil); err != nil {
 			t.Error(err)
 			return
 		}
-
 	}
 
 	txhash := common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
@@ -403,7 +396,7 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 			return err
 		}
 		var m [][]byte
-		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, hash)[0].Data, &m); err != nil {
+		if err := rlp.DecodeBytes(chain.StateDB.GetLogs(txhash, 0, hash)[0].Data, &m); err != nil {
 			return err
 		}
 		var code string

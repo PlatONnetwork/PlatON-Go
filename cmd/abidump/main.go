@@ -20,10 +20,10 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"os"
 	"strings"
 
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"github.com/PlatONnetwork/PlatON-Go/signer/fourbyte"
 )
 

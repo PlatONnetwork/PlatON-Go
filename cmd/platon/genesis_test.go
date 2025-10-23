@@ -17,7 +17,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -308,19 +307,18 @@ var customGenesisTests = []struct {
 func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {
 		// Create a temporary data directory to use and inspect later
-		datadir := tmpdir(t)
-		defer os.RemoveAll(datadir)
+		datadir := t.TempDir()
 
 		// Initialize the data directory with the custom genesis block
 		json := filepath.Join(datadir, "genesis.json")
-		if err := ioutil.WriteFile(json, []byte(tt.genesis), 0600); err != nil {
+		if err := os.WriteFile(json, []byte(tt.genesis), 0600); err != nil {
 			t.Fatalf("test %d: failed to write genesis file: %v", i, err)
 		}
 		runPlatON(t, "--datadir", datadir, "init", json).WaitExit()
 
 		// Query the custom genesis block
 		platon := runPlatON(t,
-			"--datadir", datadir, "--maxpeers", "60", "--port", "0",
+			"--datadir", datadir, "--maxpeers", "60", "--port", "0", "--authrpc.port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable", "--testnet",
 			"--exec", tt.query, "console")
 		t.Log("testi", i)

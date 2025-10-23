@@ -138,6 +138,10 @@ type (
 		address *common.Address
 		slot    *common.Hash
 	}
+	transientStorageChange struct {
+		account       *common.Address
+		key, prevalue []byte
+	}
 )
 
 func (ch createObjectChange) revert(s *StateDB) {
@@ -151,8 +155,8 @@ func (ch createObjectChange) dirtied() *common.Address {
 
 func (ch resetObjectChange) revert(s *StateDB) {
 	s.setStateObject(ch.prev)
-	if !ch.prevdestruct && s.snap != nil {
-		delete(s.snapDestructs, ch.prev.addrHash)
+	if !ch.prevdestruct {
+		delete(s.stateObjectsDestruct, ch.prev.address)
 	}
 }
 
@@ -211,6 +215,14 @@ func (ch storageChange) revert(s *StateDB) {
 
 func (ch storageChange) dirtied() *common.Address {
 	return ch.account
+}
+
+func (ch transientStorageChange) revert(s *StateDB) {
+	s.setTransientState(*ch.account, ch.key, ch.prevalue)
+}
+
+func (ch transientStorageChange) dirtied() *common.Address {
+	return nil
 }
 
 func (ch refundChange) revert(s *StateDB) {

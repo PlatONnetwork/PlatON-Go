@@ -18,23 +18,14 @@ package state
 
 import (
 	"bytes"
-	"encoding/hex"
-	"fmt"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/PlatONnetwork/PlatON-Go/trie"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 type stateTest struct {
@@ -50,7 +41,7 @@ func newStateTest() *stateTest {
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, nil), nil)
+	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
@@ -116,7 +107,7 @@ func TestNull(t *testing.T) {
 	s.state.SetState(address, key, value)
 	s.state.Commit(false)
 
-	if value := s.state.GetState(address, key); bytes.Compare(value, value) != 0 {
+	if value := s.state.GetState(address, key); !bytes.Equal(value, value) {
 		t.Error("expected empty current value")
 	}
 }
@@ -264,172 +255,5 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		if !bytes.Equal(so1.originStorage[k], v) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
-	}
-}
-
-func TestEmptyByte(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.Remove(frdir)
-	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
-	state, _ := New(common.Hash{}, NewDatabase(db), nil)
-
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
-	state.CreateAccount(address)
-	so := state.getStateObject(address)
-
-	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	pvalue := []byte{'a'}
-	key := []byte{'a'}
-
-	//s.state.SetState(address, common.Hash{}, value)
-	state.SetState(address, key, pvalue)
-	state.Commit(false)
-
-	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty current value, got %x", value)
-	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
-
-	state.trie.NodeIterator(nil)
-	it := trie.NewIterator(so.trie.NodeIterator(nil))
-	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-	}
-
-	pvalue = []byte{}
-	state.SetState(address, key, []byte{})
-	state.Commit(false)
-
-	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty current value, got %x", value)
-	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
-
-	state.trie.NodeIterator(nil)
-	it = trie.NewIterator(so.trie.NodeIterator(nil))
-	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-	}
-
-	pvalue = []byte("bbb")
-	state.SetState(address, key, pvalue)
-	state.Commit(false)
-	state.trie.NodeIterator(nil)
-	it = trie.NewIterator(so.trie.NodeIterator(nil))
-	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-		fmt.Println(so.db.trie.GetKey(it.Value))
-	}
-
-}
-
-func TestForEachStorage(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "platon")
-	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
-	if err != nil {
-		t.Fatalf("Failed to reopen persistent database: %v", err)
-	}
-	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db), nil)
-
-	address := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
-	state.CreateAccount(address)
-
-	key := []byte("a")
-	fvalue := []byte("A")
-
-	fmt.Printf("before Commit, key: %v, value: %v \n", key, fvalue)
-
-	//s.state.SetState(address, common.Hash{}, value)
-	state.SetState(address, key, fvalue)
-	state.Commit(false)
-
-	svalue := []byte("B")
-
-	fmt.Printf("after Commit, key: %v, value: %v \n", key, svalue)
-	state.SetState(address, key, svalue)
-
-	state.ForEachStorage(address, func(key []byte, value []byte) bool {
-		fmt.Println("load out, key:", hex.EncodeToString(key), "value:", string(value))
-		fmt.Printf("load out, key: %v, value: %v \n", key, value /*Bytes2Bits(key), Bytes2Bits(value)*/)
-		return true
-	})
-}
-
-func TestMigrateStorage(t *testing.T) {
-
-	tmpDir, _ := ioutil.TempDir("", "platon")
-	defer os.Remove(tmpDir)
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(tmpDir, 0, 0, "freezer", "platon", false)
-	if err != nil {
-		t.Fatalf("Failed to reopen persistent database: %v", err)
-	}
-	defer db.Close()
-	state, _ := New(common.Hash{}, NewDatabase(db), nil)
-
-	from := common.MustBech32ToAddress("lax1qqqqqqyzx9q8zzl38xgwg5qpxeexmz64ex89tk")
-	state.CreateAccount(from)
-
-	to := common.MustBech32ToAddress("lax1qqqqqqrjxpq8zzl38xgwg5qpxeex6mnxwyzlxv")
-	state.CreateAccount(to)
-
-	state.SetState(from, []byte("a"), []byte("fromA"))
-	state.SetState(from, []byte("b"), []byte("fromB"))
-	state.SetState(from, []byte("c"), []byte("fromC"))
-
-	state.SetState(to, []byte("a"), []byte("I am  A of to"))
-	state.SetState(to, []byte("b"), []byte("I am  B of to"))
-	state.SetState(to, []byte("d"), []byte("I am  D of to"))
-	state.SetState(to, []byte("e"), []byte("I am  E of to"))
-
-	state.Commit(false)
-
-	state.SetState(from, []byte("c"), []byte("fromC2"))
-	state.SetState(from, []byte("d"), []byte("fromD2"))
-	state.SetState(to, []byte("e"), []byte("I am  E2 of to"))
-	state.SetState(to, []byte("f"), []byte("I am  F of to"))
-
-	// test MigrateStorage
-	//
-	// expect:
-	//
-	// {
-	//		"a": "fromA",
-	//		"b": "fromB",
-	//		"c": "fromC2",
-	// 		"d": "fromD2",
-	//		"e": "",
-	// 		"f": "",
-	// }
-	//
-	state.MigrateStorage(from, to)
-
-	for _, key := range [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e"), []byte("f")} {
-		value := state.GetState(to, key)
-
-		switch string(key) {
-		case "a":
-			assert.Equal(t, "fromA", string(value))
-		case "b":
-			assert.Equal(t, "fromB", string(value))
-		case "c":
-			assert.Equal(t, "fromC2", string(value))
-		case "d":
-			assert.Equal(t, "fromD2", string(value))
-		case "e":
-			assert.Equal(t, "", string(value))
-		case "f":
-			assert.Equal(t, "", string(value))
-		}
-
-		//fmt.Println("key:", string(key), "value:", string(value))
 	}
 }

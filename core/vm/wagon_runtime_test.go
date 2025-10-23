@@ -7,8 +7,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"hash/fnv"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,8 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
@@ -103,12 +101,12 @@ var testCase = []*Case{
 	{
 		ctx: &VMContext{
 			evm: &EVM{Context: BlockContext{
-				Time: big.NewInt(93),
+				Time: 93,
 			}}},
 		funcName: "platon_timestamp_test",
 		check: func(self *Case, err error) bool {
 			var res [8]byte
-			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time.Uint64())
+			binary.LittleEndian.PutUint64(res[:], self.ctx.evm.Context.Time)
 			return bytes.Equal(res[:], self.ctx.Output)
 		},
 	},
@@ -591,7 +589,7 @@ var testCase = []*Case{
 				return false
 			}
 
-			if bytes.Compare(code, codeBytes) != 0 {
+			if !bytes.Equal(code, codeBytes) {
 				return false
 			}
 
@@ -615,13 +613,13 @@ var testCase = []*Case{
 					return false
 				}
 
-				if key == "A" && bytes.Compare(value, []byte("aaa")) != 0 {
+				if key == "A" && !bytes.Equal(value, []byte("aaa")) {
 					return false
 				}
-				if key == "B" && bytes.Compare(value, []byte("bbb")) != 0 {
+				if key == "B" && !bytes.Equal(value, []byte("bbb")) {
 					return false
 				}
-				if key == "C" && bytes.Compare(value, []byte("ccc")) != 0 {
+				if key == "C" && !bytes.Equal(value, []byte("ccc")) {
 					return false
 				}
 			}
@@ -710,7 +708,7 @@ var testCase = []*Case{
 				return false
 			}
 
-			if bytes.Compare(code, codeBytes) != 0 {
+			if !bytes.Equal(code, codeBytes) {
 				return false
 			}
 
@@ -734,13 +732,13 @@ var testCase = []*Case{
 					return false
 				}
 
-				if key == "A" && bytes.Compare(value, []byte("aaa")) != 0 {
+				if key == "A" && !bytes.Equal(value, []byte("aaa")) {
 					return false
 				}
-				if key == "B" && bytes.Compare(value, []byte("bbb")) != 0 {
+				if key == "B" && !bytes.Equal(value, []byte("bbb")) {
 					return false
 				}
-				if key == "C" && bytes.Compare(value, []byte("ccc")) != 0 {
+				if key == "C" && !bytes.Equal(value, []byte("ccc")) {
 					return false
 				}
 			}
@@ -820,11 +818,7 @@ var testCase = []*Case{
 			}
 			newState := self.ctx.evm.StateDB.(*mock.MockStateDB)
 			oldState := self.stateDb.(*mock.MockStateDB)
-			if !oldState.Equal(newState) {
-				return false
-			}
-
-			return true
+			return oldState.Equal(newState)
 		},
 	},
 
@@ -869,7 +863,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 13, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
@@ -890,7 +884,7 @@ var testCase = []*Case{
 			if len(log.Topics) != 0 {
 				return false
 			}
-			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
+			if !bytes.Equal(log.Data, []byte("I am wagon")) {
 				return false
 			}
 			return true
@@ -938,7 +932,7 @@ var testCase = []*Case{
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
 		check: func(self *Case, err error) bool {
-			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, common.Hash{2, 2, 2, 2})
+			logs := self.ctx.evm.StateDB.GetLogs(common.Hash{1, 1, 1, 1}, 13, common.Hash{2, 2, 2, 2})
 			if len(logs) != 1 {
 				return false
 			}
@@ -959,7 +953,7 @@ var testCase = []*Case{
 			if len(log.Topics) == 0 {
 				return false
 			}
-			if bytes.Compare(log.Data, []byte("I am wagon")) != 0 {
+			if !bytes.Equal(log.Data, []byte("I am wagon")) {
 				return false
 			}
 			return true
@@ -976,10 +970,10 @@ var testCase = []*Case{
 	},
 	{
 		ctx:      &VMContext{},
-		funcName: "platon_ripemd160_test",
+		funcName: "platon_sha256_test",
 		check: func(self *Case, err error) bool {
 			input := []byte{1, 2, 3}
-			rip := ripemd160.New()
+			rip := sha256.New()
 			rip.Write(input)
 			h160 := rip.Sum(nil)
 			return bytes.Equal(h160[:], self.ctx.Output)
@@ -988,13 +982,13 @@ var testCase = []*Case{
 	{
 		ctx:      &VMContext{},
 		funcName: "platon_ecrecover_test",
-		check: func(self *Case, err error) bool {
+		check: func(self *Case, _ error) bool {
 			var testPrivHex = "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032"
 			key, _ := crypto.HexToECDSA(testPrivHex)
 			//addr := common.HexToAddress(testAddrHex)
 
 			msg := crypto.Keccak256([]byte("foo"))
-			sig, err := crypto.Sign(msg, key)
+			sig, _ := crypto.Sign(msg, key)
 			pubKey, _ := crypto.Ecrecover(msg, sig)
 
 			addr := crypto.Keccak256(pubKey[1:])[12:]
@@ -1075,14 +1069,14 @@ var testCase = []*Case{
 		init: func(self *Case, t *testing.T) {
 			self.ctx.evm.interpreters = append(self.ctx.evm.interpreters, NewWASMInterpreter(self.ctx.evm, self.ctx.config))
 		},
-		check: func(self *Case, err error) bool {
+		check: func(self *Case, _ error) bool {
 			code := readContractCode()
 			var length uint32 = uint32(len(code))
 			rlpBytes, err := rlp.EncodeToBytes(length)
 			if nil != err {
 				return false
 			}
-			if bytes.Compare(rlpBytes, self.ctx.Output) != 0 {
+			if !bytes.Equal(rlpBytes, self.ctx.Output) {
 				return false
 			}
 
@@ -1117,11 +1111,7 @@ var testCase = []*Case{
 		},
 		check: func(self *Case, err error) bool {
 			codeBytes := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
-			if bytes.Compare(codeBytes, self.ctx.Output) != 0 {
-				return false
-			}
-
-			return true
+			return bytes.Equal(codeBytes, self.ctx.Output)
 		},
 	},
 
@@ -1205,7 +1195,7 @@ var testCase = []*Case{
 				return false
 			}
 
-			if bytes.Compare(code, codeBytes) != 0 {
+			if !bytes.Equal(code, codeBytes) {
 				return false
 			}
 
@@ -1286,7 +1276,7 @@ var testCase = []*Case{
 				return false
 			}
 
-			if bytes.Compare(code, codeBytes) != 0 {
+			if !bytes.Equal(code, codeBytes) {
 				return false
 			}
 
@@ -1376,11 +1366,7 @@ var testCase = []*Case{
 			}
 
 			newState := self.ctx.evm.StateDB.(*mock.MockStateDB)
-			if !originState.Equal(newState) {
-				return false
-			}
-
-			return true
+			return originState.Equal(newState)
 		},
 	},
 }
@@ -1403,7 +1389,7 @@ func newTestVM(evm *EVM) *exec.VM {
 }
 
 func TestExternalFunction(t *testing.T) {
-	buf, err := ioutil.ReadFile("./testdata/external.wasm")
+	buf, err := os.ReadFile("./testdata/external.wasm")
 	assert.Nil(t, err)
 	module, err := ReadWasmModule(buf, false)
 	assert.Nil(t, err)
@@ -1422,7 +1408,6 @@ type Case struct {
 }
 
 func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
-
 	if c.ctx.contract == nil {
 		c.ctx.contract = &Contract{
 			Gas: math.MaxUint64,
@@ -1485,7 +1470,7 @@ func ExecCase(t *testing.T, module *exec.CompiledModule, c *Case, i int) {
 }
 
 func readContractCode() []byte {
-	buf, err := ioutil.ReadFile("./testdata/contract_hello.wasm")
+	buf, err := os.ReadFile("./testdata/contract_hello.wasm")
 	if nil != err {
 		panic(err)
 	}
@@ -1594,7 +1579,6 @@ func checkContractRet(ret []byte) bool {
 }
 
 func TestGetBlockHash(t *testing.T) {
-
 	testBlockHash := common.BytesToHash([]byte{1, 2, 3, 4})
 	newProc := func(blockNumber int64) *exec.Process {
 		return exec.NewProcess(newTestVM(&EVM{

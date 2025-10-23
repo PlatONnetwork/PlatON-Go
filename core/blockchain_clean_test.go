@@ -17,9 +17,7 @@
 package core
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -41,17 +39,11 @@ var (
 	testKey, _  = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 
-	securePreifx = []byte("secure-key-")
+	//securePreifx = []byte("secure-key-")
 )
 
-func randBytes(n int) []byte {
-	r := make([]byte, n)
-	rand.Read(r)
-	return r
-}
-
 func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
-	buf, err := ioutil.ReadFile("../eth/downloader/testdata/platon.json")
+	buf, err := os.ReadFile("../eth/downloader/testdata/platon.json")
 	if err != nil {
 		return nil, err
 	}
@@ -70,17 +62,13 @@ func newBlockChainForTesting(db ethdb.Database) (*BlockChain, error) {
 
 	block, _ := gen.Commit(db, snapshotdb.Instance())
 
-	return GenerateBlockChain(gen.Config, block, new(consensus.BftMock), db, 200, func(i int, block *BlockGen) {
+	return GenerateBlockChain(&gen, block, new(consensus.BftMock), db, 200, func(i int, block *BlockGen) {
 		block.statedb.SetState(testAddress, []byte(fmt.Sprintf("abc_%d", i+1)), []byte(fmt.Sprintf("abccccccc_%d", i+1)))
 	}), nil
 }
 
 func TestCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.Remove(frdir)
+	frdir := t.TempDir()
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 
@@ -134,11 +122,7 @@ func TestCleaner(t *testing.T) {
 }
 
 func TestStopCleaner(t *testing.T) {
-	frdir, err := ioutil.TempDir("", "platon")
-	if err != nil {
-		t.Fatalf("failed to create temp freezer dir: %v", err)
-	}
-	defer os.Remove(frdir)
+	frdir := t.TempDir()
 	db, err := rawdb.NewDatabaseWithFreezer(memorydb.New(), frdir, "", false)
 	assert.Nil(t, err)
 

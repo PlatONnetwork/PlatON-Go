@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -25,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -34,19 +33,19 @@ import (
 )
 
 var (
-	SendTransactionCmd = cli.Command{
+	SendTransactionCmd = &cli.Command{
 		Name:   "sendTransaction",
 		Usage:  "send a transaction",
 		Action: sendTransactionCmd,
 		Flags:  sendTransactionCmdFlags,
 	}
-	SendRawTransactionCmd = cli.Command{
+	SendRawTransactionCmd = &cli.Command{
 		Name:   "sendRawTransaction",
 		Usage:  "send a raw transaction",
 		Action: sendRawTransactionCmd,
 		Flags:  sendRawTransactionCmdFlags,
 	}
-	GetTxReceiptCmd = cli.Command{
+	GetTxReceiptCmd = &cli.Command{
 		Name:   "getTxReceipt",
 		Usage:  "get transaction receipt by hash",
 		Action: getTxReceiptCmd,
@@ -54,10 +53,11 @@ var (
 	}
 )
 
-func getTxReceiptCmd(c *cli.Context) {
+func getTxReceiptCmd(c *cli.Context) error {
 	hash := c.String(TransactionHashFlag.Name)
 	parseConfigJson(c.String(ConfigPathFlag.Name))
 	GetTxReceipt(hash)
+	return nil
 }
 
 func GetTxReceipt(txHash string) (Receipt, error) {

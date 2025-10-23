@@ -14,29 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	DeployCmd = cli.Command{
+	DeployCmd = &cli.Command{
 		Name:   "deploy",
 		Usage:  "deploy a contract",
 		Action: deploy,
 		Flags:  deployCmdFlags,
 	}
 
-	InvokeCmd = cli.Command{
+	InvokeCmd = &cli.Command{
 		Name:    "invoke",
 		Aliases: []string{"i"},
 		Usage:   "invoke contract function",
@@ -46,7 +45,6 @@ var (
 )
 
 func deploy(c *cli.Context) error {
-
 	abiPath := c.String("abi")
 	codePath := c.String("code")
 
@@ -110,11 +108,10 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 		fmt.Printf("get contract receipt timeout...more than 200 second.\n")
 	}
 	return err
-
 }
 
 func parseFileToBytes(file string) []byte {
-	bytes, err := ioutil.ReadFile(file)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		panic(fmt.Sprintf("parse file %s error,%s", file, err.Error()))
 	}
@@ -149,11 +146,10 @@ func invoke(c *cli.Context) error {
 	return nil
 }
 
-/**
-
+/*
+*
  */
 func InvokeContract(contractAddr string, abiPath string, funcParams string, txType int) error {
-
 	//Judging whether this contract exists or not
 	if !getContractByAddress(contractAddr) {
 		return fmt.Errorf("the contract address is not exist ...")
@@ -243,11 +239,12 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 	return nil
 }
 
-/**
-  Judging whether a contract exists through platon_getCode
+/*
+*
+
+	Judging whether a contract exists through platon_getCode
 */
 func getContractByAddress(addr string) bool {
-
 	params := []string{addr, "latest"}
 	r, err := Send(params, "platon_getCode")
 	if err != nil {
@@ -276,7 +273,7 @@ func getContractByAddress(addr string) bool {
 }
 
 /*
-  Loop call to get transactionReceipt... until 200s timeout
+Loop call to get transactionReceipt... until 200s timeout
 */
 func GetTransactionReceipt(txHash string, ch chan string, exit chan string) {
 	var receipt = Receipt{}

@@ -21,7 +21,7 @@ package runtime
 
 // Fuzz is the basic entry point for the go-fuzz tool
 //
-// This returns 1 for valid parsable/runable code, 0
+// This returns 1 for valid parse:able/runnable code, 0
 // for invalid opcode.
 func Fuzz(input []byte) int {
 	//以太坊的一个测试网工具，PlatON没有

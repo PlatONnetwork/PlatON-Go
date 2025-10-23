@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package fetcher
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFetcher_AddTask(t *testing.T) {
@@ -70,7 +70,6 @@ func TestFetcher_MatchTask(t *testing.T) {
 	}, func() {
 		t.Error("timeout add ")
 		w.Done()
-
 	})
 	time.Sleep(10 * time.Millisecond)
 	fetcher.MatchTask("add", &protocols.PrepareBlock{})

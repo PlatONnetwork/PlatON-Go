@@ -26,7 +26,6 @@ import (
 )
 
 // Tests that handshake failures are detected and reported correctly.
-func TestHandshake65(t *testing.T) { testHandshake(t, ETH65) }
 func TestHandshake66(t *testing.T) { testHandshake(t, ETH66) }
 
 func testHandshake(t *testing.T, protocol uint) {
@@ -68,7 +67,9 @@ func testHandshake(t *testing.T, protocol uint) {
 		defer app.Close()
 		defer net.Close()
 
-		peer := NewPeer(protocol, p2p.NewPeer(enode.ID{}, "peer", nil), net, nil, nil)
+		peer := NewPeer(protocol, p2p.NewPeer(enode.ID{}, "peer", nil), net, nil, func() bool {
+			return false
+		})
 		defer peer.Close()
 
 		// Send the junk test with one peer, check the handshake failure

@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -80,5 +79,4 @@ func TestSize(t *testing.T) {
 	length := len(key) + len(val)
 
 	log.Print("size of per", length*101/(1024*1024))
-
 }

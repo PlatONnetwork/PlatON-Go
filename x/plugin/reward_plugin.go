@@ -20,32 +20,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 	"math"
 	"math/big"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/sort"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -62,6 +55,7 @@ const (
 	AfterFoundationYearDeveloperRewardRate = 50
 	AfterFoundationYearFoundRewardRate     = 50
 	RewardPoolIncreaseRate                 = 80 // 80% of fixed-issued tokens are allocated to reward pool each year
+
 )
 
 var (
@@ -106,9 +100,11 @@ func (rmp *RewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	}
 
 	// 待分配的出块奖励金额，每个结算周期可能不一样
-	packageReward := new(big.Int)
-	stakingReward := new(big.Int)
-	var err error
+	var (
+		packageReward *big.Int
+		stakingReward *big.Int
+		err           error
+	)
 
 	if head.Number.Uint64() == common.Big1.Uint64() {
 		//第一个块，也就是第一个EPOCH，所以首先要计算第一个EPOCH的出块奖励、质押奖励
@@ -188,10 +184,7 @@ func (rmp *RewardMgrPlugin) SetCurrentNodeID(nodeId enode.IDv0) {
 //platonFoundationYear这个配置值，表示从这次增发开始，需要分配一部分给PlatONFundation
 //创世块已经发现了1次；所以第一年增发时(year=1)，实际上时第二次增发了；所以判断条件需要 - 1
 func (rmp *RewardMgrPlugin) isLessThanFoundationYear(thisYear uint32) bool {
-	if thisYear < xcom.PlatONFoundationYear()-1 {
-		return true
-	}
-	return false
+	return thisYear < xcom.PlatONFoundationYear()-1
 }
 
 //stats
@@ -209,10 +202,11 @@ func (rmp *RewardMgrPlugin) addCommunityDeveloperFoundation(state xcom.StateDB, 
 	state.AddBalance(xcom.CDFAccount(), developerFoundationIncr)
 	return xcom.CDFAccount(), developerFoundationIncr
 }
-func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
-	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
-	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
-}
+
+//func (rmp *RewardMgrPlugin) addRewardPoolIncreaseIssuance(state xcom.StateDB, currIssuance *big.Int, allocateRate uint32) {
+//	rewardpoolIncr := percentageCalculation(currIssuance, uint64(allocateRate))
+//	state.AddBalance(vm.RewardManagerPoolAddr, rewardpoolIncr)
+//}
 
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xcom.StateDB, blockNumber uint64, blockHash common.Hash) error {
@@ -237,11 +231,11 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		tmp := new(big.Int).Mul(histIssuance, big.NewInt(int64(increaseIssuanceRatio)))
 		currIssuance = tmp.Div(tmp, big.NewInt(10000))
 
-		// Restore the cumulative issue at this year end
-		/*histIssuance.Add(histIssuance, currIssuance)
+		// Restore the cumulative issue at this year-end
+		histIssuance.Add(histIssuance, currIssuance)
 		SetYearEndCumulativeIssue(state, thisYear, histIssuance)
 		log.Debug("Call EndBlock on reward_plugin: increase issuance", "thisYear", thisYear, "addIssuance", currIssuance, "hit", histIssuance)
-		*/
+
 		//stats
 		//计算总发行金额
 		newTotalIssuance := new(big.Int).Add(histIssuance, currIssuance)
@@ -257,6 +251,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 		additionalIssuance.AdditionalBase = histIssuance          //上年发行量
 		additionalIssuance.AdditionalAmount = currIssuance        //今年增发量 = 上年发行量 * 今年增发率
 		additionalIssuance.AdditionalRate = increaseIssuanceRatio //今年增发率
+
 	}
 	//今年的增发量，需要转入一部分到激励池中，以及其它基金会账户
 	rewardpoolIncr := percentageCalculation(currIssuance, uint64(RewardPoolIncreaseRate))
@@ -295,7 +290,6 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 
 // AllocateStakingReward used for reward staking at the settle block
 func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash common.Hash, sreward *big.Int, state xcom.StateDB) ([]*staking.Candidate, error) {
-
 	log.Info("Allocate staking reward start", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", sreward)
 	verifierList, err := rmp.stakingPlugin.GetVerifierCandidateInfo(blockHash, blockNumber)
@@ -317,7 +311,6 @@ func (rmp *RewardMgrPlugin) AllocateStakingReward(blockNumber uint64, blockHash 
 
 func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount *big.Int, state xcom.StateDB) error {
 	if amount.Cmp(common.Big0) > 0 {
-
 		DelegateRewardPool := state.GetBalance(vm.DelegateRewardPoolAddr)
 
 		if DelegateRewardPool.Cmp(amount) < 0 {
@@ -482,7 +475,6 @@ func (rmp *RewardMgrPlugin) GetDelegateReward(blockHash common.Hash, blockNum ui
 			StakingNum: delWithPer.DelegationInfo.StakeBlockNumber,
 			Reward:     (*hexutil.Big)(new(big.Int).Set(delWithPer.DelegationInfo.Delegation.CumulativeIncome)),
 		})
-
 	}
 	log.Debug("Call RewardMgrPlugin: query delegate reward result end", "num", blockNum, "account", account, "nodes", nodes, "rewards", rewards, "perList", delegationInfoWithRewardPerList)
 
@@ -578,7 +570,7 @@ func (rmp *RewardMgrPlugin) AllocatePackageBlock(blockHash common.Hash, head *ty
 			return err
 		}
 		if cm.ShouldGiveDelegateReward() {
-			delegateReward := new(big.Int).SetUint64(0)
+			var delegateReward *big.Int
 			delegateReward, reward = rmp.CalDelegateRewardAndNodeReward(reward, cm.RewardPer)
 			//2. 委托用户，出块奖励从激励池发放到委托激励合约。
 			state.SubBalance(vm.RewardManagerPoolAddr, delegateReward)

@@ -20,11 +20,9 @@
 package signify
 
 import (
-	"io/ioutil"
-	"math/rand"
+	"crypto/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jedisct1/go-minisign"
 )
@@ -35,14 +33,12 @@ var (
 )
 
 func TestSignify(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
-
-	rand.Seed(time.Now().UnixNano())
 
 	data := make([]byte, 1024)
 	rand.Read(data)
@@ -52,7 +48,7 @@ func TestSignify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "clé", "croissants")
+	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "clé", "croissants")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,14 +75,12 @@ func TestSignify(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
-
-	rand.Seed(time.Now().UnixNano())
 
 	data := make([]byte, 1024)
 	rand.Read(data)
@@ -96,7 +90,7 @@ func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "crois\nsants")
+	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "crois\nsants")
 	if err == nil || err.Error() == "" {
 		t.Fatalf("should have errored on a multi-line trusted comment, got %v", err)
 	}
@@ -104,14 +98,12 @@ func TestSignifyTrustedCommentTooManyLines(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
-
-	rand.Seed(time.Now().UnixNano())
 
 	data := make([]byte, 1024)
 	rand.Read(data)
@@ -121,7 +113,7 @@ func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "crois\rsants", "")
+	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "crois\rsants", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,14 +121,12 @@ func TestSignifyTrustedCommentTooManyLinesLF(t *testing.T) {
 }
 
 func TestSignifyTrustedCommentEmpty(t *testing.T) {
-	tmpFile, err := ioutil.TempFile("", "")
+	tmpFile, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile.Name())
 	defer tmpFile.Close()
-
-	rand.Seed(time.Now().UnixNano())
 
 	data := make([]byte, 1024)
 	rand.Read(data)
@@ -146,7 +136,7 @@ func TestSignifyTrustedCommentEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = SignifySignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "")
+	err = SignFile(tmpFile.Name(), tmpFile.Name()+".sig", testSecKey, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

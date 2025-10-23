@@ -14,12 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package wal
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -33,9 +30,7 @@ var (
 )
 
 func TestWALDatabase(t *testing.T) {
-
-	tempDir, _ := ioutil.TempDir("", "wal")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	// empty path
 	_, err := createWalDB("")
@@ -60,7 +55,7 @@ func TestWALDatabase(t *testing.T) {
 
 	// Delete
 	assert.Nil(t, waldb.Delete(testKey))
-	exist, err = waldb.Has(testKey)
+	exist, _ = waldb.Has(testKey)
 	assert.False(t, exist)
 
 	// NewIterator

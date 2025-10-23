@@ -14,14 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -41,19 +40,18 @@ func Send(params interface{}, action string) (string, error) {
 }
 
 func HttpPost(param JsonParam) (string, error) {
-
 	client := &http.Client{}
 	req, _ := json.Marshal(param)
 	reqNew := bytes.NewBuffer(req)
 
-	request, _ := http.NewRequest("POST", config.Url, reqNew)
+	request, _ := http.NewRequest(http.MethodPost, config.Url, reqNew)
 	request.Header.Set("Content-type", "application/json")
 	response, err := client.Do(request)
 	if response == nil && err != nil {
 		panic(fmt.Sprintf("no response from node,%s", err.Error()))
 	}
 	if err == nil && response.StatusCode == 200 {
-		body, _ := ioutil.ReadAll(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return string(body), nil
 	} else {
 		panic(fmt.Sprintf("http response status :%s", response.Status))

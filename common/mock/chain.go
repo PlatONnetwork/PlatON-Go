@@ -28,6 +28,7 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -90,7 +91,7 @@ func (c *Chain) AddBlock() {
 
 func (c *Chain) AddBlockWithTxHash(txHash common.Hash) {
 	c.AddBlock()
-	c.StateDB.Prepare(txHash, 1)
+	c.StateDB.SetTxContext(txHash, 1)
 }
 
 func (c *Chain) SetHeaderTimeGenerate(f func(uint64) uint64) {
@@ -108,7 +109,7 @@ func (c *Chain) AddBlockWithTxHashAndCommit(txHash common.Hash, miner bool, f fu
 
 func (c *Chain) execTx(miner bool, f Transaction) error {
 	c.StateDB.TxIndex++
-	c.StateDB.Prepare(f.Hash(), c.StateDB.TxIndex)
+	c.StateDB.SetTxContext(f.Hash(), c.StateDB.TxIndex)
 	if miner {
 		return f(common.ZeroHash, c.CurrentHeader(), c.StateDB, c.SnapDB)
 	} else {
@@ -396,7 +397,7 @@ type MockStateDB struct {
 	accessList *accessList
 }
 
-func (s *MockStateDB) Prepare(thash common.Hash, ti int) {
+func (s *MockStateDB) SetTxContext(thash common.Hash, ti int) {
 	s.Thash = thash
 	s.TxIndex = ti
 }
@@ -416,7 +417,6 @@ func (s *MockStateDB) SubBalance(adr common.Address, amount *big.Int) {
 }
 
 func (s *MockStateDB) AddBalance(adr common.Address, amount *big.Int) {
-
 	if balance, ok := s.Balance[adr]; ok {
 		s.Journal.append(balanceChange{
 			account: &adr,
@@ -472,12 +472,20 @@ func (s *MockStateDB) SetState(adr common.Address, key, val []byte) {
 	}
 }
 
+func (s *MockStateDB) GetTransientState(addr common.Address, key []byte) []byte {
+	return nil
+}
+
+func (s *MockStateDB) SetTransientState(adr common.Address, key, val []byte) {
+
+}
+
 func (s *MockStateDB) CreateAccount(addr common.Address) {
 	s.Journal.append(createObjectChange{account: &addr})
 
-	storage, ok := s.State[addr]
+	_, ok := s.State[addr]
 	if !ok {
-		storage = make(map[string][]byte)
+		storage := make(map[string][]byte)
 		s.State[addr] = storage
 	}
 }
@@ -490,7 +498,6 @@ func (s *MockStateDB) GetNonce(addr common.Address) uint64 {
 	return nonce
 }
 func (s *MockStateDB) SetNonce(addr common.Address, nonce uint64) {
-
 	_, ok := s.Nonce[addr]
 	s.Journal.append(nonceChange{
 		account: &addr,
@@ -512,7 +519,6 @@ func (s *MockStateDB) GetCode(addr common.Address) []byte {
 	return s.Code[addr]
 }
 func (s *MockStateDB) SetCode(addr common.Address, code []byte) {
-
 	_, ok := s.Code[addr]
 
 	s.Journal.append(codeChange{
@@ -538,10 +544,8 @@ func (s *MockStateDB) GetCodeSize(addr common.Address) int {
 }
 
 func (s *MockStateDB) AddRefund(uint64) {
-	return
 }
 func (s *MockStateDB) SubRefund(uint64) {
-	return
 }
 func (s *MockStateDB) GetRefund() uint64 {
 	return 0
@@ -601,26 +605,27 @@ func (s *MockStateDB) AddLog(logInfo *types.Log) {
 	s.logSize++
 }
 
-func (s *MockStateDB) GetLogs(hash common.Hash, blockHash common.Hash) []*types.Log {
+func (s *MockStateDB) GetLogs(hash common.Hash, blockNumber uint64, blockHash common.Hash) []*types.Log {
 	logs := s.Logs[hash]
 	for _, l := range logs {
 		l.BlockHash = blockHash
+		l.BlockNumber = blockNumber
 	}
 	return logs
 }
 
 func (s *MockStateDB) AddPreimage(common.Hash, []byte) {
-	return
 }
 
-func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) {
+func (s *MockStateDB) ForEachStorage(addr common.Address, fn func([]byte, []byte) bool) error {
 	state, ok := s.State[addr]
 	if !ok {
-		return
+		return nil
 	}
 	for k, v := range state {
 		fn([]byte(k), v)
 	}
+	return nil
 }
 
 func (s *MockStateDB) TxHash() common.Hash {
@@ -630,7 +635,7 @@ func (s *MockStateDB) TxIdx() uint32 {
 	return uint32(s.TxIndex)
 }
 
-func (s *MockStateDB) PrepareAccessList(common.Address, *common.Address, []common.Address, types.AccessList) {
+func (s *MockStateDB) Prepare(rules params.Rules, sender, coinbase common.Address, dest *common.Address, precompiles []common.Address, txAccesses types.AccessList) {
 }
 
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {
@@ -790,7 +795,6 @@ type ActiveVersionValue struct {
 }
 
 func (state *MockStateDB) GetCurrentActiveVersion() uint32 {
-
 	avListBytes := state.GetState(vm.GovContractAddr, []byte("ActVers"))
 	if len(avListBytes) == 0 {
 		panic("Cannot find active version list")
@@ -801,5 +805,4 @@ func (state *MockStateDB) GetCurrentActiveVersion() uint32 {
 	}
 
 	return avList[0].ActiveVersion
-
 }

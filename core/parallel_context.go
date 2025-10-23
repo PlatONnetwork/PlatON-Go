@@ -1,8 +1,6 @@
 package core
 
 import (
-	"bytes"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -173,7 +171,7 @@ func (ctx *ParallelContext) buildTransferFailedResult(idx int, err error, needRe
 	}
 	ctx.SetResult(idx, result)
 	tx := ctx.GetTx(idx)
-	log.Debug("Execute trasnfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().TerminalString(),
+	log.Debug("Execute transfer failed", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", ctx.GetTx(idx).Hash().TerminalString(),
 		"gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(),
 		"txValue", tx.Value(), "needRefundGasPool", needRefundGasPool, "error", err.Error())
 }
@@ -199,7 +197,7 @@ func (ctx *ParallelContext) buildTransferSuccessResult(idx int, fromStateObject,
 		err:             nil,
 	}
 	ctx.SetResult(idx, result)
-	log.Trace("Execute trasnfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", tx.Hash().TerminalString(),
+	log.Trace("Execute transfer success", "blockNumber", ctx.header.Number.Uint64(), "txIdx", idx, "txHash", tx.Hash().TerminalString(),
 		"gasPool", ctx.gp.Gas(), "txGasLimit", tx.Gas(), "txUsedGas", txGasUsed, "txFrom", tx.FromAddr(ctx.signer).String(), "txTo", tx.To().String(),
 		"txValue", tx.Value(), "minerEarnings", minerEarnings.Uint64())
 }
@@ -230,7 +228,6 @@ func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 
 				// Cumulate the miner's earnings
 				ctx.AddEarnings(resultList[idx].minerEarnings)
-
 			} else {
 				if resultList[idx].needRefundGasPool {
 					tx := ctx.GetTx(idx)
@@ -246,15 +243,4 @@ func (ctx *ParallelContext) batchMerge(originIdxList []int) {
 			}
 		}
 	}
-}
-
-func (ctx *ParallelContext) txListInfo() string {
-	var buffer bytes.Buffer
-	if len(ctx.txList) > 0 {
-		for i, tx := range ctx.txList {
-			buffer.WriteString(fmt.Sprintf("index:%d, from:%s, to:%s, value:%s, nonce:%d, data:%s \n ",
-				i, tx.FromAddr(ctx.signer), tx.To(), tx.Value().String(), tx.Nonce(), common.Bytes2Hex(tx.Data())))
-		}
-	}
-	return buffer.String()
 }

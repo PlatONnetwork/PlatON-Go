@@ -94,7 +94,7 @@ func (vn *ValidateNode) Verify(data, sign []byte) error {
 	}
 
 	if !sig.Verify(vn.BlsPubKey, string(data)) {
-		return errors.New(fmt.Sprintf("bls verifies signature fail, data:%s, sign:%s, pubkey:%s", hexutil.Encode(data), hexutil.Encode(sign), hexutil.Encode(vn.BlsPubKey.Serialize())))
+		return fmt.Errorf("bls verifies signature fail, data:%s, sign:%s, pubkey:%s", hexutil.Encode(data), hexutil.Encode(sign), hexutil.Encode(vn.BlsPubKey.Serialize()))
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func (vs *Validators) String() string {
 
 func (vs *Validators) NodeList() []enode.ID {
 	nodeList := make([]enode.ID, 0)
-	for id, _ := range vs.Nodes {
+	for id := range vs.Nodes {
 		nodeList = append(nodeList, id)
 	}
 	return nodeList

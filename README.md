@@ -16,7 +16,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 The requirements to build PlatON-Go are:
 
 - OS:Windows10/Ubuntu18.04
-- [Golang](https://golang.org/doc/install) :version 1.18+
+- [Golang](https://golang.org/doc/install) :version 1.22+
 - [cmake](https://cmake.org/) :version 3.0+
 - [g++&gcc](http://gcc.gnu.org/) :version 7.4.0+
 > 'cmake' and 'gcc&g++' are usually built-in with Ubuntu
@@ -56,6 +56,22 @@ The project comes with several executables found in the `build/bin` directory.
 |:----------:|-------------|
 | **`platon`** | Our main PlatON CLI client. It is the entry point into the PlatON network |
 | `platonkey`    | a key related tool. |
+
+### Hardware Requirements
+
+Minimum:
+
+* CPU with 2+ cores
+* 8GB RAM
+* 1TB free storage space to sync the Mainnet
+* 8 MBit/sec download Internet service
+
+Recommended:
+
+* Fast CPU with 4+ cores
+* 16GB+ RAM
+* High Performance SSD with at least 1TB free space
+* 25+ MBit/sec download Internet service
 
 ### Generate the keys
 

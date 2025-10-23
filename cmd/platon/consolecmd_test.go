@@ -19,7 +19,6 @@ package main
 import (
 	"crypto/rand"
 	"math/big"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -31,15 +30,14 @@ import (
 )
 
 const (
-	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 personal:1.0 platon:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0"
+	ipcAPIs  = "admin:1.0 debug:1.0 miner:1.0 net:1.0 platon:1.0 rpc:1.0 txgen:1.0 txpool:1.0 web3:1.0"
 	httpAPIs = "net:1.0 platon:1.0 rpc:1.0 web3:1.0"
 )
 
 // Tests that a node embedded within a console can be started up properly and
 // then terminated by closing the input stream.
 func TestConsoleWelcome(t *testing.T) {
-	datadir := tmpdir(t)
-	defer os.RemoveAll(datadir)
+	datadir := t.TempDir()
 	platon := runPlatON(t,
 		"--datadir", datadir, "--port", "0", "--ipcdisable", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "console")
 
@@ -76,9 +74,7 @@ func TestIPCAttachWelcome(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		ipc = `\\.\pipe\platon` + strconv.Itoa(trulyRandInt(100000, 999999))
 	} else {
-		ws := tmpdir(t)
-		defer os.RemoveAll(ws)
-		ipc = filepath.Join(ws, "platon.ipc")
+		ipc = filepath.Join(t.TempDir(), "geth.ipc")
 	}
 	platon := runPlatON(t,
 		"--port", "0", "--testnet", "--maxpeers", "60", "--nodiscover", "--nat", "none", "--ipcpath", ipc)
@@ -90,7 +86,6 @@ func TestIPCAttachWelcome(t *testing.T) {
 
 	waitForEndpoint(t, ipc, 3*time.Second) // Simple way to wait for the RPC endpoint to open
 	testAttachWelcome(t, platon, "ipc:"+ipc, ipcAPIs)
-
 }
 
 func TestHTTPAttachWelcome(t *testing.T) {
@@ -107,7 +102,6 @@ func TestHTTPAttachWelcome(t *testing.T) {
 	endpoint := "http://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
 	testAttachWelcome(t, platon, endpoint, httpAPIs)
-
 }
 
 func TestWSAttachWelcome(t *testing.T) {
@@ -125,11 +119,10 @@ func TestWSAttachWelcome(t *testing.T) {
 	endpoint := "ws://127.0.0.1:" + port
 	waitForEndpoint(t, endpoint, 3*time.Second)
 	testAttachWelcome(t, platon, endpoint, httpAPIs)
-
 }
 
 func testAttachWelcome(t *testing.T, platon *testplaton, endpoint, apis string) {
-	// Attach to a running platon note and terminate immediately
+	// Attach to a running platon node and terminate immediately
 	attach := runPlatON(t, "attach", endpoint)
 	defer attach.ExpectExit()
 	attach.CloseStdin()

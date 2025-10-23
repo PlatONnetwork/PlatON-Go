@@ -22,27 +22,25 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 type BlockChainReactor struct {
@@ -114,7 +112,6 @@ func GetReactorInstance() *BlockChainReactor {
 }
 
 func (bcr *BlockChainReactor) loop() {
-
 	for {
 		select {
 		case obj := <-bcr.bftResultSub.Chan():
@@ -136,7 +133,6 @@ func (bcr *BlockChainReactor) loop() {
 			return
 		}
 	}
-
 }
 
 func (bcr *BlockChainReactor) commit(block *types.Block) error {
@@ -151,7 +147,6 @@ func (bcr *BlockChainReactor) commit(block *types.Block) error {
 		if err := plugin.Confirmed(bcr.NodeId, block); nil != err {
 			log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 		}
-
 	}
 
 	log.Info("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
@@ -203,7 +198,6 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 }
 
 func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId enode.IDv0) {
-
 	/**
 	this things about ppos
 	*/
@@ -229,7 +223,6 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId eno
 		log.Info("SetWorkerCoinBase Successfully", "blockNumber", header.Number,
 			"nodeId", nodeId.String(), "nodeIdAddr", nodeIdAddr.Hex(), "coinbase", header.Coinbase.String())
 	}
-
 }
 
 func (bcr *BlockChainReactor) PrepareHeaderNonce(header *types.Header) error {
@@ -287,7 +280,6 @@ func (bcr *BlockChainReactor) NewBlock(header *types.Header, state xcom.StateDB,
 
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
-
 	/**
 	this things about ppos
 	*/
@@ -321,7 +313,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
-
 	/**
 	this things about ppos
 	*/
@@ -369,7 +360,6 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 }
 
 func (bcr *BlockChainReactor) VerifyTx(tx *types.Transaction, to common.Address, rules params.Rules) error {
-
 	if !vm.IsPlatONPrecompiledContract(to, rules, false) {
 		return nil
 	}

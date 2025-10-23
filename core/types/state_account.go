@@ -22,6 +22,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+//go:generate go run ../../rlp/rlpgen -type StateAccount -out gen_account_rlp.go
+
 // StateAccount is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
 type StateAccount struct {

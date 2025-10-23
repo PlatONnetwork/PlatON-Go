@@ -33,9 +33,9 @@ type Peer struct {
 	logger log.Logger // Contextual logger with the peer id injected
 }
 
-// newPeer create a wrapper for a network connection and negotiated  protocol
+// NewPeer create a wrapper for a network connection and negotiated  protocol
 // version.
-func newPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
+func NewPeer(version uint, p *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
 	id := p.ID().String()
 	return &Peer{
 		id:      id,
@@ -86,7 +86,7 @@ func (p *Peer) RequestAccountRange(id uint64, root common.Hash, origin, limit co
 	})
 }
 
-// RequestStorageRange fetches a batch of storage slots belonging to one or more
+// RequestStorageRanges fetches a batch of storage slots belonging to one or more
 // accounts. If slots from only one accout is requested, an origin marker may also
 // be used to retrieve from there.
 func (p *Peer) RequestStorageRanges(id uint64, root common.Hash, accounts []common.Hash, origin, limit []byte, bytes uint64) error {

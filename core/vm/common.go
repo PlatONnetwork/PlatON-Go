@@ -19,9 +19,10 @@ package vm
 import (
 	"math/big"
 
+	"github.com/holiman/uint256"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/holiman/uint256"
 )
 
 // calcMemSize64 calculates the required memory size, and returns
@@ -63,16 +64,6 @@ func getData(data []byte, start uint64, size uint64) []byte {
 		end = length
 	}
 	return common.RightPadBytes(data[start:end], int(size))
-}
-
-// getDataBig returns a slice from the data based on the start and size and pads
-// up to size with zero's. This function is overflow safe.
-func getDataBig(data []byte, start *big.Int, size *big.Int) []byte {
-	dlen := big.NewInt(int64(len(data)))
-
-	s := math.BigMin(start, dlen)
-	e := math.BigMin(new(big.Int).Add(s, size), dlen)
-	return common.RightPadBytes(data[s.Uint64():e.Uint64()], int(size.Uint64()))
 }
 
 // bigUint64 returns the integer casted to a uint64 and returns whether it

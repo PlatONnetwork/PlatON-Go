@@ -14,14 +14,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package evidence
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"sort"
 	"testing"
 
@@ -41,25 +38,19 @@ func init() {
 	bls.Init(bls.BLS12_381)
 }
 
-func path() string {
-	name, err := ioutil.TempDir(os.TempDir(), "evidence")
-
-	if err != nil {
-		panic(err)
-	}
-	return name
+func path(t *testing.T) string {
+	dir := t.TempDir()
+	return dir
 }
 
 func TestNewBaseEvidencePool(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	_, err := NewEvidencePool(nil, p)
 	assert.Nil(t, err)
 }
 
 func TestAddAndClear(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -75,20 +66,20 @@ func TestAddAndClear(t *testing.T) {
 		node := validateNodes[i]
 		for j := 0; j < 10; j++ { // mock seal ten block per node
 			block = newBlock(blockNumber)
-			pb := makePrepareBlock(epoch, viewNumber, block, uint32(j), uint32(node.Index), t, secretKeys[i])
+			pb := makePrepareBlock(epoch, viewNumber, block, uint32(j), node.Index, t, secretKeys[i])
 			assert.Nil(t, pool.AddPrepareBlock(pb, node))
 
-			pv := makePrepareVote(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(j), uint32(node.Index), t, secretKeys[i])
+			pv := makePrepareVote(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(j), node.Index, t, secretKeys[i])
 			assert.Nil(t, pool.AddPrepareVote(pv, node))
 
 			blockNumber = blockNumber + 1
 		}
 
-		identity := Identity(fmt.Sprintf("%d%d%d", epoch, viewNumber, uint32(node.Index)))
+		identity := Identity(fmt.Sprintf("%d%d%d", epoch, viewNumber, node.Index))
 		assert.True(t, sort.IsSorted(pool.pb[identity]))
 		assert.True(t, sort.IsSorted(pool.pv[identity]))
 
-		vc := makeViewChange(epoch, viewNumber, block.Hash(), block.NumberU64(), uint32(node.Index), t, secretKeys[i])
+		vc := makeViewChange(epoch, viewNumber, block.Hash(), block.NumberU64(), node.Index, t, secretKeys[i])
 		assert.Nil(t, pool.AddViewChange(vc, node))
 
 		viewNumber = viewNumber + 1
@@ -105,8 +96,7 @@ func TestAddAndClear(t *testing.T) {
 }
 
 func TestDuplicatePrepareBlockEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -141,8 +131,7 @@ func TestDuplicatePrepareBlockEvidence(t *testing.T) {
 }
 
 func TestDuplicatePrepareVoteEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -172,8 +161,7 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 }
 
 func TestDuplicateViewChangeEvidence(t *testing.T) {
-	p := path()
-	defer os.RemoveAll(p)
+	p := path(t)
 	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
@@ -240,9 +228,6 @@ func TestJson(t *testing.T) {
 	assert.Equal(t, b, b2)
 
 	// test UnmarshalEvidence
-	p := path()
-	defer os.RemoveAll(p)
-
 	evidences, err := NewEvidences(string(b2))
 	assert.Nil(t, err)
 	assert.Equal(t, 3, evidences.Len())

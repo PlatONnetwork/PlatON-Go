@@ -3,8 +3,9 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
@@ -41,8 +42,8 @@ func ConvertToCommonNodeIDList(nodeList []params.CbftNode) []common.NodeID {
 	return nodeIdList
 }
 
-func genesisStakingData(genesisDataCollector *common.GenesisData, statData *common.StatData, prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
 
+func genesisStakingData(genesisDataCollector *common.GenesisData, statData *common.StatData, prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
 		return prevHash, nil
@@ -86,7 +87,6 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 	}
 
 	for index := 0; index < length; index++ {
-
 		node := initQueue[index]
 
 		var keyHex bls.PublicKeyHex
@@ -136,13 +136,11 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 			return lastHash, fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. nodeId:%s, error:%s",
 				base.NodeId.String(), err.Error())
 		} else {
-
 			lastHash, err = putbasedbFn(baseKey, val, lastHash)
 			if nil != err {
 				return lastHash, fmt.Errorf("Failed to Store CanBase Info: PutBaseDB failed. nodeId:%s, error:%s",
 					base.NodeId.String(), err.Error())
 			}
-
 		}
 
 		// about CanMutable ...
@@ -151,13 +149,11 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 			return lastHash, fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. nodeId:%s, error:%s",
 				base.NodeId.String(), err.Error())
 		} else {
-
 			lastHash, err = putbasedbFn(mutableKey, val, lastHash)
 			if nil != err {
 				return lastHash, fmt.Errorf("Failed to Store CanMutable Info: PutBaseDB failed. nodeId:%s, error:%s",
 					base.NodeId.String(), err.Error())
 			}
-
 		}
 
 		// about can power ...
@@ -300,7 +296,6 @@ func genesisStakingData(genesisDataCollector *common.GenesisData, statData *comm
 }
 
 func genesisPluginState(genesisDataCollector *common.GenesisData, g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
-
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
 		return nil

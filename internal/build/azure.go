@@ -37,13 +37,11 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 	}
 	// Create an authenticated client against the Azure cloud
 	credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
-	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
-	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
-	service := azblob.NewServiceURL(*u, pipeline)
-
-	container := service.NewContainerURL(config.Container)
-	blockblob := container.NewBlockBlobURL(name)
+	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", config.Account, config.Container)
+	container, err := azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	if err != nil {
+		return err
+	}
 
 	// Stream the file to upload into the designated blobstore container
 	in, err := os.Open(path)
@@ -51,54 +49,56 @@ func AzureBlobstoreUpload(path string, name string, config AzureBlobstoreConfig)
 		return err
 	}
 	defer in.Close()
-
-	_, err = blockblob.Upload(context.Background(), in, azblob.BlobHTTPHeaders{}, azblob.Metadata{}, azblob.BlobAccessConditions{})
+	blockblob := container.NewBlockBlobClient(name)
+	_, err = blockblob.Upload(context.Background(), in, nil)
 	return err*/
 	return nil
 }
 
 // AzureBlobstoreList lists all the files contained within an azure blobstore.
-/*func AzureBlobstoreList(config AzureBlobstoreConfig) ([]azblob.BlobItem, error) {
-		credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
-		pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
-		u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
-		service := azblob.NewServiceURL(*u, pipeline)
-
-		// List all the blobs from the container and return them
-		container := service.NewContainerURL(config.Container)
-
-		res, err := container.ListBlobsFlatSegment(context.Background(), azblob.Marker{}, azblob.ListBlobsSegmentOptions{
-			MaxResults: 1024 * 1024 * 1024, // Yes, fetch all of them
-		})
-		if err != nil {
-			return nil, err
-		}
-		return res.Segment.BlobItems, nil
+/*func AzureBlobstoreList(config AzureBlobstoreConfig) ([]*azblob.BlobItemInternal, error) {
+	// Create an authenticated client against the Azure cloud
+	credential, err := azblob.NewSharedKeyCredential(config.Account, config.Token)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", config.Account, config.Container)
+	container, err := azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	if err != nil {
+		return nil, err
+	}
+	var maxResults int32 = 5000
+	pager := container.ListBlobsFlat(&azblob.ContainerListBlobFlatSegmentOptions{
+		Maxresults: &maxResults,
+	})
+	var allBlobs []*azblob.BlobItemInternal
+	for pager.NextPage(context.Background()) {
+		res := pager.PageResponse()
+		allBlobs = append(allBlobs, res.ContainerListBlobFlatSegmentResult.Segment.BlobItems...)
+	}
+	return allBlobs, pager.Err()
 }*/
 
 // AzureBlobstoreDelete iterates over a list of files to delete and removes them
 // from the blobstore.
-/*func AzureBlobstoreDelete(config AzureBlobstoreConfig, blobs []azblob.BlobItem) error {
+/*func AzureBlobstoreDelete(config AzureBlobstoreConfig, blobs []*azblob.BlobItemInternal) error {
 	if *DryRunFlag {
 		for _, blob := range blobs {
-			fmt.Printf("would delete %s (%s) from %s/%s\n", blob.Name, blob.Properties.LastModified, config.Account, config.Container)
+			fmt.Printf("would delete %s (%s) from %s/%s\n", *blob.Name, blob.Properties.LastModified, config.Account, config.Container)
 		}
 		return nil
 	}
 	// Create an authenticated client against the Azure cloud
 	credential := azblob.NewSharedKeyCredential(config.Account, config.Token)
-	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
-	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", config.Account))
-	service := azblob.NewServiceURL(*u, pipeline)
-
-	container := service.NewContainerURL(config.Container)
-
+	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", config.Account, config.Container)
+	container, err := azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	if err != nil {
+		return err
+	}
 	// Iterate over the blobs and delete them
 	for _, blob := range blobs {
-		blockblob := container.NewBlockBlobURL(blob.Name)
-		if _, err := blockblob.Delete(context.Background(), azblob.DeleteSnapshotsOptionInclude, azblob.BlobAccessConditions{}); err != nil {
+		blockblob := container.NewBlockBlobClient(*blob.Name)
+		if _, err := blockblob.Delete(context.Background(), &azblob.DeleteBlobOptions{}); err != nil {
 			return err
 		}
 	}

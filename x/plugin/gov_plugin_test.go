@@ -18,34 +18,21 @@ package plugin
 
 import (
 	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"math/big"
-
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -112,7 +99,7 @@ func submitText(t *testing.T, pid common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		t.Fatalf("submit text proposal err: %s", err)
@@ -141,7 +128,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], blockHash, 0)
+	//state.SetTxContext(txHashArr[0], blockHash, 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -173,7 +160,7 @@ func submitCancel(t *testing.T, pid, tobeCanceled common.Hash) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -225,7 +212,6 @@ func halfVote(t *testing.T, pid common.Hash) {
 			t.Fatalf("vote err: %s.", err)
 		}
 	}
-
 }
 
 func beginBlock(t *testing.T) {
@@ -332,7 +318,7 @@ func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -356,7 +342,7 @@ func TestGovPlugin_SubmitText_invalidType(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(anotherSender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //sender error
 	if err != nil {
@@ -380,7 +366,7 @@ func TestGovPlugin_SubmitText_Proposer_empty(t *testing.T) {
 	}
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID) //empty proposal
 	if err != nil {
@@ -412,7 +398,7 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 func TestGovPlugin_SubmitVersion_PIPID_empty(t *testing.T) {
 	defer setup(t)()
 
-	vp := buildVersionProposal(txHashArr[0], "", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
+	vp := buildVersionProposal(txHashArr[0], "", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		if err == gov.PIPIDEmpty {
@@ -427,9 +413,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 	defer setup(t)()
 
 	t.Log("CurrentActiveVersion", "version", gov.GetCurrentActiveVersion(stateDB))
-
-	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8|0))
-
+	vp := buildVersionProposal(txHashArr[0], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|2<<8))
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
 		t.Fatalf("submit proposal err: %s", err)
@@ -443,7 +427,7 @@ func TestGovPlugin_SubmitVersion_PIPID_duplicated(t *testing.T) {
 		t.Log("ListPIPID", "p", p)
 	}
 
-	vp2 := buildVersionProposal(txHashArr[1], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|3<<8|0))
+	vp2 := buildVersionProposal(txHashArr[1], "pipID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), uint32(1<<16|3<<8))
 
 	err = gov.Submit(sender, vp2, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -468,7 +452,7 @@ func TestGovPlugin_SubmitVersion_invalidEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -493,7 +477,7 @@ func TestGovPlugin_SubmitVersion_ZeroEndVotingRounds(t *testing.T) {
 		NewVersion:      promoteVersion,
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, vp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -509,9 +493,9 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	defer setup(t)()
 
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
-	version := uint32(1<<16 | 2<<8 | 0)
+	version := uint32(1<<16 | 2<<8)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
 
 	if err := gov.AddActiveVersion(version, 10000, state); err != nil {
@@ -600,7 +584,7 @@ func TestGovPlugin_SubmitCancel_invalidEndVotingRounds(t *testing.T) {
 	}
 
 	//state := stateDB.(*state.StateDB)
-	//state.Prepare(txHashArr[0], lastBlockHash, 0)
+	//state.SetTxContext(txHashArr[0], lastBlockHash, 0)
 
 	err = gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -625,7 +609,7 @@ func TestGovPlugin_SubmitCancel_noVersionProposal(t *testing.T) {
 		TobeCanceled:    txHashArr[0],
 	}
 	state := stateDB.(*mock.MockStateDB)
-	state.Prepare(txHashArr[0], 0)
+	state.SetTxContext(txHashArr[0], 0)
 
 	err := gov.Submit(sender, pp, lastBlockHash, lastBlockNumber, stk, stateDB, chainID)
 	if err != nil {
@@ -648,9 +632,9 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -665,9 +649,9 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 
 	nodeIdx = 1
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler = node.GetCryptoHandler()
@@ -705,9 +689,9 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 	buildBlockNoCommit(2)
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -721,9 +705,9 @@ func TestGovPlugin_Vote_Repeat(t *testing.T) {
 	}
 
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx], //repeated
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx], //repeated
+		VoteOption: gov.Yes,
 	}
 
 	err = gov.Vote(sender, v, lastBlockHash, 2, promoteVersion, versionSign, stk, stateDB)
@@ -746,9 +730,9 @@ func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 	buildBlockNoCommit(2)
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -860,9 +844,9 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 
 	nodeIdx := 3
 	v := gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler := node.GetCryptoHandler()
@@ -877,9 +861,9 @@ func TestGovPlugin_VotedNew_DeclareOld(t *testing.T) {
 
 	nodeIdx = 1
 	v = gov.VoteInfo{
-		txHashArr[0],
-		nodeIdArr[nodeIdx],
-		gov.Yes,
+		ProposalID: txHashArr[0],
+		VoteNodeID: nodeIdArr[nodeIdx],
+		VoteOption: gov.Yes,
 	}
 
 	chandler = node.GetCryptoHandler()
@@ -940,7 +924,6 @@ func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
 }
 
 func TestGovPlugin_ListProposal(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -956,11 +939,9 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 	} else {
 		t.Logf("List all proposals success: %d", len(pList))
 	}
-
 }
 
 func TestGovPlugin_textProposalPassed(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -978,19 +959,19 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 		t.Fatal("find proposal error", "err", err)
 	}
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(p.GetEndVotingBlock() - 1)
+	lastBlockNumber = p.GetEndVotingBlock() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1017,7 +998,6 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 }
 
 func TestGovPlugin_textProposalFailed(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -1033,19 +1013,19 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1070,7 +1050,6 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 }
 
 func TestGovPlugin_versionProposalPreActive(t *testing.T) {
-
 	defer setup(t)()
 
 	submitText(t, txHashArr[0])
@@ -1089,14 +1068,14 @@ func TestGovPlugin_versionProposalPreActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
+	lastBlockNumber = xutil.CalcBlocksEachEpoch() - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
+	build_staking_data_more(xutil.CalcBlocksEachEpoch())
 
 	beginBlock(t)
 
@@ -1152,7 +1131,6 @@ func TestGovPlugin_GetPreActiveVersion(t *testing.T) {
 		ver := gov.GetPreActiveVersion(lastBlockHash)
 		assert.Equal(t, uint32(10), ver)
 	}
-
 }
 
 func TestGovPlugin_GetActiveVersion(t *testing.T) {
@@ -1168,7 +1146,6 @@ func TestGovPlugin_GetActiveVersion(t *testing.T) {
 }
 
 func TestGovPlugin_versionProposalActive(t *testing.T) {
-
 	defer setup(t)()
 
 	//submit version proposal
@@ -1186,7 +1163,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(endVotingBlock - 1)
+	lastBlockNumber = endVotingBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1199,7 +1176,7 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 	endBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
-	lastBlockNumber = uint64(actvieBlock - 1)
+	lastBlockNumber = actvieBlock - 1
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
@@ -1223,16 +1200,12 @@ func TestGovPlugin_versionProposalActive(t *testing.T) {
 func TestGovPlugin_printVersion(t *testing.T) {
 	defer setup(t)()
 
-	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8|0))
-
+	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8))
 }
 
 func TestGovPlugin_TestNodeID(t *testing.T) {
-	var nodeID enode.IDv0
-	nodeID = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
-
+	var nodeID enode.IDv0 = [64]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
 	t.Logf("nodeID is empty, %t", nodeID == enode.ZeroIDv0)
-
 }
 
 /*func TestNodeID1(t *testing.T) {
@@ -1259,7 +1232,6 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 
 	if len(lastHeader.Extra) > 0 {
 		var tobeDecoded []byte
-		tobeDecoded = lastHeader.Extra
 		if len(lastHeader.Extra) <= 32 {
 			tobeDecoded = lastHeader.Extra
 		} else {
@@ -1283,7 +1255,6 @@ func TestGovPlugin_Test_MakeExtraData(t *testing.T) {
 			t.Fatalf("unknown header extra data, elementCount= %d", len(extraData))
 		}
 	}
-
 }
 
 func TestGovPlugin_Test_version(t *testing.T) {
@@ -1292,7 +1263,6 @@ func TestGovPlugin_Test_version(t *testing.T) {
 }
 
 func TestGovPlugin_Test_genVersionSign(t *testing.T) {
-
 	ver := uint32(66048) //1.2.0
 	chandler := node.GetCryptoHandler()
 
@@ -1300,16 +1270,8 @@ func TestGovPlugin_Test_genVersionSign(t *testing.T) {
 		chandler.SetPrivateKey(priKeyArr[i])
 		t.Log("0x" + hex.EncodeToString(chandler.MustSign(ver)))
 	}
-
 }
 
 var (
-	chandler *node.CryptoHandler
-	priKey   = crypto.HexMustToECDSA("8e1477549bea04b97ea15911e2e9b3041b7a9921f80bd6ddbe4c2b080473de22")
-	nodeID   = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
+	nodeID = enode.MustHexIDv0("3e7864716b671c4de0dc2d7fd86215e0dcb8419e66430a770294eb2f37b714a07b6a3493055bb2d733dee9bfcc995e1c8e7885f338a69bf6c28930f3cf341819")
 )
-
-func initChandlerHandler() {
-	chandler = node.GetCryptoHandler()
-	chandler.SetPrivateKey(priKey)
-}

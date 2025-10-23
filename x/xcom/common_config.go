@@ -23,12 +23,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // plugin rule key
@@ -429,7 +427,6 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 }
 
 func CheckStakeThreshold(threshold *big.Int) error {
-
 	if threshold.Cmp(StakeLowerLimit) < 0 || threshold.Cmp(StakeUpperLimit) > 0 {
 		return common.InvalidParameter.Wrap(fmt.Sprintf("The StakeThreshold must be [%d, %d] LAT", StakeLowerLimit, StakeUpperLimit))
 	}
@@ -608,7 +605,7 @@ func CheckEconomicModel(version uint32) error {
 		return errors.New("The PlatONFoundationYear must be greater than or equal to 1")
 	}
 
-	if ec.Reward.NewBlockRate < 0 || ec.Reward.NewBlockRate > 100 {
+	if ec.Reward.NewBlockRate > 100 {
 		return errors.New("The NewBlockRate must be greater than or equal to 0 and less than or equal to 100")
 	}
 

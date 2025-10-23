@@ -18,9 +18,13 @@ package consensus
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -33,14 +37,24 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
+
+type Chain interface {
+	StateAt(root common.Hash) (*state.StateDB, error)
+
+	ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error)
+
+	WriteBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool, cbftBridgeUpdateChainState func()) error
+
+	GetHeaderByNumber(number uint64) *types.Header
+}
 
 func NewFaker() *BftMock {
 	c := new(BftMock)
@@ -49,11 +63,12 @@ func NewFaker() *BftMock {
 	return c
 }
 
-func NewFakerWithDataBase(database ethdb.Database) *BftMock {
+func NewFakerWithDataBase(database ethdb.Database, genesis *types.Block) *BftMock {
 	c := new(BftMock)
 	c.Blocks = make([]*types.Block, 0)
 	c.blockIndexs = make(map[common.Hash]int, 0)
 	c.database = database
+	c.genesis = genesis
 	return c
 }
 
@@ -73,6 +88,17 @@ type BftMock struct {
 	Base        *types.Block
 	fakeFail    uint64         // Block number which fails BFT check even in fake mode
 	database    ethdb.Database // In memory database to store our testing data
+	chain       Chain
+	genesis     *types.Block
+}
+
+func (bm *BftMock) Reset() {
+	bm.Blocks = make([]*types.Block, 0)
+	bm.blockIndexs = make(map[common.Hash]int, 0)
+}
+
+func (bm *BftMock) SetChain(c Chain) {
+	bm.chain = c
 }
 
 // InsertChain is a fake interface, no need to implement.
@@ -82,8 +108,36 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 	}
 
 	if len(bm.Blocks) != 0 && bm.Blocks[len(bm.Blocks)-1].Hash() != block.ParentHash() {
-		return nil
+		return errors.New("insertChain fail,block not compare")
 	}
+
+	if bm.chain != nil {
+		var root common.Hash
+		if block.ParentHash() == bm.genesis.Hash() {
+			root = bm.genesis.Root()
+		} else if len(bm.Blocks) == 0 {
+			root = bm.chain.GetHeaderByNumber(block.NumberU64() - 1).Root
+		} else {
+			root = bm.Blocks[len(bm.Blocks)-1].Root()
+		}
+
+		statedb, err := bm.chain.StateAt(root)
+		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
+		if err != nil {
+			return err
+		}
+		receipts, err := bm.chain.ProcessDirectly(block, statedb, nil)
+		if err != nil {
+			return err
+		}
+		if err := statedb.UpdateSnaps(); err != nil {
+			return err
+		}
+		if err := bm.chain.WriteBlockWithState(block, receipts, nil, statedb, false, nil); err != nil {
+			return err
+		}
+	}
+
 	bm.Blocks = append(bm.Blocks, block)
 	bm.blockIndexs[block.Hash()] = len(bm.Blocks) - 1
 	bm.Current = block
@@ -113,7 +167,6 @@ func (bm *BftMock) Start(chain ChainReader, blockCacheWriter BlockCacheWriter, p
 
 // CalcBlockDeadline is a fake interface, no need to implement.
 func (bm *BftMock) CalcBlockDeadline(timePoint time.Time) time.Time {
-
 	now := time.Now()
 
 	if timePoint.Equal(now) || timePoint.Before(now) {
@@ -188,7 +241,6 @@ func (bm *BftMock) VerifyHeaders(chain ChainReader, headers []*types.Header, sea
 			} else {
 				results <- nil
 			}
-
 		}
 	}()
 	return c, results
@@ -218,8 +270,8 @@ func (bm *BftMock) Prepare(chain ChainReader, header *types.Header) error {
 // and assembles the final block.
 // Note: The block header and state database might be updated to reflect any
 // consensus rules that happen at finalization (e.g. block rewards).
-func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-	receipts []*types.Receipt) (*types.Block, error) {
+func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *state.StateDB,
+	txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
 
 	// Header seems complete, assemble into a block and return
@@ -232,7 +284,6 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 // Note, the method returns immediately and will send the result async. More
 // than one result may also be returned depending on the consensus algorithm.
 func (bm *BftMock) Seal(chain ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}, complete chan<- struct{}) error {
-
 	header := block.Header()
 	if block.NumberU64() == 0 {
 		return fmt.Errorf("unknown block")
@@ -318,7 +369,6 @@ func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
 
 // GetBlockByHash is a fake interface, no need to implement.
 func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
-
 	if index, ok := bm.blockIndexs[hash]; ok {
 		return bm.Blocks[index]
 	}
