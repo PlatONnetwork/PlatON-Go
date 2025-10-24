@@ -21,11 +21,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
 	"os"
 	"reflect"
-	"unicode"
 	"strings"
-	"github.com/PlatONnetwork/PlatON-Go/core/statsdb"
+	"unicode"
 
 	"github.com/naoina/toml"
 	cli "github.com/urfave/cli/v2"
@@ -90,11 +90,11 @@ type statsConfig struct {
 }
 
 type platonConfig struct {
-	Eth      ethconfig.Config
-	Node     node.Config
+	Eth  ethconfig.Config
+	Node node.Config
 	//Ethstats ethstatsConfig
-	Stats statsConfig
-	Metrics  metrics.Config
+	Stats   statsConfig
+	Metrics metrics.Config
 }
 
 func loadConfig(file string, cfg *platonConfig) error {
@@ -187,8 +187,8 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 
 	applyMetricConfig(ctx, &cfg)
 
-	if ctx.GlobalIsSet(utils.StatsFlag.Name) {
-		statsConfig := ctx.GlobalString(utils.StatsFlag.Name)
+	if ctx.IsSet(utils.StatsFlag.Name) {
+		statsConfig := ctx.String(utils.StatsFlag.Name)
 		configs := strings.Split(statsConfig, ";")
 		if len(configs) == 3 {
 			cfg.Stats.URL = configs[0]
