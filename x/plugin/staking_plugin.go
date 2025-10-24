@@ -27,7 +27,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -41,6 +40,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -1474,7 +1474,7 @@ func calDelegationLockEndEpoch(blockNumber uint64, blockHash common.Hash, curren
 	return currentEpoch + uint32(unDelegateFreezeDuration) - 1, nil
 }
 
-func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, epoch uint64, state xcom.StateDB) error {
+func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64, epoch uint64, state xcom.StateDB, downloading Downloading) error {
 	oldIndex, err := sk.getVeriferIndex(blockHash, blockNumber, QueryStartNotIrr)
 	if nil != err {
 		log.Error("Failed to ElectNextVerifierList: Not found the VerifierIndex", "blockNumber",
