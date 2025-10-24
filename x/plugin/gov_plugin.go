@@ -161,7 +161,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 }
 
 // EndBlock implement BasePlugin
-func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB, downloading Downloading) error {
 	var blockNumber = header.Number.Uint64()
 	//log.Debug("call EndBlock()", "blockNumber", blockNumber, "blockHash", blockHash)
 
