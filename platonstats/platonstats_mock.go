@@ -3,6 +3,8 @@ package platonstats
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
 	"math/big"
 	"strconv"
@@ -51,24 +53,39 @@ type MockPlatonStatsService struct {
 	stopOnce      sync.Once
 }
 
+var (
+	// testKey is a private key to use for funding a tester account.
+	testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+
+	// testAddr is the Ethereum address of the tester account.
+	testAddr = crypto.PubkeyToAddress(testKey.PublicKey)
+)
+
 func NewMockPlatonStatsService() *MockPlatonStatsService {
 	statsService := new(MockPlatonStatsService)
 
 	//statsService.chainDb = ethdb.NewMemDatabase()
-	genesis := new(core.Genesis).MustCommit(statsService.chainDb)
 
-	bft := consensus.NewFaker()
-	bft.InsertChain(genesis)
+	var (
+		// Create a database pre-initialize with a genesis block
+		db     = rawdb.NewMemoryDatabase()
+		config = params.TestChainConfig
+	)
+	gspec := &core.Genesis{
+		Config: config,
+		Alloc:  core.GenesisAlloc{testAddr: {Balance: big.NewInt(100_000_000_000_000_000)}},
+	}
+	gBlock := gspec.MustCommit(db)
 
-	chain := makeBlockChain(bft.CurrentBlock(), 121, consensus.NewFaker(), statsService.chainDb, 0)
+	chain := makeBlockChain(gspec, gBlock, 121, statsService.chainDb, 0)
 	statsService.blockChain = chain
 
 	return statsService
 }
 
 // makeBlockChain creates a deterministic chain of blocks rooted at parent.
-func makeBlockChain(parent *types.Block, n int, engine consensus.Engine, db ethdb.Database, seed int) *core.BlockChain {
-	blockChain := core.GenerateBlockChain2(params.TestChainConfig, parent, engine, db, n, func(i int, b *core.BlockGen) {
+func makeBlockChain(gspec *core.Genesis, gBlock *types.Block, n int, db ethdb.Database, seed int) *core.BlockChain {
+	blockChain, _ := core.GenerateBlockChain2(gspec, gBlock, consensus.NewFakerWithDataBase(db, gBlock), db, n, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{0: byte(seed), 19: byte(i)})
 	})
 	return blockChain
@@ -183,7 +200,9 @@ func (s *MockPlatonStatsService) scanGenesis(genesisBlock *types.Block) (*common
 	}
 	*/
 	root := genesisBlock.Root()
-	tr, err := trie.NewSecure(root, trie.NewDatabase(s.ChainDb()))
+
+	tr, err := trie.NewStateTrie(trie.TrieID(root), trie.NewDatabase(s.ChainDb()))
+
 	if err != nil {
 		return nil, err
 	}
