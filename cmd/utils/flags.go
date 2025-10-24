@@ -436,19 +436,18 @@ var (
 	}
 	// Logging and debug settings
 	/*
-	EthStatsURLFlag = &cli.StringFlag{
-		Name:     "ethstats",
-		Usage:    "Reporting URL of a ethstats service (nodename:secret@host:port)",
-		Category: flags.MetricsCategory,
-	}
+		EthStatsURLFlag = &cli.StringFlag{
+			Name:     "ethstats",
+			Usage:    "Reporting URL of a ethstats service (nodename:secret@host:port)",
+			Category: flags.MetricsCategory,
+		}
 	*/
 
-	StatsFlag = cli.StringFlag{
-		Name:  "stats",
-		Usage: "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port;kafka-block-topic;kafka-account-checking-topic;kafka-account-checking-group",
+	StatsFlag = &cli.StringFlag{
+		Name:     "stats",
+		Usage:    "Reporting URL of a PlatON stats service, --stats kafka_host:kafka_port;kafka-block-topic;kafka-account-checking-topic;kafka-account-checking-group",
 		Category: flags.MetricsCategory,
 	}
-
 
 	NoCompactionFlag = &cli.BoolFlag{
 		Name:     "nocompaction",
