@@ -624,11 +624,11 @@ func (s *BlockChainAPI) GetAddressHrp() string {
 	return chainConfig.AddressHRP
 }
 
-func (s *PublicBlockChainAPI) GetSumOfRandomNum() (uint64, error) {
+func (s *BlockChainAPI) GetSumOfRandomNum() (uint64, error) {
 	return vrfstatistics.Tool.SumOfRandomNum(rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
 }
 
-func (s *PublicBlockChainAPI) GetRandomNumberTxs(ctx context.Context, from, to uint64) (map[uint64][]vrfstatistics.TxInfo, error) {
+func (s *BlockChainAPI) GetRandomNumberTxs(ctx context.Context, from, to uint64) (map[uint64][]vrfstatistics.TxInfo, error) {
 	return vrfstatistics.Tool.GetRandomNumberTxs(from, to, rawdb.NewTable(s.b.ChainDb(), vrfstatistics.Prefix))
 }
 
@@ -1328,7 +1328,7 @@ func (s *BlockChainAPI) rpcMarshalBlock(b *types.Block, inclTx bool, fullTx bool
 
 // rpcOutputBlock uses the generalized output filler, then adds the total difficulty field, which requires
 // a `PublicBlockchainAPI`.
-func (s *PublicTransactionPoolAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
+func (s *BlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx bool) ([]interface{}, error) {
 	fields, err := RPCMarshalBlockTransaction(b, inclTx, fullTx, s.b.ChainConfig())
 	if err != nil {
 		return nil, err
@@ -1754,7 +1754,7 @@ func marshalReceipt(receipt *types.Receipt, blockHash common.Hash, blockNumber u
 }
 
 // GetTransactionByBlock returns the transaction receipt for the given block number.
-func (s *PublicTransactionPoolAPI) GetTransactionByBlock(ctx context.Context, blockNumber uint64) ([]map[string]interface{}, error) {
+func (s *TransactionAPI) GetTransactionByBlock(ctx context.Context, blockNumber uint64) ([]map[string]interface{}, error) {
 	blockNr := rpc.BlockNumber(blockNumber)
 	block, err := s.b.BlockByNumber(ctx, blockNr)
 	if block == nil {

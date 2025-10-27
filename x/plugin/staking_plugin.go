@@ -21,7 +21,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	math2 "math"
 	"math/big"
 	"math/rand"

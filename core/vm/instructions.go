@@ -33,7 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/syndtr/goleveldb/leveldb"
-	"golang.org/x/crypto/sha3"
 	"math/big"
 	"strconv"
 )

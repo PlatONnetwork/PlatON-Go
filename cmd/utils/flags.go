@@ -883,11 +883,11 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Value:    ethconfig.Defaults.VmTimeoutDuration,
 		Category: flags.VMCategory,
 	}
-	DBNoCacheFlag = cli.BoolFlag{
+	DBNoCacheFlag = &cli.BoolFlag{
 		Name:  "db.nochache",
 		Usage: "Disable database storage of special data",
 	}
-	DBCacheEpochFlag = cli.Uint64Flag{
+	DBCacheEpochFlag = &cli.Uint64Flag{
 		Name:  "db.chache_epoch",
 		Usage: "Number of cache epoch states, default 10",
 		Value: ethconfig.Defaults.DBCacheEpoch,
@@ -1537,11 +1537,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 		cfg.VmTimeoutDuration = ctx.Uint64(VmTimeoutDuration.Name)
 	}
 
-	if ctx.GlobalIsSet(DBNoCacheFlag.Name) {
-		cfg.DBDisabledCache = ctx.GlobalBool(DBNoCacheFlag.Name)
+	if ctx.IsSet(DBNoCacheFlag.Name) {
+		cfg.DBDisabledCache = ctx.Bool(DBNoCacheFlag.Name)
 	}
-	if ctx.GlobalIsSet(DBCacheEpochFlag.Name) {
-		b := ctx.GlobalUint64(DBCacheEpochFlag.Name)
+	if ctx.IsSet(DBCacheEpochFlag.Name) {
+		b := ctx.Uint64(DBCacheEpochFlag.Name)
 		if b > 0 {
 			cfg.DBCacheEpoch = b
 		}
