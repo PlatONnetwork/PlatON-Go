@@ -29,17 +29,18 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-// List of known secure identity schemes.
+// ValidSchemes is a List of known secure identity schemes.
 var ValidSchemes = enr.SchemeMap{
 	"v4": V4ID{},
 }
 
+// ValidSchemesForTesting is a List of identity schemes for testing.
 var ValidSchemesForTesting = enr.SchemeMap{
 	"v4":   V4ID{},
 	"null": NullID{},
 }
 
-// v4ID is the "v4" identity scheme.
+// V4ID is the "v4" identity scheme.
 type V4ID struct{}
 
 // SignV4 signs a record using the v4 scheme.

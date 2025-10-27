@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -29,14 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
-
-func tmpdir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "platon-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return dir
-}
 
 type testplaton struct {
 	*cmdtest.TestCmd
@@ -78,15 +69,9 @@ func runPlatON(t *testing.T, args ...string) *testplaton {
 		}
 	}
 	if tt.Datadir == "" {
-		tt.Datadir = tmpdir(t)
-		tt.Cleanup = func() { os.RemoveAll(tt.Datadir) }
+		// The temporary datadir will be removed automatically if something fails below.
+		tt.Datadir = t.TempDir()
 		args = append([]string{"--datadir", tt.Datadir}, args...)
-		// Remove the temporary datadir if something fails below.
-		defer func() {
-			if t.Failed() {
-				tt.Cleanup()
-			}
-		}()
 	}
 
 	// Boot "platon". This actually runs the test binary but the TestMain

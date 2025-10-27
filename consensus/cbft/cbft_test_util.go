@@ -17,8 +17,8 @@
 package cbft
 
 import (
-	"io/ioutil"
 	"os"
+	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -36,18 +36,14 @@ const (
 	testNodeNumber = 4
 )
 
-func path() string {
-	name, err := ioutil.TempDir(os.TempDir(), "evidence")
-
-	if err != nil {
-		panic(err)
-	}
-	return name
+func path(t *testing.T) string {
+	dir := t.TempDir()
+	return dir
 }
 
-func createPaths(number int) (paths []string) {
+func createPaths(number int, t *testing.T) (paths []string) {
 	for i := 0; i < number; i++ {
-		p := path()
+		p := path(t)
 		paths = append(paths, p)
 	}
 	return
@@ -60,11 +56,11 @@ func removePaths(paths []string) {
 }
 
 // Mock4NodePipe returns a list of TestCBFT for testing.
-func Mock4NodePipe2(start bool) ([]*TestCBFT, []params.CbftNode) {
+func Mock4NodePipe2(start bool, period uint64) ([]*TestCBFT, []params.CbftNode) {
 	pk, sk, cbftnodes := GenerateCbftNode(4)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < 4; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, 10000, 10)
+		node := MockNode(pk[i], sk[i], cbftnodes, period, 10)
 
 		nodes = append(nodes, node)
 		//fmt.Println(i, node.engine.config.Option.NodeID.TerminalString())
@@ -90,8 +86,8 @@ type testView struct {
 	firstCbft    *Cbft
 }
 
-func newTestView(start bool, nodeNumber int) *testView {
-	nodes, nodeParams := Mock4NodePipe2(start)
+func newTestView(start bool, period uint64) *testView {
+	nodes, nodeParams := Mock4NodePipe2(start, period)
 	cbfts := make([]*Cbft, 0)
 	for _, node := range nodes {
 		cbfts = append(cbfts, node.engine)
@@ -152,9 +148,6 @@ func (tv *testView) thirdProposer() *Cbft {
 	}
 	panic("find proposer node failed")
 }
-func (tv *testView) thirdProposerIndex() uint32 {
-	return 2
-}
 
 func (tv *testView) currentProposerInfo(cbft *Cbft) (uint32, uint64) {
 	blockNumber := cbft.state.HighestQCBlock().NumberU64()
@@ -169,7 +162,7 @@ func (tv *testView) currentProposer(cbft *Cbft) *Cbft {
 		if err != nil {
 			panic("find proposer node failed")
 		}
-		if index == uint32(currentProposer) {
+		if index == currentProposer {
 			return c
 		}
 	}
@@ -227,58 +220,21 @@ func (tv *testView) setBlockQC(number int, node *TestCBFT) {
 	}
 }
 
-func (tv *testView) ResetView(start bool, nodeNumber int) {
-	tv = newTestView(start, nodeNumber)
-}
-
 func insertBlock(cbft *Cbft, block *types.Block, qc *ctypes.QuorumCert) {
 	cbft.state.AddQCBlock(block, qc)
 	cbft.insertQCBlock(block, qc)
 }
-func mockNodeOfNumber(start bool, nodeNumber int) ([]*TestCBFT, []params.CbftNode) {
-	pk, sk, cbftnodes := GenerateCbftNode(nodeNumber)
-	nodes := make([]*TestCBFT, 0)
-	for i := 0; i < nodeNumber; i++ {
-		node := MockValidator(pk[i], sk[i], cbftnodes, testPeriod, testAmount)
-		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.NodeID().TerminalString())
-		if err := nodes[i].Start(); err != nil {
-			panic("cbft start fail")
-		}
-	}
-
-	netHandler, nodeids := NewEngineManager(nodes)
-
-	network.EnhanceEngineManager(nodeids, netHandler)
-	if start {
-		for i := 0; i < nodeNumber; i++ {
-			netHandler[i].Testing()
-		}
-	}
-	return nodes, cbftnodes
-}
-
-func mockNotConsensusNode(start bool, cbftnodes []params.CbftNode, number int) []*TestCBFT {
+func mockNotConsensusNode(cbftnodes []params.CbftNode, number int, period uint64) []*TestCBFT {
 	pk, sk, _ := GenerateCbftNode(number)
 	nodes := make([]*TestCBFT, 0)
 	for i := 0; i < number; i++ {
-		node := MockNode(pk[i], sk[i], cbftnodes, testPeriod, testAmount)
+		node := MockNode(pk[i], sk[i], cbftnodes, period, testAmount)
 
 		nodes = append(nodes, node)
-		//fmt.Println(i, node.engine.NodeID().TerminalString())
 		if err := node.Start(); err != nil {
 			panic("cbft start fail")
 		}
 	}
-
-	// netHandler, nodeids := NewEngineManager(nodes)
-	//
-	// network.EnhanceEngineManager(nodeids, netHandler)
-	// if start {
-	// 	for i := 0; i < number; i++ {
-	// 		netHandler[i].Testing()
-	// 	}
-	// }
 	return nodes
 }
 
@@ -422,7 +378,7 @@ func mockPrepareQC(total uint32, votes map[uint32]*protocols.PrepareVote) *ctype
 	for _, v := range votes {
 		vote = v
 	}
-	vSet := utils.NewBitArray(uint32(total))
+	vSet := utils.NewBitArray(total)
 	vSet.SetIndex(vote.NodeIndex(), true)
 	var aggSig bls.Sign
 	if err := aggSig.Deserialize(vote.Sign()); err != nil {

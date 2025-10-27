@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -31,12 +30,6 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/params"
-)
-
-// Command line flags to configure the interpreters.
-var (
-	testEVM   = flag.String("vm.evm", "", "EVM configuration")
-	testEWASM = flag.String("vm.ewasm", "", "EWASM configuration")
 )
 
 func TestMain(m *testing.M) {
@@ -51,11 +44,10 @@ var (
 	legacyStateTestDir = filepath.Join(baseDir, "LegacyTests", "Constantinople", "GeneralStateTests")
 	transactionTestDir = filepath.Join(baseDir, "TransactionTests")
 	rlpTestDir         = filepath.Join(baseDir, "RLPTests")
-	difficultyTestDir  = filepath.Join(baseDir, "BasicTests")
 )
 
 func readJSON(reader io.Reader, value interface{}) error {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return fmt.Errorf("error reading JSON file: %v", err)
 	}
@@ -127,6 +119,8 @@ func (tm *testMatcher) skipLoad(pattern string) {
 }
 
 // fails adds an expected failure for tests matching the pattern.
+//
+//nolint:unused
 func (tm *testMatcher) fails(pattern string, reason string) {
 	if reason == "" {
 		panic("empty fail reason")
@@ -139,6 +133,7 @@ func (tm *testMatcher) whitelist(pattern string) {
 }
 
 // config defines chain config for tests matching the pattern.
+//nolint:govet,goimports
 func (tm *testMatcher) config(pattern string, cfg params.ChainConfig) {
 	tm.configpat = append(tm.configpat, testConfig{regexp.MustCompile(pattern), cfg})
 }
@@ -158,16 +153,6 @@ func (tm *testMatcher) findSkip(name string) (reason string, skipload bool) {
 		}
 	}
 	return "", false
-}
-
-// findConfig returns the chain config matching defined patterns.
-func (tm *testMatcher) findConfig(t *testing.T) *params.ChainConfig {
-	for _, m := range tm.configpat {
-		if m.p.MatchString(t.Name()) {
-			return &m.config
-		}
-	}
-	return new(params.ChainConfig)
 }
 
 // checkFailure checks whether a failure is expected.

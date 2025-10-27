@@ -15,6 +15,7 @@
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package network implements  a concrete consensus engines.
+
 package network
 
 import (

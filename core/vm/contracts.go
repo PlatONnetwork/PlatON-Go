@@ -21,30 +21,27 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	big2 "github.com/holiman/big"
+	"golang.org/x/crypto/ripemd160"
 
-	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/vrfstatistics"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls12381"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
+	vrf2 "github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	//lint:ignore SA1019 Needed for precompile
-	"golang.org/x/crypto/ripemd160"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/handler"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // PrecompiledContract is the basic interface for native Go contracts. The implementation
@@ -218,6 +215,10 @@ func ActivePrecompilesByRules(rules params.Rules) []common.Address {
 	switch {
 	case rules.IsPauli:
 		return PrecompiledAddressesBerlin2
+	case rules.IsHubble:
+		return PrecompiledAddressesBerlin
+	case rules.IsEinstein:
+		return PrecompiledAddressesByzantium
 	default:
 		return PrecompiledAddressesBerlin
 	}
@@ -378,7 +379,7 @@ func (c *dataCopy) RequiredGas(input []byte) uint64 {
 	return uint64(len(input)+31)/32*params.IdentityPerWordGas + params.IdentityBaseGas
 }
 func (c *dataCopy) Run(in []byte) ([]byte, error) {
-	return in, nil
+	return common.CopyBytes(in), nil
 }
 
 // bigModExp implements a native big integer exponential modular operation.
@@ -521,15 +522,22 @@ func (c *bigModExp) Run(input []byte) ([]byte, error) {
 	}
 	// Retrieve the operands and execute the exponentiation
 	var (
-		base = new(big.Int).SetBytes(getData(input, 0, baseLen))
-		exp  = new(big.Int).SetBytes(getData(input, baseLen, expLen))
-		mod  = new(big.Int).SetBytes(getData(input, baseLen+expLen, modLen))
+		base = new(big2.Int).SetBytes(getData(input, 0, baseLen))
+		exp  = new(big2.Int).SetBytes(getData(input, baseLen, expLen))
+		mod  = new(big2.Int).SetBytes(getData(input, baseLen+expLen, modLen))
+		v    []byte
 	)
-	if mod.BitLen() == 0 {
+	switch {
+	case mod.BitLen() == 0:
 		// Modulo 0 is undefined, return zero
 		return common.LeftPadBytes([]byte{}, int(modLen)), nil
+	case base.BitLen() == 1: // a bit length of 1 means it's 1 (or -1).
+		//If base == 1, then we can just return base % mod (if mod >= 1, which it is)
+		v = base.Mod(base, mod).Bytes()
+	default:
+		v = base.Exp(base, exp, mod).Bytes()
 	}
-	return common.LeftPadBytes(base.Exp(base, exp, mod).Bytes(), int(modLen)), nil
+	return common.LeftPadBytes(v, int(modLen)), nil
 }
 
 // newCurvePoint unmarshals a binary blob into a bn256 elliptic curve point,
@@ -673,7 +681,7 @@ func (c *blake2F) Run(input []byte) ([]byte, error) {
 	// Parse the input into the Blake2b call parameters
 	var (
 		rounds = binary.BigEndian.Uint32(input[0:4])
-		final  = (input[212] == blake2FFinalBlockBytes)
+		final  = input[212] == blake2FFinalBlockBytes
 
 		h [8]uint64
 		m [16]uint64
@@ -1019,7 +1027,7 @@ func (c *bls12381Pairing) Run(input []byte) ([]byte, error) {
 			return nil, errBLS12381G2PointSubgroup
 		}
 
-		// Update pairing engine with G1 and G2 ponits
+		// Update pairing engine with G1 and G2 points
 		e.AddPair(p1, p2)
 	}
 	// Prepare 32 byte output
@@ -1158,7 +1166,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 	}
 	currentBlockNum := v.Evm.Context.BlockNumber.Uint64()
 
-	if currentBlockNum < uint64(seedNum) {
+	if currentBlockNum < seedNum {
 		return nil, errVrfNonceNotEnough
 	}
 	randomNumbers := make([]byte, seedNum*common.HashLength)

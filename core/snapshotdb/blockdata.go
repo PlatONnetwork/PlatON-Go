@@ -30,6 +30,17 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+func NewBlockData(blockNumber *big.Int, parentHash, hash common.Hash) *BlockData {
+	block := new(BlockData)
+	block.Number = new(big.Int).Set(blockNumber)
+	block.ParentHash = parentHash
+	block.BlockHash = hash
+	block.data = memdb.New(DefaultComparer, 100)
+	block.journal = make([]journalEntry, 0)
+	block.validRevisions = make([]revision, 0)
+	return block
+}
+
 type BlockData struct {
 	BlockHash  common.Hash
 	ParentHash common.Hash

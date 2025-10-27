@@ -54,8 +54,6 @@ func randString(n int) string {
 func TestUpdateLeaks(t *testing.T) {
 	// Create an empty state database
 	db := rawdb.NewMemoryDatabase()
-	//dir, _ := ioutil.TempDir("", "eth-core-bench")
-	//ethdb,err:= ethdb.NewLDBDatabase(dir,128,128)
 	state, _ := New(common.Hash{}, NewDatabase(db), nil)
 	vm.PrecompiledContractCheckInstance = &TestPrecompiledContractCheck{}
 
@@ -263,7 +261,6 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		}
 	}
 	it2.Release()
-
 }
 
 func TestStateStorageValueCommit(t *testing.T) {
@@ -302,6 +299,9 @@ func TestStateStorageValueCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	s2, err := New(root, NewDatabase(db), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for addr, storage := range storages {
 		for key, value := range storage {
 			exp := s2.GetState(addr, []byte(key))
@@ -334,12 +334,14 @@ func TestStateStorageValueDelete(t *testing.T) {
 	}
 
 	s2, err := New(root, NewDatabase(db), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	exp := s2.GetState(addr, key1)
 	assert.Equal(t, exp, value1)
 
 	exp = s2.GetState(addr, key2)
 	assert.NotEqual(t, exp, value2)
-
 }
 
 func TestStateStorageRevert(t *testing.T) {
@@ -406,10 +408,6 @@ func TestIntermediateLeaks(t *testing.T) {
 	modify := func(state *StateDB, addr common.Address, i, tweak byte) {
 		state.SetBalance(addr, big.NewInt(int64(11*i)+int64(tweak)))
 		state.SetNonce(addr, uint64(42*i+tweak))
-		if i%2 == 0 {
-			//state.SetState(addr, common.Hash{i, i, i, 0}, common.Hash{})
-			//state.SetState(addr, common.Hash{i, i, i, tweak}, common.Hash{i, i, i, i, tweak})
-		}
 		if i%3 == 0 {
 			state.SetCode(addr, []byte{i, i, i, i, i, tweak})
 		}
@@ -635,6 +633,16 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 			},
 			args: make([]int64, 1),
 		},
+		{
+			name: "SetTransientState",
+			fn: func(a testAction, s *StateDB) {
+				var key, val common.Hash
+				binary.BigEndian.PutUint16(key[:], uint16(a.args[0]))
+				binary.BigEndian.PutUint16(val[:], uint16(a.args[1]))
+				s.SetTransientState(addr, key.Bytes(), val.Bytes())
+			},
+			args: make([]int64, 2),
+		},
 	}
 	action := actions[r.Intn(len(actions))]
 	var nameargs []string
@@ -758,9 +766,9 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		return fmt.Errorf("got GetRefund() == %d, want GetRefund() == %d",
 			state.GetRefund(), checkstate.GetRefund())
 	}
-	if !reflect.DeepEqual(state.GetLogs(common.Hash{}, common.Hash{}), checkstate.GetLogs(common.Hash{}, common.Hash{})) {
+	if !reflect.DeepEqual(state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{})) {
 		return fmt.Errorf("got GetLogs(common.Hash{}) == %v, want GetLogs(common.Hash{}) == %v",
-			state.GetLogs(common.Hash{}, common.Hash{}), checkstate.GetLogs(common.Hash{}, common.Hash{}))
+			state.GetLogs(common.Hash{}, 0, common.Hash{}), checkstate.GetLogs(common.Hash{}, 0, common.Hash{}))
 	}
 	return nil
 }
@@ -1194,5 +1202,40 @@ func TestStateDBAccessList(t *testing.T) {
 	}
 	if got, exp := len(state.accessList.slots), 1; got != exp {
 		t.Fatalf("expected empty, got %d", got)
+	}
+}
+
+func TestStateDBTransientStorage(t *testing.T) {
+	memDb := rawdb.NewMemoryDatabase()
+	db := NewDatabase(memDb)
+	state, _ := New(common.Hash{}, db, nil)
+
+	key := common.Hash{0x01}
+	value := common.Hash{0x02}
+	addr := common.Address{}
+
+	state.SetTransientState(addr, key.Bytes(), value.Bytes())
+	if exp, got := 1, state.journal.length(); exp != got {
+		t.Fatalf("journal length mismatch: have %d, want %d", got, exp)
+	}
+	// the retrieved value should equal what was set
+
+	if got := state.GetTransientState(addr, key.Bytes()); !bytes.Equal(got, value.Bytes()) {
+		t.Fatalf("transient storage mismatch: have %x, want %x", got, value)
+	}
+
+	// revert the transient state being set and then check that the
+	// value is now the empty hash
+	state.journal.revert(state, 0)
+	if got, exp := state.GetTransientState(addr, key.Bytes()), ([]byte{}); !bytes.Equal(exp, got) {
+		t.Fatalf("transient storage mismatch: have %x, want %x", got, exp)
+	}
+
+	// set transient state and then copy the statedb and ensure that
+	// the transient state is copied
+	state.SetTransientState(addr, key.Bytes(), value.Bytes())
+	cpy := state.Copy()
+	if got := cpy.GetTransientState(addr, key.Bytes()); !bytes.Equal(got, value.Bytes()) {
+		t.Fatalf("transient storage mismatch: have %x, want %x", got, value)
 	}
 }

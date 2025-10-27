@@ -18,10 +18,10 @@ package state
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 func BenchmarkCutOriginal(b *testing.B) {

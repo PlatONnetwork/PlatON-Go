@@ -18,15 +18,16 @@ package logger
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -54,6 +55,9 @@ func (*dummyStatedb) GetRefund() uint64                             { return 133
 func (*dummyStatedb) GetState(_ common.Address, _ []byte) []byte    { return nil }
 func (*dummyStatedb) SetState(_ common.Address, _ []byte, _ []byte) {}
 
+func (*dummyStatedb) GetTransientState(_ common.Address, _ []byte) []byte    { return nil }
+func (*dummyStatedb) SetTransientState(_ common.Address, _ []byte, _ []byte) {}
+
 func TestStoreCapture(t *testing.T) {
 	var (
 		logger   = NewStructLogger(nil)
@@ -74,6 +78,37 @@ func TestStoreCapture(t *testing.T) {
 	exp := common.BigToHash(big.NewInt(1))
 	if logger.storage[contract.Address()][index] != exp {
 		t.Errorf("expected %x, got %x", exp, logger.storage[contract.Address()][index])
+	}
+}
+
+// Tests that blank fields don't appear in logs when JSON marshalled, to reduce
+// logs bloat and confusion. See https://github.com/ethereum/go-ethereum/issues/24487
+func TestStructLogMarshalingOmitEmpty(t *testing.T) {
+	tests := []struct {
+		name string
+		log  *StructLog
+		want string
+	}{
+		{"empty err and no fields", &StructLog{},
+			`{"pc":0,"op":0,"gas":"0x0","gasCost":"0x0","memSize":0,"stack":null,"depth":0,"refund":0,"opName":"STOP"}`},
+		{"with err", &StructLog{Err: fmt.Errorf("this failed")},
+			`{"pc":0,"op":0,"gas":"0x0","gasCost":"0x0","memSize":0,"stack":null,"depth":0,"refund":0,"opName":"STOP","error":"this failed"}`},
+		{"with mem", &StructLog{Memory: make([]byte, 2), MemorySize: 2},
+			`{"pc":0,"op":0,"gas":"0x0","gasCost":"0x0","memory":"0x0000","memSize":2,"stack":null,"depth":0,"refund":0,"opName":"STOP"}`},
+		{"with 0-size mem", &StructLog{Memory: make([]byte, 0)},
+			`{"pc":0,"op":0,"gas":"0x0","gasCost":"0x0","memSize":0,"stack":null,"depth":0,"refund":0,"opName":"STOP"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			blob, err := json.Marshal(tt.log)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if have, want := string(blob), tt.want; have != want {
+				t.Fatalf("mismatched results\n\thave: %v\n\twant: %v", have, want)
+			}
+		})
 	}
 }
 

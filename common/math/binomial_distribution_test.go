@@ -42,27 +42,27 @@ func TestBinomialDistribution(t *testing.T) {
 		}
 	}
 	bd = NewBinomialDistribution((1<<63)-1, p)
-	tp, err := bd.CumulativeProbability(int64(10000000))
+	_, err := bd.CumulativeProbability(int64(10000000))
 	if nil != err {
 		t.Error(err)
 	}
-	tp, err = bd.CumulativeProbability(int64(100000000))
+	_, err = bd.CumulativeProbability(int64(100000000))
 	if nil != err {
 		t.Error(err)
 	}
-	tp, err = bd.CumulativeProbability(int64(1000000000))
+	_, err = bd.CumulativeProbability(int64(1000000000))
 	if nil != err {
 		t.Error(err)
 	}
-	tp, err = bd.CumulativeProbability(int64(10000000000))
+	_, err = bd.CumulativeProbability(int64(10000000000))
 	if nil != err {
 		t.Error(err)
 	}
-	tp, err = bd.CumulativeProbability(int64(100000000000))
+	_, err = bd.CumulativeProbability(int64(100000000000))
 	if nil != err {
 		t.Error(err)
 	}
-	tp, err = bd.CumulativeProbability(int64(1000000000000))
+	_, err = bd.CumulativeProbability(int64(1000000000000))
 	if nil != err {
 		t.Error(err)
 	}

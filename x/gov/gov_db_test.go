@@ -19,28 +19,23 @@ package gov
 import (
 	"bytes"
 	"fmt"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"github.com/stretchr/testify/assert"
-
-	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
-	//snapdbTest snapshotdb.DB
+	// snapdbTest snapshotdb.DB
 	txHash = common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22")
 )
 
@@ -168,7 +163,7 @@ func TestGovDB_SetProposal_GetProposal_param(t *testing.T) {
 	//create block
 	blockHash := newBlock(chain)
 
-	chain.StateDB.Prepare(txHash, 0)
+	chain.StateDB.SetTxContext(txHash, 0)
 
 	value := &ParamValue{"", "initValue", 0}
 	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
@@ -578,7 +573,6 @@ func TestGovDB_GetTallyResult_ProposalNotFound(t *testing.T) {
 }
 
 func TestGovDB_AddActiveNode(t *testing.T) {
-
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
@@ -726,7 +720,6 @@ func TestGovDB_FindVotingVersionProposal_success(t *testing.T) {
 	}
 	if p, err := FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
-
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
 	} else {
@@ -758,7 +751,6 @@ func TestGovDB_FindVotingVersionProposal_NoVersionProposalID(t *testing.T) {
 	}
 	if p, err := FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
-
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
 	} else {
@@ -931,10 +923,6 @@ func newBlock(chain *mock.Chain) common.Hash {
 	chain.AddBlock()
 	chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash())
 	return chain.CurrentHeader().Hash()
-}
-
-func commitBlock(snapdbTest snapshotdb.DB, blockhash common.Hash) error {
-	return snapdbTest.Commit(blockhash)
 }
 
 func getTxtProposal() *TextProposal {

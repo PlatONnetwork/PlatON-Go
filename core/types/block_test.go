@@ -79,7 +79,7 @@ func TestBlockEncoding(t *testing.T) {
 	check("Hash", block.Hash(), common.HexToHash("499987a73fa100f582328c92c1239262edf5c0a3479face652c89f60314aa805"))
 	check("Nonce", block.Nonce(), EncodeNonce(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23")).Bytes())
 	check("Time", block.Time(), uint64(1426516743))
-	check("Size", block.Size(), common.StorageSize(len(blockEnc)))
+	check("Size", block.Size(), uint64(len(blockEnc)))
 
 	tx1 := NewTransaction(0, common.MustBech32ToAddress("lax1p908ht4x5mrufsklawtha7kry6h42tv8sxxrdc"), big.NewInt(10), 50000, big.NewInt(10), nil)
 
@@ -118,7 +118,7 @@ func TestEIP1559BlockEncoding(t *testing.T) {
 	check("Hash", block.Hash(), common.HexToHash("24814677069bc3720defa3afe23e620e7a404f534798de5ea5fd6bab33b5e38a"))
 	//check("Nonce", block.Nonce(), uint64(0xa13a5a8c8f2bb1c4))
 	check("Time", block.Time(), uint64(1426516743))
-	check("Size", block.Size(), common.StorageSize(len(blockEnc)))
+	check("Size", block.Size(), uint64(len(blockEnc)))
 	check("BaseFee", block.BaseFee(), new(big.Int).SetUint64(params.InitialBaseFee))
 
 	tx1 := NewTransaction(0, common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87"), big.NewInt(10), 50000, big.NewInt(10), nil)
@@ -180,7 +180,7 @@ func TestEIP2718BlockEncoding(t *testing.T) {
 	check("Hash", block.Hash(), common.HexToHash("499987a73fa100f582328c92c1239262edf5c0a3479face652c89f60314aa805"))
 	check("Nonce", block.Nonce(), EncodeNonce(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23")).Bytes())
 	check("Time", block.Time(), uint64(1426516743))
-	check("Size", block.Size(), common.StorageSize(len(blockEnc)))
+	check("Size", block.Size(), uint64(len(blockEnc)))
 
 	// Create legacy tx.
 	to := common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87")
@@ -272,4 +272,61 @@ func makeBenchBlock() *Block {
 		}
 	}
 	return NewBlock(header, txs, receipts, newHasher())
+}
+
+func TestRlpDecodeParentHash(t *testing.T) {
+	// A minimum one
+	want := common.HexToHash("0x112233445566778899001122334455667788990011223344556677889900aabb")
+	if rlpData, err := rlp.EncodeToBytes(&Header{ParentHash: want}); err != nil {
+		t.Fatal(err)
+	} else {
+		if have := HeaderParentHashFromRLP(rlpData); have != want {
+			t.Fatalf("have %x, want %x", have, want)
+		}
+	}
+	// And a maximum one
+	// | Number      | dynamic| *big.Int       | 64 bits               |
+	// | Extra       | dynamic| []byte         | 65+32 byte (clique)   |
+	// | BaseFee     | dynamic| *big.Int       | 64 bits               |
+	if rlpData, err := rlp.EncodeToBytes(&Header{
+		ParentHash: want,
+		Number:     new(big.Int).SetUint64(math.MaxUint64),
+		Extra:      make([]byte, 65+32),
+		BaseFee:    new(big.Int).SetUint64(math.MaxUint64),
+	}); err != nil {
+		t.Fatal(err)
+	} else {
+		if have := HeaderParentHashFromRLP(rlpData); have != want {
+			t.Fatalf("have %x, want %x", have, want)
+		}
+	}
+	// Also test a very very large header.
+	{
+		// The rlp-encoding of the heder belowCauses _total_ length of 65540,
+		// which is the first to blow the fast-path.
+		h := &Header{
+			ParentHash: want,
+			Extra:      make([]byte, 65041),
+		}
+		if rlpData, err := rlp.EncodeToBytes(h); err != nil {
+			t.Fatal(err)
+		} else {
+			if have := HeaderParentHashFromRLP(rlpData); have != want {
+				t.Fatalf("have %x, want %x", have, want)
+			}
+		}
+	}
+	{
+		// Test some invalid erroneous stuff
+		for i, rlpData := range [][]byte{
+			nil,
+			common.FromHex("0x"),
+			common.FromHex("0x01"),
+			common.FromHex("0x3031323334"),
+		} {
+			if have, want := HeaderParentHashFromRLP(rlpData), (common.Hash{}); have != want {
+				t.Fatalf("invalid %d: have %x, want %x", i, have, want)
+			}
+		}
+	}
 }

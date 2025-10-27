@@ -38,25 +38,28 @@ import (
 
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
-/*
-The State Transitioning Model
-
-A state transition is a change made when a transaction is applied to the current world state
-The state transitioning model does all the necessary work to work out a valid new state root.
-
-1) Nonce handling
-2) Pre pay gas
-3) Create a new state object if the recipient is \0*32
-4) Value transfer
-== If contract creation ==
-
-	4a) Attempt to run transaction data
-	4b) If valid, use result as code for the new state object
-
-== end ==
-5) Run Script section
-6) Derive new state root
-*/
+// StateTransition represents a state transition.
+//
+// == The State Transitioning Model
+//
+// A state transition is a change made when a transaction is applied to the current world
+// state. The state transitioning model does all the necessary work to work out a valid new
+// state root.
+//
+//  1. Nonce handling
+//  2. Pre pay gas
+//  3. Create a new state object if the recipient is nil
+//  4. Value transfer
+//
+// == If contract creation ==
+//
+//	4a. Attempt to run transaction data
+//	4b. If valid, use result as code for the new state object
+//
+// == end ==
+//
+//  5. Run Script section
+//  6. Derive new state root
 type StateTransition struct {
 	gp         *GasPool
 	msg        Message
@@ -124,7 +127,7 @@ func (result *ExecutionResult) Revert() []byte {
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
-func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool) (uint64, error) {
+func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation bool, isEIP3860 bool) (uint64, error) {
 	// Set the starting gas for the raw transaction
 	var gas uint64
 	if isContractCreation {
@@ -132,7 +135,6 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 	} else {
 		gas = params.TxGas
 	}
-
 	var noZeroGas, zeroGas uint64
 	if isContractCreation && vm.CanUseWASMInterp(data) {
 		noZeroGas = params.TxDataNonZeroWasmDeployGas
@@ -142,8 +144,9 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		zeroGas = params.TxDataZeroGas
 	}
 
+	dataLen := uint64(len(data))
 	// Bump the required gas by the amount of transactional data
-	if len(data) > 0 {
+	if dataLen > 0 {
 		// Zero and non-zero bytes are priced differently
 		var nz uint64
 		for _, byt := range data {
@@ -157,17 +160,34 @@ func IntrinsicGas(data []byte, accessList types.AccessList, isContractCreation b
 		}
 		gas += nz * noZeroGas
 
-		z := uint64(len(data)) - nz
+		z := dataLen - nz
 		if (math.MaxUint64-gas)/zeroGas < z {
 			return 0, vm.ErrOutOfGas
 		}
 		gas += z * zeroGas
+
+		if isContractCreation && isEIP3860 {
+			lenWords := toWordSize(dataLen)
+			if (math.MaxUint64-gas)/params.InitCodeWordGas < lenWords {
+				return 0, ErrGasUintOverflow
+			}
+			gas += lenWords * params.InitCodeWordGas
+		}
 	}
 	if accessList != nil {
 		gas += uint64(len(accessList)) * params.TxAccessListAddressGas
 		gas += uint64(accessList.StorageKeys()) * params.TxAccessListStorageKeyGas
 	}
 	return gas, nil
+}
+
+// toWordSize returns the ceiled word size required for init code payment calculation.
+func toWordSize(size uint64) uint64 {
+	if size > math.MaxUint64-31 {
+		return math.MaxUint64/32 + 1
+	}
+
+	return (size + 31) / 32
 }
 
 // NewStateTransition initialises and returns a new state transition object.
@@ -304,12 +324,25 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if err := st.preCheck(); err != nil {
 		return nil, err
 	}
-	msg := st.msg
-	sender := vm.AccountRef(msg.From())
-	contractCreation := msg.To() == nil
+
+	if st.evm.Config.Debug {
+		st.evm.Config.Tracer.CaptureTxStart(st.initialGas)
+		defer func() {
+			st.evm.Config.Tracer.CaptureTxEnd(st.gas)
+		}()
+	}
+
+	var (
+		msg              = st.msg
+		sender           = vm.AccountRef(msg.From())
+		contractCreation = msg.To() == nil
+	)
+
+	// Check whether the init code size has been exceeded.
+	dirac := gov.Gte160VersionState(st.state)
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, dirac)
 	if err != nil {
 		return nil, err
 	}
@@ -323,13 +356,17 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
 	}
 
+	// Set up the initial access list.
+	if dirac && contractCreation && len(st.data) > params.MaxInitCodeSize {
+		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
+	}
+
 	// Limit the time it takes for a virtual machine to execute the smart contract,
 	// Except precompiled contracts.
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if st.evm.GetVMConfig().VmTimeoutDuration > 0 &&
 		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber), gov.Gte150VersionState(st.state))) {
-
 		timeout := time.Duration(st.evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)
 	} else {
@@ -340,10 +377,15 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	st.evm.Context.Ctx = ctx
 
 	pauli := gov.Gte150VersionState(st.state)
-	// Set up the initial access list.
-	if pauli {
-		st.state.PrepareAccessList(msg.From(), msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
+
+	// Execute the preparatory steps for state transition which includes:
+	// - prepare accessList(post-berlin)
+	// - reset transient storage(eip 1153)
+	rules := params.Rules{
+		IsPauli: pauli,
+		IsDirac: dirac,
 	}
+	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
 
 	var (
 		ret   []byte
@@ -386,7 +428,16 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	if pauli {
 		effectiveTip = cmath.BigMin(st.gasTipCap, new(big.Int).Sub(st.gasFeeCap, st.evm.Context.BaseFee))
 	}
-	st.state.AddBalance(st.evm.Context.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), effectiveTip))
+
+	if st.evm.Config.NoBaseFee && st.gasFeeCap.Sign() == 0 && st.gasTipCap.Sign() == 0 {
+		// Skip fee payment when NoBaseFee is set and the fee fields
+		// are 0. This avoids a negative effectiveTip being applied to
+		// the coinbase when simulating calls.
+	} else {
+		fee := new(big.Int).SetUint64(st.gasUsed())
+		fee.Mul(fee, effectiveTip)
+		st.state.AddBalance(st.evm.Context.Coinbase, fee)
+	}
 
 	return &ExecutionResult{
 		UsedGas:    st.gasUsed(),

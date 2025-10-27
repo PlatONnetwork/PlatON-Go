@@ -132,7 +132,6 @@ func (ms *ManagedState) getAccount(addr common.Address) *account {
 		if so != nil && uint64(len(account.nonces))+account.nstart < so.Nonce() {
 			ms.accounts[addr] = newAccount(so)
 		}
-
 	}
 
 	return ms.accounts[addr]

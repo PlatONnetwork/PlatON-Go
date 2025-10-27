@@ -2,19 +2,21 @@ package rfc6979
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"crypto/hmac"
+	"crypto/sha256"
 	"hash"
 	"math/big"
-	"crypto/sha256"
+
 	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
-	"crypto/ecdsa"
 )
 
 const (
 	tryLimit = 10000
 )
+
 // mac returns an HMAC of the given key and message.
-func hmac_k(alg func() hash.Hash, k, m[]byte) []byte {
+func hmac_k(alg func() hash.Hash, k, m []byte) []byte {
 	h := hmac.New(alg, k)
 	h.Write(m)
 	return h.Sum(nil)
@@ -100,7 +102,7 @@ func generate_k(q, x *big.Int, alg func() hash.Hash, hash []byte, test func(*big
 	panic("generate_k: couldn't generate a new k")
 }
 
-func ECVRF_nonce_generation(sk []byte,m []byte)(*ecdsa.PrivateKey, error){
+func ECVRF_nonce_generation(sk []byte, m []byte) (*ecdsa.PrivateKey, error) {
 	curve := secp256k1.S256()
 
 	hash := sha256.New()
@@ -108,7 +110,7 @@ func ECVRF_nonce_generation(sk []byte,m []byte)(*ecdsa.PrivateKey, error){
 	h := hash.Sum(nil)
 
 	var sec *big.Int
-	generate_k(curve.N,new(big.Int).SetBytes(sk), sha256.New, h, func(k *big.Int) bool {
+	generate_k(curve.N, new(big.Int).SetBytes(sk), sha256.New, h, func(k *big.Int) bool {
 		sec = k
 		return true
 	})
@@ -117,6 +119,5 @@ func ECVRF_nonce_generation(sk []byte,m []byte)(*ecdsa.PrivateKey, error){
 	priv.D = sec
 	priv.PublicKey.X, priv.PublicKey.Y = curve.ScalarBaseMult(sec.Bytes())
 
-	return priv,nil
+	return priv, nil
 }
-

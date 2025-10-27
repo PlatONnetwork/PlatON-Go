@@ -18,17 +18,17 @@ package gasprice
 
 import (
 	"context"
+	"math/big"
+	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"math/big"
-	"testing"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -44,6 +44,15 @@ type testBackend struct {
 func (b *testBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
 	if number > testHead {
 		return nil, nil
+	}
+	if number == rpc.EarliestBlockNumber {
+		number = 0
+	}
+	if number == rpc.FinalizedBlockNumber {
+		number = testHead
+	}
+	if number == rpc.SafeBlockNumber {
+		number = testHead
 	}
 	if number == rpc.LatestBlockNumber {
 		number = testHead
@@ -61,6 +70,15 @@ func (b *testBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber
 func (b *testBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
 	if number > testHead {
 		return nil, nil
+	}
+	if number == rpc.EarliestBlockNumber {
+		number = 0
+	}
+	if number == rpc.FinalizedBlockNumber {
+		number = testHead
+	}
+	if number == rpc.SafeBlockNumber {
+		number = testHead
 	}
 	if number == rpc.LatestBlockNumber {
 		number = testHead
@@ -95,6 +113,12 @@ func (b *testBackend) SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) eve
 	return nil
 }
 
+func (b *testBackend) teardown() {
+	b.chain.Stop()
+}
+
+// newTestBackend creates a test backend. OBS: don't forget to invoke tearDown
+// after use, otherwise the blockchain instance will mem-leak via goroutines.
 func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBackend {
 	var (
 		key, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -116,7 +140,7 @@ func newTestBackend(t *testing.T, londonBlock *big.Int, pending bool) *testBacke
 	genesis, _ := gspec.Commit(db, snapshotdb.Instance())
 
 	// Generate testing blocks
-	chain := core.GenerateBlockChain2(gspec.Config, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
+	chain, _ := core.GenerateBlockChain2(gspec, genesis, engine, db, testHead+1, func(i int, b *core.BlockGen) {
 		b.SetCoinbase(common.Address{1})
 
 		var txdata types.TxData
@@ -183,6 +207,7 @@ func TestSuggestTipCap(t *testing.T) {
 
 		// The gas price sampled is: 32G, 31G, 30G, 29G, 28G, 27G
 		got, err := oracle.SuggestTipCap(context.Background())
+		backend.teardown()
 		if err != nil {
 			t.Fatalf("Failed to retrieve recommended gas price: %v", err)
 		}

@@ -22,6 +22,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -52,7 +53,7 @@ var (
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 
 	chainConfig      = params.TestnetChainConfig
-	testTxPoolConfig = core.DefaultTxPoolConfig
+	testTxPoolConfig = txpool.DefaultConfig
 
 	// twenty billion von
 	//twoentyBillion, _ = new(big.Int).SetString("200000000000000000000000000000", 10)
@@ -119,14 +120,12 @@ func GenerateCbftNode(num int) ([]*ecdsa.PrivateKey, []*bls.SecretKey, []params.
 	for i := 0; i < num; i++ {
 		nodes[i].Node = enode.NewV4(&pk[i].PublicKey, net.ParseIP("0.0.0.0"), 0, 0)
 		nodes[i].BlsPubKey = *sk[i].GetPublicKey()
-
 	}
 	return pk, sk, nodes
 }
 
 // CreateCBFT returns a new CBFT for testing.
 func CreateCBFT(pk *ecdsa.PrivateKey, sk *bls.SecretKey, period uint64, amount uint32) *Cbft {
-
 	sysConfig := &params.CbftConfig{
 		Period:       period,
 		Amount:       amount,
@@ -166,21 +165,20 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 }
 
 // CreateBackend returns a new Backend for testing.
-func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
-
+func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *txpool.TxPool, consensus.Agency) {
 	var db = rawdb.NewMemoryDatabase()
 	chainConfig.SetPauliBlock(nil)
 	gspec, _ := CreateGenesis(db)
 
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, &gspec, nil, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, cache)
+	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, cache)
 
 	return chain, cache, txpool, validator.NewStaticAgency(nodes)
 }
 
 // CreateValidatorBackend returns a new ValidatorBackend for testing.
-func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *core.TxPool, consensus.Agency) {
+func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *core.BlockChainCache, *txpool.TxPool, consensus.Agency) {
 	var (
 		db    = rawdb.NewMemoryDatabase()
 		gspec = core.Genesis{
@@ -198,9 +196,9 @@ func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockC
 	}
 	gspec.MustCommit(db)
 
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	chain, _ := core.NewBlockChain(db, nil, &gspec, nil, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, cache)
+	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, cache)
 
 	return chain, cache, txpool, validator.NewInnerAgency(nodes, chain, int(engine.config.Sys.Amount), int(engine.config.Sys.Amount)*2)
 }
@@ -210,7 +208,7 @@ type TestCBFT struct {
 	engine *Cbft
 	chain  *core.BlockChain
 	cache  *core.BlockChainCache
-	txpool *core.TxPool
+	txpool *txpool.TxPool
 	agency consensus.Agency
 }
 
@@ -222,7 +220,6 @@ func (t *TestCBFT) Start() error {
 // MockNode returns a new TestCBFT for testing.
 func MockNode(pk *ecdsa.PrivateKey, sk *bls.SecretKey, nodes []params.CbftNode, period uint64, amount uint32) *TestCBFT {
 	engine := CreateCBFT(pk, sk, period, amount)
-
 	chain, cache, txpool, agency := CreateBackend(engine, nodes)
 	return &TestCBFT{
 		engine: engine,

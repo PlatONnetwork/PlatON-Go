@@ -3,19 +3,19 @@ package vm
 import (
 	"context"
 	"hash/fnv"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 )
 
 func TestWasmRun(t *testing.T) {
-
 	// good deploy
 	engine := &wagonEngine{
 		evm: &EVM{Context: BlockContext{
@@ -76,7 +76,7 @@ func TestWasmRun(t *testing.T) {
 	assert.Nil(t, ret)
 
 	// bad call for empty input
-	buf = callData(t, "add_message")
+	//buf = callData(t, "add_message")
 	engine.contract.DeployContract = false
 	ret, err = engine.Run(nil, false)
 	assert.Nil(t, err)
@@ -192,8 +192,7 @@ func TestWasmRun(t *testing.T) {
 }
 
 func deployData(t *testing.T, funcName, filePath string) []byte {
-
-	buf, err := ioutil.ReadFile(filePath)
+	buf, err := os.ReadFile(filePath)
 	assert.Nil(t, err)
 
 	hash := fnv.New64()

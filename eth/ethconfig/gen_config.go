@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
@@ -46,6 +47,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DBValidatorsHistory      bool
 		VMWasmType               string
 		VmTimeoutDuration        uint64
+		FilterLogCacheSize       int
 		Miner                    miner.Config
 		MiningLogAtDepth         uint
 		TxChanSize               int
@@ -66,7 +68,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		BlockChainVersion        int
 		DefaultTxsCacheSize      int
 		DefaultBroadcastInterval time.Duration
-		TxPool                   core.TxPoolConfig
+		TxPool                   txpool.Config
 		GPO                      gasprice.Config
 		DocRoot                  string `toml:"-"`
 		Debug                    bool
@@ -75,6 +77,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		RPCTxFeeCap              float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
+		OverrideShanghai         *uint64                   `toml:",omitempty"`
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -106,6 +109,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DBValidatorsHistory = c.DBValidatorsHistory
 	enc.VMWasmType = c.VMWasmType
 	enc.VmTimeoutDuration = c.VmTimeoutDuration
+	enc.FilterLogCacheSize = c.FilterLogCacheSize
 	enc.Miner = c.Miner
 	enc.MiningLogAtDepth = c.MiningLogAtDepth
 	enc.TxChanSize = c.TxChanSize
@@ -135,6 +139,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.RPCTxFeeCap = c.RPCTxFeeCap
 	enc.Whitelist = c.Whitelist
 	enc.Checkpoint = c.Checkpoint
+	enc.OverrideShanghai = c.OverrideShanghai
 	return &enc, nil
 }
 
@@ -170,6 +175,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DBValidatorsHistory      *bool
 		VMWasmType               *string
 		VmTimeoutDuration        *uint64
+		FilterLogCacheSize       *int
 		Miner                    *miner.Config
 		MiningLogAtDepth         *uint
 		TxChanSize               *int
@@ -190,7 +196,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		BlockChainVersion        *int
 		DefaultTxsCacheSize      *int
 		DefaultBroadcastInterval *time.Duration
-		TxPool                   *core.TxPoolConfig
+		TxPool                   *txpool.Config
 		GPO                      *gasprice.Config
 		DocRoot                  *string `toml:"-"`
 		Debug                    *bool
@@ -199,6 +205,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		RPCTxFeeCap              *float64
 		Whitelist                map[uint64]common.Hash    `toml:"-"`
 		Checkpoint               *params.TrustedCheckpoint `toml:",omitempty"`
+		OverrideShanghai         *uint64                   `toml:",omitempty"`
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -291,6 +298,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.VmTimeoutDuration != nil {
 		c.VmTimeoutDuration = *dec.VmTimeoutDuration
 	}
+	if dec.FilterLogCacheSize != nil {
+		c.FilterLogCacheSize = *dec.FilterLogCacheSize
+	}
 	if dec.Miner != nil {
 		c.Miner = *dec.Miner
 	}
@@ -377,6 +387,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.Checkpoint != nil {
 		c.Checkpoint = dec.Checkpoint
+	}
+	if dec.OverrideShanghai != nil {
+		c.OverrideShanghai = dec.OverrideShanghai
 	}
 	return nil
 }

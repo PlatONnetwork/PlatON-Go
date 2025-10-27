@@ -6,7 +6,6 @@ import (
 )
 
 func TestDag(t *testing.T) {
-
 	dag := NewDag(10)
 	dag.AddEdge(0, 1)
 	dag.AddEdge(0, 2)
@@ -31,5 +30,4 @@ func TestDag(t *testing.T) {
 		ids := dag.Next()
 		fmt.Printf("ids:%+v", ids)
 	}
-
 }

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with PlatON-Go. If not, see <http://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -22,7 +21,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -33,7 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -46,14 +44,14 @@ var (
 	DefaultPrivateKeyFilePath  = "./test/privateKeys.txt"
 	DefaultAccountAddrFilePath = "./test/addr.json"
 
-	StabilityCmd = cli.Command{
+	StabilityCmd = &cli.Command{
 		Name:    "stability",
 		Aliases: []string{"stab"},
 		Usage:   "start stability test ",
 		Action:  stabilityTest,
 		Flags:   stabilityCmdFlags,
 	}
-	StabPrepareCmd = cli.Command{
+	StabPrepareCmd = &cli.Command{
 		Name:    "prepare",
 		Aliases: []string{"pre"},
 		Usage:   "prepare some accounts are used for stability test ",
@@ -62,7 +60,7 @@ var (
 	}
 )
 
-func prepareAccount(c *cli.Context) {
+func prepareAccount(c *cli.Context) error {
 	pkFile := c.String(PKFilePathFlag.Name)
 	size := c.Int(AccountSizeFlag.Name)
 	value := c.String(TransferValueFlag.Name)
@@ -73,9 +71,10 @@ func prepareAccount(c *cli.Context) {
 	if err != nil {
 		panic(fmt.Errorf("send raw transaction error,%s", err.Error()))
 	}
+	return err
 }
 
-func stabilityTest(c *cli.Context) {
+func stabilityTest(c *cli.Context) error {
 	pkFile := c.String(PKFilePathFlag.Name)
 	times := c.Int(StabExecTimesFlag.Name)
 	interval := c.Int(SendTxIntervalFlag.Name)
@@ -86,6 +85,7 @@ func stabilityTest(c *cli.Context) {
 	if err != nil {
 		panic(fmt.Errorf("stress test error,%s", err.Error()))
 	}
+	return err
 }
 
 type PriAccount struct {
@@ -104,7 +104,6 @@ func generateAccount(size int, pkFile string) {
 	}
 	savePrivateKeyPool(pkFile)
 	saveAddrs(addrs, pkFile)
-
 }
 
 func savePrivateKeyPool(pkFile string) {
@@ -130,19 +129,18 @@ func saveAddrs(addrs []string, pkFile string) {
 		addrsPath = filepath.Dir(pkFile) + "/addr.json"
 	}
 	os.Truncate(DefaultAccountAddrFilePath, 0)
-	byts, err := json.MarshalIndent(addrs, "", "\t")
-	_, err = os.Create(addrsPath)
+	byts, _ := json.MarshalIndent(addrs, "", "\t")
+	_, err := os.Create(addrsPath)
 	if err != nil {
 		panic(fmt.Errorf("create addr.json error%s \n", err.Error()))
 	}
-	err = ioutil.WriteFile(addrsPath, byts, 0644)
+	err = os.WriteFile(addrsPath, byts, 0644)
 	if err != nil {
 		panic(fmt.Errorf("write to addr.json error%s \n", err.Error()))
 	}
 }
 
 func PrepareAccount(size int, pkFile, value string) error {
-
 	if len(accountPool) == 0 {
 		generateAccount(size, pkFile)
 	}
@@ -252,7 +250,6 @@ func parsePkFile(pkFile string) {
 	if err2 != nil {
 		panic(err2)
 	}
-
 }
 
 func getAllAddress(pkFile string) []string {
@@ -264,7 +261,7 @@ func getAllAddress(pkFile string) []string {
 		addrsPath = dir + DefaultAccountAddrFilePath
 	}
 
-	bytes, err := ioutil.ReadFile(addrsPath)
+	bytes, err := os.ReadFile(addrsPath)
 	if err != nil {
 		panic(fmt.Errorf("get all address array error,%s \n", err.Error()))
 	}

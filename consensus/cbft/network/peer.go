@@ -33,7 +33,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -82,7 +82,7 @@ type peer struct {
 	// Record the message received by the peer node.
 	// If the threshold is exceeded, the queue tail
 	// record is popped up and then added.
-	knownMessageHash mapset.Set
+	knownMessageHash mapset.Set[common.Hash]
 
 	pingList *list.List
 	listLock sync.RWMutex
@@ -103,7 +103,7 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		highestQCBn:      new(big.Int),
 		lockedBn:         new(big.Int),
 		commitBn:         new(big.Int),
-		knownMessageHash: mapset.NewSet(),
+		knownMessageHash: mapset.NewSet[common.Hash](),
 		pingList:         list.New(),
 		sendQueue:        make(chan *types.MsgPackage, maxQueueSize),
 	}
@@ -587,21 +587,19 @@ func (ps *PeerSet) printPeers() {
 		if ps.closed {
 			break
 		}
-		select {
-		case <-outTimer.C:
-			peers := ps.allPeers()
-			if peers != nil {
-				neighborPeerGauage.Update(int64(len(peers)))
-			}
-			var bf bytes.Buffer
-			for idx, peer := range peers {
-				bf.WriteString(peer.id)
-				if idx < len(peers)-1 {
-					bf.WriteString(",")
-				}
-			}
-			pInfo := bf.String()
-			log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
+		<-outTimer.C
+		peers := ps.allPeers()
+		if peers != nil {
+			neighborPeerGauage.Update(int64(len(peers)))
 		}
+		var bf bytes.Buffer
+		for idx, peer := range peers {
+			bf.WriteString(peer.id)
+			if idx < len(peers)-1 {
+				bf.WriteString(",")
+			}
+		}
+		pInfo := bf.String()
+		log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
 	}
 }

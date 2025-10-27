@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -44,7 +45,7 @@ import (
 
 var (
 	// Test chain configurations
-	testTxPoolConfig core.TxPoolConfig
+	testTxPoolConfig txpool.Config
 	chainConfig      *params.ChainConfig
 
 	// Test accounts
@@ -66,7 +67,7 @@ var (
 )
 
 func init() {
-	testTxPoolConfig = core.DefaultTxPoolConfig
+	testTxPoolConfig = txpool.DefaultConfig
 	testTxPoolConfig.Journal = ""
 	chainConfig = params.TestChainConfig
 
@@ -90,15 +91,14 @@ func init() {
 	})
 	newTxs = append(newTxs, tx2)
 
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
 type testWorkerBackend struct {
 	db         ethdb.Database
-	txPool     *core.TxPool
+	txPool     *txpool.TxPool
 	chain      *core.BlockChain
-	testTxFeed event.Feed
 	chainCache *core.BlockChainCache
 	engine     consensus.Engine
 }
@@ -124,7 +124,10 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	engine.InsertChain(genesis)
 	bft := engine.(*consensus.BftMock)
 	bft.EventMux = mux
-	chain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil, nil)
+	chain, err := core.NewBlockChain(db, nil, &gspec, nil, engine, vm.Config{}, nil, nil)
+	if err != nil {
+		t.Fatalf("core.NewBlockChain failed: %v", err)
+	}
 	blockChainCache := core.NewBlockChainCache(chain)
 
 	stateDB, _ := state.New(genesis.Root(), state.NewDatabase(db), nil)
@@ -132,7 +135,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 
-	txpool := core.NewTxPool(testTxPoolConfig, chainConfig, blockChainCache)
+	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, blockChainCache)
 
 	// Generate a small n-block chain and an uncle block for it
 	if n > 0 {
@@ -161,51 +164,44 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 }
 
 func (b *testWorkerBackend) BlockChain() *core.BlockChain { return b.chain }
-func (b *testWorkerBackend) TxPool() *core.TxPool         { return b.txPool }
+func (b *testWorkerBackend) TxPool() *txpool.TxPool       { return b.txPool }
 func (b *testWorkerBackend) StateAtBlock(block *types.Block, reexec uint64, base *state.StateDB, checkLive bool, preferDisk bool) (statedb *state.StateDB, err error) {
 	return nil, errors.New("not supported")
 }
 
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
-
 	event := new(event.TypeMux)
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks, event)
-	core.NewExecutor(chainConfig, backend.chain, vm.Config{}, nil)
+	core.NewExecutor(chainConfig, backend.chain, vm.Config{})
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
 	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
 	go func() {
-
-		for {
-			select {
-			case obj := <-bftResultSub.Chan():
-
-				if obj == nil {
-					continue
-				}
-				cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
-				if !ok {
-					log.Error("blockchain_reactor receive bft result type error")
-					continue
-				}
-
-				stateDB, err := w.blockChainCache.MakeStateDB(cbftResult.Block)
-				if nil != err {
-					panic(err)
-				}
-
-				// block write to real chain
-				_, err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
-				if nil != err {
-					panic(err)
-				}
-
-				// block write to BftMock engine chain
-				backend.engine.InsertChain(cbftResult.Block)
+		for obj := range bftResultSub.Chan() {
+			if obj == nil {
+				continue
 			}
-		}
+			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
+			if !ok {
+				log.Error("blockchain_reactor receive bft result type error")
+				continue
+			}
 
+			stateDB, err := w.blockChainCache.MakeStateDB(cbftResult.Block)
+			if nil != err {
+				panic(err)
+			}
+
+			// block write to real chain
+			err = w.chain.WriteBlockWithState(cbftResult.Block, nil, nil, stateDB, false, nil)
+			if nil != err {
+				panic(err)
+			}
+
+			// block write to BftMock engine chain
+			backend.engine.InsertChain(cbftResult.Block)
+		}
 	}()
 	return w, backend
 }
@@ -330,7 +326,7 @@ func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, eng
 
 	// Ensure the new tx events has been processed
 	time.Sleep(100 * time.Millisecond)
-	block, state = w.pending()
+	_, state = w.pending()
 	if balance := state.GetBalance(testUserAddress); balance.Cmp(big.NewInt(2000)) != 0 {
 		t.Errorf("account balance mismatch: have %d, want %d", balance, 2000)
 	}
@@ -516,7 +512,6 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 
 	w.resubmitAdjustCh <- &intervalAdjust{inc: true, ratio: 0.8}
 	go func() {
-
 		select {
 		case <-progress:
 		case <-time.NewTimer(time.Second).C:

@@ -17,9 +17,10 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/bits"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func TestJumpDestAnalysis(t *testing.T) {

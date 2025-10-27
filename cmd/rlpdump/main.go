@@ -24,22 +24,18 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/slashing"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 )
 
 var (
@@ -222,7 +218,6 @@ func main() {
 
 	var r io.Reader
 	switch {
-
 	case *hexMode != "":
 		data, err := hex.DecodeString(strings.TrimPrefix(*hexMode, "0x"))
 		if err != nil {
@@ -252,7 +247,7 @@ func main() {
 		if err != nil {
 			die(err)
 		}
-		fmt.Printf("0x%x\n", data)
+		fmt.Printf("%#x\n", data)
 		return
 	} else {
 		err := rlpToText(r, out)

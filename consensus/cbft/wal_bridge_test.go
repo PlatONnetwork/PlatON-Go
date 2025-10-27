@@ -14,13 +14,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package cbft
 
 import (
-	"io/ioutil"
 	"math/big"
-	"os"
 	"testing"
 	"time"
 
@@ -39,9 +36,7 @@ import (
 )
 
 func TestUpdateChainState(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 10)
@@ -62,20 +57,18 @@ func TestUpdateChainState(t *testing.T) {
 		<-complete
 
 		// test newChainState
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i), node.engine.state.MaxQCIndex())
-			switch i {
-			case 0:
-				commit = block
-			case 1:
-				lock = block
-			case 2:
-				qc = block
-			}
-			parent = b
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i), node.engine.state.MaxQCIndex())
+		switch i {
+		case 0:
+			commit = block
+		case 1:
+			lock = block
+		case 2:
+			qc = block
 		}
+		parent = b
 	}
 
 	// test recoveryChainState
@@ -137,11 +130,9 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 	<-complete
 
 	// test addQCState
-	select {
-	case b := <-result:
-		assert.NotNil(t, b)
-		appendQC = block
-	}
+	b := <-result
+	assert.NotNil(t, b)
+	appendQC = block
 
 	// test recoveryChainState
 	var chainState *protocols.ChainState
@@ -159,9 +150,7 @@ func testAddQCState(t *testing.T, lock, qc *types.Block, node *TestCBFT) {
 }
 
 func TestRecordCbftMsg(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)
@@ -184,11 +173,9 @@ func TestRecordCbftMsg(t *testing.T) {
 		node.engine.OnSeal(block, result, nil, complete)
 		<-complete
 
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			parent = b
-		}
+		b := <-result
+		assert.NotNil(t, b)
+		parent = b
 	}
 	node.engine.bridge.SendViewChange(makeViewChange(epoch, viewNumber, parent, 9, uint32(0)))
 
@@ -209,9 +196,7 @@ func TestRecordCbftMsg(t *testing.T) {
 }
 
 func TestInsertQCBlock_fork_priority(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "wal")
-	defer os.RemoveAll(tempDir)
-
+	tempDir := t.TempDir()
 	pk, sk, cbftnodes := GenerateCbftNode(1)
 
 	node := MockNode(pk[0], sk[0], cbftnodes, 10000, 20)

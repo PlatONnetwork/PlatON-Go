@@ -32,15 +32,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-//go:generate gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
+//go:generate go run github.com/fjl/gencodec -type Receipt -field-override receiptMarshaling -out gen_receipt_json.go
 
 var (
 	receiptStatusFailedRLP     = []byte{}
 	receiptStatusSuccessfulRLP = []byte{0x01}
 )
 
-// This error is returned when a typed receipt is decoded, but the string is empty.
-var errEmptyTypedReceipt = errors.New("empty typed receipt bytes")
+var errShortTypedReceipt = errors.New("typed receipt too short")
 
 const (
 	// ReceiptStatusFailed is the status code of a transaction if execution failed.
@@ -62,9 +61,10 @@ type Receipt struct {
 
 	// Implementation fields: These fields are added by geth when processing a transaction.
 	// They are stored in the chain database.
-	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
-	ContractAddress common.Address `json:"contractAddress"`
-	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
+	TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
+	ContractAddress   common.Address `json:"contractAddress"`
+	GasUsed           uint64         `json:"gasUsed" gencodec:"required"`
+	EffectiveGasPrice *big.Int       `json:"effectiveGasPrice"` // required, but tag omitted for backwards compatibility
 
 	// Inclusion information: These fields provide information about the inclusion of the
 	// transaction corresponding to this receipt.
@@ -187,26 +187,13 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 		}
 		r.Type = LegacyTxType
 		return r.setFromRLP(dec)
-	case kind == rlp.String:
+	default:
 		// It's an EIP-2718 typed tx receipt.
 		b, err := s.Bytes()
 		if err != nil {
 			return err
 		}
-		if len(b) == 0 {
-			return errEmptyTypedReceipt
-		}
-		r.Type = b[0]
-		if r.Type == AccessListTxType || r.Type == DynamicFeeTxType {
-			var dec receiptRLP
-			if err := rlp.DecodeBytes(b[1:], &dec); err != nil {
-				return err
-			}
-			return r.setFromRLP(dec)
-		}
-		return ErrTxTypeNotSupported
-	default:
-		return rlp.ErrExpectedList
+		return r.decodeTyped(b)
 	}
 }
 
@@ -229,8 +216,8 @@ func (r *Receipt) UnmarshalBinary(b []byte) error {
 
 // decodeTyped decodes a typed receipt from the canonical format.
 func (r *Receipt) decodeTyped(b []byte) error {
-	if len(b) == 0 {
-		return errEmptyTypedReceipt
+	if len(b) <= 1 {
+		return errShortTypedReceipt
 	}
 	switch b[0] {
 	case DynamicFeeTxType, AccessListTxType:
@@ -286,22 +273,26 @@ func (r *Receipt) Size() common.StorageSize {
 	return size
 }
 
-// ReceiptForStorage is a wrapper around a Receipt that flattens and parses the
-// entire content of a receipt, as opposed to only the consensus fields originally.
+// ReceiptForStorage is a wrapper around a Receipt with RLP serialization
+// that omits the Bloom field and deserialization that re-computes it.
 type ReceiptForStorage Receipt
 
 // EncodeRLP implements rlp.Encoder, and flattens all content fields of a receipt
 // into an RLP stream.
-func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
-	enc := &storedReceiptRLP{
-		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
-		CumulativeGasUsed: r.CumulativeGasUsed,
-		Logs:              make([]*LogForStorage, len(r.Logs)),
+func (r *ReceiptForStorage) EncodeRLP(_w io.Writer) error {
+	w := rlp.NewEncoderBuffer(_w)
+	outerList := w.List()
+	w.WriteBytes((*Receipt)(r).statusEncoding())
+	w.WriteUint64(r.CumulativeGasUsed)
+	logList := w.List()
+	for _, log := range r.Logs {
+		if err := rlp.Encode(w, log); err != nil {
+			return err
+		}
 	}
-	for i, log := range r.Logs {
-		enc.Logs[i] = (*LogForStorage)(log)
-	}
-	return rlp.Encode(w, enc)
+	w.ListEnd(logList)
+	w.ListEnd(outerList)
+	return w.Flush()
 }
 
 // DecodeRLP implements rlp.Decoder, and loads both consensus and implementation
@@ -411,7 +402,7 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 
 // DeriveFields fills the receipts with their computed fields based on consensus
 // data and contextual infos like containing block and transactions.
-func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, txs Transactions) error {
+func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, baseFee *big.Int, txs Transactions) error {
 	logIndex := uint(0)
 	if len(txs) != len(rs) {
 		return errors.New("transaction and receipt count mismatch")
@@ -420,6 +411,7 @@ func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, nu
 		// The transaction type and hash can be retrieved from the transaction itself
 		rs[i].Type = txs[i].Type()
 		rs[i].TxHash = txs[i].Hash()
+		rs[i].EffectiveGasPrice = txs[i].inner.effectiveGasPrice(new(big.Int), baseFee)
 
 		// block location fields
 		rs[i].BlockHash = hash
@@ -431,13 +423,17 @@ func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, nu
 			// Deriving the signer is expensive, only do if it's actually needed
 			from, _ := Sender(NewLondonSigner(txs[i].ChainId()), txs[i])
 			rs[i].ContractAddress = crypto.CreateAddress(from, txs[i].Nonce())
+		} else {
+			rs[i].ContractAddress = common.Address{}
 		}
+
 		// The used gas can be calculated based on previous rs
 		if i == 0 {
 			rs[i].GasUsed = rs[i].CumulativeGasUsed
 		} else {
 			rs[i].GasUsed = rs[i].CumulativeGasUsed - rs[i-1].CumulativeGasUsed
 		}
+
 		// The derived log fields can simply be set from the block and transaction
 		for j := 0; j < len(rs[i].Logs); j++ {
 			rs[i].Logs[j].BlockNumber = number

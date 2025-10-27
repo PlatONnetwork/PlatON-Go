@@ -127,7 +127,6 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 		}
 		// Remove local forks that already exist.
 		filteredForkedBlocks := make([]*types.Block, 0)
-		filteredForkedQCs := make([]*ctypes.QuorumCert, 0)
 		//localForkedBlocks, _ := cbft.blockTree.FindForkedBlocksAndQCs(parentBlock.Hash(), parentBlock.NumberU64())
 		localForkedBlocks, _ := cbft.blockTree.FindBlocksAndQCs(parentBlock.NumberU64())
 
@@ -135,11 +134,10 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64, qc *cty
 			cbft.log.Debug("LocalForkedBlocks", "number", localForkedBlocks[0].NumberU64(), "hash", localForkedBlocks[0].Hash().TerminalString())
 		}
 
-		for i, forkedBlock := range blockList.ForkedBlocks {
+		for _, forkedBlock := range blockList.ForkedBlocks {
 			for _, localForkedBlock := range localForkedBlocks {
 				if forkedBlock.NumberU64() == localForkedBlock.NumberU64() && forkedBlock.Hash() != localForkedBlock.Hash() {
 					filteredForkedBlocks = append(filteredForkedBlocks, forkedBlock)
-					filteredForkedQCs = append(filteredForkedQCs, blockList.ForkedQC[i])
 					break
 				}
 			}
@@ -898,6 +896,15 @@ func (cbft *Cbft) SyncPrepareBlock(id string, epoch uint64, viewNumber uint64, b
 			cbft.log.Debug("Send GetPrepareBlock", "peer", id, "msg", msg.String())
 		}
 	}
+}
+
+func (cbft *Cbft) SyncPrepareBlockDirectly(epoch uint64, viewNumber uint64, blockIndex uint32) {
+	if msg := cbft.csPool.GetPrepareBlock(epoch, viewNumber, blockIndex); msg != nil {
+		go cbft.ReceiveMessage(msg)
+	}
+	msg := &protocols.GetPrepareBlock{Epoch: epoch, ViewNumber: viewNumber, BlockIndex: blockIndex}
+	cbft.network.PartBroadcast(msg)
+	cbft.log.Debug("Send GetPrepareBlock by part broadcast directly", "msg", msg.String())
 }
 
 func (cbft *Cbft) SyncBlockQuorumCert(id string, blockNumber uint64, blockHash common.Hash, blockIndex uint32) {

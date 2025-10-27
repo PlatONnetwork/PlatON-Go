@@ -21,20 +21,18 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/miner"
-
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
-	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // FullNodeGPO contains default gasprice oracle settings for full node.
@@ -77,6 +75,7 @@ var Defaults = Config{
 	TrieCleanCacheJournal:   "triecache",
 	TrieCleanCacheRejournal: 60 * time.Minute,
 	TrieDirtyCache:          256,
+	FilterLogCacheSize:      32,
 	Miner: miner.Config{
 		GasFloor: params.GenesisGasLimit,
 		GasPrice: big.NewInt(params.GVon),
@@ -104,14 +103,14 @@ var Defaults = Config{
 	TriesInMemory:     128,
 	BlockChainVersion: 3,
 
-	TxPool:        core.DefaultTxPoolConfig,
+	TxPool:        txpool.DefaultConfig,
 	RPCGasCap:     50000000,
 	RPCEVMTimeout: 5 * time.Second,
 	GPO:           FullNodeGPO,
 	RPCTxFeeCap:   1, // 1 lat
 }
 
-//go:generate gencodec -type Config -formats toml -out gen_config.go
+//go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
 type Config struct {
 	// The genesis block, which is inserted if the database is empty.
@@ -160,6 +159,9 @@ type Config struct {
 	VMWasmType        string
 	VmTimeoutDuration uint64
 
+	// This is the number of blocks for which logs will be cached in the filter system.
+	FilterLogCacheSize int
+
 	// Mining options
 	Miner miner.Config
 	// minning conig
@@ -186,7 +188,7 @@ type Config struct {
 	DefaultBroadcastInterval time.Duration
 
 	// Transaction pool options
-	TxPool core.TxPoolConfig
+	TxPool txpool.Config
 
 	// Gas Price Oracle options
 	GPO gasprice.Config
@@ -214,11 +216,14 @@ type Config struct {
 
 	// Checkpoint is a hardcoded checkpoint which can be nil.
 	Checkpoint *params.TrustedCheckpoint `toml:",omitempty"`
+
+	// OverrideShanghai (TODO: remove after the fork)
+	OverrideShanghai *uint64 `toml:",omitempty"`
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 func CreateConsensusEngine(stack *node.Node, chainConfig *params.ChainConfig, noverify bool, db ethdb.Database,
-	cbftConfig *ctypes.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
+	cbftConfig *types.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	engine := cbft.New(chainConfig.Cbft, cbftConfig, eventMux, stack)
 	if engine == nil {

@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -32,7 +32,7 @@ type outputGenkeypair struct {
 	PublicKey  string
 }
 
-var commandGenkeypair = cli.Command{
+var commandGenkeypair = &cli.Command{
 	Name:      "genkeypair",
 	Usage:     "generate new private key pair",
 	ArgsUsage: "[ ]",

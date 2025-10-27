@@ -68,7 +68,6 @@ func TestSnapshotDB_NewBlockRepate(t *testing.T) {
 			t.Error(err)
 		}
 	})
-
 }
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
@@ -132,7 +131,7 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(kv.value, val) != 0 {
+			if !bytes.Equal(kv.value, val) {
 				t.Error("must find key", i)
 			}
 		}
@@ -221,7 +220,6 @@ func TestSnapshotDB_Get(t *testing.T) {
 		if err := ch.insert(false, arr[3], newBlockUnRecognized); err != nil {
 			t.Error(err)
 		}
-
 	}
 
 	t.Run("UnRecognized", func(t *testing.T) {
@@ -232,7 +230,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					if bytes.Compare(kv.value, val) != 0 {
+					if !bytes.Equal(kv.value, val) {
 						t.Error("must find key")
 					}
 				}
@@ -262,7 +260,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					if bytes.Compare(kv.value, val) != 0 {
+					if !bytes.Equal(kv.value, val) {
 						t.Error("must find key")
 					}
 				}
@@ -291,7 +289,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 					if err != nil {
 						t.Error(err)
 					}
-					if bytes.Compare(kv.value, val) != 0 {
+					if !bytes.Equal(kv.value, val) {
 						t.Error("must find key")
 					}
 				}
@@ -306,11 +304,10 @@ func TestSnapshotDB_Get(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				if bytes.Compare(kv.value, val) != 0 {
+				if !bytes.Equal(kv.value, val) {
 					t.Error("must find key")
 				}
 			}
-
 		})
 	})
 }
@@ -338,7 +335,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(key.value, val) != 0 {
+			if !bytes.Equal(key.value, val) {
 				t.Error("val not compare", key.value, val)
 			}
 		}
@@ -352,7 +349,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		if bytes.Compare(commit2KV.value, val) != 0 {
+		if !bytes.Equal(commit2KV.value, val) {
 			t.Error("must find key")
 		}
 	})
@@ -450,7 +447,7 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 	itr := ch.db.Ranking(ch.CurrentHeader().Hash(), f[0:10], 5)
 	var i int
 	for itr.Next() {
-		if bytes.Compare(itr.Key(), base[i].key) != 0 {
+		if !bytes.Equal(itr.Key(), base[i].key) {
 			t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i].key), hex.EncodeToString(itr.Key()))
 		}
 		i++
@@ -463,11 +460,11 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 	i = 0
 	for itr.Next() {
 		if i == 0 {
-			if bytes.Compare(itr.Key(), a) != 0 {
+			if !bytes.Equal(itr.Key(), a) {
 				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(a), hex.EncodeToString(itr.Key()))
 			}
 		} else {
-			if bytes.Compare(itr.Key(), base[i-1].key) != 0 {
+			if !bytes.Equal(itr.Key(), base[i-1].key) {
 				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i-1].key), hex.EncodeToString(itr.Key()))
 			}
 		}
@@ -484,17 +481,16 @@ func TestSnapshotDB_Ranking10(t *testing.T) {
 	i = 0
 	for itr.Next() {
 		if i == 0 {
-			if bytes.Compare(itr.Key(), a) != 0 {
+			if !bytes.Equal(itr.Key(), a) {
 				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(a), hex.EncodeToString(itr.Key()))
 			}
 		} else {
-			if bytes.Compare(itr.Key(), base[i-1].key) != 0 {
+			if !bytes.Equal(itr.Key(), base[i-1].key) {
 				t.Errorf("should eq but not eq,want %v have %v", hex.EncodeToString(base[i-1].key), hex.EncodeToString(itr.Key()))
 			}
 		}
 		i++
 	}
-
 }
 
 func TestSnapshotDB_Ranking2(t *testing.T) {
@@ -523,10 +519,10 @@ func TestSnapshotDB_Ranking2(t *testing.T) {
 					if !itr.Next() {
 						return errors.New("it's must can itr")
 					}
-					if bytes.Compare(kv.value, itr.Value()) != 0 {
+					if !bytes.Equal(kv.value, itr.Value()) {
 						return fmt.Errorf("itr return wrong value :%v,should return:%v ", itr.Key(), kv.value)
 					}
-					if bytes.Compare(kv.key, itr.Key()) != 0 {
+					if !bytes.Equal(kv.key, itr.Key()) {
 						return fmt.Errorf("itr return wrong key :%v,should return:%v ", itr.Key(), kv.key)
 					}
 				}
@@ -641,7 +637,6 @@ func TestSnapshotDB_Ranking5(t *testing.T) {
 			t.Errorf("not compare want %v,have %v", generatekvs[i+1].value, o[i].value)
 		}
 	}
-
 }
 
 //func TestSnapshotDB_RankingITR(t *testing.T) {
@@ -824,7 +819,7 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 		kvhash := ch.db.GetLastKVHash(common.ZeroHash)
 		lastkvhash = generateKVHash(arr[0], arr[0], lastkvhash)
 		lastkvhash = generateKVHash(arr[1], arr[1], lastkvhash)
-		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
+		if !bytes.Equal(kvhash, lastkvhash.Bytes()) {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
 	})
@@ -833,7 +828,7 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 		kvhash := ch.db.GetLastKVHash(recognizedHash)
 		lastkvhash = generateKVHash(arr[2], arr[2], lastkvhash)
 		lastkvhash = generateKVHash(arr[3], arr[3], lastkvhash)
-		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
+		if !bytes.Equal(kvhash, lastkvhash.Bytes()) {
 			t.Error("kv hash must same", lastkvhash, kvhash)
 		}
 	})
@@ -863,7 +858,7 @@ func TestSnapshotDB_Compaction_del(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if bytes.Compare(v, delVal) != 0 {
+	if !bytes.Equal(v, delVal) {
 		t.Error("must same")
 		return
 	}
@@ -935,7 +930,7 @@ func TestSnapshotDB_Compaction222222(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(v, kv.value) != 0 {
+			if !bytes.Equal(v, kv.value) {
 				t.Error("value not the same")
 			}
 		}
@@ -957,7 +952,7 @@ func TestSnapshotDB_Compaction222222(t *testing.T) {
 				if err != nil {
 					t.Error(err)
 				}
-				if bytes.Compare(v, kv.value) != 0 {
+				if !bytes.Equal(v, kv.value) {
 					t.Error("value not the same")
 				}
 			}
@@ -1067,5 +1062,4 @@ func TestCommit(t *testing.T) {
 	if _, ok := ch.db.unCommit.blocks[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
-
 }

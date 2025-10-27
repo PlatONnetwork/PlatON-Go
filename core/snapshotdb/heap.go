@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package snapshotdb
 
 import (
@@ -37,14 +36,6 @@ type rankingHeap struct {
 	//max heap
 	heap      kvsMaxToMin
 	hepMaxNum int
-}
-
-//   the key is gt than or eq than   heap top
-func (r *rankingHeap) geMaxHeap(k []byte) bool {
-	if bytes.Compare(k, r.heap[0].key) > 0 {
-		return true
-	}
-	return false
 }
 
 func (r *rankingHeap) addHandledKey(key []byte) {
@@ -97,7 +88,7 @@ func (r *rankingHeap) itr2Heap(itr iterator.Iterator, baseDB, deepCopy bool) {
 }
 
 func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
-	condtion := v == nil || len(v) == 0
+	condtion := len(v) == 0
 	if !condtion {
 		//if r.hepMaxNum > 0 && r.heap.Len() >= r.hepMaxNum {
 		//	heap.Pop(&r.heap)

@@ -18,9 +18,7 @@ package cbft
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -86,26 +84,24 @@ func ReachBlock(t *testing.T, nodes []*TestCBFT, reach int) {
 		<-complete
 
 		_, qc := nodes[0].engine.blockTree.FindBlockAndQC(parent.Hash(), parent.NumberU64())
-		select {
-		case b := <-result:
-			assert.NotNil(t, b)
-			assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
-			for j := 1; j < len(nodes); j++ {
-				msg := &protocols.PrepareVote{
-					Epoch:          nodes[0].engine.state.Epoch(),
-					ViewNumber:     nodes[0].engine.state.ViewNumber(),
-					BlockIndex:     uint32(i),
-					BlockHash:      b.Hash(),
-					BlockNumber:    b.NumberU64(),
-					ValidatorIndex: uint32(j),
-					ParentQC:       qc,
-				}
-				assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
-				assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
+		b := <-result
+		assert.NotNil(t, b)
+		assert.Equal(t, uint32(i-1), nodes[0].engine.state.MaxQCIndex())
+		for j := 1; j < len(nodes); j++ {
+			msg := &protocols.PrepareVote{
+				Epoch:          nodes[0].engine.state.Epoch(),
+				ViewNumber:     nodes[0].engine.state.ViewNumber(),
+				BlockIndex:     uint32(i),
+				BlockHash:      b.Hash(),
+				BlockNumber:    b.NumberU64(),
+				ValidatorIndex: uint32(j),
+				ParentQC:       qc,
 			}
-			parent = b
-			time.Sleep(50 * time.Millisecond)
+			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
+			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
+		parent = b
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -145,7 +141,7 @@ func FakeViewChangeQC(t *testing.T, node *TestCBFT, epoch, viewNumber uint64, no
 	assert.Nil(t, node.engine.signMsgByBls(v))
 	viewChanges[nodeIndex] = v
 	viewChangeQC := node.engine.generateViewChangeQC(viewChanges)
-	viewChangeQC.QCs = append(append(viewChangeQC.QCs, viewChangeQC.QCs[0]))
+	viewChangeQC.QCs = append(viewChangeQC.QCs, viewChangeQC.QCs[0])
 	return viewChangeQC
 }
 
@@ -252,8 +248,7 @@ func TestPB01(t *testing.T) {
 }
 
 func TestPB03(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	nodes := MockNodes(t, 2)
 	nodes[0].engine.evPool, _ = evidence.NewBaseEvidencePool(tempDir)
@@ -476,8 +471,7 @@ func TestVT01(t *testing.T) {
 }
 
 func TestVT02(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	nodes := MockNodes(t, 2)
 	nodes[0].engine.evPool, _ = evidence.NewBaseEvidencePool(tempDir)
@@ -588,8 +582,7 @@ func TestVC02(t *testing.T) {
 }
 
 func TestVC03(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
-	defer os.RemoveAll(tempDir)
+	tempDir := t.TempDir()
 
 	nodes := MockNodes(t, 2)
 	nodes[0].engine.evPool, _ = evidence.NewBaseEvidencePool(tempDir)
@@ -621,9 +614,6 @@ func TestVC03(t *testing.T) {
 }
 
 func TestVC04(t *testing.T) {
-	tempDir, _ := ioutil.TempDir("", "evidence")
-	defer os.RemoveAll(tempDir)
-
 	nodes := MockNodes(t, 2)
 	ReachBlock(t, nodes, 5)
 	qcBlock := nodes[0].engine.state.HighestQCBlock()

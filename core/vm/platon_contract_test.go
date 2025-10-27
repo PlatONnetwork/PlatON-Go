@@ -187,7 +187,7 @@ var (
 	//initProgramVersion      = uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 	//initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
-	initProgramVersion      = uint32(0<<16 | 8<<8 | 0) // version: 0.8.0
+	initProgramVersion      = uint32(0<<16 | 8<<8) // version: 0.8.0
 	initProgramVersionBytes = common.Uint32ToBytes(initProgramVersion)
 
 	promoteVersion = params.FORKVERSION_1_1_0
@@ -250,10 +250,6 @@ var (
 
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
 		"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
-
-	specialCharList = []string{
-		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
-		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
 func newPlugins() {
@@ -265,7 +261,6 @@ func newPlugins() {
 }
 
 func newChain() (*mock.Chain, error) {
-
 	//	testGenesis := new(types.Block)
 	chain := mock.NewChain()
 	//	var state *state.StateDB
@@ -284,7 +279,6 @@ func newChain() (*mock.Chain, error) {
 }
 
 func newMockChain() *mock.Chain {
-
 	chain := mock.NewChain()
 
 	sBalance, _ := new(big.Int).SetString(senderBalance, 10)
@@ -301,7 +295,6 @@ func newMockChain() *mock.Chain {
 }
 
 func newEvm(blockNumber *big.Int, blockHash common.Hash, chain *mock.Chain) *EVM {
-
 	if nil == chain {
 		panic("chain should not be empty")
 	}
@@ -330,7 +323,6 @@ func newContract(value *big.Int, sender common.Address) *Contract {
 }
 
 func build_staking_data(sndb snapshotdb.DB, genesisHash common.Hash) {
-
 	stakingDB := staking.NewStakingDB()
 	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)
 	// MOCK
@@ -506,7 +498,7 @@ func build_staking_data(sndb snapshotdb.DB, genesisHash common.Hash) {
 
 	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -518,7 +510,7 @@ func build_staking_data(sndb snapshotdb.DB, genesisHash common.Hash) {
 
 	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.ConsensusSize()),
+		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -712,7 +704,7 @@ func build_staking_data_new(chain *mock.Chain) {
 
 	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -724,7 +716,7 @@ func build_staking_data_new(chain *mock.Chain) {
 
 	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.ConsensusSize()),
+		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -750,7 +742,6 @@ func build_staking_data_more(chain *mock.Chain) {
 
 	// build  more data
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
@@ -758,7 +749,7 @@ func build_staking_data_more(chain *mock.Chain) {
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
-		rand.Seed(time.Now().UnixNano())
+		rand.New(rand.NewSource(time.Now().UnixNano()))
 
 		weight := rand.Intn(1000000000)
 
@@ -867,8 +858,8 @@ func build_staking_data_more(chain *mock.Chain) {
 	epoch_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/22000)*22000 + 1,
 		//End:   ((block-1)/22000)*22000 + 22000,
-		Start: ((chain.CurrentHeader().Number.Uint64()-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + 1,
-		End:   ((chain.CurrentHeader().Number.Uint64()-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + uint64(xutil.CalcBlocksEachEpoch()),
+		Start: ((chain.CurrentHeader().Number.Uint64()-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + 1,
+		End:   ((chain.CurrentHeader().Number.Uint64()-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -881,8 +872,8 @@ func build_staking_data_more(chain *mock.Chain) {
 	curr_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/250)*250 + 1,
 		//End:   ((block-1)/250)*250 + 250,
-		Start: ((chain.CurrentHeader().Number.Uint64()-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + 1,
-		End:   ((chain.CurrentHeader().Number.Uint64()-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + uint64(xutil.ConsensusSize()),
+		Start: ((chain.CurrentHeader().Number.Uint64()-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + 1,
+		End:   ((chain.CurrentHeader().Number.Uint64()-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -940,7 +931,6 @@ func buildDbRestrictingPlan(t *testing.T, account common.Address, balance *big.I
 }
 
 func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
-
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
@@ -961,7 +951,6 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		indexQueue = make(staking.ValArrIndexQueue, 0)
 		_, indexQueue = indexQueue.ConstantAppend(index, plugin.RoundValIndexSize)
 	} else {
-
 		has := false
 		for _, indexInfo := range queue {
 			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
@@ -971,7 +960,6 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		}
 		indexQueue = queue
 		if !has {
-
 			shabby, queue := queue.ConstantAppend(index, plugin.RoundValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
@@ -1001,7 +989,6 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 }
 
 func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
-
 	stakeDB := staking.NewStakingDB()
 
 	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
@@ -1022,7 +1009,6 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		indexQueue = make(staking.ValArrIndexQueue, 0)
 		_, indexQueue = indexQueue.ConstantAppend(index, plugin.EpochValIndexSize)
 	} else {
-
 		has := false
 		for _, indexInfo := range queue {
 			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
@@ -1032,7 +1018,6 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		}
 		indexQueue = queue
 		if !has {
-
 			shabby, queue := queue.ConstantAppend(index, plugin.EpochValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators

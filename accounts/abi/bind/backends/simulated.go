@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -68,11 +69,12 @@ type SimulatedBackend struct {
 	blockchain *core.BlockChain // Ethereum blockchain to handle the consensus
 
 	mu              sync.Mutex
-	pendingBlock    *types.Block // Currently pending block that will be imported on request
-	pendingReceipts types.Receipts
+	pendingBlock    *types.Block   // Currently pending block that will be imported on request
 	pendingState    *state.StateDB // Currently pending state that will be the active on request
+	pendingReceipts types.Receipts // Currently receipts for the pending block
 
-	events *filters.EventSystem // Event system for filtering log events live
+	events       *filters.EventSystem  // for filtering log events live
+	filterSystem *filters.FilterSystem // for filtering database logs
 
 	config *params.ChainConfig
 }
@@ -82,15 +84,19 @@ type SimulatedBackend struct {
 // A simulated backend always uses chainID 1337.
 func NewSimulatedBackendWithDatabase(database ethdb.Database, alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
 	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, GasLimit: gasLimit, Alloc: alloc}
-	genesis.MustCommit(database)
-	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, consensus.NewFakerWithDataBase(database), vm.Config{}, nil, nil)
+	xcom.GetEc(xcom.DefaultUnitTestNet)
+	gBlock := genesis.MustCommit(database)
+	blockchain, _ := core.NewBlockChain(database, nil, &genesis, nil, consensus.NewFakerWithDataBase(database, gBlock), vm.Config{}, nil, nil)
 
 	backend := &SimulatedBackend{
 		database:   database,
 		blockchain: blockchain,
 		config:     genesis.Config,
-		events:     filters.NewEventSystem(&filterBackend{database, blockchain}, false),
 	}
+
+	filterBackend := &filterBackend{database, blockchain, backend}
+	backend.filterSystem = filters.NewFilterSystem(filterBackend, filters.Config{})
+	backend.events = filters.NewEventSystem(backend.filterSystem, false)
 	backend.rollback()
 	return backend
 }
@@ -492,7 +498,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 		available := new(big.Int).Set(balance)
 		if call.Value != nil {
 			if call.Value.Cmp(available) >= 0 {
-				return 0, errors.New("insufficient funds for transfer")
+				return 0, core.ErrInsufficientFundsForTransfer
 			}
 			available.Sub(available, call.Value)
 		}
@@ -587,7 +593,7 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 			// User specified the legacy gas field, convert to 1559 gas typing
 			call.GasFeeCap, call.GasTipCap = call.GasPrice, call.GasPrice
 		} else {
-			// User specified 1559 gas feilds (or none), use those
+			// User specified 1559 gas fields (or none), use those
 			if call.GasFeeCap == nil {
 				call.GasFeeCap = new(big.Int)
 			}
@@ -654,8 +660,8 @@ func (b *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	stateDB, _ := b.blockchain.State()
 
 	b.pendingBlock = blocks[0]
-	b.pendingReceipts = receipts[0]
 	b.pendingState, _ = state.New(b.pendingBlock.Root(), stateDB.Database(), nil)
+	b.pendingReceipts = receipts[0]
 	return nil
 }
 
@@ -667,7 +673,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query ethereum.Filter
 	var filter *filters.Filter
 	if query.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = filters.NewBlockFilter(&filterBackend{b.database, b.blockchain}, *query.BlockHash, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewBlockFilter(*query.BlockHash, query.Addresses, query.Topics)
 	} else {
 		// Initialize unset filter boundaries to run from genesis to chain head
 		from := int64(0)
@@ -679,7 +685,7 @@ func (b *SimulatedBackend) FilterLogs(ctx context.Context, query ethereum.Filter
 			to = query.ToBlock.Int64()
 		}
 		// Construct the range filter
-		filter = filters.NewRangeFilter(&filterBackend{b.database, b.blockchain}, from, to, query.Addresses, query.Topics)
+		filter = b.filterSystem.NewRangeFilter(from, to, query.Addresses, query.Topics)
 	}
 	// Run the filter and return all the logs
 	logs, err := filter.Logs(ctx)
@@ -763,8 +769,13 @@ func (b *SimulatedBackend) AdjustTime(adjustment time.Duration) error {
 	if len(b.pendingBlock.Transactions()) != 0 {
 		return errors.New("Could not adjust time on non-empty block")
 	}
+	// Get the last block
+	block := b.blockchain.GetBlockByHash(b.pendingBlock.ParentHash())
+	if block == nil {
+		return fmt.Errorf("could not find parent")
+	}
 
-	blocks, _ := core.GenerateChain(b.config, b.blockchain.CurrentBlock(), b.blockchain.Engine(), b.database, 1, func(number int, block *core.BlockGen) {
+	blocks, _ := core.GenerateChain(b.config, block, b.blockchain.Engine(), b.database, 1, func(number int, block *core.BlockGen) {
 		for _, tx := range b.pendingBlock.Transactions() {
 			block.AddTx(tx)
 		}
@@ -803,22 +814,41 @@ func (m callMsg) AccessList() types.AccessList { return m.CallMsg.AccessList }
 // filterBackend implements filters.Backend to support filtering for logs without
 // taking bloom-bits acceleration structures into account.
 type filterBackend struct {
-	db ethdb.Database
-	bc *core.BlockChain
+	db      ethdb.Database
+	bc      *core.BlockChain
+	backend *SimulatedBackend
 }
 
 func (fb *filterBackend) ChainDb() ethdb.Database  { return fb.db }
 func (fb *filterBackend) EventMux() *event.TypeMux { panic("not supported") }
 
-func (fb *filterBackend) HeaderByNumber(ctx context.Context, block rpc.BlockNumber) (*types.Header, error) {
-	if block == rpc.LatestBlockNumber {
+func (fb *filterBackend) HeaderByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Header, error) {
+	switch number {
+	case rpc.PendingBlockNumber:
+		if block := fb.backend.pendingBlock; block != nil {
+			return block.Header(), nil
+		}
+		return nil, nil
+	case rpc.LatestBlockNumber, rpc.FinalizedBlockNumber, rpc.SafeBlockNumber:
 		return fb.bc.CurrentHeader(), nil
+	default:
+		return fb.bc.GetHeaderByNumber(uint64(number.Int64())), nil
 	}
-	return fb.bc.GetHeaderByNumber(uint64(block.Int64())), nil
 }
 
 func (fb *filterBackend) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
 	return fb.bc.GetHeaderByHash(hash), nil
+}
+
+func (fb *filterBackend) GetBody(ctx context.Context, hash common.Hash, number rpc.BlockNumber) (*types.Body, error) {
+	if body := fb.bc.GetBody(hash); body != nil {
+		return body, nil
+	}
+	return nil, errors.New("block body not found")
+}
+
+func (fb *filterBackend) PendingBlockAndReceipts() (*types.Block, types.Receipts) {
+	return fb.backend.pendingBlock, fb.backend.pendingReceipts
 }
 
 func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (types.Receipts, error) {
@@ -829,19 +859,8 @@ func (fb *filterBackend) GetReceipts(ctx context.Context, hash common.Hash) (typ
 	return rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config()), nil
 }
 
-func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash) ([][]*types.Log, error) {
-	number := rawdb.ReadHeaderNumber(fb.db, hash)
-	if number == nil {
-		return nil, nil
-	}
-	receipts := rawdb.ReadReceipts(fb.db, hash, *number, fb.bc.Config())
-	if receipts == nil {
-		return nil, nil
-	}
-	logs := make([][]*types.Log, len(receipts))
-	for i, receipt := range receipts {
-		logs[i] = receipt.Logs
-	}
+func (fb *filterBackend) GetLogs(ctx context.Context, hash common.Hash, number uint64) ([][]*types.Log, error) {
+	logs := rawdb.ReadLogs(fb.db, hash, number, fb.bc.Config())
 	return logs, nil
 }
 
@@ -868,6 +887,14 @@ func (fb *filterBackend) SubscribePendingLogsEvent(ch chan<- []*types.Log) event
 func (fb *filterBackend) BloomStatus() (uint64, uint64) { return 4096, 0 }
 
 func (fb *filterBackend) ServiceFilter(ctx context.Context, ms *bloombits.MatcherSession) {
+	panic("not supported")
+}
+
+func (fb *filterBackend) ChainConfig() *params.ChainConfig {
+	panic("not supported")
+}
+
+func (fb *filterBackend) CurrentHeader() *types.Header {
 	panic("not supported")
 }
 

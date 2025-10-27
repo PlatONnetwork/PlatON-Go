@@ -3,17 +3,15 @@ package vm
 import (
 	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
 	"hash/fnv"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/lru"
 
 	"github.com/PlatONnetwork/wagon/exec"
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/lru"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -68,7 +66,6 @@ func (engine *wagonEngine) Contract() *Contract {
 }
 
 func (engine *wagonEngine) Run(input []byte, readOnly bool) ([]byte, error) {
-
 	if engine.Contract().DeployContract { // deploy contract
 		contractCode, calldata, err := disassemblyDeployCode(engine.Contract().Code)
 		if nil != err {
@@ -219,7 +216,6 @@ func validateCallFunc(input []byte) error {
 }
 
 func (engine *wagonEngine) makeModuleWithDeploy() (*exec.CompiledModule, int64, error) {
-
 	cache := &lru.WasmModule{}
 	module, err := ReadWasmModule(engine.Contract().Code, verifyModule)
 	if nil != err {
@@ -244,7 +240,6 @@ func (engine *wagonEngine) makeModuleWithDeploy() (*exec.CompiledModule, int64, 
 }
 
 func (engine *wagonEngine) makeModuleWithCall() (*exec.CompiledModule, int64, error) {
-
 	// load module
 	cache, ok := lru.WasmCache().Get(*(engine.Contract().CodeAddr))
 	if !ok || (ok && nil == cache.Module) {

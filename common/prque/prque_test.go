@@ -1,53 +1,133 @@
-// Copyright 2021 The PlatON Network Authors
-// This file is part of the PlatON-Go library.
+// CookieJar - A contestant's algorithm toolbox
+// Copyright (c) 2013 Peter Szilagyi. All rights reserved.
 //
-// The PlatON-Go library is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// The PlatON-Go library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
+// CookieJar is dual licensed: use of this source code is governed by a BSD
+// license that can be found in the LICENSE file. Alternatively, the CookieJar
+// toolbox may be used in accordance with the terms and conditions contained
+// in a signed written agreement between you and the author(s).
 
 package prque
 
 import (
+	"math/rand"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPrque(t *testing.T) {
-	queue := New(nil)
-	assert.True(t, queue.Empty())
-	queue.Push("item1", 1)
-	queue.Push("item5", 5)
-	queue.Push("item3", 3)
-	queue.Push("item2", 2)
-	queue.Push("item4", 4)
-	assert.False(t, queue.Empty())
-	assert.Equal(t, queue.Size(), 5)
-	value, priority := queue.Pop()
-	assert.Equal(t, value, "item5")
-	assert.Equal(t, priority, int64(5))
-	assert.Equal(t, queue.Size(), 4)
+	// Generate a batch of random data and a specific priority order
+	size := 16 * blockSize
+	prio := rand.Perm(size)
+	data := make([]int, size)
+	for i := 0; i < size; i++ {
+		data[i] = rand.Int()
+	}
+	queue := New[int, int](nil)
 
-	value = queue.PopItem()
-	assert.Equal(t, value, "item4")
-	assert.Equal(t, queue.Size(), 3)
+	for rep := 0; rep < 2; rep++ {
+		// Fill a priority queue with the above data
+		for i := 0; i < size; i++ {
+			queue.Push(data[i], prio[i])
+			if queue.Size() != i+1 {
+				t.Errorf("queue size mismatch: have %v, want %v.", queue.Size(), i+1)
+			}
+		}
+		// Create a map the values to the priorities for easier verification
+		dict := make(map[int]int)
+		for i := 0; i < size; i++ {
+			dict[prio[i]] = data[i]
+		}
 
-	queue.Remove(0) // remove item3
-	value, priority = queue.Pop()
-	assert.Equal(t, value, "item2")
-	assert.Equal(t, priority, int64(2))
-	assert.Equal(t, queue.Size(), 1)
+		// Pop out the elements in priority order and verify them
+		prevPrio := size + 1
+		for !queue.Empty() {
+			val, prio := queue.Pop()
+			if prio > prevPrio {
+				t.Errorf("invalid priority order: %v after %v.", prio, prevPrio)
+			}
+			prevPrio = prio
+			if val != dict[prio] {
+				t.Errorf("push/pop mismatch: have %v, want %v.", val, dict[prio])
+			}
+			delete(dict, prio)
+		}
+	}
+}
 
-	queue.Reset()
-	assert.True(t, queue.Empty())
-	assert.Equal(t, queue.Size(), 0)
+func TestReset(t *testing.T) {
+	// Generate a batch of random data and a specific priority order
+	size := 16 * blockSize
+	prio := rand.Perm(size)
+	data := make([]int, size)
+	for i := 0; i < size; i++ {
+		data[i] = rand.Int()
+	}
+	queue := New[int, int](nil)
+
+	for rep := 0; rep < 2; rep++ {
+		// Fill a priority queue with the above data
+		for i := 0; i < size; i++ {
+			queue.Push(data[i], prio[i])
+			if queue.Size() != i+1 {
+				t.Errorf("queue size mismatch: have %v, want %v.", queue.Size(), i+1)
+			}
+		}
+		// Create a map the values to the priorities for easier verification
+		dict := make(map[int]int)
+		for i := 0; i < size; i++ {
+			dict[prio[i]] = data[i]
+		}
+		// Pop out half the elements in priority order and verify them
+		prevPrio := size + 1
+		for i := 0; i < size/2; i++ {
+			val, prio := queue.Pop()
+			if prio > prevPrio {
+				t.Errorf("invalid priority order: %v after %v.", prio, prevPrio)
+			}
+			prevPrio = prio
+			if val != dict[prio] {
+				t.Errorf("push/pop mismatch: have %v, want %v.", val, dict[prio])
+			}
+			delete(dict, prio)
+		}
+		// Reset and ensure it's empty
+		queue.Reset()
+		if !queue.Empty() {
+			t.Errorf("priority queue not empty after reset: %v", queue)
+		}
+	}
+}
+
+func BenchmarkPush(b *testing.B) {
+	// Create some initial data
+	data := make([]int, b.N)
+	prio := make([]int64, b.N)
+	for i := 0; i < len(data); i++ {
+		data[i] = rand.Int()
+		prio[i] = rand.Int63()
+	}
+	// Execute the benchmark
+	b.ResetTimer()
+	queue := New[int64, int](nil)
+	for i := 0; i < len(data); i++ {
+		queue.Push(data[i], prio[i])
+	}
+}
+
+func BenchmarkPop(b *testing.B) {
+	// Create some initial data
+	data := make([]int, b.N)
+	prio := make([]int64, b.N)
+	for i := 0; i < len(data); i++ {
+		data[i] = rand.Int()
+		prio[i] = rand.Int63()
+	}
+	queue := New[int64, int](nil)
+	for i := 0; i < len(data); i++ {
+		queue.Push(data[i], prio[i])
+	}
+	// Execute the benchmark
+	b.ResetTimer()
+	for !queue.Empty() {
+		queue.Pop()
+	}
 }
