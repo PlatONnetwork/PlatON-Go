@@ -72,6 +72,7 @@ type StateTransition struct {
 	data       []byte
 	state      vm.StateDB
 	evm        *vm.EVM
+	isContract bool //Because of the inconsistent of serial and parallel logics, tx added a check to determine whether it is a contract.
 }
 
 // Message represents a message sent to a contract.
@@ -192,16 +193,18 @@ func toWordSize(size uint64) uint64 {
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
+	state := evm.StateDB
 	return &StateTransition{
-		gp:        gp,
-		evm:       evm,
-		msg:       msg,
-		gasPrice:  msg.GasPrice(),
-		gasFeeCap: msg.GasFeeCap(),
-		gasTipCap: msg.GasTipCap(),
-		value:     msg.Value(),
-		data:      msg.Data(),
-		state:     evm.StateDB,
+		gp:         gp,
+		evm:        evm,
+		msg:        msg,
+		gasPrice:   msg.GasPrice(),
+		gasFeeCap:  msg.GasFeeCap(),
+		gasTipCap:  msg.GasTipCap(),
+		value:      msg.Value(),
+		data:       msg.Data(),
+		state:      state,
+		isContract: ContractCacherInstance().IsContractTx(evm.ChainConfig(), evm.Context.BlockNumber, msg, state),
 	}
 }
 
@@ -225,18 +228,24 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).SetUint64(st.msg.Gas())
-	mgval = mgval.Mul(mgval, st.gasPrice)
-	balanceCheck := mgval
 	// 1.5.0以前的逻辑中preCheck(并行和串行都是）只检查gas * gasPrice，没有value的校验
-	// 因PlatON默认走parallel，此处只有api接口调用
+	// 因PlatON的普通转账交易默认走parallel，此处只有合约调交易和api接口调用
 	// 增加当前版本的判断，以便preCheck保持和parallel的preCheck逻辑一致
-	gte150 := gov.Gte150VersionState(st.state)
-	if gte150 {
+	var balanceCheck *big.Int
+
+	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	if st.isContract && st.gasFeeCap != nil {
 		balanceCheck = new(big.Int).SetUint64(st.msg.Gas())
 		balanceCheck = balanceCheck.Mul(balanceCheck, st.gasFeeCap)
 		balanceCheck.Add(balanceCheck, st.value)
+	} else {
+		// 因为parallel在1.5.0以前的preCheck只验证了gas，没有验证value
+		// 放过了一些gasLimit*gasPrice+value > balance的交易
+		// 所以这里对于普通转账类交易（走parallel的）check只能不验证value（实际上如果gasused+value如果不够交易也不会成功）
+		balanceCheck = mgval
+		mgval = new(big.Int).SetUint64(0)
 	}
+
 	if have, want := st.state.GetBalance(st.msg.From()), balanceCheck; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
 	}
@@ -246,7 +255,11 @@ func (st *StateTransition) buyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
+	// 普通转账因为走了parallel，没有buyGas和refund
+	// 所以这里也不扣mgval
+	if st.isContract {
+		st.state.SubBalance(st.msg.From(), mgval)
+	}
 	return nil
 }
 
@@ -460,7 +473,9 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
+	if st.isContract {
+		st.state.AddBalance(st.msg.From(), remaining)
+	}
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
