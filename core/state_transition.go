@@ -224,14 +224,23 @@ func (st *StateTransition) to() common.Address {
 	return *st.msg.To()
 }
 
-func (st *StateTransition) buyGas() error {
+func (st *StateTransition) buyGas(isContractIvk bool) error {
 	mgval := new(big.Int).SetUint64(st.msg.Gas())
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	balanceCheck := mgval
-	if st.gasFeeCap != nil {
+
+	// 1.5.0以前的逻辑中preCheck(并行和串行都是）只检查gas * gasPrice，没有value的校验
+	// 因PlatON的普通转账交易默认走parallel，此处只有合约调交易和api接口调用
+	// 增加当前版本的判断，以便preCheck保持和parallel的preCheck逻辑一致
+	if isContractIvk && st.gasFeeCap != nil {
 		balanceCheck = new(big.Int).SetUint64(st.msg.Gas())
 		balanceCheck = balanceCheck.Mul(balanceCheck, st.gasFeeCap)
 		balanceCheck.Add(balanceCheck, st.value)
+	} else {
+		// 因为parallel在1.5.0以前的preCheck只验证了gas，没有验证value
+		// 放过了一些gasLimit*gasPrice+value > balance的交易
+		// 所以这里对于普通转账类交易（走parallel的）check只能不验证value（实际上如果gasused+value如果不够交易也不会成功）
+		balanceCheck = mgval
 	}
 	if have, want := st.state.GetBalance(st.msg.From()), balanceCheck; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
@@ -242,11 +251,16 @@ func (st *StateTransition) buyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
+
+	// 普通转账因为走了parallel，没有buyGas和refund
+	// 所以这里也不扣mgval
+	if isContractIvk {
+		st.state.SubBalance(st.msg.From(), mgval)
+	}
 	return nil
 }
 
-func (st *StateTransition) preCheck() error {
+func (st *StateTransition) preCheck(isContractIvk bool) error {
 	// Only check transactions that are not fake
 	if !st.msg.IsFake() {
 		// Make sure this transaction's nonce is correct.
@@ -293,7 +307,15 @@ func (st *StateTransition) preCheck() error {
 			}
 		}
 	}
-	return st.buyGas()
+	return st.buyGas(isContractIvk)
+}
+func (st *StateTransition) isContractIvk() bool {
+	address := st.msg.To()
+	if address == nil { // create a contract
+		return true
+	}
+	rules := st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber)
+	return st.evm.StateDB.GetCodeSize(*address) > 0 || vm.IsPrecompiledContract(*address, rules, gov.Gte150VersionState(st.evm.StateDB))
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -310,6 +332,10 @@ func (st *StateTransition) preCheck() error {
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+	// because of the inconsistent logics of serial and parallel,
+	// tx added a check to determine whether it is a contract invoking.
+	isContractIvk := st.isContractIvk()
+
 	// First check this message satisfies all consensus rules before
 	// applying the message. The rules include these clauses
 	//
@@ -321,7 +347,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// 6. caller has enough balance to cover asset transfer for **topmost** call
 
 	// Check clauses 1-3, buy gas if everything is correct
-	if err := st.preCheck(); err != nil {
+	if err := st.preCheck(isContractIvk); err != nil {
 		return nil, err
 	}
 
@@ -416,12 +442,16 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		}
 	}
 
+	if !isContractIvk {
+		gasUsed := new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice)
+		st.state.SubBalance(st.msg.From(), gasUsed)
+	}
 	if pauli {
 		// After EIP-3529: refunds are capped to gasUsed / 5
-		st.refundGas(params.RefundQuotientEIP3529)
+		st.refundGas(params.RefundQuotientEIP3529, isContractIvk)
 	} else {
 		// Before EIP-3529: refunds were capped to gasUsed / 2
-		st.refundGas(params.RefundQuotient)
+		st.refundGas(params.RefundQuotient, isContractIvk)
 	}
 
 	effectiveTip := st.gasPrice
@@ -446,7 +476,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}, nil
 }
 
-func (st *StateTransition) refundGas(refundQuotient uint64) {
+func (st *StateTransition) refundGas(refundQuotient uint64, isContractIvk bool) {
 	// Apply refund counter, capped to a refund quotient
 	refund := st.gasUsed() / refundQuotient
 	if refund > st.state.GetRefund() {
@@ -456,8 +486,10 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
-
+	// 转账交易走parallel没有预扣gas，这里不用返还
+	if isContractIvk {
+		st.state.AddBalance(st.msg.From(), remaining)
+	}
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.
 	st.gp.AddGas(st.gas)
