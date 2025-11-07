@@ -959,6 +959,17 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 	if config == nil {
 		config = &TraceConfig{}
 	}
+
+	ethcompatible, _ := ctx.Value(common.EthCompatibleKey).(bool)
+	if ethcompatible {
+		txctx.EthCompatible = true
+		if config.Config == nil {
+			config.Config = new(logger.Config)
+		}
+		config.Config.EthCompatible = true
+		txctx.EthCompatible = true
+	}
+
 	// Default tracer is the struct logger
 	tracer = logger.NewStructLogger(config.Config)
 	if config.Tracer != nil {
