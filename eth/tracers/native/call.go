@@ -90,6 +90,39 @@ func (f *callFrame) processOutput(output []byte, err error) {
 	}
 }
 
+func (f callFrame) MarshalJSON2() ([]byte, error) {
+	type callFrame0 struct {
+		Type         vm.OpCode      `json:"-"`
+		From         common.Address `json:"from"`
+		Gas          hexutil.Uint64 `json:"gas"`
+		GasUsed      hexutil.Uint64 `json:"gasUsed"`
+		To           common.Address `json:"to,omitempty" rlp:"optional"`
+		Input        hexutil.Bytes  `json:"input" rlp:"optional"`
+		Output       hexutil.Bytes  `json:"output,omitempty" rlp:"optional"`
+		Error        string         `json:"error,omitempty" rlp:"optional"`
+		RevertReason string         `json:"revertReason,omitempty"`
+		Calls        []callFrame    `json:"calls,omitempty" rlp:"optional"`
+		Logs         []callLog      `json:"logs,omitempty" rlp:"optional"`
+		Value        *hexutil.Big   `json:"value,omitempty" rlp:"optional"`
+		TypeString   string         `json:"type"`
+	}
+	var enc callFrame0
+	enc.Type = f.Type
+	enc.From = f.From
+	enc.Gas = hexutil.Uint64(f.Gas)
+	enc.GasUsed = hexutil.Uint64(f.GasUsed)
+	enc.To = f.To
+	enc.Input = f.Input
+	enc.Output = f.Output
+	enc.Error = f.Error
+	enc.RevertReason = f.RevertReason
+	enc.Calls = f.Calls
+	enc.Logs = f.Logs
+	enc.Value = (*hexutil.Big)(f.Value)
+	enc.TypeString = f.TypeString()
+	return json2.Marshal(&enc)
+}
+
 type callFrameMarshaling struct {
 	TypeString string `json:"type"`
 	Gas        hexutil.Uint64
