@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 )
@@ -51,6 +52,8 @@ type fourByteTracer struct {
 	interrupt         uint32           // Atomic flag to signal execution interruption
 	reason            error            // Textual reason for the interruption
 	activePrecompiles []common.Address // Updated on CaptureStart based on given rules
+
+	ethCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 // newFourByteTracer returns a native go tracer which collects
@@ -58,6 +61,9 @@ type fourByteTracer struct {
 func newFourByteTracer(ctx *tracers.Context, _ json.RawMessage) (tracers.Tracer, error) {
 	t := &fourByteTracer{
 		ids: make(map[string]int),
+	}
+	if ctx != nil {
+		t.ethCompatible = ctx.EthCompatible
 	}
 	return t, nil
 }
@@ -114,6 +120,13 @@ func (t *fourByteTracer) CaptureEnter(op vm.OpCode, from common.Address, to comm
 // GetResult returns the json-encoded nested list of call traces, and any
 // error arising from the encoding or forceful termination (via `Stop`).
 func (t *fourByteTracer) GetResult() (json.RawMessage, error) {
+	if t.ethCompatible {
+		res, err := json2.Marshal(t.ids)
+		if err != nil {
+			return nil, err
+		}
+		return res, t.reason
+	}
 	res, err := json.Marshal(t.ids)
 	if err != nil {
 		return nil, err

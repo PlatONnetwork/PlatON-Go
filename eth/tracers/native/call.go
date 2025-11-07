@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
@@ -110,6 +111,8 @@ type callTracer struct {
 type callTracerConfig struct {
 	OnlyTopCall bool `json:"onlyTopCall"` // If true, call tracer won't collect any subcalls
 	WithLog     bool `json:"withLog"`     // If true, call tracer will collect event logs
+
+	ethCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 // newCallTracer returns a native go tracer which tracks
@@ -120,6 +123,9 @@ func newCallTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, e
 		if err := json.Unmarshal(cfg, &config); err != nil {
 			return nil, err
 		}
+	}
+	if ctx != nil {
+		config.ethCompatible = ctx.EthCompatible
 	}
 	// First callframe contains tx context info
 	// and is populated on start and end.
@@ -240,6 +246,13 @@ func (t *callTracer) CaptureTxEnd(restGas uint64) {
 func (t *callTracer) GetResult() (json.RawMessage, error) {
 	if len(t.callstack) != 1 {
 		return nil, errors.New("incorrect number of top-level calls")
+	}
+	if t.config.ethCompatible {
+		res, err := json2.Marshal(t.callstack[0])
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(res), t.reason
 	}
 	res, err := json.Marshal(t.callstack[0])
 	if err != nil {

@@ -21,6 +21,7 @@ import (
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 )
@@ -34,6 +35,8 @@ func init() {
 type muxTracer struct {
 	names   []string
 	tracers []tracers.Tracer
+
+	ethCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 // newMuxTracer returns a new mux tracer.
@@ -54,8 +57,11 @@ func newMuxTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, er
 		objects = append(objects, t)
 		names = append(names, k)
 	}
-
-	return &muxTracer{names: names, tracers: objects}, nil
+	var ethCompatible bool
+	if ctx != nil {
+		ethCompatible = ctx.EthCompatible
+	}
+	return &muxTracer{names: names, tracers: objects, ethCompatible: ethCompatible}, nil
 }
 
 // CaptureStart implements the EVMLogger interface to initialize the tracing operation.
@@ -122,6 +128,13 @@ func (t *muxTracer) GetResult() (json.RawMessage, error) {
 			return nil, err
 		}
 		resObject[t.names[i]] = r
+	}
+	if t.ethCompatible {
+		res, err := json2.Marshal(resObject)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 	res, err := json.Marshal(resObject)
 	if err != nil {

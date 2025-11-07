@@ -20,7 +20,11 @@ import (
 
 const (
 	DefaultAddressHRP = "lat"
+
+	EthCompatibleKey ContextKey = "eth_compatible"
 )
+
+type ContextKey string
 
 var currentAddressHRP string
 
