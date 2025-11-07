@@ -39,7 +39,7 @@ func initChandlerHandler() {
 
 func TestCryptoHandler_IsSignedByNodeID(t *testing.T) {
 	initChandlerHandler()
-	version := uint32(1<<16 | 1<<8 | 0)
+	version := uint32(1<<16 | 1<<8)
 	sig := chandler.MustSign(version)
 	if !chandler.IsSignedByNodeID(version, sig, nodeID) {
 		t.Fatal("verify sign error")

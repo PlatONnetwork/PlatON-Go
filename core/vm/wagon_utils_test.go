@@ -2,21 +2,22 @@ package vm
 
 import (
 	"hash/fnv"
-	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func TestReadWasmModule(t *testing.T) {
-	buf, err := ioutil.ReadFile("./testdata/contract1.wasm")
+	buf, err := os.ReadFile("./testdata/contract1.wasm")
 	assert.Nil(t, err)
 	module, err := ReadWasmModule(buf, true)
 	assert.Nil(t, err)
 	assert.NotNil(t, module)
 
-	buf, err = ioutil.ReadFile("./testdata/bad.wasm")
+	buf, err = os.ReadFile("./testdata/bad.wasm")
 	assert.Nil(t, err)
 	module, err = ReadWasmModule(buf, true)
 	assert.NotNil(t, err)
@@ -24,7 +25,6 @@ func TestReadWasmModule(t *testing.T) {
 }
 
 func TestDecodeFuncAndParams(t *testing.T) {
-
 	hash := fnv.New64()
 	hash.Write([]byte("init"))
 	initUint64 := hash.Sum64()
@@ -40,7 +40,6 @@ func TestDecodeFuncAndParams(t *testing.T) {
 	b1, _ := rlp.EncodeToBytes(params1)
 	name1, _, err := decodeFuncAndParams(b1)
 	assert.Nil(t, err)
-
 
 	assert.Equal(t, initUint64, name1)
 
@@ -62,5 +61,4 @@ func TestDecodeFuncAndParams(t *testing.T) {
 	name2, _, err := decodeFuncAndParams(b2)
 	assert.NotNil(t, err)
 	assert.NotEqual(t, initUint64, name2)
-
 }

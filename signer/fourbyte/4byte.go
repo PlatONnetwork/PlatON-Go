@@ -5,7 +5,6 @@ package fourbyte
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146918,7 +146917,7 @@ func _4byteJson() (*asset, error) {
 // It returns an error if the asset could not be found or
 // could not be loaded.
 func Asset(name string) ([]byte, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	cannonicalName := strings.ReplaceAll(name, "\\", "/")
 	if f, ok := _bindata[cannonicalName]; ok {
 		a, err := f()
 		if err != nil {
@@ -146944,7 +146943,7 @@ func MustAsset(name string) []byte {
 // It returns an error if the asset could not be found or
 // could not be loaded.
 func AssetInfo(name string) (os.FileInfo, error) {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	cannonicalName := strings.ReplaceAll(name, "\\", "/")
 	if f, ok := _bindata[cannonicalName]; ok {
 		a, err := f()
 		if err != nil {
@@ -146969,6 +146968,9 @@ var _bindata = map[string]func() (*asset, error){
 	"4byte.json": _4byteJson,
 }
 
+// AssetDebug is true if the assets were built with the debug flag enabled.
+const AssetDebug = false
+
 // AssetDir returns the file names below a certain
 // directory embedded in the file by go-bindata.
 // For example if you run go-bindata on data/... and data contains the
@@ -146985,7 +146987,7 @@ var _bindata = map[string]func() (*asset, error){
 func AssetDir(name string) ([]string, error) {
 	node := _bintree
 	if len(name) != 0 {
-		cannonicalName := strings.Replace(name, "\\", "/", -1)
+		cannonicalName := strings.ReplaceAll(name, "\\", "/")
 		pathList := strings.Split(cannonicalName, "/")
 		for _, p := range pathList {
 			node = node.Children[p]
@@ -147027,7 +147029,7 @@ func RestoreAsset(dir, name string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	err = os.WriteFile(_filePath(dir, name), data, info.Mode())
 	if err != nil {
 		return err
 	}
@@ -147056,6 +147058,6 @@ func RestoreAssets(dir, name string) error {
 }
 
 func _filePath(dir, name string) string {
-	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	cannonicalName := strings.ReplaceAll(name, "\\", "/")
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }

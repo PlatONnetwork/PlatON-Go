@@ -2,10 +2,10 @@ package vm
 
 import (
 	"crypto/sha256"
+	"math/big"
+	"reflect"
 
 	"github.com/holiman/uint256"
-
-	"golang.org/x/crypto/ripemd160"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -17,9 +17,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"math/big"
-	"reflect"
 )
 
 type VMContext struct {
@@ -878,7 +875,7 @@ func Gas(proc *exec.Process) uint64 {
 func Timestamp(proc *exec.Process) int64 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
-	return ctx.evm.Context.Time.Int64()
+	return int64(ctx.evm.Context.Time)
 }
 
 func Coinbase(proc *exec.Process, dst uint32) {
@@ -1078,7 +1075,7 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 		var (
 			addWordSize    uint64 = 0
 			deleteWordSize uint64 = 0
-			resetWordSize  uint64 = 0
+			resetWordSize  uint64
 		)
 
 		if newWordSize >= oldWordSize {
@@ -1707,7 +1704,6 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	topics := make([]common.Hash, 0)
 
 	if indexesLen != 0 {
-
 		indexes := make([]byte, indexesLen)
 		_, err := proc.ReadAt(indexes, int64(indexesPtr))
 		if nil != err {
@@ -1748,7 +1744,6 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 			topics = append(topics, common.BytesToHash(mem))
 			content = tail
 		}
-
 	}
 
 	input := make([]byte, argsLen)
@@ -1814,7 +1809,7 @@ func Ripemd160(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) 
 	if err != nil {
 		panic(err)
 	}
-	ripemd := ripemd160.New()
+	ripemd := sha256.New()
 	ripemd.Write(input)
 	output := ripemd.Sum(nil)
 	proc.WriteAt(output, int64(outputPtr))
@@ -1910,7 +1905,7 @@ func RlpU128Size(proc *exec.Process, heigh uint64, low uint64) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
 
-	var size uint32 = 0
+	var size uint32
 	if (0 == heigh && 0 == low) || (0 == heigh && low < rlpDataImmLenStart) {
 		size = 1
 	} else {

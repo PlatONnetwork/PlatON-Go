@@ -97,7 +97,6 @@ func (p *Peer) readStatus(network uint64, status *StatusPacket, genesis common.H
 		if err := verify(status.Number, status.Head); err != nil {
 			return fmt.Errorf("%w: %v", ErrBlockMismatch, err)
 		}
-
 	}
 	return nil
 }

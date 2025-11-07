@@ -19,11 +19,11 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 )
 
 var (
-	AnalyzeStressTestCmd = cli.Command{
+	AnalyzeStressTestCmd = &cli.Command{
 		Name:   "analyzeStressTest",
 		Usage:  "analyze the tx stress test source file to generate  result data",
 		Action: analyzeStressTest,

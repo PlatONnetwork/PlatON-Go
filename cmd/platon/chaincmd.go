@@ -21,38 +21,34 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/internal/flags"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 )
 
 var (
-	initCommand = cli.Command{
-		Action:    utils.MigrateFlags(initGenesis),
+	initCommand = &cli.Command{
+		Action:    initGenesis,
 		Name:      "init",
 		Usage:     "Bootstrap and initialize a new genesis block",
 		ArgsUsage: "<genesisPath>",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
+		Flags:     utils.DatabasePathFlags,
 		Description: `
 The init command initializes a new genesis block and definition for the network.
 This is a destructive action and changes the network in which you will be
@@ -60,57 +56,51 @@ participating.
 
 It expects the genesis file as argument.`,
 	}
-	dumpGenesisCommand = cli.Command{
-		Action:    utils.MigrateFlags(dumpGenesis),
+	dumpGenesisCommand = &cli.Command{
+		Action:    dumpGenesis,
 		Name:      "dumpgenesis",
 		Usage:     "Dumps genesis block JSON configuration to stdout",
 		ArgsUsage: "",
 		Flags: []cli.Flag{
 			utils.DataDirFlag,
 		},
-		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
 The dumpgenesis command dumps the genesis block configuration in JSON format to stdout.`,
 	}
-	importPreimagesCommand = cli.Command{
-		Action:    utils.MigrateFlags(importPreimages),
+	importPreimagesCommand = &cli.Command{
+		Action:    importPreimages,
 		Name:      "import-preimages",
 		Usage:     "Import the preimage database from an RLP stream",
 		ArgsUsage: "<datafile>",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
+		Flags: flags.Merge([]cli.Flag{
 			utils.CacheFlag,
 			utils.SyncModeFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
+		}, utils.DatabasePathFlags),
 		Description: `
-	The import-preimages command imports hash preimages from an RLP encoded stream.
+The import-preimages command imports hash preimages from an RLP encoded stream.
 It's deprecated, please use "geth db import" instead.
 `,
 	}
-	exportPreimagesCommand = cli.Command{
-		Action:    utils.MigrateFlags(exportPreimages),
+	exportPreimagesCommand = &cli.Command{
+		Action:    exportPreimages,
 		Name:      "export-preimages",
 		Usage:     "Export the preimage database into an RLP stream",
 		ArgsUsage: "<dumpfile>",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
+		Flags: flags.Merge([]cli.Flag{
 			utils.CacheFlag,
 			utils.SyncModeFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
+		}, utils.DatabasePathFlags),
 		Description: `
 The export-preimages command exports hash preimages to an RLP encoded stream.
 It's deprecated, please use "geth db export" instead.
 `,
 	}
-	dumpCommand = cli.Command{
-		Action:    utils.MigrateFlags(dump),
+	dumpCommand = &cli.Command{
+		Action:    dump,
 		Name:      "dump",
 		Usage:     "Dump a specific block from storage",
 		ArgsUsage: "[? <blockHash> | <blockNum>]",
-		Flags: []cli.Flag{
-			utils.DataDirFlag,
+		Flags: flags.Merge([]cli.Flag{
 			utils.CacheFlag,
 			utils.IterativeOutputFlag,
 			utils.ExcludeCodeFlag,
@@ -118,8 +108,7 @@ It's deprecated, please use "geth db export" instead.
 			utils.IncludeIncompletesFlag,
 			utils.StartKeyFlag,
 			utils.DumpLimitFlag,
-		},
-		Category: "BLOCKCHAIN COMMANDS",
+		}, utils.DatabasePathFlags),
 		Description: `
 This command dumps out the state for a given block (or latest, if none provided).
 `,
@@ -129,10 +118,12 @@ This command dumps out the state for a given block (or latest, if none provided)
 // initGenesis will initialise the given JSON format genesis file and writes it as
 // the zero'd block (i.e. genesis) or will fail hard if it can't succeed.
 func initGenesis(ctx *cli.Context) error {
-	// Make sure we have a valid genesis JSON
+	if ctx.Args().Len() != 1 {
+		utils.Fatalf("need genesis.json file as the only argument")
+	}
 	genesisPath := ctx.Args().First()
 	if len(genesisPath) == 0 {
-		utils.Fatalf("Must supply path to genesis JSON file")
+		utils.Fatalf("invalid path to genesis file")
 	}
 
 	genesis := new(core.Genesis)
@@ -145,7 +136,7 @@ func initGenesis(ctx *cli.Context) error {
 	defer stack.Close()
 
 	for _, name := range []string{"chaindata", "lightchaindata"} {
-		chaindb, err := stack.OpenDatabase(name, 0, 0, "", false)
+		chaindb, err := stack.OpenDatabaseWithFreezer(name, 0, 0, ctx.String(utils.AncientFlag.Name), "", false)
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
@@ -155,7 +146,6 @@ func initGenesis(ctx *cli.Context) error {
 			if err != nil {
 				utils.Fatalf("Failed to open snapshotdb: %v", err)
 			}
-
 		}
 		_, hash, err := core.SetupGenesisBlock(chaindb, sdb, genesis)
 		if err != nil {
@@ -201,7 +191,7 @@ func dumpGenesis(ctx *cli.Context) error {
 
 // importPreimages imports preimage data from the specified file.
 func importPreimages(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
+	if ctx.Args().Len() < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
 	stack, _ := makeFullNode(ctx)
@@ -219,7 +209,7 @@ func importPreimages(ctx *cli.Context) error {
 
 // exportPreimages dumps the preimage data to specified json file in streaming way.
 func exportPreimages(ctx *cli.Context) error {
-	if len(ctx.Args()) < 1 {
+	if ctx.Args().Len() < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
 	stack, _ := makeFullNode(ctx)
@@ -251,12 +241,12 @@ func parseDumpConfig(ctx *cli.Context, stack *node.Node) (*state.DumpConfig, eth
 				return nil, nil, common.Hash{}, fmt.Errorf("block %x not found", hash)
 			}
 		} else {
-			number, err := strconv.Atoi(arg)
+			number, err := strconv.ParseUint(arg, 10, 64)
 			if err != nil {
 				return nil, nil, common.Hash{}, err
 			}
-			if hash := rawdb.ReadCanonicalHash(db, uint64(number)); hash != (common.Hash{}) {
-				header = rawdb.ReadHeader(db, hash, uint64(number))
+			if hash := rawdb.ReadCanonicalHash(db, number); hash != (common.Hash{}) {
+				header = rawdb.ReadHeader(db, hash, number)
 			} else {
 				return nil, nil, common.Hash{}, fmt.Errorf("header for block %d not found", number)
 			}

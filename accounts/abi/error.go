@@ -20,20 +20,23 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"strings"
 )
 
 type Error struct {
 	Name   string
 	Inputs Arguments
 	str    string
+
 	// Sig contains the string signature according to the ABI spec.
-	// e.g.	 event foo(uint32 a, int b) = "foo(uint32,int256)"
+	// e.g.	 error foo(uint32 a, int b) = "foo(uint32,int256)"
 	// Please note that "int" is substitute for its canonical representation "int256"
 	Sig string
-	// ID returns the canonical representation of the event's signature used by the
+
+	// ID returns the canonical representation of the error's signature used by the
 	// abi definition to identify event names and types.
 	ID common.Hash
 }

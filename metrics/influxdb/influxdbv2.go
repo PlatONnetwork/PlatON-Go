@@ -1,4 +1,3 @@
-//
 // The go-ethereum library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
@@ -13,10 +12,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 type v2Reporter struct {
@@ -67,21 +67,23 @@ func InfluxDBV2WithTags(r metrics.Registry, d time.Duration, endpoint string, to
 }
 
 func (r *v2Reporter) run() {
-	intervalTicker := time.Tick(r.interval)
-	pingTicker := time.Tick(time.Second * 5)
+	intervalTicker := time.NewTicker(r.interval)
+	pingTicker := time.NewTicker(time.Second * 5)
+
+	defer intervalTicker.Stop()
+	defer pingTicker.Stop()
 
 	for {
 		select {
-		case <-intervalTicker:
+		case <-intervalTicker.C:
 			r.send()
-		case <-pingTicker:
+		case <-pingTicker.C:
 			_, err := r.client.Health(context.Background())
 			if err != nil {
 				log.Warn("Got error from influxdb client health check", "err", err.Error())
 			}
 		}
 	}
-
 }
 
 func (r *v2Reporter) send() {
@@ -90,7 +92,6 @@ func (r *v2Reporter) send() {
 		namespace := r.namespace
 
 		switch metric := i.(type) {
-
 		case metrics.Counter:
 			v := metric.Count()
 			l := r.cache[name]

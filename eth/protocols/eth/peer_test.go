@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+// Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -21,9 +21,9 @@ package eth
 
 import (
 	"crypto/rand"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
@@ -45,9 +45,13 @@ func newTestPeer(name string, version uint, backend Backend) (*testPeer, <-chan 
 	var id enode.ID
 	rand.Read(id[:])
 
-	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net, backend.TxPool(), nil)
+	peer := NewPeer(version, p2p.NewPeer(id, name, nil), net, backend.TxPool(), func() bool {
+		return false
+	})
 	errc := make(chan error, 1)
 	go func() {
+		defer app.Close()
+
 		errc <- backend.RunPeer(peer, func(peer *Peer) error {
 			return Handle(backend, peer)
 		})

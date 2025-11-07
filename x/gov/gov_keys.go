@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package gov
 
 import (
@@ -38,7 +37,6 @@ var (
 	keyPrefixPIPIDs            = []byte("PIPIDs")
 	keyPrefixParamItems        = []byte("ParamItems")
 	keyPrefixParamValue        = []byte("ParamValue")
-	keyGovernHASHKey           = []byte("GovernHASH")
 )
 
 func KeyProposal(proposalID common.Hash) []byte {
@@ -46,7 +44,6 @@ func KeyProposal(proposalID common.Hash) []byte {
 		keyPrefixProposal,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
-
 }
 
 func KeyVote(proposalID common.Hash) []byte {
@@ -104,13 +101,10 @@ func KeyPIPIDs() []byte {
 func KeyParamItems() []byte {
 	return keyPrefixParamItems
 }
+
 func KeyParamValue(module, name string) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixParamValue,
 		[]byte(module + "/" + name),
 	}, KeyDelimiter)
-}
-
-func KeyGovernHASHKey() []byte {
-	return keyGovernHASHKey
 }

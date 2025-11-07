@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core/apitypes"
 )
 
 // ValidateTransaction does a number of checks on the supplied transaction, and

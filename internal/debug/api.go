@@ -23,7 +23,6 @@ package debug
 import (
 	"bytes"
 	"errors"
-	"github.com/hashicorp/go-bexpr"
 	"io"
 	"os"
 	"os/user"
@@ -36,9 +35,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/hashicorp/go-bexpr"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 func GetLogVerbosity() log.Lvl {
@@ -215,8 +215,8 @@ func (*HandlerT) Stacks(filter *string) string {
 		// E.g. (eth || snap) && !p2p -> (eth in Value || snap in Value) && p2p not in Value
 		expanded = regexp.MustCompile(`[:/\.A-Za-z0-9_-]+`).ReplaceAllString(expanded, "`$0` in Value")
 		expanded = regexp.MustCompile("!(`[:/\\.A-Za-z0-9_-]+`)").ReplaceAllString(expanded, "$1 not")
-		expanded = strings.Replace(expanded, "||", "or", -1)
-		expanded = strings.Replace(expanded, "&&", "and", -1)
+		expanded = strings.ReplaceAll(expanded, "||", "or")
+		expanded = strings.ReplaceAll(expanded, "&&", "and")
 		log.Info("Expanded filter expression", "filter", *filter, "expanded", expanded)
 
 		expr, err := bexpr.CreateEvaluator(expanded)
@@ -280,5 +280,4 @@ func expandHome(p string) string {
 // economic config
 func (*HandlerT) EconomicConfig() string {
 	return xcom.EconomicString()
-
 }

@@ -24,27 +24,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/mock"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mock"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	//	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	//	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -153,8 +144,8 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
-	blockNumber3 = big.NewInt(3)
-	blockHash3   = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
+	//blockNumber3 = big.NewInt(3)
+	blockHash3 = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
 
 	lastBlockNumber uint64
 	lastBlockHash   common.Hash
@@ -190,8 +181,8 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProgramVersion = uint32(0<<16 | 8<<8 | 0) // 65536, version: 0.8.0
-	promoteVersion     = params.CodeVersion()     // 131072, version: 2.0.0
+	initProgramVersion = uint32(0<<16 | 8<<8) // 65536, version: 0.8.0
+	promoteVersion     = params.CodeVersion() // 131072, version: 2.0.0
 
 	balanceStr = []string{
 		"90000000000000000000000000",
@@ -252,13 +243,12 @@ var (
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
 		"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
-	specialCharList = []string{
-		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
-		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
+	//specialCharList = []string{
+	//	"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "❂", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+	//	"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
 func TestVersion(t *testing.T) {
-
 	t.Log("the version is:", promoteVersion)
 }
 
@@ -276,10 +266,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	//	evm.Context = context
 
 	//set a default active version
-
 	gov.AddActiveVersion(initProgramVersion, 0, state)
-
-	return
 }
 
 func newPlugins() {
@@ -309,7 +296,6 @@ func newChainState() (xcom.StateDB, *types.Block, error) {
 }
 
 func build_staking_data_more(block uint64) {
-
 	no := int64(block)
 	header := types.Header{
 		Number: big.NewInt(no),
@@ -324,20 +310,15 @@ func build_staking_data_more(block uint64) {
 
 	// build  more data
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		rand.Seed(time.Now().UnixNano())
-
 		weight := rand.Intn(1000000000)
-
 		ii := rand.Intn(len(chaList))
-
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
 		randBuildFunc := func() (enode.IDv0, common.Address, error) {
@@ -439,8 +420,8 @@ func build_staking_data_more(block uint64) {
 	epoch_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/22000)*22000 + 1,
 		//End:   ((block-1)/22000)*22000 + 22000,
-		Start: ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + 1,
-		End:   ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + uint64(xutil.CalcBlocksEachEpoch()),
+		Start: ((block-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + 1,
+		End:   ((block-1)/xutil.CalcBlocksEachEpoch())*xutil.CalcBlocksEachEpoch() + xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -453,8 +434,8 @@ func build_staking_data_more(block uint64) {
 	curr_Arr := &staking.ValidatorArray{
 		//Start: ((block-1)/250)*250 + 1,
 		//End:   ((block-1)/250)*250 + 250,
-		Start: ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + 1,
-		End:   ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + uint64(xutil.ConsensusSize()),
+		Start: ((block-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + 1,
+		End:   ((block-1)/xutil.ConsensusSize())*xutil.ConsensusSize() + xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -477,18 +458,14 @@ func build_staking_data(genesisHash common.Hash) {
 	count := 0
 	// build  more data
 	for i := 0; i < 1000; i++ {
-
 		var index int
 		if i >= len(balanceStr) {
 			index = i % (len(balanceStr) - 1)
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
 		rand.Seed(time.Now().UnixNano())
-
 		weight := rand.Intn(1000000000)
-
 		ii := rand.Intn(len(chaList))
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -509,7 +486,6 @@ func build_staking_data(genesisHash common.Hash) {
 			}
 
 			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
 			return nodeId, addr, nil
 		}
 
@@ -602,7 +578,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	epoch_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.CalcBlocksEachEpoch()),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   queue,
 	}
 
@@ -614,7 +590,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	curr_Arr := &staking.ValidatorArray{
 		Start: 1,
-		End:   uint64(xutil.ConsensusSize()),
+		End:   xutil.ConsensusSize(),
 		Arr:   queue,
 	}
 
@@ -627,11 +603,9 @@ func build_staking_data(genesisHash common.Hash) {
 	lastHeader = types.Header{
 		Number: blockNumber,
 	}
-
 }
 
 func buildBlockNoCommit(blockNum int) {
-
 	no := int64(blockNum)
 	header := types.Header{
 		Number: big.NewInt(no),
@@ -647,7 +621,6 @@ func buildBlockNoCommit(blockNum int) {
 }
 
 func build_gov_data(state xcom.StateDB) {
-
 	//set a default active version
 	gov.AddActiveVersion(initProgramVersion, 0, state)
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
@@ -655,19 +628,10 @@ func build_gov_data(state xcom.StateDB) {
 
 func buildStateDB(t *testing.T) xcom.StateDB {
 	chain := mock.NewChain()
-
 	return chain.StateDB
 }
 
-type restrictingTest struct {
-	restrictingInfo restricting.RestrictingInfo
-	plans           []restricting.RestrictingPlan
-	account         common.Address
-	stateDB         xcom.StateDB
-}
-
 func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.StateDB) {
-
 	const Epochs = 5
 	var list = make([]uint64, 0)
 
@@ -710,9 +674,7 @@ func buildDbRestrictingPlan(account common.Address, t *testing.T, stateDB xcom.S
 }
 
 func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
-
 	stakeDB := staking.NewStakingDB()
-
 	queue, err := stakeDB.GetRoundValIndexByBlockHash(blockHash)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setRoundValList: Query round valIndex is failed", "blockHash",
@@ -731,7 +693,6 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		indexQueue = make(staking.ValArrIndexQueue, 0)
 		_, indexQueue = indexQueue.ConstantAppend(index, RoundValIndexSize)
 	} else {
-
 		has := false
 		for _, indexInfo := range queue {
 			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
@@ -741,7 +702,6 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		}
 		indexQueue = queue
 		if !has {
-
 			shabby, queue := queue.ConstantAppend(index, RoundValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
@@ -771,9 +731,7 @@ func setRoundValList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 }
 
 func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) error {
-
 	stakeDB := staking.NewStakingDB()
-
 	queue, err := stakeDB.GetEpochValIndexByBlockHash(blockHash)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to setVerifierList: Query epoch valIndex is failed", "blockHash",
@@ -792,7 +750,6 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		indexQueue = make(staking.ValArrIndexQueue, 0)
 		_, indexQueue = indexQueue.ConstantAppend(index, EpochValIndexSize)
 	} else {
-
 		has := false
 		for _, indexInfo := range queue {
 			if indexInfo.Start == valArr.Start && indexInfo.End == valArr.End {
@@ -802,7 +759,6 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		}
 		indexQueue = queue
 		if !has {
-
 			shabby, queue := queue.ConstantAppend(index, EpochValIndexSize)
 			indexQueue = queue
 			// delete the shabby validators
@@ -827,6 +783,5 @@ func setVerifierList(blockHash common.Hash, valArr *staking.ValidatorArray) erro
 		log.Error("Failed to setVerifierList: store new epoch validators is failed", "blockHash", blockHash.Hex())
 		return err
 	}
-
 	return nil
 }

@@ -1,1 +1,5 @@
 build/bin/{{.BinaryName}} usr/bin
+{{- if eq .BinaryName "platon" }}
+build/deb/ethereum/completions/bash/platon etc/bash_completion.d
+build/deb/ethereum/completions/zsh/_platon usr/share/zsh/vendor-completions
+{{end -}}

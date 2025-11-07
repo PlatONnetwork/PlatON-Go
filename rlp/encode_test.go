@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"runtime"
 	"sync"
@@ -291,6 +290,10 @@ var encTests = []encTest{
 	{val: &optionalBigIntField{A: 1}, output: "C101"},
 	{val: &optionalPtrField{A: 1}, output: "C101"},
 	{val: &optionalPtrFieldNil{A: 1}, output: "C101"},
+	{val: &multipleOptionalFields{A: nil, B: nil}, output: "C0"},
+	{val: &multipleOptionalFields{A: &[3]byte{1, 2, 3}, B: &[3]byte{1, 2, 3}}, output: "C88301020383010203"},
+	{val: &multipleOptionalFields{A: nil, B: &[3]byte{1, 2, 3}}, output: "C58083010203"}, // encodes without error but decode will fail
+	{val: &nonOptionalPtrField{A: 1}, output: "C20180"},                                  // encodes without error but decode will fail
 
 	// nil
 	{val: (*uint)(nil), output: "80"},
@@ -399,13 +402,28 @@ func TestEncodeToBytes(t *testing.T) {
 	runEncTests(t, EncodeToBytes)
 }
 
+func TestEncodeAppendToBytes(t *testing.T) {
+	buffer := make([]byte, 20)
+	runEncTests(t, func(val interface{}) ([]byte, error) {
+		w := NewEncoderBuffer(nil)
+		defer w.Flush()
+
+		err := Encode(w, val)
+		if err != nil {
+			return nil, err
+		}
+		output := w.AppendToBytes(buffer[:0])
+		return output, nil
+	})
+}
+
 func TestEncodeToReader(t *testing.T) {
 	runEncTests(t, func(val interface{}) ([]byte, error) {
 		_, r, err := EncodeToReader(val)
 		if err != nil {
 			return nil, err
 		}
-		return ioutil.ReadAll(r)
+		return io.ReadAll(r)
 	})
 }
 
@@ -446,7 +464,7 @@ func TestEncodeToReaderReturnToPool(t *testing.T) {
 		go func() {
 			for i := 0; i < 1000; i++ {
 				_, r, _ := EncodeToReader("foo")
-				ioutil.ReadAll(r)
+				io.ReadAll(r)
 				r.Read(buf)
 				r.Read(buf)
 				r.Read(buf)

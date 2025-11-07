@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/PlatONnetwork/PlatON-Go/common/lru"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -35,6 +35,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -56,8 +57,8 @@ type HeaderChain struct {
 	currentHeader     atomic.Value // Current head of the header chain (may be above the block chain!)
 	currentHeaderHash common.Hash  // Hash of the current head of the header chain (prevent recomputing all the time)
 
-	headerCache *lru.Cache // Cache for the most recent block headers
-	numberCache *lru.Cache // Cache for the most recent block numbers
+	headerCache *lru.Cache[common.Hash, *types.Header] // Cache for the most recent block headers
+	numberCache *lru.Cache[common.Hash, uint64]        // Cache for the most recent block numbers
 
 	procInterrupt func() bool
 
@@ -68,9 +69,6 @@ type HeaderChain struct {
 // NewHeaderChain creates a new HeaderChain structure. ProcInterrupt points
 // to the parent's interrupt semaphore.
 func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine consensus.Engine, procInterrupt func() bool) (*HeaderChain, error) {
-	headerCache, _ := lru.New(headerCacheLimit)
-	numberCache, _ := lru.New(numberCacheLimit)
-
 	// Seed a fast but crypto originating random generator
 	seed, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
@@ -80,8 +78,8 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 	hc := &HeaderChain{
 		config:        config,
 		chainDb:       chainDb,
-		headerCache:   headerCache,
-		numberCache:   numberCache,
+		headerCache:   lru.NewCache[common.Hash, *types.Header](headerCacheLimit),
+		numberCache:   lru.NewCache[common.Hash, uint64](numberCacheLimit),
 		procInterrupt: procInterrupt,
 		rand:          mrand.New(mrand.NewSource(seed.Int64())),
 		engine:        engine,
@@ -108,8 +106,7 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 // from the cache or database
 func (hc *HeaderChain) GetBlockNumber(hash common.Hash) *uint64 {
 	if cached, ok := hc.numberCache.Get(hash); ok {
-		number := cached.(uint64)
-		return &number
+		return &cached
 	}
 	number := rawdb.ReadHeaderNumber(hc.chainDb, hash)
 	if number != nil {
@@ -166,7 +163,6 @@ func (hc *HeaderChain) writeHeaders(headers []*types.Header) (result *headerWrit
 		// If the header is already known, skip it, otherwise store
 		alreadyKnown := parentKnown && hc.HasHeader(hash, number)
 		if !alreadyKnown {
-
 			rawdb.WriteHeader(batch, header)
 			inserted = append(inserted, numberHash{number, hash})
 			hc.headerCache.Add(hash, header)
@@ -427,7 +423,7 @@ func (hc *HeaderChain) GetAncestor(hash common.Hash, number, ancestor uint64, ma
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {
 	// Short circuit if the header's already in the cache, retrieve otherwise
 	if header, ok := hc.headerCache.Get(hash); ok {
-		return header.(*types.Header)
+		return header
 	}
 	header := rawdb.ReadHeader(hc.chainDb, hash, number)
 	if header == nil {
@@ -467,6 +463,45 @@ func (hc *HeaderChain) GetHeaderByNumber(number uint64) *types.Header {
 		return nil
 	}
 	return hc.GetHeader(hash, number)
+}
+
+// GetHeadersFrom returns a contiguous segment of headers, in rlp-form, going
+// backwards from the given number.
+// If the 'number' is higher than the highest local header, this method will
+// return a best-effort response, containing the headers that we do have.
+func (hc *HeaderChain) GetHeadersFrom(number, count uint64) []rlp.RawValue {
+	// If the request is for future headers, we still return the portion of
+	// headers that we are able to serve
+	if current := hc.CurrentHeader().Number.Uint64(); current < number {
+		if count > number-current {
+			count -= number - current
+			number = current
+		} else {
+			return nil
+		}
+	}
+	var headers []rlp.RawValue
+	// If we have some of the headers in cache already, use that before going to db.
+	hash := rawdb.ReadCanonicalHash(hc.chainDb, number)
+	if hash == (common.Hash{}) {
+		return nil
+	}
+	for count > 0 {
+		header, ok := hc.headerCache.Get(hash)
+		if !ok {
+			break
+		}
+		rlpData, _ := rlp.EncodeToBytes(header)
+		headers = append(headers, rlpData)
+		hash = header.ParentHash
+		count--
+		number--
+	}
+	// Read remaining from db
+	if count > 0 {
+		headers = append(headers, rawdb.ReadHeaderRange(hc.chainDb, number, count)...)
+	}
+	return headers
 }
 
 func (hc *HeaderChain) GetCanonicalHash(number uint64) common.Hash {

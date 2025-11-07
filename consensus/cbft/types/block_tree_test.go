@@ -14,11 +14,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -78,7 +76,7 @@ func TestNewBlockTree(t *testing.T) {
 				return
 			}
 		}
-		t.Error(fmt.Sprintf("Clear Block failed"))
+		t.Errorf("Clear Block failed")
 	})
 
 	for _, b := range fork1[1:] {

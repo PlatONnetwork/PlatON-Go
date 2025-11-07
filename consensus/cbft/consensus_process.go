@@ -166,7 +166,7 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 		return err
 	}
 
-	cbft.state.AddViewChange(uint32(node.Index), msg)
+	cbft.state.AddViewChange(node.Index, msg)
 	cbft.log.Debug("Receive new viewChange", "msgHash", msg.MsgHash(), "viewChange", msg.String(), "total", cbft.state.ViewChangeLen())
 	// It is possible to achieve viewchangeQC every time you add viewchange
 	cbft.tryChangeView()
@@ -195,7 +195,7 @@ func (cbft *Cbft) OnViewTimeout() {
 		ViewNumber:     cbft.state.ViewNumber(),
 		BlockHash:      hash,
 		BlockNumber:    number,
-		ValidatorIndex: uint32(node.Index),
+		ValidatorIndex: node.Index,
 		PrepareQC:      qc,
 	}
 
@@ -209,7 +209,7 @@ func (cbft *Cbft) OnViewTimeout() {
 		cbft.bridge.SendViewChange(viewChange)
 	}
 
-	cbft.state.AddViewChange(uint32(node.Index), viewChange)
+	cbft.state.AddViewChange(node.Index, viewChange)
 	cbft.network.Broadcast(viewChange)
 	cbft.log.Info("Local add viewChange", "index", node.Index, "viewChange", viewChange.String(), "total", cbft.state.ViewChangeLen())
 
@@ -612,7 +612,7 @@ func (cbft *Cbft) richViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) {
 		cbft.log.Info("Local node is not validator")
 		return
 	}
-	hadSend := cbft.state.ViewChangeByIndex(uint32(node.Index))
+	hadSend := cbft.state.ViewChangeByIndex(node.Index)
 	if hadSend != nil && !viewChangeQC.ExistViewChange(hadSend.Epoch, hadSend.ViewNumber, hadSend.BlockHash) {
 		cert, err := cbft.generateViewChangeQuorumCert(hadSend)
 		if err != nil {
@@ -649,7 +649,8 @@ func (cbft *Cbft) tryChangeViewByViewChange(viewChangeQC *ctypes.ViewChangeQC) {
 		return cbft.state.ViewNumber() + 1
 	}
 
-	_, _, blockEpoch, _, hash, number := viewChangeQC.MaxBlock()
+	var hash common.Hash
+	_, _, blockEpoch, _, _, number := viewChangeQC.MaxBlock()
 	block, qc := cbft.blockTree.FindBlockAndQC(cbft.state.HighestQCBlock().Hash(), cbft.state.HighestQCBlock().NumberU64())
 	if block.NumberU64() != 0 {
 		cbft.richViewChangeQC(viewChangeQC)
@@ -710,7 +711,7 @@ func (cbft *Cbft) generateViewChange(qc *ctypes.QuorumCert) (*protocols.ViewChan
 		ViewNumber:     cbft.state.ViewNumber(),
 		BlockHash:      qc.BlockHash,
 		BlockNumber:    qc.BlockNumber,
-		ValidatorIndex: uint32(node.Index),
+		ValidatorIndex: node.Index,
 		PrepareQC:      qc,
 	}
 	if err := cbft.signMsgByBls(v); err != nil {
@@ -758,9 +759,11 @@ func (cbft *Cbft) changeView(epoch, viewNumber uint64, block *types.Block, qc *c
 	}
 	cbft.clearInvalidBlocks(block)
 	cbft.evPool.Clear(epoch, viewNumber)
-	// view change maybe lags behind the other nodes,active sync prepare block
-	cbft.SyncPrepareBlock("", epoch, viewNumber, 0)
+
 	cbft.log = log.New("epoch", cbft.state.Epoch(), "view", cbft.state.ViewNumber())
+	// view change maybe lags behind the other nodes,active sync prepare block
+	// 但同步请求不计入缓存，防止在少连接等极端情况下，后续无法正常同步prepareBlock
+	cbft.SyncPrepareBlockDirectly(epoch, viewNumber, 0)
 	cbft.log.Info("Success to change view, current view deadline", "deadline", cbft.state.Deadline())
 }
 

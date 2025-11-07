@@ -132,7 +132,6 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId enode.IDv0,
 	externalId, nodeName, website, details string, amount *big.Int, rewardPer uint16, programVersion uint32,
 	programVersionSign common.VersionSign, blsPubKey bls.PublicKeyHex, blsProof bls.SchnorrProofHex) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.Context.BlockNumber
@@ -182,7 +181,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("failed to verify bls proof: %s", err.Error()),
 			TxCreateStaking, staking.ErrWrongBlsPubKeyProof)
-
 	}
 
 	// validate programVersion sign
@@ -227,7 +225,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			fmt.Sprintf("input Version: %s, current valid Version: %s",
 				xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(originVersion)),
 			TxCreateStaking, staking.ErrProgramVersionTooLow)
-
 	} else if inputVersion > currVersion {
 		isDeclareVersion = true
 		//If the node version is higher than the current governance version, temporarily use the governance version,  wait for the version to pass the governance proposal, and then replace it
@@ -293,10 +290,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 				bizErr.Error(), TxCreateStaking, bizErr)
-
 		} else {
 			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
@@ -348,7 +343,6 @@ func verifyRewardPer(rewardPer uint16) bool {
 
 func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeId enode.IDv0, rewardPer *uint16,
 	externalId, nodeName, website, details *string) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -481,7 +475,6 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 }
 
 func (stkc *StakingContract) increaseStaking(nodeId enode.IDv0, typ uint16, amount *big.Int) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -545,20 +538,17 @@ func (stkc *StakingContract) increaseStaking(nodeId enode.IDv0, typ uint16, amou
 		if bizErr, ok := err.(*common.BizError); ok {
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 				bizErr.Error(), TxIncreaseStaking, bizErr)
-
 		} else {
 			log.Error("Failed to increaseStaking by EditCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
-
 	}
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
 		"", TxIncreaseStaking, common.NoErr)
 }
 
 func (stkc *StakingContract) withdrewStaking(nodeId enode.IDv0) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -618,7 +608,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId enode.IDv0) ([]byte, error) 
 				"blockNumber", blockNumber, "err", err)
 			return nil, err
 		}
-
 	}
 
 	return txResultHandler(vm.StakingContractAddr, stkc.Evm, "",
@@ -626,7 +615,6 @@ func (stkc *StakingContract) withdrewStaking(nodeId enode.IDv0) ([]byte, error) 
 }
 
 func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big.Int) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -751,7 +739,6 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big
 }
 
 func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId enode.IDv0, amount *big.Int) ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -794,7 +781,6 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 	}
 
 	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
-
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
 			fmt.Sprintf("withdrewDelegation threshold: %d, deposit: %d", threshold, amount),
 			TxWithdrewDelegation, staking.ErrWithdrewDelegationVonTooLow)
@@ -807,10 +793,8 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 	issueIncome, released, restrictingPlan, lockReleased, lockRestrictingPlan, err := stkc.Plugin.WithdrewDelegation(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del, delegateRewardPerList, stkc.Evm.chainRules.IsEinstein)
 	if nil != err {
 		if bizErr, ok := err.(*common.BizError); ok {
-
 			return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
 				bizErr.Error(), TxWithdrewDelegation, bizErr)
-
 		} else {
 			log.Error("Failed to withdrewDelegation by WithdrewDelegation", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
@@ -826,7 +810,6 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 }
 
 func (stkc *StakingContract) redeemDelegation() ([]byte, error) {
-
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
@@ -876,7 +859,6 @@ func (stkc *StakingContract) calcRewardPerUseGas(delegateRewardPerList []*reward
 }
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
-
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
 
@@ -897,13 +879,11 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
-
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
 
 	arr, err := stkc.Plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound, plugin.QueryStartNotIrr)
 	if snapshotdb.NonDbNotFoundErr(err) {
-
 		return callResultHandler(stkc.Evm, "getValidatorList",
 			arr, staking.ErrGetValidatorList.Wrap(err.Error())), nil
 	}
@@ -918,7 +898,6 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
-
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
 
@@ -938,7 +917,6 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
-
 	blockHash := stkc.Evm.Context.BlockHash
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if snapshotdb.NonDbNotFoundErr(err) {
@@ -957,7 +935,6 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 
 func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
 	nodeId enode.IDv0) ([]byte, error) {
-
 	blockNumber := stkc.Evm.Context.BlockNumber
 	blockHash := stkc.Evm.Context.BlockHash
 

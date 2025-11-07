@@ -69,7 +69,6 @@ func (rc *RestrictingContract) CheckGasPrice(gasPrice *big.Int, fcode uint16) er
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
-
 	//sender := rc.Contract.Caller()
 	from := rc.Contract.CallerAddress
 	txHash := rc.Evm.StateDB.TxHash()
@@ -88,14 +87,13 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 	}
 
 	err := rc.Plugin.AddRestrictingRecord(from, account, blockNum.Uint64(), blockHash, plans, state, txHash)
-	switch err.(type) {
+	switch reserr := err.(type) {
 	case nil:
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "",
 			"", TxCreateRestrictingPlan, common.NoErr)
 	case *common.BizError:
-		bizErr := err.(*common.BizError)
 		return txResultHandler(vm.RestrictingContractAddr, rc.Evm, "createRestrictingPlan",
-			bizErr.Error(), TxCreateRestrictingPlan, bizErr)
+			reserr.Error(), TxCreateRestrictingPlan, reserr)
 	default:
 		log.Error("Failed to cal addRestrictingRecord on createRestrictingPlan", "blockNumber", blockNum.Uint64(),
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "error", err)

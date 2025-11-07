@@ -18,14 +18,14 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
+	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/asm"
@@ -50,9 +50,6 @@ func TestDefaults(t *testing.T) {
 		t.Error("expected difficulty to be non nil")
 	}
 
-	if cfg.Time == nil {
-		t.Error("expected time to be non nil")
-	}
 	if cfg.GasLimit == 0 {
 		t.Error("didn't expect gaslimit to be zero")
 	}
@@ -176,7 +173,7 @@ func benchmarkEVM_Create(bench *testing.B, code string) {
 		State:       statedb,
 		GasLimit:    10000000,
 		Difficulty:  big.NewInt(0x200000),
-		Time:        new(big.Int).SetUint64(0),
+		Time:        0,
 		Coinbase:    common.Address{},
 		BlockNumber: new(big.Int).SetUint64(1),
 		ChainConfig: &params.ChainConfig{
@@ -247,12 +244,13 @@ func (d *dummyChain) GetHeader(h common.Hash, n uint64) *types.Header {
 // TestBlockhash tests the blockhash operation. It's a bit special, since it internally
 // requires access to a chain reader.
 func TestBlockhash(t *testing.T) {
-	/*// Current head
+	t.Skip()
+	// Current head
 	n := uint64(1000)
 	parentHash := common.Hash{}
 	s := common.LeftPadBytes(big.NewInt(int64(n-1)).Bytes(), 32)
 	copy(parentHash[:], s)
-	header := fakeHeader(n, parentHash)*/
+	header := fakeHeader(n, parentHash)
 
 	// This is the contract we're using. It requests the blockhash for current num (should be all zeroes),
 	// then iteratively fetches all blockhashes back to n-260.
@@ -287,7 +285,7 @@ func TestBlockhash(t *testing.T) {
 
 	*/
 	// The contract above
-	/*data := common.Hex2Bytes("6080604052348015600f57600080fd5b50600436106045576000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d14604a575b600080fd5b60506074565b60405180848152602001838152602001828152602001935050505060405180910390f35b600080600080439050600080600083409050600184034092506000600290505b61010481101560c35760008186034090506000816001900414151560b6578093505b5080806001019150506094565b508083839650965096505050505090919256fea165627a7a72305820462d71b510c1725ff35946c20b415b0d50b468ea157c8c77dff9466c9cb85f560029")
+	data := common.Hex2Bytes("6080604052348015600f57600080fd5b50600436106045576000357c010000000000000000000000000000000000000000000000000000000090048063f8a8fd6d14604a575b600080fd5b60506074565b60405180848152602001838152602001828152602001935050505060405180910390f35b600080600080439050600080600083409050600184034092506000600290505b61010481101560c35760008186034090506000816001900414151560b6578093505b5080806001019150506094565b508083839650965096505050505090919256fea165627a7a72305820462d71b510c1725ff35946c20b415b0d50b468ea157c8c77dff9466c9cb85f560029")
 	// The method call to 'test()'
 	input := common.Hex2Bytes("f8a8fd6d")
 	chain := &dummyChain{}
@@ -316,7 +314,7 @@ func TestBlockhash(t *testing.T) {
 	}
 	if exp, got := 255, chain.counter; exp != got {
 		t.Errorf("suboptimal; too much chain iteration, expected %d, got %d", exp, got)
-	}*/
+	}
 }
 
 // TestEip2929Cases contains various testcases that are used for
@@ -325,12 +323,11 @@ func TestEip2929Cases(t *testing.T) {
 	t.Skip("Test only useful for generating documentation")
 	id := 1
 	prettyPrint := func(comment string, code []byte) {
-
 		instrs := make([]string, 0)
 		it := asm.NewInstructionIterator(code)
 		for it.Next() {
 			if it.Arg() != nil && 0 < len(it.Arg()) {
-				instrs = append(instrs, fmt.Sprintf("%v 0x%x", it.Op(), it.Arg()))
+				instrs = append(instrs, fmt.Sprintf("%v %#x", it.Op(), it.Arg()))
 			} else {
 				instrs = append(instrs, fmt.Sprintf("%v", it.Op()))
 			}
@@ -338,7 +335,7 @@ func TestEip2929Cases(t *testing.T) {
 		ops := strings.Join(instrs, ", ")
 		fmt.Printf("### Case %d\n\n", id)
 		id++
-		fmt.Printf("%v\n\nBytecode: \n```\n0x%x\n```\nOperations: \n```\n%v\n```\n\n",
+		fmt.Printf("%v\n\nBytecode: \n```\n%#x\n```\nOperations: \n```\n%v\n```\n\n",
 			comment,
 			code, ops)
 		Execute(code, nil, &Config{
@@ -512,25 +509,6 @@ func TestColdAccountAccessCost(t *testing.T) {
 	}
 }
 
-type stepCounter struct {
-	inner *logger.JSONLogger
-	steps int
-}
-
-func (s *stepCounter) CaptureStart(env *vm.EVM, from common.Address, to common.Address, create bool, input []byte, gas uint64, value *big.Int) {
-}
-
-func (s *stepCounter) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
-}
-
-func (s *stepCounter) CaptureEnd(output []byte, gasUsed uint64, t time.Duration, err error) {}
-
-func (s *stepCounter) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
-	s.steps++
-	// Enable this for more output
-	//s.inner.CaptureState(env, pc, op, gas, cost, memory, stack, rStack, contract, depth, err)
-}
-
 // benchmarkNonModifyingCode benchmarks code, but if the code modifies the
 // state, this should not be used, since it does not reset the state between runs.
 func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode string, b *testing.B) {
@@ -539,7 +517,7 @@ func benchmarkNonModifyingCode(gas uint64, code []byte, name string, tracerCode 
 	cfg.State, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	cfg.GasLimit = gas
 	if len(tracerCode) > 0 {
-		tracer, err := tracers.New(tracerCode, new(tracers.Context))
+		tracer, err := tracers.DefaultDirectory.New(tracerCode, new(tracers.Context), nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -631,7 +609,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294935775,6,12"`, `"1,1,4294935775,6,0"`},
+			results: []string{`"1,1,952855,6,12"`, `"1,1,952855,6,0"`},
 		},
 		{
 			// CREATE2
@@ -647,7 +625,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CREATE2),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294935766,6,13"`, `"1,1,4294935766,6,0"`},
+			results: []string{`"1,1,952846,6,13"`, `"1,1,952846,6,0"`},
 		},
 		{
 			// CALL
@@ -660,7 +638,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964716,6,13"`, `"1,1,4294964716,6,0"`},
+			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
 		},
 		{
 			// CALLCODE
@@ -673,7 +651,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.CALLCODE),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964716,6,13"`, `"1,1,4294964716,6,0"`},
+			results: []string{`"1,1,981796,6,13"`, `"1,1,981796,6,0"`},
 		},
 		{
 			// STATICCALL
@@ -685,7 +663,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.STATICCALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964719,6,12"`, `"1,1,4294964719,6,0"`},
+			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
 		{
 			// DELEGATECALL
@@ -697,7 +675,7 @@ func TestRuntimeJSTracer(t *testing.T) {
 				byte(vm.DELEGATECALL),
 				byte(vm.POP),
 			},
-			results: []string{`"1,1,4294964719,6,12"`, `"1,1,4294964719,6,0"`},
+			results: []string{`"1,1,981799,6,12"`, `"1,1,981799,6,0"`},
 		},
 		{
 			// CALL self-destructing contract
@@ -733,12 +711,13 @@ func TestRuntimeJSTracer(t *testing.T) {
 			statedb.SetCode(common.HexToAddress("0xee"), calleeCode)
 			statedb.SetCode(common.HexToAddress("0xff"), depressedCode)
 
-			tracer, err := tracers.New(jsTracer, new(tracers.Context))
+			tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			_, _, err = Call(main, nil, &Config{
-				State: statedb,
+				GasLimit: 1000000,
+				State:    statedb,
 				EVMConfig: vm.Config{
 					Debug:  true,
 					Tracer: tracer,
@@ -768,7 +747,7 @@ func TestJSTracerCreateTx(t *testing.T) {
 	code := []byte{byte(vm.PUSH1), 0, byte(vm.PUSH1), 0, byte(vm.RETURN)}
 
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	tracer, err := tracers.New(jsTracer, new(tracers.Context))
+	tracer, err := tracers.DefaultDirectory.New(jsTracer, new(tracers.Context), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

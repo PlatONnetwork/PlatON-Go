@@ -48,7 +48,6 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 	for {
 		now := time.Now()
 		if bftEngine && (blockDeadline.Equal(now) || blockDeadline.Before(now)) {
-
 			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration, "deadlineDuration", common.Millis(blockDeadline)-timestamp)
 			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			timeout = true
@@ -98,7 +97,7 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 			continue
 		}
 		// Start executing the transaction
-		env.state.Prepare(tx.Hash(), env.tcount)
+		env.state.SetTxContext(tx.Hash(), env.tcount)
 
 		logs, err := w.commitTransaction(env, tx)
 

@@ -46,7 +46,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
-//go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
+//go:generate go run github.com/fjl/gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
@@ -133,6 +133,11 @@ func (e *GenesisMismatchError) Error() string {
 	return fmt.Sprintf("database already contains an incompatible genesis block (have %x, new %x)", e.Stored[:8], e.New[:8])
 }
 
+// ChainOverrides contains the changes to chain config.
+type ChainOverrides struct {
+	OverrideShanghai *uint64
+}
+
 // SetupGenesisBlock writes or updates the genesis block in db.
 // The block that will be used is:
 //
@@ -147,7 +152,6 @@ func (e *GenesisMismatchError) Error() string {
 //
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
-
 	if genesis != nil && genesis.Config == nil {
 		log.Error("Failed to SetupGenesisBlock, the config of genesis is nil")
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
@@ -378,6 +382,43 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 	return nil
 }
 
+func LoadGenesisChainConfig(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+	// Load the stored chain config from the database. It can be nil
+	// in case the database is empty. Notably, we only care about the
+	// chain config corresponds to the canonical chain.
+	stored := rawdb.ReadCanonicalHash(db, 0)
+	if stored != (common.Hash{}) {
+		storedcfg := rawdb.ReadChainConfig(db, stored)
+		if storedcfg != nil {
+			return storedcfg, stored, nil
+		}
+	}
+	if genesis == nil {
+		log.Info("Default main-net genesis block")
+		genesis = DefaultGenesisBlock()
+	}
+	// Load the config from the provided genesis specification.
+	if genesis != nil {
+		// Reject invalid genesis spec without valid chain config
+		if genesis.Config == nil {
+			return nil, stored, errGenesisNoConfig
+		}
+		// If the canonical genesis header is present, but the chain
+		// config is missing(initialize the empty leveldb with an
+		// external ancient chain segment), ensure the provided genesis
+		// is matched.
+		// 此处注释，backend处再做校验
+		//if stored != (common.Hash{}) && genesis.ToBlock().Hash() != stored {
+		//	return nil, &GenesisMismatchError{stored, genesis.ToBlock().Hash()}
+		//}
+		return genesis.Config, stored, nil
+	}
+	// There is no stored chain config and no new config provided,
+	// In this case the default chain config(mainnet) will be used,
+	// namely ethash is the specified consensus engine, return nil.
+	return nil, stored, nil
+}
+
 func (g *Genesis) configOrDefault(ghash common.Hash) *params.ChainConfig {
 	switch {
 	case g != nil:
@@ -420,7 +461,6 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
-
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 
@@ -465,11 +505,16 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			panic("Failed Store staking: " + err.Error())
 		}
 	}
+	var withdrawals []*types.Withdrawal
 	// 1.3.0
 	if gov.Gte130Version(genesisVersion) {
 		if err := gov.WriteEcHash130(statedb); nil != err {
 			panic("Failed Store EcHash130: " + err.Error())
 		}
+	}
+
+	if gov.Gte160Version(genesisVersion) {
+		withdrawals = make([]*types.Withdrawal, 0)
 	}
 
 	if g.Config != nil {
@@ -513,7 +558,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		panic("Failed to trieDB commit by genesis: " + err.Error())
 	}
 
-	block := types.NewBlock(head, nil, nil, new(trie.Trie))
+	block := types.NewBlock(head, nil, nil, new(trie.Trie)).WithWithdrawals(withdrawals)
 
 	if err := sdb.SetCurrent(block.Hash(), *common.Big0, *common.Big0); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. genesisHash: %s, error:%s", block.Hash().Hex(), err.Error()))
@@ -581,15 +626,24 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{
-		Alloc:   GenesisAlloc{addr: {Balance: balance}},
-		BaseFee: big.NewInt(params.InitialBaseFee),
+		Alloc:         GenesisAlloc{addr: {Balance: balance}},
+		BaseFee:       big.NewInt(params.InitialBaseFee),
+		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
 	}
 	return g.MustCommit(db)
 }
 
+func GenesisForTesting(addr common.Address, balance *big.Int) *Genesis {
+	return &Genesis{
+		Config:        params.TestChainConfig,
+		Alloc:         GenesisAlloc{addr: {Balance: balance}},
+		BaseFee:       big.NewInt(params.InitialBaseFee),
+		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+	}
+}
+
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-
 	generalAddr := common.MustBech32ToAddress("lat1sy6kxgpfgx7axrl86a368mj6r6fnagctqem69g")
 	generalBalance, _ := new(big.Int).SetString("9727638019000000000000000000", 10)
 
@@ -618,7 +672,6 @@ func DefaultGenesisBlock() *Genesis {
 
 // DefaultTestnetGenesisBlock returns the PlatON test net genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
-
 	// TODO this should change
 	generalAddr := common.HexToAddress("0x99DD0a64d2809e3e293E43bDbF2704cFfD87aCEC")
 	generalBalance, _ := new(big.Int).SetString("9718188019000000000000000000", 10)

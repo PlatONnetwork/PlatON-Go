@@ -21,13 +21,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 )
 
 func setup(t *testing.T) *mock.Chain {
@@ -41,7 +39,7 @@ func setup(t *testing.T) *mock.Chain {
 	StorageAvgPackTime(chain.CurrentHeader().Hash(), chain.SnapDB, uint64(2000))
 	commit_sndb(chain)
 
-	prepair_sndb(chain, chain.CurrentHeader().Hash())
+	prepare_sndb(chain, chain.CurrentHeader().Hash())
 	return chain
 }
 
@@ -65,14 +63,14 @@ func commit_sndb(chain *mock.Chain) {
 	}
 }
 
-func prepair_sndb(chain *mock.Chain, txHash common.Hash) {
+func prepare_sndb(chain *mock.Chain, txHash common.Hash) {
 	if txHash == common.ZeroHash {
 		chain.AddBlock()
 	} else {
 		chain.AddBlockWithTxHash(txHash)
 	}
 	if err := chain.SnapDB.NewBlock(chain.CurrentHeader().Number, chain.CurrentHeader().ParentHash, chain.CurrentHeader().Hash()); err != nil {
-		fmt.Println("prepair_sndb error:", err)
+		fmt.Println("prepare_sndb error:", err)
 	}
 }
 
@@ -89,10 +87,10 @@ func TestCommon_StorageAvgPackTime(t *testing.T) {
 	StorageAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance(), uint64(3000))
 	//commit_sndb(chain)
 
-	avgPackTime, err = LoadAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance())
+	avgPackTime, _ = LoadAvgPackTime(chain.CurrentHeader().Hash(), snapshotdb.Instance())
 	assert.Equal(t, uint64(3000), avgPackTime)
 
-	avgPackTime, err = LoadCurrentAvgPackTime()
+	avgPackTime, _ = LoadCurrentAvgPackTime()
 	assert.Equal(t, uint64(2000), avgPackTime)
 }
 

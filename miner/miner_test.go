@@ -2,12 +2,14 @@ package miner
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/event"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+
 	"github.com/stretchr/testify/assert"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 )
 
 func minerStart(t *testing.T) *Miner {
@@ -35,7 +37,7 @@ func minerStart(t *testing.T) *Miner {
 		case <-miner.worker.startCh:
 			t.Log("Start miner done")
 		case <-time.After(2 * time.Second):
-			t.Fatal("Start miner timeout")
+			t.Error("Start miner timeout")
 		}
 	}()
 
@@ -44,12 +46,10 @@ func minerStart(t *testing.T) *Miner {
 }
 
 func TestMiner_Start(t *testing.T) {
-
 	miner := minerStart(t)
 
 	assert.True(t, miner.Mining())
 	close(miner.worker.startCh)
-
 }
 
 func TestMiner_Stop(t *testing.T) {
@@ -88,13 +88,10 @@ func TestMiner_Close(t *testing.T) {
 		case <-miner.worker.exitCh:
 
 		case <-time.After(2 * time.Second):
-			t.Fatal("Close miner and worker timeout")
-
+			t.Error("Close miner and worker timeout")
 		}
 	}()
-
 	miner.Close()
-
 }
 
 func TestMiner_Pending(t *testing.T) {
@@ -119,10 +116,9 @@ func TestMiner_SetRecommitInterval(t *testing.T) {
 		case <-miner.worker.resubmitIntervalCh:
 			t.Log("receive the resubmit signal")
 		case <-time.After(interval):
-			t.Fatal("resubmit timeout")
+			t.Error("resubmit timeout")
 		}
 	}()
 
 	miner.SetRecommitInterval(interval)
-
 }

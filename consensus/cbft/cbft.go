@@ -30,13 +30,15 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 
-	mapset "github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/pkg/errors"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -55,7 +57,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -175,7 +176,7 @@ type Cbft struct {
 	// Record message repetitions.
 	statQueues       map[common.Hash]map[string]int
 	statQueuesLock   sync.RWMutex
-	messageHashCache mapset.Set
+	messageHashCache mapset.Set[common.Hash]
 
 	// Delay time of each node
 	netLatencyMap  map[string]*list.List
@@ -207,7 +208,7 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 		nodeServiceContext: ctx,
 		queues:             make(map[string]int),
 		statQueues:         make(map[common.Hash]map[string]int),
-		messageHashCache:   mapset.NewSet(),
+		messageHashCache:   mapset.NewSet[common.Hash](),
 		netLatencyMap:      make(map[string]*list.List),
 	}
 
@@ -242,7 +243,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 		if err != nil {
 			cbft.log.Error("It's not genesis", "err", err)
-			return errors.Wrap(err, fmt.Sprintf("start cbft failed"))
+			return errors.Wrap(err, "start cbft failed")
 		}
 	}
 
@@ -391,7 +392,7 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 	defer cbft.statQueuesLock.Unlock()
 
 	for cbft.messageHashCache.Cardinality() >= maxStatQueuesSize {
-		msgHash := cbft.messageHashCache.Pop().(common.Hash)
+		msgHash, _ := cbft.messageHashCache.Pop()
 		// Printout.
 		var bf bytes.Buffer
 		for k, v := range cbft.statQueues[msgHash] {
@@ -411,11 +412,7 @@ func (cbft *Cbft) statMessage(msg *ctypes.MsgInfo) error {
 
 	hash := msg.Msg.MsgHash()
 	if _, ok := cbft.statQueues[hash]; ok {
-		if _, exists := cbft.statQueues[hash][msg.PeerID]; exists {
-			cbft.statQueues[hash][msg.PeerID]++
-		} else {
-			cbft.statQueues[hash][msg.PeerID] = 1
-		}
+		cbft.statQueues[hash][msg.PeerID] += 1
 	} else {
 		cbft.statQueues[hash] = map[string]int{
 			msg.PeerID: 1,
@@ -488,7 +485,6 @@ func (cbft *Cbft) LoadWal() (err error) {
 
 // receiveLoop receives all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
-
 	// Responsible for handling consensus message logic.
 	consensusMessageHandler := func(msg *ctypes.MsgInfo) {
 		if !cbft.network.ContainsHistoryMessageHash(msg.Msg.MsgHash()) {
@@ -506,9 +502,9 @@ func (cbft *Cbft) receiveLoop() {
 				cbft.network.MarkBlacklist(msg.PeerID)
 				cbft.network.RemovePeer(msg.PeerID)
 			}
-		} else {
-			//cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
-		}
+		} /* else {
+			cbft.log.Trace("The message has been processed, discard it", "msgHash", msg.Msg.MsgHash(), "peerID", msg.PeerID)
+		}*/
 		cbft.forgetMessage(msg.PeerID)
 	}
 
@@ -736,7 +732,7 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 	results := make(chan error, len(headers))
 
 	go func() {
-		for index, _ := range headers {
+		for index := range headers {
 			err := cbft.verifyHeaderWorker(chain, headers, index)
 
 			select {
@@ -813,7 +809,8 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 
 // Finalize implements consensus.Engine, no block
 // rewards given, and returns the final block.
-func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
+func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB,
+	txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
 	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts), "root", header.Root.String())
 	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
@@ -946,19 +943,16 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return []rpc.API{
 		{
 			Namespace: "debug",
-			Version:   "1.0",
 			Service:   NewDebugConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "platon",
-			Version:   "1.0",
 			Service:   NewPublicPlatonConsensusAPI(cbft),
 			Public:    true,
 		},
 		{
 			Namespace: "admin",
-			Version:   "1.0",
 			Service:   NewPublicAdminConsensusAPI(cbft),
 			Public:    true,
 		},
@@ -1108,7 +1102,6 @@ func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
 
 // GetBlockByHash get the specified block by hash and number.
 func (cbft *Cbft) GetBlockByHashAndNum(hash common.Hash, number uint64) *types.Block {
-
 	callBlock := func() *types.Block {
 		// First extract from the confirmed block.
 		block := cbft.blockTree.FindBlockByHash(hash)
@@ -1301,8 +1294,8 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 	}
 
 	rtt := cbft.avgRTT()
-	if cbft.state.Deadline().Sub(time.Now()) <= rtt {
-		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", cbft.state.Deadline().Sub(time.Now()), "rtt", rtt)
+	if time.Until(cbft.state.Deadline()) <= rtt {
+		cbft.log.Debug("Not enough time to propagated block, stopped sealing", "deadline", cbft.state.Deadline(), "interval", time.Until(cbft.state.Deadline()), "rtt", rtt)
 		result <- errors.New("not enough time to propagated block, stopped sealing")
 		return
 	}
@@ -1891,7 +1884,6 @@ func (cbft *Cbft) verifyPrepareQC(oriNum uint64, oriHash common.Hash, qc *ctypes
 }
 
 func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
-
 	vcEpoch, _, _, _, _, _ := viewChangeQC.MaxBlock()
 
 	maxLimit := cbft.validatorPool.Len(vcEpoch)

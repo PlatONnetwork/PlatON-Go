@@ -34,7 +34,7 @@ type ChainContext interface {
 	// Engine retrieves the chain's consensus engine.
 	Engine() consensus.Engine
 
-	// GetHeader returns the hash corresponding to their hash.
+	// GetHeader returns the header corresponding to the hash/number argument pair.
 	GetHeader(common.Hash, uint64) *types.Header
 }
 
@@ -64,7 +64,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		GetNonce:    GetNonceFn(header, chain),
 		Coinbase:    beneficiary,
 		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).SetUint64(header.Time),
+		Time:        header.Time,
 		BaseFee:     baseFee,
 		GasLimit:    header.GasLimit,
 		BlockHash:   blockHash,
@@ -90,6 +90,11 @@ func GetHashFn(ref *types.Header, chain ChainContext) func(n uint64) common.Hash
 	var cache []common.Hash
 
 	return func(n uint64) common.Hash {
+		if ref.Number.Uint64() <= n {
+			// This situation can happen if we're doing tracing and using
+			// block overrides.
+			return common.Hash{}
+		}
 		// If there's no hash cache yet, make one
 		if len(cache) == 0 {
 			cache = append(cache, ref.ParentHash)

@@ -17,14 +17,14 @@
 package vm
 
 import (
-	"github.com/holiman/uint256"
 	"testing"
+
+	"github.com/holiman/uint256"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCallGas(t *testing.T) {
-
 	_, err := callGas(100, 2, new(uint256.Int).SetUint64(10))
 	assert.Nil(t, err)
 

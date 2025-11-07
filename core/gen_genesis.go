@@ -3,17 +3,18 @@ package core
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
 
-// MarshalJSON marshals as JSON.
+// MarshalJSON marshals as JSON
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config        *params.ChainConfig               `json:"config"`

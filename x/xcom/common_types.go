@@ -53,6 +53,9 @@ type StateDB interface {
 	GetState(common.Address, []byte) []byte
 	SetState(common.Address, []byte, []byte)
 
+	GetTransientState(addr common.Address, key []byte) []byte
+	SetTransientState(addr common.Address, key, value []byte)
+
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
 
@@ -69,7 +72,7 @@ type StateDB interface {
 	AddLog(*types.Log)
 	AddPreimage(common.Hash, []byte)
 
-	ForEachStorage(common.Address, func([]byte, []byte) bool)
+	ForEachStorage(common.Address, func([]byte, []byte) bool) error
 
 	//ppos add
 	TxHash() common.Hash

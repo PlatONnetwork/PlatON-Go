@@ -144,13 +144,6 @@ type newWorkReq struct {
 	commitBlock   *types.Block
 }
 
-// getWorkReq represents a request for getting a new sealing work with provided parameters.
-type getWorkReq struct {
-	params *generateParams
-	err    error
-	result chan *types.Block
-}
-
 // intervalAdjust represents a resubmitting interval adjustment.
 type intervalAdjust struct {
 	ratio float64
@@ -198,25 +191,22 @@ type worker struct {
 	chainSideSub event.Subscription
 
 	// Channels
-	newWorkCh             chan *newWorkReq
-	getWorkCh             chan *getWorkReq
-	taskCh                chan *task
-	resultCh              chan *types.Block
-	prepareResultCh       chan *types.Block
-	prepareCompleteCh     chan struct{}
-	highestLogicalBlockCh chan *types.Block
-	startCh               chan struct{}
-	exitCh                chan struct{}
-	resubmitIntervalCh    chan time.Duration
-	resubmitAdjustCh      chan *intervalAdjust
+	newWorkCh          chan *newWorkReq
+	taskCh             chan *task
+	resultCh           chan *types.Block
+	prepareResultCh    chan *types.Block
+	prepareCompleteCh  chan struct{}
+	startCh            chan struct{}
+	exitCh             chan struct{}
+	resubmitIntervalCh chan time.Duration
+	resubmitAdjustCh   chan *intervalAdjust
 
 	wg sync.WaitGroup
 
 	current     *environment       // An environment for current running cycle.
 	unconfirmed *unconfirmedBlocks // A set of locally mined blocks pending canonicalness confirmations.
 
-	mu       sync.RWMutex // The lock used to protect the coinbase and extra fields
-	coinbase common.Address
+	mu sync.RWMutex // The lock used to protect the coinbase and extra fields
 	//extra    []byte
 
 	pendingMu    sync.RWMutex
@@ -254,7 +244,6 @@ type worker struct {
 func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
 	eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
-
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -269,7 +258,6 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *co
 		chainHeadCh:        make(chan core.ChainHeadEvent, miningConfig.ChainHeadChanSize),
 		chainSideCh:        make(chan core.ChainSideEvent, miningConfig.ChainSideChanSize),
 		newWorkCh:          make(chan *newWorkReq),
-		getWorkCh:          make(chan *getWorkReq),
 		taskCh:             make(chan *task),
 		resultCh:           make(chan *types.Block, miningConfig.ResultQueueSize),
 		prepareResultCh:    make(chan *types.Block, miningConfig.ResultQueueSize),
@@ -684,9 +672,7 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Lock()
 			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
-
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-
 				// Save stateDB to cache, receipts to cache
 				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
@@ -805,7 +791,7 @@ func (w *worker) resultLoop() {
 			block.SetExtraData(cbftResult.ExtraData)
 			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			// update 3-chain state
-			_, err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true, cbftResult.ChainStateUpdateCB)
+			err := w.chain.WriteBlockWithState(block, receipts, logs, _state, true, cbftResult.ChainStateUpdateCB)
 			if err != nil {
 				if cbftResult.SyncState != nil {
 					cbftResult.SyncState <- err
@@ -944,7 +930,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		parentGasLimit := parent.GasLimit()
 		if !w.chainConfig.IsPauli(parent.Number()) {
 			// Bump by 2x
-			parentGasLimit = parent.GasLimit() * params.ElasticityMultiplier
+			parentGasLimit = parent.GasLimit() * w.chainConfig.ElasticityMultiplier()
 		}
 		gasCeil := core.CalcGasCeil(parent, snapshotdb.Instance())
 		header.GasLimit = core.CalcGasLimit1559(parentGasLimit, gasCeil)
@@ -1096,7 +1082,6 @@ func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, com
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(env *environment, interval func(), update bool, start time.Time) error {
-
 	// EndBlocker()
 	if err := core.GetReactorInstance().EndBlocker(env.header, env.state); nil != err {
 		log.Error("Failed to GetReactorInstance EndBlocker on worker", "blockNumber",
@@ -1104,7 +1089,7 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		return err
 	}
 
-	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts)
+	block, err := w.engine.Finalize(w.chain, env.header, env.state, env.txs, env.receipts, nil)
 
 	if err != nil {
 		return err

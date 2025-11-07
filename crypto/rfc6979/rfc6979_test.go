@@ -22,9 +22,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 )
 
 // https://tools.ietf.org/html/rfc6979#appendix-A.1
@@ -53,6 +54,8 @@ func TestDeterministicNonce(t *testing.T) {
 	fmt.Printf("sk:%x\n", sk.D.Bytes())
 	msg := "hello"
 	k, err := ECVRF_nonce_generation(sk.D.Bytes(), []byte(msg))
+	if err != nil {
+		t.Fatal(err)
+	}
 	fmt.Printf("k:%x\n", k.D.Bytes())
-
 }

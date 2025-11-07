@@ -4012,7 +4012,7 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
     };
 
     var isPredefinedBlockNumber = function (blockNumber) {
-      return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
+      return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest' || blockNumber === 'finalized' || blockNumber === 'safe';
     };
 
     var inputDefaultBlockNumberFormatter = function (blockNumber) {
@@ -4273,10 +4273,18 @@ var inputAddressFormatter = function (address) {
       result.startingBlock = utils.toDecimal(result.startingBlock);
       result.currentBlock = utils.toDecimal(result.currentBlock);
       result.highestBlock = utils.toDecimal(result.highestBlock);
-      if (result.knownStates) {
-        result.knownStates = utils.toDecimal(result.knownStates);
-        result.pulledStates = utils.toDecimal(result.pulledStates);
-      }
+      result.syncedAccounts = utils.toDecimal(result.syncedAccounts);
+      result.syncedAccountBytes = utils.toDecimal(result.syncedAccountBytes);
+      result.syncedBytecodes = utils.toDecimal(result.syncedBytecodes);
+      result.syncedBytecodeBytes = utils.toDecimal(result.syncedBytecodeBytes);
+      result.syncedStorage = utils.toDecimal(result.syncedStorage);
+      result.syncedStorageBytes = utils.toDecimal(result.syncedStorageBytes);
+      result.healedTrienodes = utils.toDecimal(result.healedTrienodes);
+      result.healedTrienodeBytes = utils.toDecimal(result.healedTrienodeBytes);
+      result.healedBytecodes = utils.toDecimal(result.healedBytecodes);
+      result.healedBytecodeBytes = utils.toDecimal(result.healedBytecodeBytes);
+      result.healingTrienodes = utils.toDecimal(result.healingTrienodes);
+      result.healingBytecode = utils.toDecimal(result.healingBytecode);
 
       return result;
     };

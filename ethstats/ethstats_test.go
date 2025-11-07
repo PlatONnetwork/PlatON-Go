@@ -63,5 +63,4 @@ func TestParseEthstatsURL(t *testing.T) {
 			t.Errorf("case=%d mismatch host value, got: %v ,want: %v", i, host, c.host)
 		}
 	}
-
 }

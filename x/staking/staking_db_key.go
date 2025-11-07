@@ -19,12 +19,10 @@ package staking
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 const (
@@ -82,9 +80,8 @@ func CanMutableKeyBySuffix(addr []byte) []byte {
 	return append(CanMutableKeyPrefix, addr...)
 }
 
-// the candidate power key
+// TallyPowerKey the candidate power key
 func TallyPowerKey(programVersion uint32, shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32, nodeID enode.IDv0) []byte {
-
 	// Only sort Major and Minor
 	// eg. 1.1.x => 1.1.0
 	subVersion := math.MaxInt32 - xutil.CalcVersion(programVersion)
@@ -123,7 +120,6 @@ func GetUnStakeCountKey(epoch uint64) []byte {
 }
 
 func GetUnStakeItemKey(epoch, index uint64) []byte {
-
 	epochByte := common.Uint64ToBytes(epoch)
 	indexByte := common.Uint64ToBytes(index)
 
@@ -140,7 +136,6 @@ func GetUnStakeItemKey(epoch, index uint64) []byte {
 }
 
 func GetDelegateKey(delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) []byte {
-
 	delAddrByte := delAddr.Bytes()
 	nodeIdByte := nodeId.Bytes()
 	stakeNumByte := common.Uint64ToBytes(stakeBlockNumber)
@@ -159,7 +154,7 @@ func GetDelegateKey(delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber 
 	return key
 }
 
-// notice this assume key must right
+// DecodeDelegateKey notice this assume key must right
 func DecodeDelegateKey(key []byte) (delAddr common.Address, nodeId enode.IDv0, stakeBlockNumber uint64) {
 	delegateKeyPrefixLength := len(DelegateKeyPrefix)
 	delAddrLength := len(delAddr) + delegateKeyPrefixLength

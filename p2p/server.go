@@ -141,7 +141,7 @@ type Config struct {
 	// Protocols should contain the protocols supported
 	// by the server. Matching protocols are launched for
 	// each peer.
-	Protocols []Protocol `toml:"-"`
+	Protocols []Protocol `toml:"-" json:"-"`
 
 	// If ListenAddr is set to a non-nil address, the server
 	// will listen for incoming connections.
@@ -150,6 +150,10 @@ type Config struct {
 	// ListenAddr field will be updated with the actual address when
 	// the server is started.
 	ListenAddr string
+
+	// If DiscAddr is set to a non-nil value, the server will use ListenAddr
+	// for TCP and DiscAddr for the UDP discovery protocol.
+	DiscAddr string
 
 	// If set to a non-nil value, the given NAT port mapper
 	// is used to make the listening port available to the
@@ -598,7 +602,15 @@ func (srv *Server) setupDiscovery() error {
 		return nil
 	}
 
-	addr, err := net.ResolveUDPAddr("udp", srv.ListenAddr)
+	listenAddr := srv.ListenAddr
+
+	// Use an alternate listening address for UDP if
+	// a custom discovery address is configured.
+	if srv.DiscAddr != "" {
+		listenAddr = srv.DiscAddr
+	}
+
+	addr, err := net.ResolveUDPAddr("udp", listenAddr)
 	if err != nil {
 		return err
 	}
@@ -685,7 +697,8 @@ func (srv *Server) setupDialScheduler() {
 	srv.dialsched = newDialScheduler(config, srv.discmix, srv.SetupConn)
 
 	dialstateRemoveConsensusPeerFn := func(node *enode.Node) {
-		srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+		// 避免peerOp死锁，这里要go出去
+		go srv.doPeerOp(func(peers map[enode.ID]*Peer) {
 			srv.dialsched.removeConsensusFromQueue(node)
 			if p, ok := peers[node.ID()]; ok {
 				p.rw.set(consensusDialedConn, false)
@@ -806,9 +819,7 @@ running:
 				srv.consensus = false
 			}
 			srv.dialsched.removeConsensus(n)
-			if _, ok := consensusNodes[n.ID()]; ok {
-				delete(consensusNodes, n.ID())
-			}
+			delete(consensusNodes, n.ID())
 			if p, ok := peers[n.ID()]; ok {
 				p.rw.set(consensusDialedConn, false)
 				srv.dialsched.updateConsensusNun(srv.numConsensusPeer(peers))

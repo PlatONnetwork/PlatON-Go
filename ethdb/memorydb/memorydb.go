@@ -133,6 +133,13 @@ func (db *Database) NewBatch() ethdb.Batch {
 	}
 }
 
+// NewBatchWithSize creates a write-only database batch with pre-allocated buffer.
+func (db *Database) NewBatchWithSize(size int) ethdb.Batch {
+	return &batch{
+		db: db,
+	}
+}
+
 // NewIterator creates a binary-alphabetical iterator over a subset
 // of database content with a particular key prefix, starting at a particular
 // initial key (or after, if it does not exist).
@@ -166,6 +173,13 @@ func (db *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 		keys:   keys,
 		values: values,
 	}
+}
+
+// NewSnapshot creates a database snapshot based on the current state.
+// The created snapshot will not be affected by all following mutations
+// happened on the database.
+func (db *Database) NewSnapshot() (ethdb.Snapshot, error) {
+	return newSnapshot(db), nil
 }
 
 // Stat returns a particular internal stat of the database.

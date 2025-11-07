@@ -19,10 +19,9 @@ package gov
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -220,7 +219,6 @@ func (vp *VersionProposal) GetActiveBlock() uint64 {
 }
 
 func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, state xcom.StateDB) error {
-
 	if vp.ProposalType != Version {
 		return ProposalTypeError
 	}
@@ -246,7 +244,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	vp.EndVotingBlock = endVotingBlock
 	vp.ActiveBlock = activeBlock
 
-	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= uint32(GetCurrentActiveVersion(state))>>8 {
+	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= GetCurrentActiveVersion(state)>>8 {
 		return NewVersionError
 	}
 

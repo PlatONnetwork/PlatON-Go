@@ -24,7 +24,6 @@ import (
 )
 
 func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genesis, stateDB *state.StateDB) (common.Hash, error) {
-
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init staking snapshotdb data, validatorMode is not ppos")
 		return prevHash, nil
@@ -62,7 +61,6 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 	}
 
 	for index := 0; index < length; index++ {
-
 		node := initQueue[index]
 
 		var keyHex bls.PublicKeyHex
@@ -112,13 +110,11 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			return lastHash, fmt.Errorf("Failed to Store CanBase Info: rlp encodeing failed. nodeId:%s, error:%s",
 				base.NodeId.String(), err.Error())
 		} else {
-
 			lastHash, err = putbasedbFn(baseKey, val, lastHash)
 			if nil != err {
 				return lastHash, fmt.Errorf("Failed to Store CanBase Info: PutBaseDB failed. nodeId:%s, error:%s",
 					base.NodeId.String(), err.Error())
 			}
-
 		}
 
 		// about CanMutable ...
@@ -127,13 +123,11 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 			return lastHash, fmt.Errorf("Failed to Store CanMutable Info: rlp encodeing failed. nodeId:%s, error:%s",
 				base.NodeId.String(), err.Error())
 		} else {
-
 			lastHash, err = putbasedbFn(mutableKey, val, lastHash)
 			if nil != err {
 				return lastHash, fmt.Errorf("Failed to Store CanMutable Info: PutBaseDB failed. nodeId:%s, error:%s",
 					base.NodeId.String(), err.Error())
 			}
-
 		}
 
 		// about can power ...
@@ -248,7 +242,6 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 }
 
 func genesisPluginState(g *Genesis, statedb *state.StateDB, snapDB snapshotdb.BaseDB, genesisIssue *big.Int) error {
-
 	if g.Config.Cbft.ValidatorMode != common.PPOS_VALIDATOR_MODE {
 		log.Info("Init xxPlugin genesis statedb, validatorMode is not ppos")
 		return nil

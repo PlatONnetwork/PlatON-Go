@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
 package types
 
 import (
@@ -69,8 +68,7 @@ func Test_NewMsgPackage(t *testing.T) {
 }
 
 func Test_ErrCode(t *testing.T) {
-	var errCode ErrCode
-	errCode = ErrMsgTooLarge
+	errCode := ErrCode(ErrMsgTooLarge)
 	assert.Equal(t, errorToString[ErrMsgTooLarge], errCode.String())
 	ErrResp(errCode, "%s", errCode.String())
 }

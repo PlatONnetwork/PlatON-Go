@@ -28,24 +28,20 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"golang.org/x/net/context"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	leveldbError "github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (
@@ -55,7 +51,7 @@ const (
 	MaxBlockCompaction        = 10
 	MaxBlockNotCompactionSync = 10
 	MaxBlockTriggerCompaction = 200
-	MaxCommitBlock            = 150
+	MaxCommitBlock            = 180
 )
 
 // DB the main snapshotdb interface
@@ -441,6 +437,9 @@ func (s *snapshotDB) WriteBaseDBWithBlock(current *types.Header, blocks []BlockD
 	})
 	batch := new(leveldb.Batch)
 	for _, block := range blocks {
+		if block.data == nil {
+			return fmt.Errorf("writeBaseDBWithBlock fail,block data is nil,num %v", block.Number)
+		}
 		itr := block.data.NewIterator(nil)
 		for itr.Next() {
 			if itr.Value() == nil || len(itr.Value()) == 0 {
@@ -478,7 +477,7 @@ func (s *snapshotDB) GetCurrent() *current {
 func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	v, err := s.getFromCommit(key)
 	if err == nil {
-		if v == nil || len(v) == 0 {
+		if len(v) == 0 {
 			return nil, ErrNotFound
 		}
 		return v, nil
@@ -754,7 +753,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return nil, err
 	}
 	if err == nil {
-		if v == nil || len(v) == 0 {
+		if len(v) == 0 {
 			return nil, ErrNotFound
 		}
 		return v, nil
@@ -764,7 +763,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return nil, errFromCommit
 	}
 	if errFromCommit == nil {
-		if valueFromCommit == nil || len(valueFromCommit) == 0 {
+		if len(valueFromCommit) == 0 {
 			return nil, ErrNotFound
 		}
 		return valueFromCommit, nil
@@ -1024,11 +1023,11 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("begin close snapshotdb", "path", s.path)
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
 	}
+	logger.Info("begin close snapshotdb", "path", s.path)
 	if s.closed {
 		return nil
 	}
