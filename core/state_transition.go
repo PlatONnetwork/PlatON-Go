@@ -228,11 +228,7 @@ func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).SetUint64(st.msg.Gas())
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	balanceCheck := mgval
-	// 1.5.0以前的逻辑中preCheck(并行和串行都是）只检查gas * gasPrice，没有value的校验
-	// 因PlatON默认走parallel，此处只有api接口调用
-	// 增加当前版本的判断，以便preCheck保持和parallel的preCheck逻辑一致
-	gte150 := gov.Gte150VersionState(st.state)
-	if gte150 {
+	if st.gasFeeCap != nil {
 		balanceCheck = new(big.Int).SetUint64(st.msg.Gas())
 		balanceCheck = balanceCheck.Mul(balanceCheck, st.gasFeeCap)
 		balanceCheck.Add(balanceCheck, st.value)
