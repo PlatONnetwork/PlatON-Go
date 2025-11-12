@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -202,7 +203,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 	}
 	// Lookup the statedb of parent block from the live database,
 	// otherwise regenerate it on the flight.
-	statedb, release, err := eth.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, release, err := eth.StateAtBlock(ctx, parent, reexec, nil, false, false)
 	if err != nil {
 		return nil, vm.BlockContext{}, nil, nil, err
 	}
@@ -210,7 +211,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), true)
+	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), gov.Gte150VersionState(statedb))
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer, block.BaseFee())
