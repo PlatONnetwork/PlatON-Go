@@ -797,6 +797,7 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		return err
 	}
 
+	// Write successful, clear out the flushed data
 	for db.oldest != oldest {
 		node := db.dirties[db.oldest]
 		delete(db.dirties, db.oldest)
@@ -860,6 +861,7 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 		return err
 	}
 
+	// Uncache any leftovers in the last batch
 	if err := batch.Replay(uncacher); err != nil {
 		return err
 	}
