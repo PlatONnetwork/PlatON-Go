@@ -744,6 +744,8 @@ func (db *Database) CapNode(limit common.StorageSize) {
 // Cap iteratively flushes old but still referenced trie nodes until the total
 // memory usage goes below the given threshold.
 func (db *Database) Cap(limit common.StorageSize) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -794,9 +796,6 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		log.Error("Failed to write flush list to disk", "err", err)
 		return err
 	}
-	// Write successful, clear out the flushed data
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	for db.oldest != oldest {
 		node := db.dirties[db.oldest]
@@ -832,6 +831,8 @@ func (db *Database) Cap(limit common.StorageSize) error {
 // Note, this method is a non-synchronized mutator. It is unsafe to call this
 // concurrently with other mutators.
 func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -858,9 +859,6 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 		log.Error("Failed to write trie to disk", "err", err)
 		return err
 	}
-	// Uncache any leftovers in the last batch
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
 	if err := batch.Replay(uncacher); err != nil {
 		return err
@@ -915,13 +913,11 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch, uncacher *cleane
 		if err := batch.Write(); err != nil {
 			return err
 		}
-		db.lock.Lock()
 		err := batch.Replay(uncacher)
-		batch.Reset()
-		db.lock.Unlock()
 		if err != nil {
 			return err
 		}
+		batch.Reset()
 	}
 	return nil
 }
