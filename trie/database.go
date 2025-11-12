@@ -541,6 +541,7 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		return
 	}
 
+	db.lock.Lock()
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	useless := make(map[string]struct{})
 	clearFn := func(hash []byte) {
@@ -550,7 +551,6 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		}
 	}
 
-	db.lock.Lock()
 	db.dereference(root, clearFn, start)
 	db.lock.Unlock()
 
