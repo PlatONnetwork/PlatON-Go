@@ -542,6 +542,7 @@ func (db *Database) DereferenceDB(root common.Hash) {
 	}
 
 	db.lock.Lock()
+	defer db.lock.Unlock()
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	useless := make(map[string]struct{})
 	clearFn := func(hash []byte) {
@@ -552,7 +553,6 @@ func (db *Database) DereferenceDB(root common.Hash) {
 	}
 
 	db.dereference(root, clearFn, start)
-	db.lock.Unlock()
 
 	//if start.Add(400 * time.Millisecond).Before(time.Now()) {
 	//	log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
