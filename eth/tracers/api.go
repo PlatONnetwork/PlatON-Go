@@ -637,9 +637,6 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		}
 		res, err := api.traceTx(ctx, msg, txctx, blockCtx, statedb, config)
 		if err != nil {
-			if errors.Is(err, core.ErrPlatONTxNotSupportTracing) {
-				log.Warn("PlatON-inner transactions' tracing are not currently supported")
-			}
 			return nil, err
 		}
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
