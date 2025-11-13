@@ -30,6 +30,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -636,6 +637,9 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		}
 		res, err := api.traceTx(ctx, msg, txctx, blockCtx, statedb, config)
 		if err != nil {
+			if errors.Is(err, core.ErrPlatONTxNotSupportTracing) {
+				log.Warn("PlatON-inner transactions' tracing are not currently supported")
+			}
 			return nil, err
 		}
 		results[i] = &txTraceResult{TxHash: tx.Hash(), Result: res}
@@ -950,6 +954,10 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
 func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+	if message.To() != nil && cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(*message.To()) {
+		log.Warn("trace tx failed", "error", core.ErrPlatONTxNotSupportTracing)
+		return json.RawMessage(`{}`), nil
+	}
 	var (
 		tracer    Tracer
 		err       error
