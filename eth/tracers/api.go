@@ -538,7 +538,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, false, false)
+	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +605,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, false, false)
+	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -748,7 +748,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, false, false)
+	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -921,7 +921,7 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, block, reexec, nil, false, false)
+	statedb, release, err := api.backend.StateAtBlock(ctx, block, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -951,9 +951,9 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
 func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+	// PlatON proprietary transaction cannot be traced because snapshot db doesn't hava history data
 	if message.To() != nil && cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(*message.To()) {
-		log.Warn("trace tx failed", "error", core.ErrPlatONTxNotSupportTracing)
-		return json.RawMessage(`{}`), nil
+		return json.RawMessage(`{}`), core.ErrPlatONTxNotSupportTracing
 	}
 	var (
 		tracer    Tracer
