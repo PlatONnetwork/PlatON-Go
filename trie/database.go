@@ -628,32 +628,33 @@ func (db *Database) UselessGC(num int) {
 // Dereference removes an existing reference from a root node.
 func (db *Database) Dereference(root common.Hash) {
 	// Sanity check to ensure that the meta-root is not removed
-	if root == (common.Hash{}) {
-		log.Error("Attempted to dereference the trie cache meta root")
-		return
-	}
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	cleanFn := func(hash []byte) {
-		if db.cleans != nil {
-			db.cleans.Del(hash)
-		}
-	}
-
-	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
-	db.dereference(root, cleanFn, start)
-
-	db.gcnodes += uint64(nodes - len(db.dirties))
-	db.gcsize += storage - db.dirtiesSize
-	db.gctime += time.Since(start)
-
-	memcacheGCTimeTimer.Update(time.Since(start))
-	memcacheGCSizeMeter.Mark(int64(storage - db.dirtiesSize))
-	memcacheGCNodesMeter.Mark(int64(nodes - len(db.dirties)))
-
-	log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.dirties), "size", storage-db.dirtiesSize, "time", time.Since(start),
-		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.dirties), "livesize", db.dirtiesSize)
+	// PlatON 出块流程不匹配，本流程不适用
+	//if root == (common.Hash{}) {
+	//	log.Error("Attempted to dereference the trie cache meta root")
+	//	return
+	//}
+	//db.lock.Lock()
+	//defer db.lock.Unlock()
+	//
+	//cleanFn := func(hash []byte) {
+	//	if db.cleans != nil {
+	//		db.cleans.Del(hash)
+	//	}
+	//}
+	//
+	//nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
+	//db.dereference(root, cleanFn, start)
+	//
+	//db.gcnodes += uint64(nodes - len(db.dirties))
+	//db.gcsize += storage - db.dirtiesSize
+	//db.gctime += time.Since(start)
+	//
+	//memcacheGCTimeTimer.Update(time.Since(start))
+	//memcacheGCSizeMeter.Mark(int64(storage - db.dirtiesSize))
+	//memcacheGCNodesMeter.Mark(int64(nodes - len(db.dirties)))
+	//
+	//log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.dirties), "size", storage-db.dirtiesSize, "time", time.Since(start),
+	//	"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.dirties), "livesize", db.dirtiesSize)
 }
 
 // dereference is the private locked version of Dereference.
@@ -777,7 +778,6 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		if batch.ValueSize() >= ethdb.IdealBatchSize {
 			if err := batch.Write(); err != nil {
 				log.Error("Failed to write flush list to disk", "err", err)
-				db.lock.RUnlock()
 				return err
 			}
 			batch.Reset()
