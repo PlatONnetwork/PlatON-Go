@@ -38,6 +38,7 @@ const (
 	CbftCategory       = "GISKARD"
 	DbCategory         = "DB"
 	DeprecatedCategory = "ALIASED (deprecated)"
+	SnapshotDbCategory = "SNAPSHOTDB"
 )
 
 func init() {

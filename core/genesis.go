@@ -43,7 +43,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 //go:generate go run github.com/fjl/gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
@@ -53,14 +52,14 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config        *params.ChainConfig `json:"config"`
-	EconomicModel *xcom.EconomicModel `json:"economicModel"`
-	Nonce         []byte              `json:"nonce"`
-	Timestamp     uint64              `json:"timestamp"`
-	ExtraData     []byte              `json:"extraData"`
-	GasLimit      uint64              `json:"gasLimit"   gencodec:"required"`
-	Coinbase      common.Address      `json:"coinbase"`
-	Alloc         GenesisAlloc        `json:"alloc"      gencodec:"required"`
+	Config        *params.ChainConfig   `json:"config"`
+	EconomicModel *params.EconomicModel `json:"economicModel"`
+	Nonce         []byte                `json:"nonce"`
+	Timestamp     uint64                `json:"timestamp"`
+	ExtraData     []byte                `json:"extraData"`
+	GasLimit      uint64                `json:"gasLimit"   gencodec:"required"`
+	Coinbase      common.Address        `json:"coinbase"`
+	Alloc         GenesisAlloc          `json:"alloc"      gencodec:"required"`
 
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
@@ -172,7 +171,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 
 		// check EconomicModel configuration
-		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
+		if err := params.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
@@ -197,7 +196,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		}
 
 		// check EconomicModel configuration
-		if err := xcom.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
+		if err := params.CheckEconomicModel(genesis.Config.GenesisVersion); nil != err {
 			log.Error("Failed to check economic config", "err", err)
 			return nil, common.Hash{}, err
 		}
@@ -257,17 +256,17 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	eceCfg := rawdb.ReadEconomicModelExtend(db, stored)
 	if nil == ecCfg {
 		log.Warn("Found genesis block without EconomicModel config")
-		ecCfg = xcom.GetEc(xcom.DefaultMainNet)
+		ecCfg = params.GetEc(params.DefaultMainNet)
 		rawdb.WriteEconomicModel(db, stored, ecCfg)
 	}
 	if nil == eceCfg {
 		log.Warn("Found genesis block without EconomicModelExtend config")
-		xcom.GetEc(xcom.DefaultMainNet)
-		eceCfg = xcom.GetEce()
+		params.GetEc(params.DefaultMainNet)
+		eceCfg = params.GetEce()
 		rawdb.WriteEconomicModelExtend(db, stored, eceCfg)
 	}
-	xcom.ResetEconomicDefaultConfig(ecCfg)
-	xcom.ResetEconomicExtendConfig(eceCfg)
+	params.ResetEconomicDefaultConfig(ecCfg)
+	params.ResetEconomicExtendConfig(eceCfg)
 
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
@@ -306,13 +305,13 @@ func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {
 
 func (g *Genesis) UnmarshalEconomicConfigExtend(r io.Reader) error {
 	var genesisEcConfig struct {
-		EconomicModel *xcom.EconomicModelExtend `json:"economicModel"`
+		EconomicModel *params.EconomicModelExtend `json:"economicModel"`
 	}
-	genesisEcConfig.EconomicModel = xcom.GetEce()
+	genesisEcConfig.EconomicModel = params.GetEce()
 	if err := json.NewDecoder(r).Decode(&genesisEcConfig); err != nil {
 		return fmt.Errorf("invalid genesis file economicModel: %v", err)
 	}
-	xcom.ResetEconomicExtendConfig(genesisEcConfig.EconomicModel)
+	params.ResetEconomicExtendConfig(genesisEcConfig.EconomicModel)
 	return nil
 }
 
@@ -332,7 +331,7 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		return err
 	}
 
-	g.EconomicModel = xcom.GetEc(xcom.DefaultMainNet)
+	g.EconomicModel = params.GetEc(params.DefaultMainNet)
 
 	file.Seek(0, io.SeekStart)
 	if err := json.NewDecoder(file).Decode(g); err != nil {
@@ -370,13 +369,13 @@ func (g *Genesis) InitGenesisAndSetEconomicConfig(path string) error {
 		}
 	}
 
-	xcom.ResetEconomicDefaultConfig(g.EconomicModel)
+	params.ResetEconomicDefaultConfig(g.EconomicModel)
 	// Uodate the NodeBlockTimeWindow and PerRoundBlocks of EconomicModel config
-	xcom.SetNodeBlockTimeWindow(g.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(g.Config.Cbft.Amount))
+	params.SetNodeBlockTimeWindow(g.Config.Cbft.Period / 1000)
+	params.SetPerRoundBlocks(uint64(g.Config.Cbft.Amount))
 
 	// check EconomicModel configuration
-	if err := xcom.CheckEconomicModel(g.Config.GenesisVersion); nil != err {
+	if err := params.CheckEconomicModel(g.Config.GenesisVersion); nil != err {
 		return fmt.Errorf("Failed CheckEconomicModel configuration: %v", err)
 	}
 	return nil
@@ -450,11 +449,11 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 		panic(e)
 	}
 	// First, Store the PlatONFoundation and CommunityDeveloperFoundation
-	statedb.AddBalance(xcom.PlatONFundAccount(), xcom.PlatONFundBalance())
-	statedb.AddBalance(xcom.CDFAccount(), xcom.CDFBalance())
+	statedb.AddBalance(params.PlatONFundAccount(), params.PlatONFundBalance())
+	statedb.AddBalance(params.CDFAccount(), params.CDFBalance())
 
-	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.PlatONFundBalance())
-	genesisIssuance = genesisIssuance.Add(genesisIssuance, xcom.CDFBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, params.PlatONFundBalance())
+	genesisIssuance = genesisIssuance.Add(genesisIssuance, params.CDFBalance())
 
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
@@ -607,7 +606,7 @@ func (g *Genesis) Commit(db ethdb.Database, sdb snapshotdb.BaseDB) (*types.Block
 	rawdb.WriteEconomicModel(db, block.Hash(), g.EconomicModel)
 
 	if config.GenesisVersion >= params.FORKVERSION_1_3_0 {
-		rawdb.WriteEconomicModelExtend(db, block.Hash(), xcom.GetEce())
+		rawdb.WriteEconomicModelExtend(db, block.Hash(), params.GetEce())
 	}
 
 	return block, nil
@@ -628,7 +627,7 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	g := Genesis{
 		Alloc:         GenesisAlloc{addr: {Balance: balance}},
 		BaseFee:       big.NewInt(params.InitialBaseFee),
-		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+		EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 	}
 	return g.MustCommit(db)
 }
@@ -638,7 +637,7 @@ func GenesisForTesting(addr common.Address, balance *big.Int) *Genesis {
 		Config:        params.TestChainConfig,
 		Alloc:         GenesisAlloc{addr: {Balance: balance}},
 		BaseFee:       big.NewInt(params.InitialBaseFee),
-		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+		EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 	}
 }
 
@@ -663,10 +662,10 @@ func DefaultGenesisBlock() *Genesis {
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultMainNet),
+		EconomicModel: params.GetEc(params.DefaultMainNet),
 	}
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	params.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	params.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
 	return &genesis
 }
 
@@ -688,10 +687,10 @@ func DefaultTestnetGenesisBlock() *Genesis {
 			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
 			generalAddr:              {Balance: generalBalance},
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultTestNet),
+		EconomicModel: params.GetEc(params.DefaultTestNet),
 	}
-	xcom.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
-	xcom.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
+	params.SetNodeBlockTimeWindow(genesis.Config.Cbft.Period / 1000)
+	params.SetPerRoundBlocks(uint64(genesis.Config.Cbft.Amount))
 	return &genesis
 }
 

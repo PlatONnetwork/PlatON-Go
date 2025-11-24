@@ -189,7 +189,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, platonConfig) {
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 	stack, cfg := makeConfigNode(ctx)
 	snapshotdb.SetDBPathWithNode(stack.ResolvePath(snapshotdb.DBPath))
-
+	snapshotdb.SetEnableArchiveWithNode(cfg.Eth.SnapshotArchive)
 	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
 	// Warn users to migrate if they have a legacy freezer format.
 	if eth != nil && !ctx.IsSet(utils.IgnoreLegacyReceiptsFlag.Name) {

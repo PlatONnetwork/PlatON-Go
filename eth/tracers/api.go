@@ -30,7 +30,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -211,10 +210,11 @@ type txTraceResult struct {
 // blockTraceTask represents a single block trace task when an entire chain is
 // being traced.
 type blockTraceTask struct {
-	statedb *state.StateDB   // Intermediate state prepped for tracing
-	block   *types.Block     // Block to trace the transactions from
-	release StateReleaseFunc // The function to release the held resource for this task
-	results []*txTraceResult // Trace results produced by the task
+	statedb   *state.StateDB   // Intermediate state prepped for tracing
+	archiveDB snapshotdb.DB    // Snapshot archive DB for tracing
+	block     *types.Block     // Block to trace the transactions from
+	release   StateReleaseFunc // The function to release the held resource for this task
+	results   []*txTraceResult // Trace results produced by the task
 }
 
 // blockTraceResult represents the results of tracing a single block when an entire
@@ -303,7 +303,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 						TxIndex:   i,
 						TxHash:    tx.Hash(),
 					}
-					res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, config)
+					res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, task.archiveDB, config)
 					if err != nil {
 						task.results[i] = &txTraceResult{TxHash: tx.Hash(), Error: err.Error()}
 						log.Warn("Tracing failed", "hash", tx.Hash(), "block", task.block.NumberU64(), "err", err)
@@ -402,6 +402,11 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 				failed = err
 				break
 			}
+			archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64())
+			if err != nil {
+				failed = err
+				break
+			}
 			// Clean out any pending release functions of trace state. Note this
 			// step must be done after constructing tracing state, because the
 			// tracing state of block next depends on the parent state and construction
@@ -411,7 +416,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 			// Send the block over to the concurrent tracers (if not in the fast-forward phase)
 			txs := next.Transactions()
 			select {
-			case taskCh <- &blockTraceTask{statedb: statedb.Copy(), block: next, release: release, results: make([]*txTraceResult, len(txs))}:
+			case taskCh <- &blockTraceTask{statedb: statedb.Copy(), archiveDB: archiveDB, block: next, release: release, results: make([]*txTraceResult, len(txs))}:
 			case <-closed:
 				tracker.releaseState(number, release)
 				return
@@ -611,12 +616,17 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	}
 	defer release()
 
+	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(parent.NumberU64())
+	if err != nil {
+		return nil, err
+	}
+
 	// JS tracers have high overhead. In this case run a parallel
 	// process that generates states in one thread and traces txes
 	// in separate worker threads.
 	if config != nil && config.Tracer != nil && *config.Tracer != "" {
 		if isJS := DefaultDirectory.IsJS(*config.Tracer); isJS {
-			return api.traceBlockParallel(ctx, block, statedb, config)
+			return api.traceBlockParallel(ctx, block, statedb, archiveDB, config)
 		}
 	}
 	// Native tracers have low overhead
@@ -635,7 +645,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 			TxIndex:   i,
 			TxHash:    tx.Hash(),
 		}
-		res, err := api.traceTx(ctx, msg, txctx, blockCtx, statedb, config)
+		res, err := api.traceTx(ctx, msg, txctx, blockCtx, statedb, archiveDB, config)
 		if err != nil {
 			return nil, err
 		}
@@ -650,7 +660,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 // traceBlockParallel is for tracers that have a high overhead (read JS tracers). One thread
 // runs along and executes txes without tracing enabled to generate their prestate.
 // Worker threads take the tasks and the prestate and trace them.
-func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, statedb *state.StateDB, config *TraceConfig) ([]*txTraceResult, error) {
+func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, statedb *state.StateDB, archiveDB snapshotdb.DB, config *TraceConfig) ([]*txTraceResult, error) {
 	// Execute all the transaction contained within the block concurrently
 	var (
 		signer = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.Gte150VersionState(statedb))
@@ -678,7 +688,7 @@ func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, stat
 					TxIndex:   task.index,
 					TxHash:    txs[task.index].Hash(),
 				}
-				res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, config)
+				res, err := api.traceTx(ctx, msg, txctx, blockCtx, task.statedb, archiveDB, config)
 				if err != nil {
 					results[task.index] = &txTraceResult{TxHash: txs[task.index].Hash(), Error: err.Error()}
 					continue
@@ -705,7 +715,7 @@ txloop:
 		msg, _ := tx.AsMessage(signer, block.BaseFee())
 		statedb.SetTxContext(tx.Hash(), i)
 		txContext := core.NewEVMTxContext(msg)
-		vmenv := vm.NewEVM(blockCtx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{})
+		vmenv := vm.NewEVM(blockCtx, txContext, archiveDB, statedb, api.backend.ChainConfig(), vm.Config{})
 
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
 			failed = err
@@ -753,6 +763,11 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 		return nil, err
 	}
 	defer release()
+
+	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(parent.NumberU64())
+	if err != nil {
+		return nil, err
+	}
 
 	// Retrieve the tracing configurations, or use default values
 	var (
@@ -817,7 +832,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 			}
 		}
 		// Execute the transaction and flush any traces to disk
-		vmenv := vm.NewEVM(vmctx, txContext, snapshotdb.Instance(), statedb, chainConfig, vmConf)
+		vmenv := vm.NewEVM(vmctx, txContext, archiveDB, statedb, chainConfig, vmConf)
 		statedb.SetTxContext(tx.Hash(), i)
 		_, err = core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()))
 		if writer != nil {
@@ -881,12 +896,17 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 	}
 	defer release()
 
+	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64() - 1)
+	if err != nil {
+		return nil, err
+	}
+
 	txctx := &Context{
 		BlockHash: blockHash,
 		TxIndex:   int(index),
 		TxHash:    hash,
 	}
-	return api.traceTx(ctx, msg, txctx, vmctx, statedb, config)
+	return api.traceTx(ctx, msg, txctx, vmctx, statedb, archiveDB, config)
 }
 
 // TraceCall lets you trace a given eth_call. It collects the structured logs
@@ -926,6 +946,10 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 		return nil, err
 	}
 	defer release()
+	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64())
+	if err != nil {
+		return nil, err
+	}
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 	// Apply the customization rules if required.
 	if config != nil {
@@ -944,17 +968,17 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	if config != nil {
 		traceConfig = &config.TraceConfig
 	}
-	return api.traceTx(ctx, msg, new(Context), vmctx, statedb, traceConfig)
+	return api.traceTx(ctx, msg, new(Context), vmctx, statedb, archiveDB, traceConfig)
 }
 
 // traceTx configures a new tracer according to the provided configuration, and
 // executes the given message in the provided environment. The return value will
 // be tracer dependent.
-func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, config *TraceConfig) (interface{}, error) {
+func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Context, vmctx vm.BlockContext, statedb *state.StateDB, archiveDB snapshotdb.DB, config *TraceConfig) (interface{}, error) {
 	// PlatON proprietary transaction cannot be traced because snapshot db doesn't hava history data
-	if message.To() != nil && cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(*message.To()) {
-		return json.RawMessage(`{}`), core.ErrPlatONTxNotSupportTracing
-	}
+	//if message.To() != nil && cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(*message.To()) {
+	//		return json.RawMessage(`{}`), core.ErrPlatONTxNotSupportTracing
+	//}
 	var (
 		tracer    Tracer
 		err       error
@@ -983,7 +1007,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 			return nil, err
 		}
 	}
-	vmenv := vm.NewEVM(vmctx, txContext, snapshotdb.Instance(), statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
+	vmenv := vm.NewEVM(vmctx, txContext, archiveDB, statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
 
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {

@@ -1954,9 +1954,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		return staking.ErrValidatorNoExist
 	}
 
-	if blockNumber != (curr.End - xcom.ElectionDistance()) {
+	if blockNumber != (curr.End - params.ElectionDistance()) {
 		log.Error("Failed to Election: Current blockNumber invalid", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
-			"Target blockNumber", curr.End-xcom.ElectionDistance())
+			"Target blockNumber", curr.End-params.ElectionDistance())
 		return staking.ErrBlockNumberDisordered
 	}
 
@@ -2134,8 +2134,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 
 	var vrfQueue staking.ValidatorQueue
 	var vrfLen int
-	if len(diffQueue) > int(xcom.MaxConsensusVals()) {
-		vrfLen = int(xcom.MaxConsensusVals())
+	if len(diffQueue) > int(params.MaxConsensusVals()) {
+		vrfLen = int(params.MaxConsensusVals())
 	} else {
 		vrfLen = len(diffQueue)
 	}
@@ -2154,8 +2154,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header, s
 		"has slash count", hasSlashLen, "withdrew and need remove count",
 		needRMwithdrewLen, "low version need remove count", needRMLowVersionLen,
 		"total remove count", invalidLen, "remove map size", len(removeCans),
-		"current validators Size", len(curr.Arr), "MaxConsensusVals", xcom.MaxConsensusVals(),
-		"ShiftValidatorNum", xcom.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
+		"current validators Size", len(curr.Arr), "MaxConsensusVals", params.MaxConsensusVals(),
+		"ShiftValidatorNum", params.ShiftValidatorNum(), "diffQueueLen", len(diffQueue),
 		"vrfQueueLen", len(vrfQueue))
 
 	nextQueue, err := shuffle(invalidLen, currqueen, vrfQueue, blockNumber, header.ParentHash)
@@ -2209,13 +2209,13 @@ func shuffleQueue(remainCurrQueue, vrfQueue staking.ValidatorQueue, blockNumber 
 	remainLen := len(remainCurrQueue)
 	totalQueue := append(remainCurrQueue, vrfQueue...)
 
-	for remainLen > int(xcom.MaxConsensusVals()-xcom.ShiftValidatorNum()) && len(totalQueue) > int(xcom.MaxConsensusVals()) {
+	for remainLen > int(params.MaxConsensusVals()-params.ShiftValidatorNum()) && len(totalQueue) > int(params.MaxConsensusVals()) {
 		totalQueue = totalQueue[1:]
 		remainLen--
 	}
 
-	if len(totalQueue) > int(xcom.MaxConsensusVals()) {
-		totalQueue = totalQueue[:xcom.MaxConsensusVals()]
+	if len(totalQueue) > int(params.MaxConsensusVals()) {
+		totalQueue = totalQueue[:params.MaxConsensusVals()]
 	}
 
 	next := make(staking.ValidatorQueue, len(totalQueue))
@@ -2266,7 +2266,7 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 		preNonces = preNonces[len(preNonces)-len(queue):]
 	}
 
-	if len(queue) <= int(xcom.ShiftValidatorNum()) {
+	if len(queue) <= int(params.ShiftValidatorNum()) {
 		return queue, nil
 	}
 
@@ -2280,8 +2280,8 @@ func randomOrderValidatorQueue(blockNumber uint64, parentHash common.Hash, queue
 		log.Debug("Call randomOrderValidatorQueue xor", "nodeId", v.NodeId.TerminalString(), "nodeAddress", v.NodeAddress.Hex(), "nonce", hexutil.Encode(preNonces[i]), "xorValue", value)
 	}
 
-	frontPart := orderList[:xcom.ShiftValidatorNum()]
-	backPart := orderList[xcom.ShiftValidatorNum():]
+	frontPart := orderList[:params.ShiftValidatorNum()]
+	backPart := orderList[params.ShiftValidatorNum():]
 
 	sort.Sort(frontPart)
 	sort.Sort(backPart)
@@ -2838,7 +2838,7 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.CandidateMutable) {
 	log.Debug("lazyCalcStakeAmount before", "current epoch", epoch, "canMutable", can)
 
 	// If it is during the same hesitation period, short circuit
-	if sub < xcom.HesitateRatio() {
+	if sub < params.HesitateRatio() {
 		return
 	}
 
@@ -2865,7 +2865,7 @@ func lazyCalcNodeTotalDelegateAmount(epoch uint64, can *staking.CandidateMutable
 	log.Debug("lazyCalcNodeTotalDelegateAmount before", "current epoch", epoch, "canMutable", can)
 
 	// If it is during the same hesitation period, short circuit
-	if sub < xcom.HesitateRatio() {
+	if sub < params.HesitateRatio() {
 		return false
 	}
 	if can.DelegateTotalHes.Cmp(common.Big0) > 0 {
@@ -2893,7 +2893,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	log.Debug("lazyCalcDelegateAmount before", "epoch", epoch, "del", del)
 
 	// If it is during the same hesitation period, short circuit
-	if sub < xcom.HesitateRatio() {
+	if sub < params.HesitateRatio() {
 		return
 	}
 
@@ -3081,9 +3081,9 @@ func probabilityElection(validatorList staking.ValidatorQueue, shiftLen int, cur
 
 	var p float64
 	if copernicus {
-		p = xcom.CalcPV110(totalSqrtWeightsFloat)
+		p = params.CalcPV110(totalSqrtWeightsFloat)
 	} else {
-		p = xcom.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
+		p = params.CalcP(totalWeightsFloat, totalSqrtWeightsFloat)
 	}
 
 	shuffleSeed := new(big.Int).SetBytes(preNonces[0]).Int64()

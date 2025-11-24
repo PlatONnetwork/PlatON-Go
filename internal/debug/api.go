@@ -23,6 +23,7 @@ package debug
 import (
 	"bytes"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io"
 	"os"
 	"os/user"
@@ -38,7 +39,6 @@ import (
 	"github.com/hashicorp/go-bexpr"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 func GetLogVerbosity() log.Lvl {
@@ -279,5 +279,5 @@ func expandHome(p string) string {
 
 // economic config
 func (*HandlerT) EconomicConfig() string {
-	return xcom.EconomicString()
+	return params.EconomicString()
 }

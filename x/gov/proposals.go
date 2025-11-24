@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -148,14 +149,14 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 		return err
 	}
 
-	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.EstimateConsensusRoundsForGov(xcom.TextProposalVote_DurationSeconds()))
+	endVotingBlock := xutil.CalEndVotingBlock(submitBlock, xutil.EstimateConsensusRoundsForGov(params.TextProposalVote_DurationSeconds()))
 	if endVotingBlock <= submitBlock {
 		log.Error("the end-voting-block is lower than submit-block. Please check configuration")
 		return common.InternalError
 	}
 	tp.EndVotingBlock = endVotingBlock
 
-	log.Debug("verify Text Proposal", "PIPID", tp.PIPID, "voteDuration", xcom.TextProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
+	log.Debug("verify Text Proposal", "PIPID", tp.PIPID, "voteDuration", params.TextProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 	return nil
 }
 
@@ -226,7 +227,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return EndVotingRoundsTooSmall
 	}
 
-	if vp.EndVotingRounds > xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()) {
+	if vp.EndVotingRounds > xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds()) {
 		return EndVotingRoundsTooLarge
 	}
 
@@ -268,7 +269,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return PreActiveVersionProposalExist
 	}
 
-	log.Debug("verify Version Proposal", "PIPID", vp.PIPID, "voteDuration", xcom.VersionProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "activeBlock", activeBlock, "blockNumber", submitBlock, "blockHash", blockHash)
+	log.Debug("verify Version Proposal", "PIPID", vp.PIPID, "voteDuration", params.VersionProposalVote_DurationSeconds(), "endVotingBlock", endVotingBlock, "activeBlock", activeBlock, "blockNumber", submitBlock, "blockHash", blockHash)
 	return nil
 }
 
@@ -469,7 +470,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 		return PreActiveVersionProposalExist
 	}
 
-	var voteDuration = xcom.ParamProposalVote_DurationSeconds()
+	var voteDuration = params.ParamProposalVote_DurationSeconds()
 
 	endVotingBlock := xutil.EstimateEndVotingBlockForParaProposal(submitBlock, voteDuration)
 	if endVotingBlock <= submitBlock {

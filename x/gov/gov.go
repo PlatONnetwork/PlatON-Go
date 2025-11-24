@@ -80,7 +80,7 @@ func Gte130Version(version uint32) bool {
 }
 
 func WriteEcHash130(state xcom.StateDB) error {
-	if data, err := xcom.EcParams130(); nil != err {
+	if data, err := params.EcParams130(); nil != err {
 		return err
 	} else {
 		SetEcParametersHash(state, data)

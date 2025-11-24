@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sync"
 
@@ -117,7 +118,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 	// Do this from the second consensus round
 	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("Call GetPrePackAmount", "blockNumber", header.Number.Uint64(), "blockHash",
-			blockHash.TerminalString(), "consensusSize", xutil.ConsensusSize(), "electionDistance", xcom.ElectionDistance())
+			blockHash.TerminalString(), "consensusSize", xutil.ConsensusSize(), "electionDistance", params.ElectionDistance())
 		if result, err := sp.GetPrePackAmount(header.Number.Uint64(), header.ParentHash); nil != err {
 			return err
 		} else {

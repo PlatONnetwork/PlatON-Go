@@ -20,8 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -74,6 +75,7 @@ func (eth *Ethereum) StateAtBlock(ctx context.Context, block *types.Block, reexe
 		// function to deref it.
 		if statedb, err = eth.blockchain.StateAt(block.Root()); err == nil {
 			statedb.Database().TrieDB().Reference(block.Root(), common.Hash{})
+			// FIXME: new a snapshotdb instance
 			return statedb, func() {
 				statedb.Database().TrieDB().Dereference(block.Root())
 			}, nil
@@ -210,6 +212,12 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 	if txIndex == 0 && len(block.Transactions()) == 0 {
 		return nil, vm.BlockContext{}, statedb, release, nil
 	}
+
+	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(parent.NumberU64())
+	if err != nil {
+		return nil, vm.BlockContext{}, nil, nil, err
+	}
+
 	// Recompute transactions up to the target index.
 	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), gov.Gte150VersionState(statedb))
 	for idx, tx := range block.Transactions() {
@@ -221,7 +229,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 			return msg, context, statedb, release, nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(context, txContext, snapshotdb.Instance(), statedb, eth.blockchain.Config(), vm.Config{})
+		vmenv := vm.NewEVM(context, txContext, archiveDB, statedb, eth.blockchain.Config(), vm.Config{})
 		statedb.SetTxContext(tx.Hash(), idx)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)

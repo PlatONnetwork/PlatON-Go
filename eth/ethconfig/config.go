@@ -182,7 +182,7 @@ type Config struct {
 	BlockChainVersion        int // BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	DefaultTxsCacheSize      int
 	DefaultBroadcastInterval time.Duration
-
+	SnapshotArchive          bool
 	// Transaction pool options
 	TxPool txpool.Config
 

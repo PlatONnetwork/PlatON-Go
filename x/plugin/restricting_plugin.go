@@ -18,6 +18,7 @@ package plugin
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sort"
 	"sync"
@@ -171,12 +172,12 @@ func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) e
 
 	//initial release from genesis restricting plans(62215742LAT)
 	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
+	statedb.SubBalance(params.CDFAccount(), initialRelease)
 	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
 
 	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
 	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
+	statedb.SubBalance(params.CDFAccount(), totalRestrictingPlan)
 	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
 
 	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {

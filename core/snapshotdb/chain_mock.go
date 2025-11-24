@@ -30,7 +30,7 @@ func newTestchain(path string) *testchain {
 	os.RemoveAll(path)
 	ch := new(testchain)
 	ch.path = path
-	db, err := open(path, 0, 0, false)
+	db, err := open(path, 0, 0, false, false)
 	if err != nil {
 		panic(err)
 	}
@@ -50,7 +50,7 @@ type testchain struct {
 }
 
 func (c *testchain) reOpenSnapshotDB() {
-	db, err := open(c.path, 0, 0, false)
+	db, err := open(c.path, 0, 0, false, false)
 	if err != nil {
 		panic(err)
 	}

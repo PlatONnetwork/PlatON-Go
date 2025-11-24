@@ -148,7 +148,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 				log.Info("Successfully upgraded the new version 1.3.0", "blockNumber", blockNumber, "blockHash", blockHash, "preActiveProposalID", preActiveVersionProposalID)
 			}
 			if versionProposal.NewVersion == params.FORKVERSION_1_5_0 && govPlugin.chainConfig.PIP7ChainID.Cmp(params.MainPIP7ChainID) == 0 {
-				if err := gov.UpdateGovernParamValue(gov.ModuleStaking, gov.KeyMaxValidators, fmt.Sprint(xcom.MaxValidatorsForVersion150), blockNumber+1, blockHash); err != nil {
+				if err := gov.UpdateGovernParamValue(gov.ModuleStaking, gov.KeyMaxValidators, fmt.Sprint(params.MaxValidatorsForVersion150), blockNumber+1, blockHash); err != nil {
 					return err
 				}
 				log.Info("Successfully upgraded the new version 1.5.0", "blockNumber", blockNumber, "blockHash", blockHash)
@@ -327,7 +327,7 @@ func tallyVersion(proposal *gov.VersionProposal, blockHash common.Hash, blockNum
 
 	//log.Debug("version proposal", "supportRate", supportRate, "required", Decimal(xcom.VersionProposalSupportRate()))
 
-	if supportRate >= xcom.VersionProposal_SupportRate() {
+	if supportRate >= params.VersionProposal_SupportRate() {
 		status = gov.PreActive
 
 		if err := gov.AddPIPID(proposal.GetPIPID(), state); err != nil {
@@ -501,21 +501,21 @@ func tally(proposalType gov.ProposalType, proposalID common.Hash, pipID string, 
 	switch proposalType {
 	case gov.Text:
 		//log.Debug("text proposal", "voteRate", voteRate, "required", xcom.TextProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.TextProposalSupportRate()))
-		if voteRate > xcom.TextProposal_VoteRate() && supportRate >= xcom.TextProposal_SupportRate() {
+		if voteRate > params.TextProposal_VoteRate() && supportRate >= params.TextProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Cancel:
 		//log.Debug("cancel proposal", "voteRate", voteRate, "required", xcom.CancelProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.CancelProposalSupportRate()))
-		if voteRate > xcom.CancelProposal_VoteRate() && supportRate >= xcom.CancelProposal_SupportRate() {
+		if voteRate > params.CancelProposal_VoteRate() && supportRate >= params.CancelProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed
 		}
 	case gov.Param:
 		//log.Debug("param proposal", "voteRate", voteRate, "required", xcom.ParamProposalVoteRate(), "supportRate", supportRate, "required", Decimal(xcom.ParamProposalSupportRate()))
-		if voteRate > xcom.ParamProposal_VoteRate() && supportRate >= xcom.ParamProposal_SupportRate() {
+		if voteRate > params.ParamProposal_VoteRate() && supportRate >= params.ParamProposal_SupportRate() {
 			status = gov.Pass
 		} else {
 			status = gov.Failed

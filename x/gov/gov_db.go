@@ -19,6 +19,7 @@ package gov
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -284,8 +285,8 @@ func Set130Param(blockNumber uint64, hash common.Hash, db snapshotdb.DB, chainDB
 		return fmt.Errorf("Parsed UnDelegateFreezeDuration is failed: %v", err)
 	}
 	if chainDB != nil {
-		xcom.ResetEconomicExtendConfigUnDelegateFreezeDuration(uint64(num))
-		rawdb.WriteEconomicModelExtend(chainDB, hash, xcom.GetEce())
+		params.ResetEconomicExtendConfigUnDelegateFreezeDuration(uint64(num))
+		rawdb.WriteEconomicModelExtend(chainDB, hash, params.GetEce())
 	}
 	return nil
 }

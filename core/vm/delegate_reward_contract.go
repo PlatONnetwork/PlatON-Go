@@ -23,10 +23,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/sort"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
@@ -106,9 +104,9 @@ func (rc *DelegateRewardContract) withdrawDelegateReward() ([]byte, error) {
 			"blockHash", blockHash.TerminalString(), "txHash", txHash.Hex(), "from", from.String())
 		return txResultHandler(vm.DelegateRewardPoolAddr, rc.Evm, FuncNameWithdrawDelegateReward, reward.ErrDelegationNotFound.Msg, TxWithdrawDelegateReward, reward.ErrDelegationNotFound)
 	}
-	if len(list) > int(xcom.TheNumberOfDelegationsReward()) {
+	if len(list) > int(params.TheNumberOfDelegationsReward()) {
 		sort.Sort(staking.DelByDelegateEpoch(list))
-		list = list[:xcom.TheNumberOfDelegationsReward()]
+		list = list[:params.TheNumberOfDelegationsReward()]
 	}
 
 	if !rc.Contract.UseGas(params.WithdrawDelegateNodeGas * uint64(len(list))) {
