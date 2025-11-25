@@ -88,8 +88,8 @@ type Backend interface {
 	ChainConfig() *params.ChainConfig
 	Engine() consensus.Engine
 	ChainDb() ethdb.Database
-	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, StateReleaseFunc, error)
-	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, StateReleaseFunc, error)
+	StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, snapshotdb.DB, StateReleaseFunc, error)
+	StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, snapshotdb.DB, StateReleaseFunc, error)
 }
 
 // API is the collection of tracing APIs exposed over the private debugging endpoint.
@@ -329,13 +329,14 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 	// Start a goroutine to feed all the blocks into the tracers
 	go func() {
 		var (
-			logged  time.Time
-			begin   = time.Now()
-			number  uint64
-			traced  uint64
-			failed  error
-			statedb *state.StateDB
-			release StateReleaseFunc
+			logged    time.Time
+			begin     = time.Now()
+			number    uint64
+			traced    uint64
+			failed    error
+			statedb   *state.StateDB
+			archiveDB snapshotdb.DB
+			release   StateReleaseFunc
 		)
 		// Ensure everything is properly cleaned up on any exit path
 		defer func() {
@@ -397,16 +398,12 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 				s1, s2 := statedb.Database().TrieDB().Size()
 				preferDisk = s1+s2 > defaultTracechainMemLimit
 			}
-			statedb, release, err = api.backend.StateAtBlock(ctx, block, reexec, statedb, false, preferDisk)
+			statedb, archiveDB, release, err = api.backend.StateAtBlock(ctx, block, reexec, statedb, false, preferDisk)
 			if err != nil {
 				failed = err
 				break
 			}
-			archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64())
-			if err != nil {
-				failed = err
-				break
-			}
+
 			// Clean out any pending release functions of trace state. Note this
 			// step must be done after constructing tracing state, because the
 			// tracing state of block next depends on the parent state and construction
@@ -543,7 +540,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, archiveDB, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +560,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 		var (
 			msg, _    = tx.AsMessage(signer, block.BaseFee())
 			txContext = core.NewEVMTxContext(msg)
-			vmenv     = vm.NewEVM(vmctx, txContext, nil, statedb, chainConfig, vm.Config{})
+			vmenv     = vm.NewEVM(vmctx, txContext, archiveDB, statedb, chainConfig, vm.Config{})
 		)
 		statedb.SetTxContext(tx.Hash(), i)
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas())); err != nil {
@@ -610,16 +607,11 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, archiveDB, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(parent.NumberU64())
-	if err != nil {
-		return nil, err
-	}
 
 	// JS tracers have high overhead. In this case run a parallel
 	// process that generates states in one thread and traces txes
@@ -758,16 +750,11 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, archiveDB, release, err := api.backend.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(parent.NumberU64())
-	if err != nil {
-		return nil, err
-	}
 
 	// Retrieve the tracing configurations, or use default values
 	var (
@@ -890,16 +877,11 @@ func (api *API) TraceTransaction(ctx context.Context, hash common.Hash, config *
 	if err != nil {
 		return nil, err
 	}
-	msg, vmctx, statedb, release, err := api.backend.StateAtTransaction(ctx, block, int(index), reexec)
+	msg, vmctx, statedb, archiveDB, release, err := api.backend.StateAtTransaction(ctx, block, int(index), reexec)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-
-	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64() - 1)
-	if err != nil {
-		return nil, err
-	}
 
 	txctx := &Context{
 		BlockHash: blockHash,
@@ -941,15 +923,12 @@ func (api *API) TraceCall(ctx context.Context, args ethapi.TransactionArgs, bloc
 	if config != nil && config.Reexec != nil {
 		reexec = *config.Reexec
 	}
-	statedb, release, err := api.backend.StateAtBlock(ctx, block, reexec, nil, true, false)
+	statedb, archiveDB, release, err := api.backend.StateAtBlock(ctx, block, reexec, nil, true, false)
 	if err != nil {
 		return nil, err
 	}
 	defer release()
-	archiveDB, err := snapshotdb.SnapshotArchiveDB().SnapshotDB(block.NumberU64())
-	if err != nil {
-		return nil, err
-	}
+
 	vmctx := core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 	// Apply the customization rules if required.
 	if config != nil {
