@@ -133,7 +133,10 @@ var (
 	baseDBcache   int
 	baseDBhandles int
 
-	logger = log.Root().New("package", "snapshotdb")
+	// Archive trie configuration
+	archiveTrieOversizeThreshold uint64
+	archiveDatabaseCache         int
+	logger                       = log.Root().New("package", "snapshotdb")
 
 	//ErrNotFound when db not found
 	ErrNotFound = errors.New("snapshotDB: not found")
@@ -198,6 +201,17 @@ func GetDBBlockChain() Chain {
 func SetDBOptions(cache int, handles int) {
 	baseDBcache = cache
 	baseDBhandles = handles
+}
+
+// SetArchiveTrieOversizeThreshold sets the threshold size for archive trie oversize check
+func SetArchiveTrieOversizeThreshold(threshold uint64) {
+	archiveTrieOversizeThreshold = threshold
+	logger.Info("set archive trie oversize threshold", "threshold", threshold)
+}
+
+func SetArchiveDatabaseCache(cache int) {
+	archiveDatabaseCache = cache
+	logger.Info("set archive database cache", "cache", cache)
 }
 
 // Instance return the Instance of the db
@@ -305,8 +319,14 @@ func open(path string, cache int, handles int, baseOnly bool, archive bool) (*sn
 		if err := db.archiveDB.init(db.WalkBaseDB); err != nil {
 			return nil, err
 		}
+		for _, blockData := range db.committed {
+			log.Debug("Commit already committed blockdata", "number", blockData.Number)
+			if err := db.archiveDB.CommitBlock(blockData); err != nil {
+				return nil, err
+			}
+		}
+		logger.Info("Archive snapshotdb init success")
 	}
-	logger.Info("Archive snapshotdb init success")
 	return db, nil
 }
 

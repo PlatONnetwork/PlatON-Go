@@ -56,7 +56,7 @@ func (s *snapshotDB) loopWriteWal() {
 			}
 			if s.archiveDB != nil {
 				if err := s.archiveDB.CommitBlock(block); err != nil {
-					logger.Error("Commit archiveDB block failed", "err", err, "block", block.Number, "hash", block.BlockHash.String())
+					logger.Error("Commit archive block failed", "err", err, "block", block.Number, "hash", block.BlockHash.String())
 				}
 			}
 			nc := newCurrent(block.Number, nil, block.BlockHash)

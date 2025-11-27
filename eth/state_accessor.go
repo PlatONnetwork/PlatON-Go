@@ -112,9 +112,10 @@ func (eth *Ethereum) StateAtBlock(ctx context.Context, block *types.Block, reexe
 		// Otherwise, try to reexec blocks until we find a state or reach our limit
 		current = block
 
-		// Create an ephemeral trie.Database for isolating the live one. Otherwise
-		// the internal junks created by tracing will be persisted into the disk.
-		database = state.NewDatabaseWithConfig(eth.chainDb, &trie.Config{Cache: 16})
+		database = eth.traceDb
+		if database == nil {
+			database = state.NewDatabaseWithConfig(eth.chainDb, &trie.Config{Cache: 16})
+		}
 
 		// If we didn't check the live database, do check state over ephemeral database,
 		// otherwise we would rewind past a persisted block (specific corner case is
@@ -126,7 +127,9 @@ func (eth *Ethereum) StateAtBlock(ctx context.Context, block *types.Block, reexe
 				if err != nil {
 					return nil, nil, nil, err
 				}
-				return statedb, archiveDB, noopReleaser, nil
+				return statedb, archiveDB, func() {
+					database.TrieDB().DereferenceDB(current.Root())
+				}, nil
 			}
 		}
 		// Database does not have the state for the given block, try to regenerate

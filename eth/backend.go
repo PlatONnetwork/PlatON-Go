@@ -20,6 +20,8 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"os"
 	"sync"
@@ -72,8 +74,8 @@ type Ethereum struct {
 	snapDialCandidates enode.Iterator
 
 	// DB interfaces
-	chainDb ethdb.Database // Block chain database
-
+	chainDb        ethdb.Database // Block chain database
+	traceDb        state.Database
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
@@ -239,6 +241,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
+		traceDb:           state.NewDatabaseWithConfig(chainDb, &trie.Config{Cache: 128}), //fixed to 128Mb
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
 		engine:            ethconfig.CreateConsensusEngine(stack, genesisChainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
