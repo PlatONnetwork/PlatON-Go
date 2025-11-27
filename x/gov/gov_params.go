@@ -52,7 +52,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyStakeThreshold,
 				fmt.Sprintf("minimum amount of stake, range: [%d, %d]", params.StakeLowerLimit, params.StakeUpperLimit)},
 			ParamValue: &ParamValue{"", params.StakeThreshold().String(), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				threshold, ok := new(big.Int).SetString(value, 10)
 				if !ok {
 					return fmt.Errorf("Parsed StakeThreshold is failed")
@@ -69,7 +69,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyOperatingThreshold,
 				fmt.Sprintf("minimum amount of stake increasing funds, delegation funds, or delegation withdrawing funds, range: [%d, %d]", params.DelegateLowerLimit, params.DelegateUpperLimit)},
 			ParamValue: &ParamValue{"", params.OperatingThreshold().String(), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				threshold, ok := new(big.Int).SetString(value, 10)
 				if !ok {
 					return fmt.Errorf("Parsed OperatingThreshold is failed")
@@ -87,7 +87,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyMaxValidators,
 				fmt.Sprintf("maximum amount of validator, range: [%d, %d]", params.MaxConsensusVals(), params.CeilMaxValidators)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.MaxValidators())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				num, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed MaxValidators is failed: %v", err)
@@ -104,17 +104,17 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyUnStakeFreezeDuration,
 				fmt.Sprintf("quantity of epoch for skake withdrawal, range: (MaxEvidenceAge, %d]", params.CeilUnStakeFreezeDuration)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.UnStakeFreezeDuration())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				num, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed UnStakeFreezeDuration is failed: %v", err)
 				}
 
-				age, err := GovernMaxEvidenceAge(blockNumber, blockHash)
+				age, err := gov.GovernMaxEvidenceAge(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
-				epochNumber, err := GovernZeroProduceFreezeDuration(blockNumber, blockHash)
+				epochNumber, err := gov.GovernZeroProduceFreezeDuration(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
@@ -134,7 +134,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashFractionDuplicateSign,
 				fmt.Sprintf("quantity of base point(1BP=1‱). Node's stake will be deducted(BPs*staking amount*1‱) it the node sign block duplicatlly, range: (%d, %d]", params.Zero, params.TenThousand)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.SlashFractionDuplicateSign())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				fraction, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed SlashFractionDuplicateSign is failed: %v", err)
@@ -151,7 +151,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeyDuplicateSignReportReward,
 				fmt.Sprintf("quantity of base point(1bp=1%%). Bonus(BPs*deduction amount for sign block duplicatlly*%%) to the node who reported another's duplicated-signature, range: (%d, %d]", params.Zero, params.Eighty)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DuplicateSignReportReward())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				fraction, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed DuplicateSignReportReward is failed: %v", err)
@@ -168,13 +168,13 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeyMaxEvidenceAge,
 				fmt.Sprintf("quantity of epoch. During these epochs after a node duplicated-sign, others can report it, range: (%d, UnStakeFreezeDuration)", params.Zero)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.MaxEvidenceAge())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				age, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed MaxEvidenceAge is failed: %v", err)
 				}
 
-				duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				duration, err := gov.GovernUnStakeFreezeDuration(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
@@ -188,7 +188,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeySlashBlocksReward,
 				fmt.Sprintf("quantity of block, the total bonus amount for these blocks will be deducted from a inefficient node's stake, range: [%d, %d)", params.Zero, params.CeilBlocksReward)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.SlashBlocksReward())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				rewards, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed SlashBlocksReward is failed: %v", err)
@@ -207,7 +207,7 @@ func initParam() []*GovernParam {
 		{
 			ParamItem:  &ParamItem{ModuleBlock, KeyMaxBlockGasLimit, fmt.Sprintf("maximum gas limit per block, range: [%d, %d]", int(params.GenesisGasLimit), int(params.MaxGasCeil))},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.DefaultMinerGasCeil)), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				gasLimit, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("Parsed MaxBlockGasLimit is failed: %v", err)
@@ -225,13 +225,13 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceCumulativeTime,
 				fmt.Sprintf("Time range for recording the number of behaviors of zero production blocks, range: [ZeroProduceNumberThreshold, %d]", params.MaxZeroProduceCumulativeTime)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.ZeroProduceCumulativeTime())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				roundNumber, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed ZeroProduceCumulativeTime is failed")
 				}
 
-				numberThreshold, err := GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+				numberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
@@ -246,13 +246,13 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceNumberThreshold,
 				"Number of zero production blocks, range: [1, ZeroProduceCumulativeTime]"},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.ZeroProduceNumberThreshold())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed ZeroProduceNumberThreshold is failed")
 				}
 
-				roundNumber, err := GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+				roundNumber, err := gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
@@ -267,7 +267,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerMaxChangeRange,
 				fmt.Sprintf("Delegated Reward Ratio The maximum adjustable range of each modification, range: [%d, %d]", params.RewardPerMaxChangeRangeLowerLimit, params.RewardPerMaxChangeRangeUpperLimit)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.RewardPerMaxChangeRange())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed RewardPerMaxChangeRange is failed")
@@ -284,7 +284,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleStaking, KeyRewardPerChangeInterval,
 				fmt.Sprintf("The interval for each modification of the commission reward ratio, range: [%d, %d]", params.RewardPerChangeIntervalLowerLimit, params.RewardPerChangeIntervalUpperLimit)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.RewardPerChangeInterval())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed RewardPerChangeInterval is failed")
@@ -301,7 +301,7 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleReward, KeyIncreaseIssuanceRatio,
 				fmt.Sprintf("Increase the ratio of issuance, range: [%d, %d]", params.IncreaseIssuanceRatioLowerLimit, params.IncreaseIssuanceRatioUpperLimit)},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.IncreaseIssuanceRatio())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed IncreaseIssuanceRatio is failed")
@@ -318,13 +318,13 @@ func initParam() []*GovernParam {
 			ParamItem: &ParamItem{ModuleSlashing, KeyZeroProduceFreezeDuration,
 				"Zero production frozen time, range: [1, UnStakeFreezeDuration)"},
 			ParamValue: &ParamValue{"", strconv.Itoa(int(params.ZeroProduceFreezeDuration())), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				number, err := strconv.Atoi(value)
 				if nil != err {
 					return fmt.Errorf("parsed KeyZeroProduceFreezeDuration is failed")
 				}
 
-				epochNumber, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+				epochNumber, err := NewGov(snapshotdb.Instance()).GovernUnStakeFreezeDuration(blockNumber, blockHash)
 				if nil != err {
 					return err
 				}
@@ -341,7 +341,7 @@ func initParam() []*GovernParam {
 				fmt.Sprintf("minimum restricting amount to be released in each epoch, range: [%d, %d]",
 					params.FloorMinimumRelease, params.CeilMinimumRelease)},
 			ParamValue: &ParamValue{"", params.RestrictingMinimumRelease().String(), 0},
-			ParamVerifier: func(blockNumber uint64, blockHash common.Hash, value string) error {
+			ParamVerifier: func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 				v, ok := new(big.Int).SetString(value, 10)
 				if !ok {
 					return fmt.Errorf("parsed KeyRestrictingMinimumAmount is failed")
@@ -409,7 +409,7 @@ func initUnDelegateFreezeDurationParamGenesis() *GovernParam {
 }
 
 func initUnDelegateFreezeDurationParamVersionUpdate(blockNumber uint64, blockHash common.Hash) (*GovernParam, error) {
-	Duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	Duration, err := NewGov(snapshotdb.Instance()).GovernUnStakeFreezeDuration(blockNumber, blockHash)
 	if nil != err {
 		return nil, err
 	}
@@ -427,13 +427,13 @@ func initUnDelegateFreezeDurationParamVersionUpdate(blockNumber uint64, blockHas
 	}, nil
 }
 
-var UnDelegateFreezeDurationVerifier = func(blockNumber uint64, blockHash common.Hash, value string) error {
+var UnDelegateFreezeDurationVerifier = func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error {
 	num, err := strconv.Atoi(value)
 	if nil != err {
 		return fmt.Errorf("Parsed UnDelegateFreezeDuration is failed: %v", err)
 	}
 
-	Duration, err := GovernUnStakeFreezeDuration(blockNumber, blockHash)
+	Duration, err := gov.GovernUnStakeFreezeDuration(blockNumber, blockHash)
 	if nil != err {
 		return err
 	}

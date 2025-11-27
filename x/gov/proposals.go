@@ -18,6 +18,7 @@ package gov
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -110,6 +111,7 @@ type TextProposal struct {
 	EndVotingBlock uint64
 	Proposer       enode.IDv0
 	Result         TallyResult `json:"-"`
+	Gov            *Gov        `json:"-"`
 }
 
 func (tp *TextProposal) GetProposalID() common.Hash {
@@ -145,7 +147,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 		return ProposalTypeError
 	}
 
-	if err := verifyBasic(tp, blockHash, state); err != nil {
+	if err := verifyBasic(tp, blockHash, state, tp.Gov); err != nil {
 		return err
 	}
 
@@ -161,7 +163,7 @@ func (tp *TextProposal) Verify(submitBlock uint64, blockHash common.Hash, state 
 }
 
 func (tp *TextProposal) String() string {
-	return fmt.Sprintf(`Proposal %x: 
+	return fmt.Sprintf(`Proposal %x:
   Type:               	%x
   PIPID:			    %s
   Proposer:            	%x
@@ -181,6 +183,7 @@ type VersionProposal struct {
 	Result          TallyResult `json:"-"`
 	NewVersion      uint32
 	ActiveBlock     uint64
+	Gov             *Gov `json:"-"`
 }
 
 func (vp *VersionProposal) GetProposalID() common.Hash {
@@ -231,7 +234,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 		return EndVotingRoundsTooLarge
 	}
 
-	if err := verifyBasic(vp, blockHash, state); err != nil {
+	if err := verifyBasic(vp, blockHash, state, vp.Gov); err != nil {
 		return err
 	}
 
@@ -245,11 +248,11 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	vp.EndVotingBlock = endVotingBlock
 	vp.ActiveBlock = activeBlock
 
-	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= GetCurrentActiveVersion(state)>>8 {
+	if vp.NewVersion <= 0 || vp.NewVersion>>8 <= vp.Gov.GetCurrentActiveVersion(state)>>8 {
 		return NewVersionError
 	}
 
-	if exist, err := FindVotingProposal(blockHash, state, Version, Param); err != nil {
+	if exist, err := vp.Gov.FindVotingProposal(blockHash, state, Version, Param); err != nil {
 		return err
 	} else if exist != nil {
 		if exist.GetProposalType() == Version {
@@ -260,7 +263,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 	}
 
 	//another VersionProposal in Pre-active process，exit
-	proposalID, err := GetPreActiveProposalID(blockHash)
+	proposalID, err := vp.Gov.db.GetPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("check pre-active version proposal error", "blockNumber", submitBlock, "blockHash", blockHash)
 		return err
@@ -274,7 +277,7 @@ func (vp *VersionProposal) Verify(submitBlock uint64, blockHash common.Hash, sta
 }
 
 func (vp *VersionProposal) String() string {
-	return fmt.Sprintf(`Proposal %x: 
+	return fmt.Sprintf(`Proposal %x:
   Type:               	%x
   PIPID:			    %s
   Proposer:            	%x
@@ -295,6 +298,7 @@ type CancelProposal struct {
 	Proposer        enode.IDv0
 	TobeCanceled    common.Hash
 	Result          TallyResult `json:"-"`
+	Gov             *Gov        `json:"-"`
 }
 
 func (cp *CancelProposal) GetProposalID() common.Hash {
@@ -330,7 +334,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 		return ProposalTypeError
 	}
 
-	if err := verifyBasic(cp, blockHash, state); err != nil {
+	if err := verifyBasic(cp, blockHash, state, cp.Gov); err != nil {
 		return err
 	}
 
@@ -345,21 +349,21 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 	}
 	cp.EndVotingBlock = endVotingBlock
 
-	if exist, err := FindVotingProposal(blockHash, state, Cancel); err != nil {
+	if exist, err := cp.Gov.FindVotingProposal(blockHash, state, Cancel); err != nil {
 		log.Error("find voting cancel proposal error", "err", err)
 		return err
 	} else if exist != nil {
 		return VotingCancelProposalExist
 	}
 
-	if tobeCanceled, err := GetProposal(cp.TobeCanceled, state); err != nil {
+	if tobeCanceled, err := cp.Gov.db.GetProposal(cp.TobeCanceled, state); err != nil {
 		log.Error("find to be canceled version proposal error", "err", err)
 		return err
 	} else if tobeCanceled == nil {
 		return TobeCanceledProposalNotFound
 	} else if tobeCanceled.GetProposalType() != Version && tobeCanceled.GetProposalType() != Param {
 		return TobeCanceledProposalTypeError
-	} else if votingList, err := ListVotingProposal(blockHash); err != nil {
+	} else if votingList, err := cp.Gov.db.ListVotingProposal(blockHash); err != nil {
 		log.Error("list voting proposal error", "err", err)
 		return err
 	} else if !xutil.InHashList(cp.TobeCanceled, votingList) {
@@ -372,7 +376,7 @@ func (cp *CancelProposal) Verify(submitBlock uint64, blockHash common.Hash, stat
 }
 
 func (cp *CancelProposal) String() string {
-	return fmt.Sprintf(`Proposal %x: 
+	return fmt.Sprintf(`Proposal %x:
   Type:               	%x
   PIPID:			    %s
   Proposer:            	%x
@@ -393,6 +397,7 @@ type ParamProposal struct {
 	Module         string
 	Name           string
 	NewValue       string
+	Gov            *Gov `json:"-"`
 }
 
 func (pp *ParamProposal) GetProposalID() common.Hash {
@@ -427,11 +432,11 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	if pp.ProposalType != Param {
 		return ProposalTypeError
 	}
-	if err := verifyBasic(pp, blockHash, state); err != nil {
+	if err := verifyBasic(pp, blockHash, state, pp.Gov); err != nil {
 		return err
 	}
 
-	param, err := FindGovernParam(pp.Module, pp.Name, blockHash)
+	param, err := pp.Gov.FindGovernParam(pp.Module, pp.Name, blockHash)
 	if err != nil {
 		log.Error("find govern parameter error", "err", err)
 		return err
@@ -442,14 +447,14 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	}
 
 	if paramVerifier, ok := ParamVerifierMap[pp.Module+"/"+pp.Name]; ok {
-		if err := paramVerifier(submitBlock, blockHash, pp.NewValue); err != nil {
+		if err := paramVerifier(pp.Gov, submitBlock, blockHash, pp.NewValue); err != nil {
 			return err
 		}
 	} else {
 		return UnsupportedGovernParam
 	}
 
-	if exist, err := FindVotingProposal(blockHash, state, Param, Version); err != nil {
+	if exist, err := pp.Gov.FindVotingProposal(blockHash, state, Param, Version); err != nil {
 		log.Error("find voting param proposal error", "err", err)
 		return err
 	} else if exist != nil {
@@ -461,7 +466,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 	}
 
 	//another VersionProposal in Pre-active process，exit
-	proposalID, err := GetPreActiveProposalID(blockHash)
+	proposalID, err := pp.Gov.db.GetPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("check pre-active version proposal error", "blockNumber", submitBlock, "blockHash", blockHash)
 		return err
@@ -484,7 +489,7 @@ func (pp *ParamProposal) Verify(submitBlock uint64, blockHash common.Hash, state
 }
 
 func (pp *ParamProposal) String() string {
-	return fmt.Sprintf(`Proposal %x: 
+	return fmt.Sprintf(`Proposal %x:
   Type:               	%x
   PIPID:			    %s
   Proposer:            	%x
@@ -496,11 +501,11 @@ func (pp *ParamProposal) String() string {
 		pp.ProposalID, pp.ProposalType, pp.PIPID, pp.Proposer, pp.SubmitBlock, pp.EndVotingBlock, pp.Module, pp.Name, pp.NewValue)
 }
 
-func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB) error {
+func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB, g *Gov) error {
 	log.Debug("verify proposal basic parameters", "proposalID", p.GetProposalID(), "proposer", p.GetProposer(), "pipID", p.GetPIPID(), "endVotingBlock", p.GetEndVotingBlock(), "submitBlock", p.GetSubmitBlock())
 
 	if p.GetProposalID() != common.ZeroHash {
-		p, err := GetProposal(p.GetProposalID(), state)
+		p, err := g.db.GetProposal(p.GetProposalID(), state)
 		if err != nil {
 			return err
 		}
@@ -518,7 +523,7 @@ func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB) error {
 	//if a PIPID is used in a proposal which is passed, this PIPID cannot be used in another proposal
 	if len(p.GetPIPID()) == 0 {
 		return PIPIDEmpty
-	} else if pipIdList, err := ListPIPID(state); err != nil {
+	} else if pipIdList, err := g.db.ListPIPID(state); err != nil {
 		log.Error("list PIPID error", "err", err)
 		return err
 	} else if isPIPIDExist(p.GetPIPID(), pipIdList) {
@@ -526,12 +531,12 @@ func verifyBasic(p Proposal, blockHash common.Hash, state xcom.StateDB) error {
 	}
 
 	//if a PIPID is used in a proposal which is at voting stage, this PIPID cannot be used in another proposal
-	if votingPIDList, err := ListVotingProposalID(blockHash); err != nil {
+	if votingPIDList, err := g.ListVotingProposalID(blockHash); err != nil {
 		log.Error("list voting proposal ID error", "err", err)
 		return err
 	} else {
 		for _, votingPID := range votingPIDList {
-			if exist, err := GetExistProposal(votingPID, state); err != nil {
+			if exist, err := g.db.GetExistProposal(votingPID, state); err != nil {
 				log.Error("get existing proposal error", "err", err)
 				return err
 			} else if exist.GetPIPID() == p.GetPIPID() {

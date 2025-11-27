@@ -76,6 +76,13 @@ func RewardMgrInstance() *RewardMgrPlugin {
 	return rm
 }
 
+func NewRewardMgrPlugin(db snapshotdb.DB, skt *StakingPlugin) *RewardMgrPlugin {
+	return &RewardMgrPlugin{
+		db:            db,
+		stakingPlugin: skt,
+	}
+}
+
 // BeginBlock does something like check input params before execute transactions,
 // in RewardMgrPlugin it does nothing.
 func (rmp *RewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
@@ -178,7 +185,7 @@ func (rmp *RewardMgrPlugin) increaseIssuance(thisYear, lastYear uint32, state xc
 	//issuance increase
 	{
 		histIssuance := GetHistoryCumulativeIssue(state, lastYear)
-		increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(blockNumber, blockHash)
+		increaseIssuanceRatio, err := gov.NewGov(rmp.db).GovernIncreaseIssuanceRatio(blockNumber, blockHash)
 		if nil != err {
 			log.Error("Failed to increaseIssuance, call GovernIncreaseIssuanceRatio is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"histIssuance", histIssuance, "err", err)

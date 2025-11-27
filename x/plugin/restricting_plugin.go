@@ -18,10 +18,11 @@ package plugin
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -97,7 +98,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, bl
 
 	planMap := make(map[uint64]*big.Int, restricting.RestrictTxPlanSize)
 
-	minimumAmount, err := gov.GovernRestrictingMinimumAmount(blockNum, blockHash)
+	minimumAmount, err := gov.NewGov(rp.db).GovernRestrictingMinimumAmount(blockNum, blockHash)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -232,7 +232,7 @@ func (eth *Ethereum) stateAtTransaction(ctx context.Context, block *types.Block,
 	}
 
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), gov.Gte150VersionState(statedb))
+	signer := types.MakeSigner(eth.blockchain.Config(), block.Number(), gov.NewGov(archiveDB).Gte150VersionState(statedb))
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer, block.BaseFee())

@@ -7,6 +7,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -48,7 +49,7 @@ func (c *ParallelTxsCommitter) CommitTransactions(env *environment, txs *types.T
 			txs.Shift()
 		}
 	}
-	signer := types.MakeSigner(c.worker.chainConfig, env.header.Number, gov.Gte150VersionState(env.state))
+	signer := types.MakeSigner(c.worker.chainConfig, env.header.Number, gov.NewGov(snapshotdb.Instance()).Gte150VersionState(env.state))
 	ctx := core.NewParallelContext(env.state, env.header, common.Hash{}, env.gasPool, true, signer, tempContractCache)
 	ctx.SetBlockDeadline(blockDeadline)
 	ctx.SetBlockGasUsedHolder(&(env.header.GasUsed))

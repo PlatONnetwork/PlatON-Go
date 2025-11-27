@@ -2,13 +2,15 @@ package snapshotdb
 
 import (
 	"bytes"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"math/big"
 )
 
 type archiveSnapshot struct {
@@ -32,7 +34,10 @@ func (a archiveSnapshot) Get(hash common.Hash, key []byte) ([]byte, error) {
 	if bytes.HasPrefix(key, nonceStorageKey) {
 		return a.vrfNonce, nil
 	}
-	return a.trie.Get(key), nil
+	log.Debug("Get from archive snapshot", "hash", hash, "key", common.Bytes2Hex(key))
+	v, err := a.trie.TryGet(key)
+	log.Debug("Try get from archive snapshot", "key", common.Bytes2Hex(key), "v", common.Bytes2Hex(v), "err", err)
+	return v, err
 }
 
 func (a archiveSnapshot) GetFromCommittedBlock(key []byte) ([]byte, error) {

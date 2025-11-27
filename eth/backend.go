@@ -310,7 +310,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return nil, err
 		}
-		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
+		ActiveVersionList, err := gov.NewGov(snapshotBaseDB).GetCurrentActiveVersionList(state)
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +338,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
 	currentHash := currentBlock.Hash()
-	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
+	gasCeil, err := gov.NewGov(snapshotBaseDB).GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
 	if err := snapshotBaseDB.Close(); err != nil {
 		return nil, err
 	}

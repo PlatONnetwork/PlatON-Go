@@ -239,6 +239,7 @@ func (a *archiveDB) GetVrfNonces(blockNumber uint64) ([][]byte, error) {
 	return nonces, nil
 }
 func (a *archiveDB) SnapshotDB(blockNumber uint64) (DB, error) {
+	log.Debug("Get archive snapshotdb", "blockNumber", blockNumber)
 	block, err := a.GetArchiveBlock(blockNumber)
 	if err != nil {
 		return nil, err

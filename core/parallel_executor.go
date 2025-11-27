@@ -11,6 +11,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -223,7 +224,7 @@ func (exe *Executor) executeParallelTx(ctx *ParallelContext, idx int, intrinsicG
 
 	fromObj := ctx.GetState().GetOrNewParallelStateObject(msg.From())
 	// preCheck
-	pauli := gov.Gte150VersionState(ctx.state)
+	pauli := gov.NewGov(snapshotdb.Instance()).Gte150VersionState(ctx.state)
 	if err := exe.preCheck(msg, fromObj, ctx.header.BaseFee, pauli); err != nil {
 		ctx.buildTransferFailedResult(idx, err, true)
 		return
@@ -289,6 +290,6 @@ func (exe *Executor) isContract(tx *types.Transaction, state *state.StateDB, ctx
 	if _, ok := ctx.tempContractCache[*address]; ok {
 		return true
 	}
-	isContract := vm.IsPrecompiledContract(*address, exe.chainConfig.Rules(ctx.header.Number), gov.Gte150VersionState(state)) || state.GetCodeSize(*address) > 0
+	isContract := vm.IsPrecompiledContract(*address, exe.chainConfig.Rules(ctx.header.Number), gov.NewGov(snapshotdb.Instance()).Gte150VersionState(state)) || state.GetCodeSize(*address) > 0
 	return isContract
 }

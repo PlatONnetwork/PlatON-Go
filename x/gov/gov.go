@@ -75,6 +75,16 @@ const (
 	KeyUnDelegateFreezeDuration   = "unDelegateFreezeDuration"
 )
 
+type Gov struct {
+	db *GovDB
+}
+
+func NewGov(db snapshotdb.DB) *Gov {
+	return &Gov{
+		db: NewGovDB(db),
+	}
+}
+
 func Gte130Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_3_0
 }
@@ -88,16 +98,16 @@ func WriteEcHash130(state xcom.StateDB) error {
 	return nil
 }
 
-func Gte150VersionState(state xcom.StateDB) bool {
-	return Gte150Version(GetCurrentActiveVersion(state))
+func (g *Gov) Gte150VersionState(state xcom.StateDB) bool {
+	return Gte150Version(g.GetCurrentActiveVersion(state))
 }
 
 func Gte150Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_5_0
 }
 
-func Gte160VersionState(state xcom.StateDB) bool {
-	return Gte160Version(GetCurrentActiveVersion(state))
+func (g *Gov) Gte160VersionState(state xcom.StateDB) bool {
+	return Gte160Version(g.GetCurrentActiveVersion(state))
 }
 
 func Gte160Version(version uint32) bool {
@@ -112,18 +122,18 @@ func SetEcParametersHash(state xcom.StateDB, rlpData []byte) {
 	state.SetState(vm.StakingContractAddr, staking.GetPPOSHASHKey(), common.RlpHash(buf.Bytes()).Bytes())
 }
 
-func GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
-	preActiveVersion := GetPreActiveVersion(blockHash)
+func (g *Gov) GetVersionForStaking(blockHash common.Hash, state xcom.StateDB) uint32 {
+	preActiveVersion := g.db.GetPreActiveVersion(blockHash)
 	if preActiveVersion > 0 {
 		return preActiveVersion
 	} else {
-		return GetCurrentActiveVersion(state)
+		return g.GetCurrentActiveVersion(state)
 	}
 }
 
 // GetCurrentActiveVersion Get current active version record
-func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
-	avList, err := ListActiveVersion(state)
+func (g *Gov) GetCurrentActiveVersion(state xcom.StateDB) uint32 {
+	avList, err := g.db.ListActiveVersion(state)
 	if err != nil {
 		log.Error("Cannot find active version list", "err", err)
 		return 0
@@ -139,8 +149,8 @@ func GetCurrentActiveVersion(state xcom.StateDB) uint32 {
 	return version
 }
 
-func GetCurrentActiveVersionList(state xcom.StateDB) ([]ActiveVersionValue, error) {
-	avList, err := ListActiveVersion(state)
+func (g *Gov) GetCurrentActiveVersionList(state xcom.StateDB) ([]ActiveVersionValue, error) {
+	avList, err := g.db.ListActiveVersion(state)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +158,7 @@ func GetCurrentActiveVersionList(state xcom.StateDB) ([]ActiveVersionValue, erro
 }
 
 // Submit submit a proposal
-func Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
+func (g *Gov) Submit(from common.Address, proposal Proposal, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB, chainID *big.Int) error {
 	log.Debug("call Submit", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "proposal", proposal)
 
 	//param check
@@ -162,16 +172,16 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	}
 
 	//check caller and proposer
-	if err := checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock(), stk); err != nil {
+	if err := g.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock(), stk); err != nil {
 		return err
 	}
 
 	//handle storage
-	if err := SetProposal(proposal, state); err != nil {
+	if err := g.db.SetProposal(proposal, state); err != nil {
 		log.Error("save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
-	if err := AddVotingProposalID(blockHash, proposal.GetProposalID()); err != nil {
+	if err := g.db.AddVotingProposalID(blockHash, proposal.GetProposalID()); err != nil {
 		log.Error("add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
@@ -182,7 +192,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 	}
 	log.Debug("verifiers count of current settlement", "verifierCount", len(verifierList))
 
-	if err := AccuVerifiers(blockHash, proposal.GetProposalID(), verifierList); err != nil {
+	if err := g.db.AccuVerifiers(blockHash, proposal.GetProposalID(), verifierList); err != nil {
 		return err
 	}
 
@@ -190,7 +200,7 @@ func Submit(from common.Address, proposal Proposal, blockHash common.Hash, block
 }
 
 // Vote for a proposal
-func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
+func (g *Gov) Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber uint64, programVersion uint32, programVersionSign common.VersionSign, stk Staking, state xcom.StateDB) error {
 	log.Debug("call Vote", "from", from, "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID, "voteOption", vote.VoteOption, "blockHash", blockHash, "blockNumber", blockNumber, "programVersion", programVersion, "programVersionSign", programVersionSign)
 	if vote.ProposalID == common.ZeroHash {
 		return ProposalIDEmpty
@@ -200,7 +210,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 		return VoteOptionError
 	}
 
-	proposal, err := GetProposal(vote.ProposalID, state)
+	proposal, err := g.db.GetProposal(vote.ProposalID, state)
 	if err != nil {
 		log.Error("find proposal error", "proposalID", vote.ProposalID)
 		return err
@@ -209,7 +219,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check caller and voter
-	if err := checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber, stk); err != nil {
+	if err := g.checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber, stk); err != nil {
 		return err
 	}
 
@@ -233,7 +243,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if vote.proposalID is in voting
-	votingIDs, err := ListVotingProposalID(blockHash)
+	votingIDs, err := g.ListVotingProposalID(blockHash)
 	if err != nil {
 		log.Error("list voting proposal error", "blockHash", blockHash, "blockNumber", blockNumber, "err", err)
 		return err
@@ -253,7 +263,7 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//check if node has voted
-	votedMap, err := GetVotedVerifierMap(vote.ProposalID, blockHash)
+	votedMap, err := g.db.GetVotedVerifierMap(vote.ProposalID, blockHash)
 	if err != nil {
 		log.Error("get voted verifier map error", "proposalID", vote.ProposalID, "blockHash", blockHash, "blockNumber", blockNumber)
 		return err
@@ -264,14 +274,14 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 	}
 
 	//handle storage
-	if err := AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, blockHash); err != nil {
+	if err := g.db.AddVoteValue(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, blockHash); err != nil {
 		log.Error("save vote error", "proposalID", vote.ProposalID)
 		return err
 	}
 
 	//the proposal is version type, so add the node ID to active node list.
 	if proposal.GetProposalType() == Version {
-		if err := AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
+		if err := g.db.AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
 			log.Error("add nodeID to active node list error", "proposalID", vote.ProposalID, "nodeID", vote.VoteNodeID.TerminalString())
 			return err
 		}
@@ -281,23 +291,23 @@ func Vote(from common.Address, vote VoteInfo, blockHash common.Hash, blockNumber
 }
 
 // DeclareVersion node declares it's version
-func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
+func (g *Gov) DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVersion uint32, programVersionSign common.VersionSign, blockHash common.Hash, blockNumber uint64, stk Staking, state xcom.StateDB) error {
 	log.Debug("call DeclareVersion", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "versionSign", programVersionSign)
 
 	if !node.GetCryptoHandler().IsSignedByNodeID(declaredVersion, programVersionSign.Bytes(), declaredNodeID) {
 		return VersionSignError
 	}
 
-	if err := checkCandidate(from, declaredNodeID, blockHash, blockNumber, stk); err != nil {
+	if err := g.checkCandidate(from, declaredNodeID, blockHash, blockNumber, stk); err != nil {
 		return err
 	}
 
-	activeVersion := GetCurrentActiveVersion(state)
+	activeVersion := g.GetCurrentActiveVersion(state)
 	if activeVersion <= 0 {
 		return ActiveVersionError
 	}
 
-	proposal, err := FindVotingProposal(blockHash, state, Version)
+	proposal, err := g.FindVotingProposal(blockHash, state, Version)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return err
@@ -309,7 +319,7 @@ func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVers
 
 		log.Debug("there is a version proposal at voting stage", "proposal", votingVP)
 
-		votedMap, err := GetVotedVerifierMap(votingVP.ProposalID, blockHash)
+		votedMap, err := g.db.GetVotedVerifierMap(votingVP.ProposalID, blockHash)
 		if err != nil {
 			log.Error("get voted verifier map error", "proposalID", votingVP.ProposalID)
 			return err
@@ -330,7 +340,7 @@ func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVers
 		} else if declaredVersion>>8 == votingVP.GetNewVersion()>>8 {
 			//the declared version equals the new version, will notify staking when the proposal is passed
 			log.Debug("add node to activeNodeList(not voted, declaredVersion==newVersion.", "newVersion", votingVP.GetNewVersion, "declaredVersion", declaredVersion)
-			if err := AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
+			if err := g.db.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID); err != nil {
 				log.Error("add declared node ID to active node list failed", "err", err)
 				return err
 			}
@@ -340,7 +350,7 @@ func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVers
 		}
 	} else {
 		log.Debug("there is no version proposal at voting stage")
-		preActiveVersion := GetPreActiveVersion(blockHash)
+		preActiveVersion := g.db.GetPreActiveVersion(blockHash)
 		if preActiveVersion <= 0 {
 			log.Debug("there is no version proposal at pre-active stage")
 			if declaredVersion>>8 == activeVersion>>8 {
@@ -371,7 +381,7 @@ func DeclareVersion(from common.Address, declaredNodeID enode.IDv0, declaredVers
 }
 
 // check if the node a verifier, and the caller address is same as the staking address
-func checkVerifier(from common.Address, nodeID enode.IDv0, blockHash common.Hash, blockNumber uint64, stk Staking) error {
+func (g *Gov) checkVerifier(from common.Address, nodeID enode.IDv0, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	log.Debug("call checkVerifier", "from", from, "blockHash", blockHash, "blockNumber", blockNumber, "nodeID", nodeID)
 
 	_, err := xutil.NodeId2Addr(nodeID)
@@ -413,23 +423,23 @@ func checkVerifier(from common.Address, nodeID enode.IDv0, blockHash common.Hash
 }
 
 // ListProposal query proposal list
-func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
+func (g *Gov) ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
 	log.Debug("call ListProposal")
 	var proposalIDs []common.Hash
 	var proposals []Proposal
 
-	votingProposals, err := ListVotingProposal(blockHash)
+	votingProposals, err := g.db.ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("list voting proposal error", "blockHash", blockHash)
 		return nil, err
 	}
-	endProposals, err := ListEndProposalID(blockHash)
+	endProposals, err := g.db.ListEndProposalID(blockHash)
 	if err != nil {
 		log.Error("list end proposals error", "blockHash", blockHash)
 		return nil, err
 	}
 
-	preActiveProposals, err := GetPreActiveProposalID(blockHash)
+	preActiveProposals, err := g.db.GetPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("find pre-active proposal error", "blockHash", blockHash)
 		return nil, err
@@ -442,7 +452,7 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 	}
 
 	for _, proposalID := range proposalIDs {
-		proposal, err := GetExistProposal(proposalID, state)
+		proposal, err := g.db.GetExistProposal(proposalID, state)
 		if err != nil {
 			log.Error("find proposal error", "proposalID", proposalID)
 			return nil, err
@@ -453,9 +463,9 @@ func ListProposal(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error)
 }
 
 // ListVotingProposalID list all proposal IDs at voting stage
-func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
+func (g *Gov) ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 	log.Debug("call ListVotingProposalID", "blockHash", blockHash)
-	idList, err := ListVotingProposal(blockHash)
+	idList, err := g.db.ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting version proposal error", "blockHash", blockHash)
 		return nil, err
@@ -464,17 +474,17 @@ func ListVotingProposalID(blockHash common.Hash) ([]common.Hash, error) {
 }
 
 // FindVotingProposal find a proposal at voting stage
-func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
+func (g *Gov) FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes ...ProposalType) (Proposal, error) {
 	if len(proposalTypes) == 0 {
 		return nil, common.InvalidParameter
 	}
-	idList, err := ListVotingProposal(blockHash)
+	idList, err := g.db.ListVotingProposal(blockHash)
 	if err != nil {
 		log.Error("find voting proposal error", "blockHash", blockHash)
 		return nil, err
 	}
 	for _, proposalID := range idList {
-		p, err := GetExistProposal(proposalID, state)
+		p, err := g.db.GetExistProposal(proposalID, state)
 		if err != nil {
 			return nil, err
 		}
@@ -491,18 +501,18 @@ func FindVotingProposal(blockHash common.Hash, state xcom.StateDB, proposalTypes
 // GetMaxEndVotingBlock returns the max endVotingBlock of proposals those are at voting stage, and the nodeID has voted for those proposals.
 // or returns 0 if there's no proposal at voting stage, or nodeID didn't voted for any proposal.
 // if any error happened, return 0 and the error
-func GetMaxEndVotingBlock(nodeID enode.IDv0, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
-	if proposalIDList, err := ListVotingProposal(blockHash); err != nil {
+func (g *Gov) GetMaxEndVotingBlock(nodeID enode.IDv0, blockHash common.Hash, state xcom.StateDB) (uint64, error) {
+	if proposalIDList, err := g.db.ListVotingProposal(blockHash); err != nil {
 		return 0, err
 	} else {
 		var maxEndVotingBlock = uint64(0)
 		for _, proposalID := range proposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
+			if voteValueList, err := g.db.ListVoteValue(proposalID, blockHash); err != nil {
 				return 0, err
 			} else {
 				for _, voteValue := range voteValueList {
 					if voteValue.VoteNodeID == nodeID {
-						if proposal, err := GetExistProposal(proposalID, state); err != nil {
+						if proposal, err := g.db.GetExistProposal(proposalID, state); err != nil {
 							return 0, err
 						} else if proposal.GetEndVotingBlock() > maxEndVotingBlock {
 							maxEndVotingBlock = proposal.GetEndVotingBlock()
@@ -516,15 +526,15 @@ func GetMaxEndVotingBlock(nodeID enode.IDv0, blockHash common.Hash, state xcom.S
 }
 
 // NotifyPunishedVerifiers receives punished verifies notification from Staking
-func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enode.IDv0]struct{}, state xcom.StateDB) error {
+func (g *Gov) NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enode.IDv0]struct{}, state xcom.StateDB) error {
 	if len(punishedVerifierMap) == 0 {
 		return nil
 	}
-	if votingProposalIDList, err := ListVotingProposalID(blockHash); err != nil {
+	if votingProposalIDList, err := g.ListVotingProposalID(blockHash); err != nil {
 		return err
 	} else if len(votingProposalIDList) > 0 {
 		for _, proposalID := range votingProposalIDList {
-			if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
+			if voteValueList, err := g.db.ListVoteValue(proposalID, blockHash); err != nil {
 				return err
 			} else if len(voteValueList) > 0 {
 				idx := 0 // output index
@@ -541,7 +551,7 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enod
 				if len(removed) > 0 && idx < len(voteValueList) {
 					voteValueList = voteValueList[:idx]
 					log.Debug(fmt.Sprintf("remove voted value, proposalID:%s, removedVoteValue:%+v", proposalID.Hex(), removed))
-					if err := UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
+					if err := g.db.UpdateVoteValue(proposalID, voteValueList, blockHash); err != nil {
 						return err
 					}
 				}
@@ -564,51 +574,51 @@ func NotifyPunishedVerifiers(blockHash common.Hash, punishedVerifierMap map[enod
 	return nil
 }
 
-func ClearProcessingProposals(blockHash common.Hash, state xcom.StateDB) error {
-	if votingIDList, err := ListVotingProposalID(blockHash); err != nil {
+func (g *Gov) ClearProcessingProposals(blockHash common.Hash, state xcom.StateDB) error {
+	if votingIDList, err := g.ListVotingProposalID(blockHash); err != nil {
 		return err
 	} else {
 		for _, votingID := range votingIDList {
-			if err := clearProcessingProposal(votingID, true, blockHash, state); err != nil {
+			if err := g.clearProcessingProposal(votingID, true, blockHash, state); err != nil {
 				return err
 			}
 		}
 	}
 
-	if preactiveID, err := GetPreActiveProposalID(blockHash); err != nil {
+	if preactiveID, err := g.db.GetPreActiveProposalID(blockHash); err != nil {
 		log.Error(" find pre-active proposal ID failed", "blockHash", blockHash)
 		return err
 	} else if preactiveID != common.ZeroHash {
-		if err := clearProcessingProposal(preactiveID, false, blockHash, state); err != nil {
+		if err := g.clearProcessingProposal(preactiveID, false, blockHash, state); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash common.Hash, state xcom.StateDB) error {
+func (g *Gov) clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash common.Hash, state xcom.StateDB) error {
 	if isVoting {
-		if err := MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
+		if err := g.db.MoveVotingProposalIDToEnd(proposalID, blockHash); err != nil {
 			log.Error("move proposalID from voting proposalID list to end list failed", "proposalID", proposalID, "blockHash", blockHash)
 			return err
 		}
 	} else {
-		if err := MovePreActiveProposalIDToEnd(blockHash, proposalID); err != nil {
+		if err := g.db.MovePreActiveProposalIDToEnd(blockHash, proposalID); err != nil {
 			log.Error("move pre-active proposal ID to end list failed", "proposalID", proposalID, "blockHash", blockHash)
 			return err
 		}
 
-		if err := delPreActiveVersion(blockHash); err != nil {
+		if err := g.db.delPreActiveVersion(blockHash); err != nil {
 			log.Error("delete pre-active version failed", "blockHash", blockHash)
 			return err
 		}
 	}
 
-	if err := ClearVoteValue(proposalID, blockHash); err != nil {
+	if err := g.db.ClearVoteValue(proposalID, blockHash); err != nil {
 		log.Error("clear vote values failed", "proposalID", proposalID, "blockHash", blockHash)
 		return err
 	}
-	if err := ClearAccuVerifiers(blockHash, proposalID); err != nil {
+	if err := g.db.ClearAccuVerifiers(blockHash, proposalID); err != nil {
 		log.Error("clear voted verifiers failed", "proposalID", proposalID, "blockHash", blockHash.Hex(), "error", err)
 		return err
 	}
@@ -620,34 +630,34 @@ func clearProcessingProposal(proposalID common.Hash, isVoting bool, blockHash co
 		AccuVerifiers: 0x0,
 		Status:        Failed,
 	}
-	if err := SetTallyResult(*tallyResult, state); err != nil {
+	if err := g.db.SetTallyResult(*tallyResult, state); err != nil {
 		log.Error("save tally result failed", "proposalID", proposalID, "blockHash", blockHash)
 		return err
 	}
 	return nil
 }
 
-func SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
+func (g *Gov) SetGovernParam(module, name, desc, initValue string, activeBlockNumber uint64, currentBlockHash common.Hash) error {
 	paramValue := &ParamValue{"", initValue, activeBlockNumber}
-	return addGovernParam(module, name, desc, paramValue, currentBlockHash)
+	return g.db.addGovernParam(module, name, desc, paramValue, currentBlockHash)
 }
 
-func UpdateGovernParamValue(module, name string, newValue string, activeBlock uint64, blockHash common.Hash) error {
-	return updateGovernParamValue(module, name, newValue, activeBlock, blockHash)
+func (g *Gov) UpdateGovernParamValue(module, name string, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	return g.db.updateGovernParamValue(module, name, newValue, activeBlock, blockHash)
 }
 
-func ListGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
-	return listGovernParam(module, blockHash)
+func (g *Gov) ListGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	return g.db.listGovernParam(module, blockHash)
 }
 
-func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, error) {
-	itemList, err := listGovernParamItem(module, blockHash)
+func (g *Gov) FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, error) {
+	itemList, err := g.db.listGovernParamItem(module, blockHash)
 	if err != nil {
 		return nil, err
 	}
 	for _, item := range itemList {
 		if item.Name == name {
-			if value, err := findGovernParamValue(module, name, blockHash); err != nil {
+			if value, err := g.db.findGovernParamValue(module, name, blockHash); err != nil {
 				return nil, err
 			} else if value != nil {
 				param := &GovernParam{item, value, nil}
@@ -659,7 +669,7 @@ func FindGovernParam(module, name string, blockHash common.Hash) (*GovernParam, 
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
-func checkCandidate(from common.Address, nodeID enode.IDv0, blockHash common.Hash, blockNumber uint64, stk Staking) error {
+func (g *Gov) checkCandidate(from common.Address, nodeID enode.IDv0, blockHash common.Hash, blockNumber uint64, stk Staking) error {
 	_, err := xutil.NodeId2Addr(nodeID)
 	if nil != err {
 		log.Error("parse nodeID error", "err", err)
@@ -684,10 +694,10 @@ func checkCandidate(from common.Address, nodeID enode.IDv0, blockHash common.Has
 	return TxSenderIsNotCandidate
 }
 
-type ParamVerifier func(blockNumber uint64, blockHash common.Hash, value string) error
+type ParamVerifier func(gov *Gov, blockNumber uint64, blockHash common.Hash, value string) error
 
-func GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
-	paramValue, err := findGovernParamValue(module, name, blockHash)
+func (g *Gov) GetGovernParamValue(module, name string, blockNumber uint64, blockHash common.Hash) (string, error) {
+	paramValue, err := g.db.findGovernParamValue(module, name, blockHash)
 	if err != nil {
 		log.Error("get govern parameter value failed", "module", module, "name", name, "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
 		return "", err
@@ -704,8 +714,8 @@ func GetGovernParamValue(module, name string, blockNumber uint64, blockHash comm
 	}
 }
 
-func GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
-	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyStakeThreshold, blockNumber, blockHash)
+func (g *Gov) GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	thresholdStr, err := g.GetGovernParamValue(ModuleStaking, KeyStakeThreshold, blockNumber, blockHash)
 	if nil != err {
 		return new(big.Int).SetInt64(0), err
 	}
@@ -718,8 +728,8 @@ func GovernStakeThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, 
 	return threshold, nil
 }
 
-func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
-	thresholdStr, err := GetGovernParamValue(ModuleStaking, KeyOperatingThreshold, blockNumber, blockHash)
+func (g *Gov) GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	thresholdStr, err := g.GetGovernParamValue(ModuleStaking, KeyOperatingThreshold, blockNumber, blockHash)
 	if nil != err {
 		return new(big.Int).SetInt64(0), err
 	}
@@ -732,8 +742,8 @@ func GovernOperatingThreshold(blockNumber uint64, blockHash common.Hash) (*big.I
 	return threshold, nil
 }
 
-func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, error) {
-	maxvalidatorsStr, err := GetGovernParamValue(ModuleStaking, KeyMaxValidators, blockNumber, blockHash)
+func (g *Gov) GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	maxvalidatorsStr, err := g.GetGovernParamValue(ModuleStaking, KeyMaxValidators, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -746,8 +756,8 @@ func GovernMaxValidators(blockNumber uint64, blockHash common.Hash) (uint64, err
 	return uint64(maxvalidators), nil
 }
 
-func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
-	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
+func (g *Gov) GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := g.GetGovernParamValue(ModuleStaking, KeyUnStakeFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -760,8 +770,8 @@ func GovernUnStakeFreezeDuration(blockNumber uint64, blockHash common.Hash) (uin
 	return uint64(duration), nil
 }
 
-func GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
-	durationStr, err := GetGovernParamValue(ModuleStaking, KeyUnDelegateFreezeDuration, blockNumber, blockHash)
+func (g *Gov) GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	durationStr, err := g.GetGovernParamValue(ModuleStaking, KeyUnDelegateFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -774,8 +784,8 @@ func GovernUnDelegateFreezeDuration(blockNumber uint64, blockHash common.Hash) (
 	return uint64(duration), nil
 }
 
-func GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash) (uint32, error) {
-	fractionStr, err := GetGovernParamValue(ModuleSlashing, KeySlashFractionDuplicateSign, blockNumber, blockHash)
+func (g *Gov) GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	fractionStr, err := g.GetGovernParamValue(ModuleSlashing, KeySlashFractionDuplicateSign, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -788,8 +798,8 @@ func GovernSlashFractionDuplicateSign(blockNumber uint64, blockHash common.Hash)
 	return uint32(fraction), nil
 }
 
-func GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
-	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeyDuplicateSignReportReward, blockNumber, blockHash)
+func (g *Gov) GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	rewardStr, err := g.GetGovernParamValue(ModuleSlashing, KeyDuplicateSignReportReward, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -802,8 +812,8 @@ func GovernDuplicateSignReportReward(blockNumber uint64, blockHash common.Hash) 
 	return uint32(reward), nil
 }
 
-func GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, error) {
-	ageStr, err := GetGovernParamValue(ModuleSlashing, KeyMaxEvidenceAge, blockNumber, blockHash)
+func (g *Gov) GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	ageStr, err := g.GetGovernParamValue(ModuleSlashing, KeyMaxEvidenceAge, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -816,8 +826,8 @@ func GovernMaxEvidenceAge(blockNumber uint64, blockHash common.Hash) (uint32, er
 	return uint32(age), nil
 }
 
-func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
-	rewardStr, err := GetGovernParamValue(ModuleSlashing, KeySlashBlocksReward, blockNumber, blockHash)
+func (g *Gov) GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32, error) {
+	rewardStr, err := g.GetGovernParamValue(ModuleSlashing, KeySlashBlocksReward, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -830,7 +840,7 @@ func GovernSlashBlocksReward(blockNumber uint64, blockHash common.Hash) (uint32,
 	return uint32(reward), nil
 }
 
-func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash, db snapshotdb.DB) (int, error) {
+func (g *Gov) GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash, db snapshotdb.DB) (int, error) {
 	gasLimitStr, err := GetGovernParamValueWithDataBase(ModuleBlock, KeyMaxBlockGasLimit, blockNumber, blockHash, db)
 	if nil != err {
 		return 0, err
@@ -858,8 +868,8 @@ func GovernMaxBlockGasLimit(blockNumber uint64, blockHash common.Hash, db snapsh
 //	return size, nil
 //}
 
-func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash) (uint16, error) {
-	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceNumberThreshold, blockNumber, blockHash)
+func (g *Gov) GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleSlashing, KeyZeroProduceNumberThreshold, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -872,8 +882,8 @@ func GovernZeroProduceNumberThreshold(blockNumber uint64, blockHash common.Hash)
 	return uint16(value), nil
 }
 
-func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
-	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
+func (g *Gov) GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleSlashing, KeyZeroProduceCumulativeTime, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -886,8 +896,8 @@ func GovernZeroProduceCumulativeTime(blockNumber uint64, blockHash common.Hash) 
 	return uint16(value), nil
 }
 
-func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
-	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
+func (g *Gov) GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleStaking, KeyRewardPerMaxChangeRange, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -900,8 +910,8 @@ func GovernRewardPerMaxChangeRange(blockNumber uint64, blockHash common.Hash) (u
 	return uint16(value), nil
 }
 
-func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
-	valueStr, err := GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
+func (g *Gov) GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleStaking, KeyRewardPerChangeInterval, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -914,8 +924,8 @@ func GovernRewardPerChangeInterval(blockNumber uint64, blockHash common.Hash) (u
 	return uint16(value), nil
 }
 
-func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uint16, error) {
-	valueStr, err := GetGovernParamValue(ModuleReward, KeyIncreaseIssuanceRatio, blockNumber, blockHash)
+func (g *Gov) GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uint16, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleReward, KeyIncreaseIssuanceRatio, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -928,8 +938,8 @@ func GovernIncreaseIssuanceRatio(blockNumber uint64, blockHash common.Hash) (uin
 	return uint16(value), nil
 }
 
-func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
-	valueStr, err := GetGovernParamValue(ModuleSlashing, KeyZeroProduceFreezeDuration, blockNumber, blockHash)
+func (g *Gov) GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) (uint64, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleSlashing, KeyZeroProduceFreezeDuration, blockNumber, blockHash)
 	if nil != err {
 		return 0, err
 	}
@@ -942,8 +952,8 @@ func GovernZeroProduceFreezeDuration(blockNumber uint64, blockHash common.Hash) 
 	return uint64(value), nil
 }
 
-func GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
-	valueStr, err := GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
+func (g *Gov) GovernRestrictingMinimumAmount(blockNumber uint64, blockHash common.Hash) (*big.Int, error) {
+	valueStr, err := g.GetGovernParamValue(ModuleRestricting, KeyRestrictingMinimumAmount, blockNumber, blockHash)
 	if nil != err {
 		return nil, err
 	}
