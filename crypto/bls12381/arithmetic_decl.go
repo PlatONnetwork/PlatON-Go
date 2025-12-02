@@ -15,7 +15,6 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build (amd64 && blsasm) || (amd64 && blsadx)
-// +build amd64,blsasm amd64,blsadx
 
 package bls12381
 
