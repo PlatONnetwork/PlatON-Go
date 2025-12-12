@@ -835,7 +835,7 @@ func (w *worker) makeEnv(parent *types.Block, header *types.Header, generateExtr
 	log.Debug("Prepare header extra", "data", hex.EncodeToString(extra), "num", header.Number)
 
 	env := &environment{
-		signer:     types.MakeSigner(w.chainConfig, header.Number, gov.Gte150VersionState(state)),
+		signer:     types.MakeSigner(w.chainConfig, header.Number, gov.NewGov(snapshotdb.Instance()).Gte150VersionState(state)),
 		snapshotDB: snapshotdb.Instance(),
 		state:      state,
 		header:     header,
@@ -954,7 +954,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 		// create default extradata
 		extra, _ := rlp.EncodeToBytes([]interface{}{
 			//uint(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch),
-			gov.GetCurrentActiveVersion(state),
+			gov.NewGov(snapshotdb.Instance()).GetCurrentActiveVersion(state),
 			"platon",
 			runtime.Version(),
 			runtime.GOOS,

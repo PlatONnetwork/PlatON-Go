@@ -29,6 +29,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -317,7 +318,7 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		log.Error("BlockChainCache MakeStateDB failed", "err", err)
 		return err
 	}
-	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, block.Number(), gov.Gte150VersionState(state)), block)
+	SenderCacher.RecoverFromBlock(types.MakeSigner(bcc.chainConfig, block.Number(), gov.NewGov(snapshotdb.Instance()).Gte150VersionState(state)), block)
 	if err != nil {
 		return errors.New("execute block error")
 	}
