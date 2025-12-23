@@ -4,9 +4,8 @@ package tests
 
 import (
 	"encoding/json"
-	"math/big"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"

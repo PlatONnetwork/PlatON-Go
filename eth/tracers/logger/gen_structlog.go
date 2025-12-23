@@ -4,7 +4,6 @@ package logger
 
 import (
 	"encoding/json"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
