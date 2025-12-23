@@ -38,7 +38,6 @@ import (
 	"strconv"
 )
 
-
 // Errors
 var (
 	ErrEmptyString   = &decError{"empty hex string"}

@@ -22,11 +22,12 @@ package signify
 import (
 	"bufio"
 	"fmt"
-	fuzz "github.com/google/gofuzz"
-	"github.com/jedisct1/go-minisign"
 	"log"
 	"os"
 	"os/exec"
+
+	fuzz "github.com/google/gofuzz"
+	"github.com/jedisct1/go-minisign"
 )
 
 func Fuzz(data []byte) int {

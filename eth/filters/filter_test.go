@@ -18,10 +18,11 @@ package filters
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"

@@ -18,12 +18,13 @@ package downloader
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"math/rand"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 

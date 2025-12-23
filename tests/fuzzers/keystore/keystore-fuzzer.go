@@ -17,8 +17,9 @@
 package keystore
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"os"
+
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 )
 
 func Fuzz(input []byte) int {
