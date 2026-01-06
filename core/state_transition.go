@@ -284,7 +284,7 @@ func (st *StateTransition) preCheck(isContractIvk bool) error {
 	}
 
 	// Make sure that transaction gasFeeCap is greater than the baseFee (post london)
-	if gov.Gte150VersionState(st.state) {
+	if gov.NewGov(st.evm.SnapshotDB).Gte150VersionState(st.state) {
 		// Skip the checks if gas fields are zero and baseFee was explicitly disabled (eth_call)
 		if !st.evm.Config.NoBaseFee || st.gasFeeCap.BitLen() > 0 || st.gasTipCap.BitLen() > 0 {
 			if l := st.gasFeeCap.BitLen(); l > 256 {
@@ -315,7 +315,7 @@ func (st *StateTransition) isContractIvk() bool {
 		return true
 	}
 	rules := st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber)
-	return st.evm.StateDB.GetCodeSize(*address) > 0 || vm.IsPrecompiledContract(*address, rules, gov.Gte150VersionState(st.evm.StateDB))
+	return st.evm.StateDB.GetCodeSize(*address) > 0 || vm.IsPrecompiledContract(*address, rules, gov.NewGov(st.evm.SnapshotDB).Gte150VersionState(st.evm.StateDB))
 }
 
 // TransitionDb will transition the state by applying the current message and
@@ -365,7 +365,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 
 	// Check whether the init code size has been exceeded.
-	dirac := gov.Gte160VersionState(st.state)
+	dirac := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, dirac)
@@ -392,7 +392,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	ctx := context.Background()
 	var cancelFn context.CancelFunc
 	if st.evm.GetVMConfig().VmTimeoutDuration > 0 &&
-		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber), gov.Gte150VersionState(st.state))) {
+		(contractCreation || !vm.IsPrecompiledContract(*(msg.To()), st.evm.ChainConfig().Rules(st.evm.Context.BlockNumber), gov.NewGov(st.evm.SnapshotDB).Gte150VersionState(st.state))) {
 		timeout := time.Duration(st.evm.GetVMConfig().VmTimeoutDuration) * time.Millisecond
 		ctx, cancelFn = context.WithTimeout(ctx, timeout)
 	} else {
@@ -402,7 +402,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// set req context to vm context
 	st.evm.Context.Ctx = ctx
 
-	pauli := gov.Gte150VersionState(st.state)
+	pauli := gov.NewGov(st.evm.SnapshotDB).Gte150VersionState(st.state)
 
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)

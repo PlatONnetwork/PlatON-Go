@@ -22,6 +22,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -96,7 +98,7 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, bl
 
 	planMap := make(map[uint64]*big.Int, restricting.RestrictTxPlanSize)
 
-	minimumAmount, err := gov.GovernRestrictingMinimumAmount(blockNum, blockHash)
+	minimumAmount, err := gov.NewGov(rp.db).GovernRestrictingMinimumAmount(blockNum, blockHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,12 +173,12 @@ func (rp *RestrictingPlugin) InitGenesisRestrictingPlans(statedb xcom.StateDB) e
 
 	//initial release from genesis restricting plans(62215742LAT)
 	initialRelease := new(big.Int).Mul(big.NewInt(62215742), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), initialRelease)
+	statedb.SubBalance(params.CDFAccount(), initialRelease)
 	statedb.AddBalance(vm.RewardManagerPoolAddr, initialRelease)
 
 	//transfer 259096239LAT from CDFAccount to vm.RestrictingContractAddr
 	totalRestrictingPlan := new(big.Int).Mul(big.NewInt(259096239), big.NewInt(1e18))
-	statedb.SubBalance(xcom.CDFAccount(), totalRestrictingPlan)
+	statedb.SubBalance(params.CDFAccount(), totalRestrictingPlan)
 	statedb.AddBalance(vm.RestrictingContractAddr, totalRestrictingPlan)
 
 	if err := rp.updateGenesisRestrictingPlans(genesisAllowancePlans, statedb); nil != err {

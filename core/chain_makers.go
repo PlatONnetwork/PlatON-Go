@@ -54,7 +54,7 @@ type BlockGen struct {
 }
 
 func (b *BlockGen) SetActiveVersion(version uint32) {
-	gov.AddActiveVersion(version, 0, b.statedb)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(version, 0, b.statedb)
 }
 
 // SetCoinbase sets the coinbase of the generated block.
@@ -261,7 +261,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	}
 	for i := 0; i < n; i++ {
 		statedb, err := state.New(parent.Root(), state.NewDatabase(db), nil)
-		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
+		gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
 		if err != nil {
 			panic(err)
 		}
@@ -319,7 +319,7 @@ func GenerateBlockChain2(gspec *Genesis, parent *types.Block, engine consensus.E
 		if err != nil {
 			panic(err)
 		}
-		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
+		gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
 		block, receipt := genblock(i, parent, statedb)
 		errCh := make(chan error, 1)
 		errCh <- engine.InsertChain(block)

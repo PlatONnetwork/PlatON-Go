@@ -29,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/blake2b"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
@@ -202,7 +203,7 @@ var PlatONPrecompiledContractsPauli = map[common.Address]PrecompiledContract{
 
 // ActivePrecompiles returns the precompiles enabled with the current configuration.
 func ActivePrecompiles(state xcom.StateDB) []common.Address {
-	if gov.Gte150VersionState(state) {
+	if gov.NewGov(snapshotdb.Instance()).Gte150VersionState(state) {
 		return PrecompiledAddressesBerlin2
 	}
 	return PrecompiledAddressesBerlin
@@ -1178,7 +1179,7 @@ func (v vrf) Run(input []byte) ([]byte, error) {
 		return randomNumbers, nil
 	}
 
-	vrf := handler.GetVrfHandlerInstance()
+	vrf := handler.NewVrfHandlerOnce(v.Evm.SnapshotDB)
 	nonceInVrf, err := vrf.Load(v.Evm.Context.ParentHash)
 	if err != nil {
 		return nil, err

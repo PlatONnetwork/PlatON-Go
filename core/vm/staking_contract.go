@@ -190,7 +190,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 			TxCreateStaking, staking.ErrWrongProgramVersionSign)
 	}
 
-	if ok, threshold := plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
+	if ok, threshold := stkc.Plugin.CheckStakeThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "createStaking",
 			fmt.Sprintf("staking threshold: %d, deposit: %d", threshold, amount),
 			TxCreateStaking, staking.ErrStakeVonTooLow)
@@ -210,7 +210,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	}
 
 	// Query current active version
-	originVersion := gov.GetVersionForStaking(blockHash, state)
+	originVersion := gov.NewGov(stkc.Evm.SnapshotDB).GetVersionForStaking(blockHash, state)
 	currVersion := xutil.CalcVersion(originVersion)
 	inputVersion := xutil.CalcVersion(programVersion)
 
@@ -302,7 +302,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Add
 	// Because we must need to staking before we declare the version information.
 	if isDeclareVersion {
 		// Declare new Version
-		err := gov.DeclareVersion(can.StakingAddress, can.NodeId,
+		err := gov.NewGov(stkc.Evm.SnapshotDB).DeclareVersion(can.StakingAddress, can.NodeId,
 			programVersion, programVersionSign, blockHash, blockNumber.Uint64(), stkc.Plugin, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate with govplugin DelareVersion failed",
@@ -426,13 +426,13 @@ func (stkc *StakingContract) editCandidate(benefitAddress *common.Address, nodeI
 				TxEditorCandidate, staking.ErrInvalidRewardPer)
 		}
 
-		rewardPerMaxChangeRange, err := gov.GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
+		rewardPerMaxChangeRange, err := gov.NewGov(stkc.Evm.SnapshotDB).GovernRewardPerMaxChangeRange(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerMaxChangeRange is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"err", err)
 			return nil, err
 		}
-		rewardPerChangeInterval, err := gov.GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
+		rewardPerChangeInterval, err := gov.NewGov(stkc.Evm.SnapshotDB).GovernRewardPerChangeInterval(blockNumber.Uint64(), blockHash)
 		if nil != err {
 			log.Error("Failed to editCandidate, call GovernRewardPerChangeInterval is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"err", err)
@@ -489,7 +489,7 @@ func (stkc *StakingContract) increaseStaking(nodeId enode.IDv0, typ uint16, amou
 		return nil, ErrOutOfGas
 	}
 
-	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
+	if ok, threshold := stkc.Plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "increaseStaking",
 			fmt.Sprintf("increase staking threshold: %d, deposit: %d", threshold, amount),
 			TxIncreaseStaking, staking.ErrIncreaseStakeVonTooLow)
@@ -680,7 +680,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big
 	}
 	var delegateRewardPerList []*reward.DelegateRewardPer
 	if del.DelegateEpoch > 0 {
-		delegateRewardPerList, err = plugin.RewardMgrInstance().GetDelegateRewardPerList(blockHash, canBase.NodeId, canBase.StakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
+		delegateRewardPerList, err = plugin.NewRewardMgrPlugin(stkc.Evm.SnapshotDB, stkc.Plugin).GetDelegateRewardPerList(blockHash, canBase.NodeId, canBase.StakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 		if snapshotdb.NonDbNotFoundErr(err) {
 			log.Error("Failed to delegate by GetDelegateRewardPerList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 			return nil, err
@@ -691,7 +691,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId enode.IDv0, amount *big
 		}
 	}
 
-	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
+	if ok, threshold := stkc.Plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "delegate",
 			fmt.Sprintf("delegate threshold: %d, deposit: %d", threshold, amount),
 			TxDelegate, staking.ErrDelegateVonTooLow)
@@ -769,7 +769,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 		}
 	}
 
-	delegateRewardPerList, err := plugin.RewardMgrInstance().GetDelegateRewardPerList(blockHash, nodeId, stakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
+	delegateRewardPerList, err := plugin.NewRewardMgrPlugin(stkc.Evm.SnapshotDB, stkc.Plugin).GetDelegateRewardPerList(blockHash, nodeId, stakingBlockNum, uint64(del.DelegateEpoch), xutil.CalculateEpoch(blockNumber.Uint64())-1)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		log.Error("Failed to delegate by GetDelegateRewardPerList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
@@ -780,7 +780,7 @@ func (stkc *StakingContract) withdrewDelegation(stakingBlockNum uint64, nodeId e
 		return result, err
 	}
 
-	if ok, threshold := plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
+	if ok, threshold := stkc.Plugin.CheckOperatingThreshold(blockNumber.Uint64(), blockHash, amount); !ok {
 		return txResultHandler(vm.StakingContractAddr, stkc.Evm, "withdrewDelegation",
 			fmt.Sprintf("withdrewDelegation threshold: %d, deposit: %d", threshold, amount),
 			TxWithdrewDelegation, staking.ErrWithdrewDelegationVonTooLow)

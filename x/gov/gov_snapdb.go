@@ -25,24 +25,24 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func get(blockHash common.Hash, key []byte) ([]byte, error) {
-	return snapshotdb.Instance().Get(blockHash, key)
+func (gd *GovDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
+	return gd.db.Get(blockHash, key)
 }
 
-func put(blockHash common.Hash, key []byte, value interface{}) error {
+func (gd *GovDB) put(blockHash common.Hash, key []byte, value interface{}) error {
 	bytes, err := rlp.EncodeToBytes(value)
 	if err != nil {
 		return err
 	}
-	return snapshotdb.Instance().Put(blockHash, key, bytes)
+	return gd.db.Put(blockHash, key, bytes)
 }
 
-func del(blockHash common.Hash, key []byte) error {
-	return snapshotdb.Instance().Del(blockHash, key)
+func (gd *GovDB) del(blockHash common.Hash, key []byte) error {
+	return gd.db.Del(blockHash, key)
 }
 
-func addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash) error {
-	proposalIDList, err := getProposalIDListByKey(blockHash, key)
+func (gd *GovDB) addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash) error {
+	proposalIDList, err := gd.getProposalIDListByKey(blockHash, key)
 	if err != nil {
 		return err
 	}
@@ -53,21 +53,21 @@ func addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash)
 		}
 	}
 	proposalIDList = append(proposalIDList, proposalId)
-	return put(blockHash, key, proposalIDList)
+	return gd.put(blockHash, key, proposalIDList)
 }
 
-func getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return getProposalIDListByKey(blockHash, KeyVotingProposals())
+func (gd *GovDB) getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
+	return gd.getProposalIDListByKey(blockHash, KeyVotingProposals())
 }
 
 // Set pre-active version
-func setPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
-	return put(blockHash, KeyPreActiveVersion(), preActiveVersion)
+func (gd *GovDB) setPreActiveVersion(blockHash common.Hash, preActiveVersion uint32) error {
+	return gd.put(blockHash, KeyPreActiveVersion(), preActiveVersion)
 }
 
 // Get pre-active version
-func getPreActiveVersion(blockHash common.Hash) uint32 {
-	bytes, err := get(blockHash, KeyPreActiveVersion())
+func (gs *GovDB) getPreActiveVersion(blockHash common.Hash) uint32 {
+	bytes, err := gs.get(blockHash, KeyPreActiveVersion())
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return uint32(0)
 	}
@@ -81,13 +81,13 @@ func getPreActiveVersion(blockHash common.Hash) uint32 {
 	return activeVersion
 }
 
-func delPreActiveVersion(blockHash common.Hash) error {
-	return del(blockHash, KeyPreActiveVersion())
+func (gd *GovDB) delPreActiveVersion(blockHash common.Hash) error {
+	return gd.del(blockHash, KeyPreActiveVersion())
 }
 
-func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
+func (gd *GovDB) getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
-	bytes, err := get(blockHash, KeyPreActiveProposal())
+	bytes, err := gd.get(blockHash, KeyPreActiveProposal())
 
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return common.Hash{}, err
@@ -102,12 +102,12 @@ func getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
 	return proposalID, nil
 }
 
-func getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return getProposalIDListByKey(blockHash, KeyEndProposals())
+func (gd *GovDB) getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
+	return gd.getProposalIDListByKey(blockHash, KeyEndProposals())
 }
 
-func getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
-	bytes, err := get(blockHash, key)
+func (gd *GovDB) getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
+	bytes, err := gd.get(blockHash, key)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
@@ -120,10 +120,10 @@ func getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, e
 	return idList, nil
 }
 
-func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
+func (gd *GovDB) getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	var total []common.Hash
 
-	proposalIDList, err := getVotingIDList(blockHash)
+	proposalIDList, err := gd.getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("list voting proposal IDs failed", "blockHash", blockHash)
 		return nil, err
@@ -131,14 +131,14 @@ func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 		total = append(total, proposalIDList...)
 	}
 
-	proposalID, err := getPreActiveProposalID(blockHash)
+	proposalID, err := gd.getPreActiveProposalID(blockHash)
 	if err != nil {
 		log.Error("list pre-active proposal IDs failed", "blockHash", blockHash)
 		return nil, err
 	} else if proposalID != common.ZeroHash {
 		total = append(total, proposalID)
 	}
-	proposalIDList, err = getEndIDList(blockHash)
+	proposalIDList, err = gd.getEndIDList(blockHash)
 	if err != nil {
 		log.Error("list end proposal IDs failed", "blockHash", blockHash)
 		return nil, err
@@ -149,8 +149,8 @@ func getAllProposalIDList(blockHash common.Hash) ([]common.Hash, error) {
 	return total, nil
 }
 
-func addActiveNode(blockHash common.Hash, node enode.IDv0, proposalId common.Hash) error {
-	nodes, err := getActiveNodeList(blockHash, proposalId)
+func (gd *GovDB) addActiveNode(blockHash common.Hash, node enode.IDv0, proposalId common.Hash) error {
+	nodes, err := gd.getActiveNodeList(blockHash, proposalId)
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
@@ -160,12 +160,12 @@ func addActiveNode(blockHash common.Hash, node enode.IDv0, proposalId common.Has
 		return nil
 	} else {
 		nodes = append(nodes, node)
-		return put(blockHash, KeyActiveNodes(proposalId), nodes)
+		return gd.put(blockHash, KeyActiveNodes(proposalId), nodes)
 	}
 }
 
-func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]enode.IDv0, error) {
-	value, err := get(blockHash, KeyActiveNodes(proposalId))
+func (gd *GovDB) getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]enode.IDv0, error) {
+	value, err := gd.get(blockHash, KeyActiveNodes(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
@@ -178,12 +178,12 @@ func getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]enode.I
 	return nodes, nil
 }
 
-func deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
-	return del(blockHash, KeyActiveNodes(proposalId))
+func (gd *GovDB) deleteActiveNodeList(blockHash common.Hash, proposalId common.Hash) error {
+	return gd.del(blockHash, KeyActiveNodes(proposalId))
 }
 
-func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []enode.IDv0) error {
-	value, err := get(blockHash, KeyAccuVerifier(proposalId))
+func (gd *GovDB) addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []enode.IDv0) error {
+	value, err := gd.get(blockHash, KeyAccuVerifier(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
@@ -211,11 +211,11 @@ func addAccuVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []eno
 		*/
 	}
 	log.Debug("accumulated verifiers", "proposalID", proposalId, "total", len(accuVerifiers))
-	return put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
+	return gd.put(blockHash, KeyAccuVerifier(proposalId), accuVerifiers)
 }
 
-func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]enode.IDv0, error) {
-	value, err := get(blockHash, KeyAccuVerifier(proposalId))
+func (gd *GovDB) getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]enode.IDv0, error) {
+	value, err := gd.get(blockHash, KeyAccuVerifier(proposalId))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
@@ -231,28 +231,28 @@ func getAccuVerifiers(blockHash common.Hash, proposalId common.Hash) ([]enode.ID
 	return nil, nil
 }
 
-func delAccuVerifiers(blockHash common.Hash, proposalId common.Hash) error {
-	return del(blockHash, KeyAccuVerifier(proposalId))
+func (gd *GovDB) delAccuVerifiers(blockHash common.Hash, proposalId common.Hash) error {
+	return gd.del(blockHash, KeyAccuVerifier(proposalId))
 }
 
-func addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
-	itemList, err := listGovernParamItem("", blockHash)
+func (gd *GovDB) addGovernParam(module, name, desc string, paramValue *ParamValue, blockHash common.Hash) error {
+	itemList, err := gd.listGovernParamItem("", blockHash)
 	if err != nil {
 		return nil
 	}
 	itemList = append(itemList, &ParamItem{module, name, desc})
-	if err := put(blockHash, keyPrefixParamItems, itemList); err != nil {
+	if err := gd.put(blockHash, keyPrefixParamItems, itemList); err != nil {
 		return err
 	}
 
-	if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
+	if err := gd.put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
 		return err
 	}
 	return nil
 }
 
-func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamValue, error) {
-	value, err := get(blockHash, KeyParamValue(module, name))
+func (gd *GovDB) findGovernParamValue(module, name string, blockHash common.Hash) (*ParamValue, error) {
+	value, err := gd.get(blockHash, KeyParamValue(module, name))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}
@@ -268,8 +268,8 @@ func findGovernParamValue(module, name string, blockHash common.Hash) (*ParamVal
 	return nil, nil
 }
 
-func updateGovernParamValue(module, name, newValue string, activeBlock uint64, blockHash common.Hash) error {
-	value, err := get(blockHash, KeyParamValue(module, name))
+func (gd *GovDB) updateGovernParamValue(module, name, newValue string, activeBlock uint64, blockHash common.Hash) error {
+	value, err := gd.get(blockHash, KeyParamValue(module, name))
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return err
 	}
@@ -282,7 +282,7 @@ func updateGovernParamValue(module, name, newValue string, activeBlock uint64, b
 		paramValue.Value = newValue
 		paramValue.ActiveBlock = activeBlock
 
-		if err := put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
+		if err := gd.put(blockHash, KeyParamValue(module, name), paramValue); err != nil {
 			return err
 		}
 		return nil
@@ -290,14 +290,14 @@ func updateGovernParamValue(module, name, newValue string, activeBlock uint64, b
 	return UnsupportedGovernParam
 }
 
-func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
-	itemList, err := listGovernParamItem(module, blockHash)
+func (gd *GovDB) listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, error) {
+	itemList, err := gd.listGovernParamItem(module, blockHash)
 	if err != nil {
 		return nil, err
 	}
 	var paraList []*GovernParam
 	for _, item := range itemList {
-		if value, err := findGovernParamValue(item.Module, item.Name, blockHash); err != nil {
+		if value, err := gd.findGovernParamValue(item.Module, item.Name, blockHash); err != nil {
 			return nil, err
 		} else {
 			param := &GovernParam{item, value, nil}
@@ -307,8 +307,8 @@ func listGovernParam(module string, blockHash common.Hash) ([]*GovernParam, erro
 	return paraList, nil
 }
 
-func listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, error) {
-	itemBytes, err := get(blockHash, KeyParamItems())
+func (gd *GovDB) listGovernParamItem(module string, blockHash common.Hash) ([]*ParamItem, error) {
+	itemBytes, err := gd.get(blockHash, KeyParamItems())
 	if snapshotdb.NonDbNotFoundErr(err) {
 		return nil, err
 	}

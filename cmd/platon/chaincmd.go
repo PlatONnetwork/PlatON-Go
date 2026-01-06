@@ -142,7 +142,7 @@ func initGenesis(ctx *cli.Context) error {
 		}
 		var sdb snapshotdb.DB
 		if name == "chaindata" {
-			sdb, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
+			sdb, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true, false)
 			if err != nil {
 				utils.Fatalf("Failed to open snapshotdb: %v", err)
 			}

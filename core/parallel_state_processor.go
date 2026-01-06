@@ -5,6 +5,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -49,7 +50,7 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
 		tempContractCache := make(map[common.Address]struct{})
-		signer := types.MakeSigner(p.config, block.Number(), gov.Gte150VersionState(statedb))
+		signer := types.MakeSigner(p.config, block.Number(), gov.NewGov(snapshotdb.Instance()).Gte150VersionState(statedb))
 		ctx := NewParallelContext(statedb, header, block.Hash(), gp, false, signer, tempContractCache)
 		ctx.SetBlockGasUsedHolder(usedGas)
 		ctx.SetTxList(block.Transactions())
