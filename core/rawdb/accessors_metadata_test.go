@@ -8,8 +8,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +16,7 @@ func TestReadWriteEconomicModel(t *testing.T) {
 	ec := ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.Nil(t, ec, "the ec is not nil")
 
-	WriteEconomicModel(chainDb, common.ZeroHash, xcom.GetEc(params.DefaultTestNet))
+	WriteEconomicModel(chainDb, common.ZeroHash, params.GetEc(params.DefaultTestNet))
 	ec = ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.NotNil(t, ec, "the ec is nil")
 
