@@ -18,7 +18,7 @@ func TestReadWriteEconomicModel(t *testing.T) {
 	ec := ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.Nil(t, ec, "the ec is not nil")
 
-	WriteEconomicModel(chainDb, common.ZeroHash, xcom.GetEc(xcom.DefaultTestNet))
+	WriteEconomicModel(chainDb, common.ZeroHash, xcom.GetEc(params.DefaultTestNet))
 	ec = ReadEconomicModel(chainDb, common.ZeroHash)
 	assert.NotNil(t, ec, "the ec is nil")
 
