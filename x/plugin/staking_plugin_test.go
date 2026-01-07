@@ -1650,7 +1650,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 		chain.StateDB.AddBalance(addr, amount)
 	}
 
-	gov.AddActiveVersion(params.CodeVersion(), 0, chain.StateDB)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, chain.StateDB)
 	gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, params.CodeVersion())
 
 	index := 1
@@ -1854,7 +1854,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 
 	newPlugins()
 
-	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, state)
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), params.CodeVersion())
 
 	sndb := snapshotdb.Instance()
@@ -3983,7 +3983,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 	StakingInstance().SetChainDB(diskDB, diskDB)
 	StakingInstance().EnableValidatorsHistory()
 	// Set to the latest version.
-	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, state)
 	sndb := snapshotdb.Instance()
 	defer func() {
 		sndb.Clear()

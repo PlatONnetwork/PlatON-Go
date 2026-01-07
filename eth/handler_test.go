@@ -132,7 +132,7 @@ func newTestHandler() *testHandler {
 // given number of initial blocks.
 func newTestHandlerWithBlocks(blocks int) *testHandler {
 	// Create a database pre-initialize with a genesis block
-	xcom.GetEc(xcom.DefaultUnitTestNet)
+	params.GetEc(params.DefaultUnitTestNet)
 	db := rawdb.NewMemoryDatabase()
 	gspec := &core.Genesis{
 		Config: params.TestChainConfig,

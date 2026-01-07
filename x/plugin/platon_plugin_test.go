@@ -266,7 +266,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state xcom.StateDB) {
 	//	evm.Context = context
 
 	//set a default active version
-	gov.AddActiveVersion(initProgramVersion, 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(initProgramVersion, 0, state)
 }
 
 func newPlugins() {
@@ -622,7 +622,7 @@ func buildBlockNoCommit(blockNum int) {
 
 func build_gov_data(state xcom.StateDB) {
 	//set a default active version
-	gov.AddActiveVersion(initProgramVersion, 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(initProgramVersion, 0, state)
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 }
 

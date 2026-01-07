@@ -70,7 +70,7 @@ func TestGraphQLBlockSerialization(t *testing.T) {
 	genesis := &core.Genesis{
 		Config:        params.AllEthashProtocolChanges,
 		GasLimit:      11500000,
-		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+		EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 	}
 	newGQLService(t, stack, genesis, 10, func(i int, gen *core.BlockGen) {})
 	// start node
@@ -196,7 +196,7 @@ func TestGraphQLBlockSerializationEIP2718(t *testing.T) {
 			},
 		},
 		BaseFee:       big.NewInt(params.InitialBaseFee),
-		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+		EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 	}
 	signer := types.LatestSigner(genesis.Config, true)
 	newGQLService(t, stack, genesis, 1, func(i int, gen *core.BlockGen) {
@@ -290,7 +290,7 @@ func TestGraphQLTransactionLogs(t *testing.T) {
 					Balance: big.NewInt(0),
 				},
 			},
-			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+			EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 		}
 		signer = types.LatestSigner(genesis.Config, true)
 		stack  = createNode(t)

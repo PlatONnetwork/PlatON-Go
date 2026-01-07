@@ -815,7 +815,7 @@ func TestTraceChain(t *testing.T) {
 			accounts[1].addr: {Balance: big.NewInt(params.LAT)},
 			accounts[2].addr: {Balance: big.NewInt(params.LAT)},
 		},
-		EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+		EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 	}
 	genBlocks := 50
 	signer := types.HomesteadSigner{}

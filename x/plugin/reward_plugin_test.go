@@ -127,7 +127,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 		return time + 1000
 	})
 	snapshotdb.SetDBBlockChain(chain)
-	xcom.GetEc(xcom.DefaultTestNet)
+	params.GetEc(xcom.DefaultTestNet)
 
 	yearBalance := big.NewInt(1e18)
 	SetYearEndCumulativeIssue(chain.StateDB, 0, yearBalance)
@@ -181,13 +181,13 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	mockDB := chain.StateDB
 	snapshotdb.SetDBBlockChain(chain)
 
-	defaultEc := *xcom.GetEc(xcom.DefaultTestNet)
+	defaultEc := *params.GetEc(xcom.DefaultTestNet)
 	defer func() {
 		xcom.ResetEconomicDefaultConfig(&defaultEc)
 		snapshotdb.Instance().Clear()
 	}()
 
-	ec := xcom.GetEc(xcom.DefaultTestNet)
+	ec := params.GetEc(xcom.DefaultTestNet)
 	ec.Common.AdditionalCycleTime = 3
 	ec.Common.MaxEpochMinutes = 1
 	ec.Common.MaxConsensusVals = 1

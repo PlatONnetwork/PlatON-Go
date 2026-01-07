@@ -310,7 +310,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, chain *mock.Chain) *EVM
 
 	//set a default active version
 	gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048)
-	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(initProgramVersion, 0, chain.StateDB)
 
 	return evm
 }

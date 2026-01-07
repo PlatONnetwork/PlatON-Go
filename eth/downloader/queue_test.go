@@ -39,7 +39,7 @@ import (
 var (
 	testdb  = rawdb.NewMemoryDatabase()
 	genesis = core.GenesisBlockForTesting(testdb, testAddress, big.NewInt(1000000000000000))
-	cfg     = xcom.GetEc(xcom.DefaultUnitTestNet)
+	cfg     = params.GetEc(params.DefaultUnitTestNet)
 )
 
 // makeChain creates a chain of n blocks starting at and including parent.

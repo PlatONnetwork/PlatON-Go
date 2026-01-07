@@ -114,7 +114,7 @@ func setupTxPoolWithConfig(config *params.ChainConfig) (*TxPool, *ecdsa.PrivateK
 	blockchain := &testBlockChain{10000000, statedb, new(event.Feed)}
 
 	key, _ := crypto.GenerateKey()
-	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, blockchain.statedb)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 0, blockchain.statedb)
 	pool := NewTxPool(testTxPoolConfig, config, blockchain)
 	evictionInterval = time.Minute * 20
 	// wait for the pool to initialize
@@ -639,7 +639,7 @@ func TestTransactionDropping(t *testing.T) {
 
 func newTestTxPool(config Config, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
 	blockchain := &testBlockChain{1000000, statedb, new(event.Feed)}
 	evictionInterval = time.Minute * 20
 	return NewTxPool(config, chainconfig, blockchain)

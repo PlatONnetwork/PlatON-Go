@@ -57,7 +57,7 @@ func BenchmarkFilters(b *testing.B) {
 			Alloc:         core.GenesisAlloc{addr1: {Balance: big.NewInt(1000000)}},
 			BaseFee:       big.NewInt(params.InitialBaseFee),
 			Config:        params.TestChainConfig,
-			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+			EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 		}
 	)
 	ctx, _ := node.New(&node.Config{DataDir: ""})
@@ -121,7 +121,7 @@ func TestFilters(t *testing.T) {
 			Config:        params.TestChainConfig,
 			Alloc:         core.GenesisAlloc{addr: {Balance: big.NewInt(1000000)}},
 			BaseFee:       big.NewInt(params.InitialBaseFee),
-			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+			EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 		}
 	)
 	defer db.Close()

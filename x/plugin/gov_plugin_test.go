@@ -498,7 +498,7 @@ func TestGovPlugin_SubmitVersion_NewVersionError(t *testing.T) {
 	version := uint32(1<<16 | 2<<8)
 	newVersionErr := uint32(1<<16 | 2<<8 | 4)
 
-	if err := gov.AddActiveVersion(version, 10000, state); err != nil {
+	if err := gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(version, 10000, state); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 

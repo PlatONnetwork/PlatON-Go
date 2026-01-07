@@ -1304,7 +1304,7 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
-	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(initProgramVersion, 0, chain.StateDB)
 	plugin.RewardMgrInstance()
 
 	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
