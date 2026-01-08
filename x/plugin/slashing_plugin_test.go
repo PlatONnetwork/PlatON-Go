@@ -36,6 +36,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -281,7 +282,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 	}()
 
 	startNumber := xutil.ConsensusSize()
-	startNumber += xutil.ConsensusSize() - xcom.ElectionDistance() - 2
+	startNumber += xutil.ConsensusSize() - params.ElectionDistance() - 2
 	pri, phash := buildBlock(t, int(startNumber), stateDB)
 	startNumber++
 	blockNumber := new(big.Int).SetInt64(int64(startNumber))
@@ -557,7 +558,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// Report outdated evidence, expected failure
-	err = si.Slash(normalEvidence, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.MaxEvidenceAge())*3).Uint64(), stateDB, anotherSender)
+	err = si.Slash(normalEvidence, common.ZeroHash, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.MaxEvidenceAge())*3).Uint64(), stateDB, anotherSender)
 	assert.NotNil(t, err)
 
 	normalEvidence2, err := si.DecodeEvidence(1, normalData2)
@@ -583,18 +584,19 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 	_, genesis, _ := newChainState()
 	si, stateDB := initInfo(t)
+	govInstance := gov.NewGov(snapshotdb.Instance())
 	// Starting from the second consensus round
-	blockNumber := new(big.Int).SetUint64(xutil.ConsensusSize()*2 - xcom.ElectionDistance())
+	blockNumber := new(big.Int).SetUint64(xutil.ConsensusSize()*2 - params.ElectionDistance())
 	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "4", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "4", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 
@@ -784,10 +786,10 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		return
 	}
 	// Sixth consensus round
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "3", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "3", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "2", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "2", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))
@@ -812,10 +814,10 @@ func TestSlashingPlugin_ZeroProduceProcess(t *testing.T) {
 		return
 	}
 	// Seventh consensus round
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "6", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, "", "6", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	if err := gov.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, "", "3", 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 	blockNumber.Add(blockNumber, new(big.Int).SetUint64(xutil.ConsensusSize()))

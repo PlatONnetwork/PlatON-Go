@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"testing"
 	"time"

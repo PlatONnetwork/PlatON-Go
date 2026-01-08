@@ -18,7 +18,6 @@ package filters
 
 import (
 	"context"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"reflect"
 	"testing"

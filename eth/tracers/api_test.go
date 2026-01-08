@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"reflect"
 	"sort"
@@ -47,11 +46,18 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
+func init() {
+	params.GetEc(params.DefaultUnitTestNet)
+}
+
 var (
 	errStateNotFound = errors.New("state not found")
 	errBlockNotFound = errors.New("block not found")
 )
 
+type Result struct {
+	Result interface{} `json:"result,omitempty"`
+}
 type testBackend struct {
 	chainConfig *params.ChainConfig
 	engine      consensus.Engine
@@ -143,10 +149,10 @@ func (b *testBackend) teardown() {
 	b.chain.Stop()
 }
 
-func (b *testBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, StateReleaseFunc, error) {
+func (b *testBackend) StateAtBlock(ctx context.Context, block *types.Block, reexec uint64, base *state.StateDB, readOnly bool, preferDisk bool) (*state.StateDB, snapshotdb.DB, StateReleaseFunc, error) {
 	statedb, err := b.chain.StateAt(block.Root())
 	if err != nil {
-		return nil, nil, errStateNotFound
+		return nil, nil, nil, errStateNotFound
 	}
 	if b.refHook != nil {
 		b.refHook()
@@ -156,20 +162,20 @@ func (b *testBackend) StateAtBlock(ctx context.Context, block *types.Block, reex
 			b.relHook()
 		}
 	}
-	return statedb, release, nil
+	return statedb, snapshotdb.Instance(), release, nil
 }
 
-func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, StateReleaseFunc, error) {
+func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block, txIndex int, reexec uint64) (core.Message, vm.BlockContext, *state.StateDB, snapshotdb.DB, StateReleaseFunc, error) {
 	parent := b.chain.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
-		return nil, vm.BlockContext{}, nil, nil, errBlockNotFound
+		return nil, vm.BlockContext{}, nil, nil, nil, errBlockNotFound
 	}
-	statedb, release, err := b.StateAtBlock(ctx, parent, reexec, nil, true, false)
+	statedb, _, release, err := b.StateAtBlock(ctx, parent, reexec, nil, true, false)
 	if err != nil {
-		return nil, vm.BlockContext{}, nil, nil, errStateNotFound
+		return nil, vm.BlockContext{}, nil, nil, nil, errStateNotFound
 	}
 	if txIndex == 0 && len(block.Transactions()) == 0 {
-		return nil, vm.BlockContext{}, statedb, release, nil
+		return nil, vm.BlockContext{}, statedb, snapshotdb.Instance(), release, nil
 	}
 	// Recompute transactions up to the target index.
 	signer := types.MakeSigner(b.chainConfig, block.Number(), true)
@@ -178,15 +184,15 @@ func (b *testBackend) StateAtTransaction(ctx context.Context, block *types.Block
 		txContext := core.NewEVMTxContext(msg)
 		context := core.NewEVMBlockContext(block.Header(), b.chain)
 		if idx == txIndex {
-			return msg, context, statedb, release, nil
+			return msg, context, statedb, snapshotdb.Instance(), release, nil
 		}
 		vmenv := vm.NewEVM(context, txContext, snapshotdb.Instance(), statedb, b.chainConfig, vm.Config{})
 		if _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
-			return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
+			return nil, vm.BlockContext{}, nil, snapshotdb.Instance(), nil, fmt.Errorf("transaction %#x failed: %v", tx.Hash(), err)
 		}
 		statedb.Finalise(false)
 	}
-	return nil, vm.BlockContext{}, nil, nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash())
+	return nil, vm.BlockContext{}, nil, snapshotdb.Instance(), nil, fmt.Errorf("transaction index %d out of range for block %#x", txIndex, block.Hash())
 }
 
 func TestTraceCall(t *testing.T) {
@@ -445,7 +451,7 @@ func TestTraceBlock(t *testing.T) {
 			t.Errorf("test %d, want no error, have %v", i, err)
 			continue
 		}
-		have, _ := json.Marshal(result)
+		have, _ := json.Marshal([]*Result{{Result: result[0].Result}})
 		want := tc.want
 		if string(have) != want {
 			t.Errorf("test %d, result mismatch, have\n%v\n, want\n%v\n", i, string(have), want)
@@ -522,7 +528,7 @@ func TestTracingWithOverrides(t *testing.T) {
 				Value: (*hexutil.Big)(big.NewInt(1000)),
 			},
 			config:    &TraceCallConfig{},
-			expectErr: core.ErrInsufficientFunds,
+			expectErr: core.ErrInsufficientFundsForTransfer,
 		},
 		// Successful simple contract call
 		//
@@ -853,7 +859,7 @@ func TestTraceChain(t *testing.T) {
 
 		from, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.start))
 		to, _ := api.blockByNumber(context.Background(), rpc.BlockNumber(c.end))
-		resCh := api.traceChain(from, to, c.config, nil)
+		resCh := api.traceChain(context.Background(), from, to, c.config, nil)
 
 		next := c.start + 1
 		for result := range resCh {
@@ -864,9 +870,12 @@ func TestTraceChain(t *testing.T) {
 				t.Error("Unexpected tracing result")
 			}
 			for _, trace := range result.Traces {
-				blob, _ := json.Marshal(trace)
+
+				blob, _ := json.Marshal(&Result{
+					Result: trace.Result,
+				})
 				if string(blob) != single {
-					t.Error("Unexpected tracing result")
+					t.Error("Unexpected tracing result", string(blob))
 				}
 			}
 			next += 1

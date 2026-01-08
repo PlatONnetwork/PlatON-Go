@@ -27,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
