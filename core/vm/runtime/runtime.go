@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math"
 	"math/big"
 
@@ -104,8 +105,8 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 		vmenv   = NewEnv(cfg)
 		sender  = vm.AccountRef(cfg.Origin)
 		rules   = params.Rules{
-			IsPauli: gov.Gte150VersionState(cfg.State),
-			IsDirac: gov.Gte160VersionState(cfg.State),
+			IsPauli: gov.NewGov(snapshotdb.Instance()).Gte150VersionState(cfg.State),
+			IsDirac: gov.NewGov(snapshotdb.Instance()).Gte160VersionState(cfg.State),
 		}
 	)
 	// Execute the preparatory steps for state transition which includes:
@@ -142,8 +143,8 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 		vmenv  = NewEnv(cfg)
 		sender = vm.AccountRef(cfg.Origin)
 		rules  = params.Rules{
-			IsPauli: gov.Gte150VersionState(cfg.State),
-			IsDirac: gov.Gte160VersionState(cfg.State),
+			IsPauli: gov.NewGov(snapshotdb.Instance()).Gte150VersionState(cfg.State),
+			IsDirac: gov.NewGov(snapshotdb.Instance()).Gte160VersionState(cfg.State),
 		}
 	)
 	vmenv.Context.Ctx = context.TODO()
@@ -176,8 +177,8 @@ func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, er
 	sender := cfg.State.GetOrNewStateObject(cfg.Origin)
 	statedb := cfg.State
 	rules := params.Rules{
-		IsPauli: gov.Gte150VersionState(statedb),
-		IsDirac: gov.Gte160VersionState(statedb),
+		IsPauli: gov.NewGov(snapshotdb.Instance()).Gte150VersionState(statedb),
+		IsDirac: gov.NewGov(snapshotdb.Instance()).Gte160VersionState(statedb),
 	}
 	// Execute the preparatory steps for state transition which includes:
 	// - prepare accessList(post-berlin)

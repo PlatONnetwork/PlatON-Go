@@ -28,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -44,7 +43,7 @@ var (
 )
 
 func init() {
-	xcom.GetEc(xcom.DefaultUnitTestNet)
+	params.GetEc(params.DefaultUnitTestNet)
 }
 
 // newCanonical creates a chain database, and injects a deterministic canonical
@@ -56,7 +55,7 @@ func newCanonical(engine consensus.Engine, n int, full bool) (ethdb.Database, *G
 		genesis = &Genesis{
 			BaseFee:       big.NewInt(params.InitialBaseFee),
 			Config:        params.AllEthashProtocolChanges,
-			EconomicModel: xcom.GetEc(xcom.DefaultUnitTestNet),
+			EconomicModel: params.GetEc(params.DefaultUnitTestNet),
 		}
 	)
 
@@ -1711,7 +1710,7 @@ func TestEIP2718Transition(t *testing.T) {
 				StorageKeys: []common.Hash{{0}},
 			}},
 		})
-		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 100, b.statedb)
+		gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 100, b.statedb)
 		b.AddTx(tx)
 	})
 

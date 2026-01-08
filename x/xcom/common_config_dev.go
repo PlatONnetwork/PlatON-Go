@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the PlatON-Go library. If not, see <http://www.gnu.org/licenses/>.
 
-
+//go:build test
 // +build test
 
 package xcom
 
 import "github.com/PlatONnetwork/PlatON-Go/log"
+import "github.com/PlatONnetwork/PlatON-Go/params"
 
 func init() {
-	log.Info("Init ppos common config", "network name", "DefaultTestNet", "network value", DefaultUnitTestNet)
-	GetEc(DefaultUnitTestNet)
+	log.Info("Init ppos common config", "network name", "DefaultTestNet", "network value", params.DefaultUnitTestNet)
+	params.GetEc(params.DefaultUnitTestNet)
 }
