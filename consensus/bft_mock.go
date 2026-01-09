@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
@@ -122,7 +123,7 @@ func (bm *BftMock) InsertChain(block *types.Block) error {
 		}
 
 		statedb, err := bm.chain.StateAt(root)
-		gov.AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
+		gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_6_0, 1, statedb)
 		if err != nil {
 			return err
 		}

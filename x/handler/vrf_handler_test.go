@@ -30,8 +30,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var chain *mock.Chain
@@ -63,7 +63,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
-	for i := 0; i < int(xcom.MaxValidators())+10; i++ {
+	for i := 0; i < int(params.MaxValidators())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
 		}
@@ -84,7 +84,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	if value, err := vh.Load(phash); nil != err {
 		t.Fatal(err)
 	} else {
-		assert.Equal(t, len(value), int(xcom.MaxValidators()))
+		assert.Equal(t, len(value), int(params.MaxValidators()))
 	}
 }
 
@@ -121,23 +121,24 @@ func TestVrfHandler_Storage_GovMaxValidators(t *testing.T) {
 		vh.db.Clear()
 	}()
 
+	govInstance := gov.NewGov(vh.db)
 	gov.InitGenesisGovernParam(common.ZeroHash, vh.db, 2048)
 
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash
-	govPoint := xcom.MaxValidators() + 2
-	for i := 0; i < int(xcom.MaxValidators())+10; i++ {
+	govPoint := params.MaxValidators() + 2
+	for i := 0; i < int(params.MaxValidators())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Fatal(err)
 		}
 		if i == int(govPoint) {
-			if err := gov.SetGovernParam(gov.ModuleStaking, gov.KeyMaxValidators, "", strconv.Itoa(int(govPoint-1)), 1, common.ZeroHash); nil != err {
+			if err := govInstance.SetGovernParam(gov.ModuleStaking, gov.KeyMaxValidators, "", strconv.Itoa(int(govPoint-1)), 1, common.ZeroHash); nil != err {
 				t.Fatal(err)
 			}
 		}
 		if i == int(govPoint+2) {
-			if err := gov.SetGovernParam(gov.ModuleStaking, gov.KeyMaxValidators, "", strconv.Itoa(int(govPoint+2)), 1, common.ZeroHash); nil != err {
+			if err := govInstance.SetGovernParam(gov.ModuleStaking, gov.KeyMaxValidators, "", strconv.Itoa(int(govPoint+2)), 1, common.ZeroHash); nil != err {
 				t.Fatal(err)
 			}
 		}
@@ -158,7 +159,7 @@ func TestVrfHandler_Storage_GovMaxValidators(t *testing.T) {
 	if value, err := vh.Load(hash); nil != err {
 		t.Fatal(err)
 	} else {
-		maxValidatorsNum, _ := gov.GovernMaxValidators(blockNumber.Uint64(), hash)
+		maxValidatorsNum, _ := govInstance.GovernMaxValidators(blockNumber.Uint64(), hash)
 		assert.Equal(t, len(value), int(maxValidatorsNum))
 	}
 }

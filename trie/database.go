@@ -541,6 +541,8 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		return
 	}
 
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
 	useless := make(map[string]struct{})
 	clearFn := func(hash []byte) {
@@ -550,9 +552,7 @@ func (db *Database) DereferenceDB(root common.Hash) {
 		}
 	}
 
-	db.lock.Lock()
 	db.dereference(root, clearFn, start)
-	db.lock.Unlock()
 
 	//if start.Add(400 * time.Millisecond).Before(time.Now()) {
 	//	log.Warn("DereferenceDB overtime", "root", root.String(), "duration", time.Since(start))
@@ -628,32 +628,33 @@ func (db *Database) UselessGC(num int) {
 // Dereference removes an existing reference from a root node.
 func (db *Database) Dereference(root common.Hash) {
 	// Sanity check to ensure that the meta-root is not removed
-	if root == (common.Hash{}) {
-		log.Error("Attempted to dereference the trie cache meta root")
-		return
-	}
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	cleanFn := func(hash []byte) {
-		if db.cleans != nil {
-			db.cleans.Del(hash)
-		}
-	}
-
-	nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
-	db.dereference(root, cleanFn, start)
-
-	db.gcnodes += uint64(nodes - len(db.dirties))
-	db.gcsize += storage - db.dirtiesSize
-	db.gctime += time.Since(start)
-
-	memcacheGCTimeTimer.Update(time.Since(start))
-	memcacheGCSizeMeter.Mark(int64(storage - db.dirtiesSize))
-	memcacheGCNodesMeter.Mark(int64(nodes - len(db.dirties)))
-
-	log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.dirties), "size", storage-db.dirtiesSize, "time", time.Since(start),
-		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.dirties), "livesize", db.dirtiesSize)
+	// PlatON 出块流程不匹配，本流程不适用
+	//if root == (common.Hash{}) {
+	//	log.Error("Attempted to dereference the trie cache meta root")
+	//	return
+	//}
+	//db.lock.Lock()
+	//defer db.lock.Unlock()
+	//
+	//cleanFn := func(hash []byte) {
+	//	if db.cleans != nil {
+	//		db.cleans.Del(hash)
+	//	}
+	//}
+	//
+	//nodes, storage, start := len(db.dirties), db.dirtiesSize, time.Now()
+	//db.dereference(root, cleanFn, start)
+	//
+	//db.gcnodes += uint64(nodes - len(db.dirties))
+	//db.gcsize += storage - db.dirtiesSize
+	//db.gctime += time.Since(start)
+	//
+	//memcacheGCTimeTimer.Update(time.Since(start))
+	//memcacheGCSizeMeter.Mark(int64(storage - db.dirtiesSize))
+	//memcacheGCNodesMeter.Mark(int64(nodes - len(db.dirties)))
+	//
+	//log.Debug("Dereferenced trie from memory database", "nodes", nodes-len(db.dirties), "size", storage-db.dirtiesSize, "time", time.Since(start),
+	//	"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.dirties), "livesize", db.dirtiesSize)
 }
 
 // dereference is the private locked version of Dereference.
@@ -744,6 +745,8 @@ func (db *Database) CapNode(limit common.StorageSize) {
 // Cap iteratively flushes old but still referenced trie nodes until the total
 // memory usage goes below the given threshold.
 func (db *Database) Cap(limit common.StorageSize) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -775,7 +778,6 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		if batch.ValueSize() >= ethdb.IdealBatchSize {
 			if err := batch.Write(); err != nil {
 				log.Error("Failed to write flush list to disk", "err", err)
-				db.lock.RUnlock()
 				return err
 			}
 			batch.Reset()
@@ -794,10 +796,8 @@ func (db *Database) Cap(limit common.StorageSize) error {
 		log.Error("Failed to write flush list to disk", "err", err)
 		return err
 	}
-	// Write successful, clear out the flushed data
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
+	// Write successful, clear out the flushed data
 	for db.oldest != oldest {
 		node := db.dirties[db.oldest]
 		delete(db.dirties, db.oldest)
@@ -832,6 +832,8 @@ func (db *Database) Cap(limit common.StorageSize) error {
 // Note, this method is a non-synchronized mutator. It is unsafe to call this
 // concurrently with other mutators.
 func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
+	db.lock.Lock()
+	defer db.lock.Unlock()
 	// Create a database batch to flush persistent data out. It is important that
 	// outside code doesn't see an inconsistent state (referenced data removed from
 	// memory cache during commit but not yet in persistent storage). This is ensured
@@ -858,10 +860,8 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 		log.Error("Failed to write trie to disk", "err", err)
 		return err
 	}
-	// Uncache any leftovers in the last batch
-	db.lock.Lock()
-	defer db.lock.Unlock()
 
+	// Uncache any leftovers in the last batch
 	if err := batch.Replay(uncacher); err != nil {
 		return err
 	}
@@ -915,13 +915,11 @@ func (db *Database) commit(hash common.Hash, batch ethdb.Batch, uncacher *cleane
 		if err := batch.Write(); err != nil {
 			return err
 		}
-		db.lock.Lock()
 		err := batch.Replay(uncacher)
-		batch.Reset()
-		db.lock.Unlock()
 		if err != nil {
 			return err
 		}
+		batch.Reset()
 	}
 	return nil
 }

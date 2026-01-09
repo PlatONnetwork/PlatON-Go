@@ -19,11 +19,11 @@ package xutil
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 func NodeId2Addr(nodeId enode.IDv0) (common.NodeAddress, error) {
@@ -65,19 +65,19 @@ func ProgramVersion2Str(programVersion uint32) string {
 
 // ConsensusSize returns how many blocks per consensus round.
 func ConsensusSize() uint64 {
-	return xcom.ConsensusSize()
+	return params.ConsensusSize()
 }
 
 // EpochSize returns how many consensus rounds per epoch.
 func EpochSize() uint64 {
-	return xcom.EpochSize()
+	return params.EpochSize()
 }
 
 // EpochsPerYear returns how many epochs per year
 func EpochsPerYear() uint64 {
 	epochBlocks := CalcBlocksEachEpoch()
-	i := xcom.Interval()
-	return xcom.AdditionalCycleTime() * 60 / (i * epochBlocks)
+	i := params.Interval()
+	return params.AdditionalCycleTime() * 60 / (i * epochBlocks)
 }
 
 // CalcBlocksEachEpoch return how many blocks per epoch
@@ -93,9 +93,9 @@ func EstimateConsensusRoundsForGov(seconds uint64) uint64 {
 
 func EstimateEndVotingBlockForParaProposal(blockNumber uint64, seconds uint64) uint64 {
 	consensusSize := ConsensusSize()
-	epochMaxDuration := xcom.MaxEpochMinutes() //minutes
+	epochMaxDuration := params.MaxEpochMinutes() //minutes
 	//estimate how many consensus rounds in a epoch.
-	consensusRoundsEachEpoch := epochMaxDuration * 60 / (xcom.Interval() * consensusSize)
+	consensusRoundsEachEpoch := epochMaxDuration * 60 / (params.Interval() * consensusSize)
 	blocksEachEpoch := consensusRoundsEachEpoch * consensusSize
 
 	//v0.7.5, hard code 1 second for block interval for estimating.
@@ -172,15 +172,15 @@ func InHashList(hash common.Hash, hashList []common.Hash) bool {
 
 // end-voting-block = the end block of a consensus period - electionDistance, end-voting-block must be a Consensus Election block
 func CalEndVotingBlock(blockNumber uint64, endVotingRounds uint64) uint64 {
-	electionDistance := xcom.ElectionDistance()
+	electionDistance := params.ElectionDistance()
 	consensusSize := ConsensusSize()
 	return blockNumber + consensusSize - blockNumber%consensusSize + endVotingRounds*consensusSize - electionDistance
 }
 
 // active-block = the begin of a consensus period, so, it is possible that active-block also is the begin of a epoch.
 func CalActiveBlock(endVotingBlock uint64) uint64 {
-	//return endVotingBlock + xcom.ElectionDistance() + (xcom.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
-	return endVotingBlock + xcom.ElectionDistance() + 1
+	//return endVotingBlock + params.ElectionDistance() + (params.VersionProposalActive_ConsensusRounds()-1)*ConsensusSize() + 1
+	return endVotingBlock + params.ElectionDistance() + 1
 }
 
 // IsBeginOfEpoch returns true if current block is the first block of a Epoch
@@ -204,7 +204,7 @@ func IsEndOfEpoch(blockNumber uint64) bool {
 }
 
 func IsElection(blockNumber uint64) bool {
-	tmp := blockNumber + xcom.ElectionDistance()
+	tmp := blockNumber + params.ElectionDistance()
 	mod := tmp % ConsensusSize()
 	return mod == 0
 }

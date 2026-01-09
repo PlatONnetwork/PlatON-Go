@@ -43,12 +43,13 @@ func TestGovDB_SetProposal_GetProposal_text(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposal := getTxtProposal()
-	if e := SetProposal(proposal, chain.StateDB); e != nil {
+	if e := gdb.SetProposal(proposal, chain.StateDB); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
-	if proposalGet, e := GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
+	if proposalGet, e := gdb.GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
@@ -61,13 +62,14 @@ func TestGovDB_SetProposal_GetProposal_version(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposal := getVerProposal(common.Hash{0x1})
-	if e := SetProposal(proposal, chain.StateDB); e != nil {
+	if e := gdb.SetProposal(proposal, chain.StateDB); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
 	//var proposalGet  Proposal
-	if proposalGet, e := GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
+	if proposalGet, e := gdb.GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
@@ -80,13 +82,14 @@ func TestGovDB_SetProposal_GetProposal_Cancel(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposal := getCancelProposal()
-	if e := SetProposal(proposal, chain.StateDB); e != nil {
+	if e := gdb.SetProposal(proposal, chain.StateDB); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
 	//var proposalGet  Proposal
-	if proposalGet, e := GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
+	if proposalGet, e := gdb.GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
@@ -99,14 +102,15 @@ func TestGovDB_addGovernParam(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := gdb.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
-	if paramList, err := listGovernParam("PPOS", blockHash); err != nil {
+	if paramList, err := gdb.listGovernParam("PPOS", blockHash); err != nil {
 		t.Fatalf("listGovernParam error, %s", err)
 	} else {
 		assert.Equal(t, 1, len(paramList))
@@ -118,14 +122,15 @@ func TestGovDB_findGovernParamValue(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := gdb.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
-	if value, err := findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
+	if value, err := gdb.findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
 		t.Fatalf("findGovernParamValue error, %s", err)
 	} else {
 		assert.Equal(t, "initValue", value.Value)
@@ -136,15 +141,16 @@ func TestGovDB_updateGovernParamValue(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	value := &ParamValue{"", "initValue", 0}
 	if err := chain.AddBlockWithSnapDB(false, func(hash common.Hash, header *types.Header, sdb snapshotdb.DB) error {
-		if err := addGovernParam("PPOS", "testName1", "for testing", value, hash); err != nil {
+		if err := gdb.addGovernParam("PPOS", "testName1", "for testing", value, hash); err != nil {
 			return err
 		}
-		if err := updateGovernParamValue("PPOS", "testName1", "newValue", uint64(10000), hash); err != nil {
+		if err := gdb.updateGovernParamValue("PPOS", "testName1", "newValue", uint64(10000), hash); err != nil {
 			return err
 		} else {
-			if value, err := findGovernParamValue("PPOS", "testName1", hash); err != nil {
+			if value, err := gdb.findGovernParamValue("PPOS", "testName1", hash); err != nil {
 				return err
 			} else {
 				assert.Equal(t, "newValue", value.Value)
@@ -160,22 +166,23 @@ func TestGovDB_SetProposal_GetProposal_param(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	chain.StateDB.SetTxContext(txHash, 0)
 
 	value := &ParamValue{"", "initValue", 0}
-	if err := addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
+	if err := gdb.addGovernParam("PPOS", "testName1", "for testing", value, blockHash); err != nil {
 		t.Fatalf("addGovernParam error, %s", err)
 	}
 
 	proposal := getParamProposal()
-	if e := SetProposal(proposal, chain.StateDB); e != nil {
+	if e := gdb.SetProposal(proposal, chain.StateDB); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
-	if proposalGet, e := GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
+	if proposalGet, e := gdb.GetProposal(proposal.ProposalID, chain.StateDB); e != nil {
 		t.Errorf("get proposal error,%s", e)
 	} else {
 		if proposalGet.GetPIPID() != proposal.GetPIPID() {
@@ -188,34 +195,35 @@ func TestGovDB_GetProposalList(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	tp := getTxtProposal()
-	if err := SetProposal(tp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(tp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	vp := getVerProposal(common.Hash{0x2})
-	if err := SetProposal(vp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(vp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	cp := getCancelProposal()
-	if err := SetProposal(cp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(cp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
-	if proposalList, err := GetProposalList(blockHash, chain.StateDB); err != nil {
+	if proposalList, err := gdb.GetProposalList(blockHash, chain.StateDB); err != nil {
 		t.Errorf("list proposal error,%s", err)
 	} else {
 		assert.Equal(t, 3, len(proposalList), "list proposals errors")
@@ -226,22 +234,23 @@ func TestGovDB_ListVotingProposal(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x01}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x01}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x02}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x02}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x04}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x04}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
-	if idList, err := ListVotingProposal(blockHash); err != nil {
+	if idList, err := gdb.ListVotingProposal(blockHash); err != nil {
 		t.Errorf("list proposal error,%s", err)
 	} else {
 		if len(idList) != 3 {
@@ -254,31 +263,32 @@ func TestGovDB_ListEndProposalID(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x01}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x01}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(common.Hash{0x01}, blockHash); err != nil {
+	if err := gdb.MoveVotingProposalIDToEnd(common.Hash{0x01}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x02}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x02}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(common.Hash{0x02}, blockHash); err != nil {
+	if err := gdb.MoveVotingProposalIDToEnd(common.Hash{0x02}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
-	if err := AddVotingProposalID(blockHash, common.Hash{0x04}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x04}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if err := MoveVotingProposalIDToEnd(common.Hash{0x04}, blockHash); err != nil {
+	if err := gdb.MoveVotingProposalIDToEnd(common.Hash{0x04}, blockHash); err != nil {
 		t.Errorf("MoveVotingProposalIDToEnd error,%s", err)
 	}
 
-	if idList, err := ListEndProposalID(blockHash); err != nil {
+	if idList, err := gdb.ListEndProposalID(blockHash); err != nil {
 		t.Errorf("list end proposal error,%s", err)
 	} else {
 		if len(idList) != 3 {
@@ -291,15 +301,16 @@ func TestGovDB_SetVote_ListVoteValue(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposalID := common.Hash{0x03}
 	blockHash := newBlock(chain)
 
 	for _, nodeId := range NodeIDList {
-		if err := AddVoteValue(proposalID, nodeId, Yes, blockHash); err != nil {
+		if err := gdb.AddVoteValue(proposalID, nodeId, Yes, blockHash); err != nil {
 			t.Errorf("set vote error,%s", err)
 		}
 	}
-	if voteValueList, err := ListVoteValue(proposalID, blockHash); err != nil {
+	if voteValueList, err := gdb.ListVoteValue(proposalID, blockHash); err != nil {
 		t.Errorf("list proposal's vote value error,%s", err)
 	} else {
 		if len(voteValueList) != len(NodeIDList) {
@@ -335,16 +346,17 @@ func TestGovDB_GetVotedVerifierMap(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposalID := common.Hash{0x03}
 	blockHash := newBlock(chain)
 
 	for _, nodeId := range NodeIDList {
-		if err := AddVoteValue(proposalID, nodeId, Yes, blockHash); err != nil {
+		if err := gdb.AddVoteValue(proposalID, nodeId, Yes, blockHash); err != nil {
 			t.Errorf("set vote error,%s", err)
 		}
 	}
 
-	if votedMap, err := GetVotedVerifierMap(proposalID, blockHash); err != nil {
+	if votedMap, err := gdb.GetVotedVerifierMap(proposalID, blockHash); err != nil {
 		t.Errorf("get proposal's voted verifier map error,%s", err)
 	} else {
 		if len(votedMap) != len(NodeIDList) {
@@ -357,6 +369,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	var proposalIdsVoting []common.Hash
 	var proposalIdsEnd []common.Hash
 	var proposalIdPre common.Hash
@@ -370,29 +383,29 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	for i := 1; i <= totalLen; i++ {
 		proposal := getVerProposal(common.Hash{byte(i)})
 		newVersion = proposal.NewVersion
-		if err := AddVotingProposalID(blockHash, proposal.ProposalID); err != nil {
+		if err := gdb.AddVotingProposalID(blockHash, proposal.ProposalID); err != nil {
 			t.Fatalf("add voting proposal failed...%s", err)
 		}
 		proposalIdsVoting = append(proposalIdsVoting, proposal.ProposalID)
 
-		SetProposal(proposal, chain.StateDB)
+		gdb.SetProposal(proposal, chain.StateDB)
 	}
 
 	//-- move voting to end
 	for i := 0; i < 2; i++ {
-		if err := MoveVotingProposalIDToEnd(proposalIdsVoting[i], blockHash); err != nil {
+		if err := gdb.MoveVotingProposalIDToEnd(proposalIdsVoting[i], blockHash); err != nil {
 			t.Fatalf("move voting proposal to end failed...%s", err)
 		} else {
 			proposalIdsEnd = append(proposalIdsEnd, proposalIdsVoting[i])
 			proposalIdsVoting = append(proposalIdsVoting[:i], proposalIdsVoting[i+1:]...)
 		}
 	}
-	if proposals, err := GetProposalList(blockHash, chain.StateDB); err != nil {
+	if proposals, err := gdb.GetProposalList(blockHash, chain.StateDB); err != nil {
 		t.Fatalf("get proposal list error ,%s", err)
 	} else {
 		assert.Equal(t, totalLen, len(proposals))
 	}
-	if plist, err := ListEndProposalID(blockHash); err != nil {
+	if plist, err := gdb.ListEndProposalID(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, len(proposalIdsEnd), len(plist))
@@ -401,29 +414,29 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	//-- move preactive to end
 	proposalIdPre = proposalIdsVoting[0]
 	proposalIdsVoting = proposalIdsVoting[1:]
-	if err := MoveVotingProposalIDToPreActive(blockHash, proposalIdPre, 32); err != nil {
+	if err := gdb.MoveVotingProposalIDToPreActive(blockHash, proposalIdPre, 32); err != nil {
 		t.Fatalf("move voting proposal to pre active failed...%s", err)
 	}
 
-	if plist, err := GetProposalList(blockHash, chain.StateDB); err != nil {
+	if plist, err := gdb.GetProposalList(blockHash, chain.StateDB); err != nil {
 		t.Fatalf("get proposal list error ,%s", err)
 	} else {
 		assert.Equal(t, totalLen, len(plist))
 	}
-	if plist, err := ListEndProposalID(blockHash); err != nil {
+	if plist, err := gdb.ListEndProposalID(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, len(proposalIdsEnd), len(plist))
 	}
-	if prePID, err := GetPreActiveProposalID(blockHash); err != nil {
+	if prePID, err := gdb.GetPreActiveProposalID(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, proposalIdPre, prePID)
 	}
-	preVersion := GetPreActiveVersion(blockHash)
+	preVersion := gdb.GetPreActiveVersion(blockHash)
 	assert.Equal(t, newVersion, preVersion)
 
-	if plist, err := ListVotingProposal(blockHash); err != nil {
+	if plist, err := gdb.ListVotingProposal(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, len(proposalIdsVoting), len(plist))
@@ -434,28 +447,28 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 
 	// move preactive to end
 	proposalIdsEnd = append(proposalIdsEnd, proposalIdPre)
-	if err := MovePreActiveProposalIDToEnd(blockHash, proposalIdPre); err != nil {
+	if err := gdb.MovePreActiveProposalIDToEnd(blockHash, proposalIdPre); err != nil {
 		t.Fatalf("move preactive proposal id to end failed...%s", err)
 	}
-	if prePID, err := GetPreActiveProposalID(blockHash); err != nil {
+	if prePID, err := gdb.GetPreActiveProposalID(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, common.ZeroHash, prePID)
 	}
-	preVersion = GetPreActiveVersion(blockHash)
+	preVersion = gdb.GetPreActiveVersion(blockHash)
 	assert.Equal(t, uint32(0), preVersion)
 
-	if plist, err := GetProposalList(blockHash, chain.StateDB); err != nil {
+	if plist, err := gdb.GetProposalList(blockHash, chain.StateDB); err != nil {
 		t.Fatalf("get proposal list error ,%s", err)
 	} else {
 		assert.Equal(t, totalLen, len(plist))
 	}
-	if plist, err := ListEndProposalID(blockHash); err != nil {
+	if plist, err := gdb.ListEndProposalID(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, len(proposalIdsEnd), len(plist))
 	}
-	if plist, err := ListVotingProposal(blockHash); err != nil {
+	if plist, err := gdb.ListVotingProposal(blockHash); err != nil {
 		t.Fatalf("list end propsal error,%s", err)
 	} else {
 		assert.Equal(t, len(proposalIdsVoting), len(plist))
@@ -466,12 +479,13 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	blockHash := newBlock(chain)
 	version := uint32(32)
-	if err := SetPreActiveVersion(blockHash, version); err != nil {
+	if err := gdb.SetPreActiveVersion(blockHash, version); err != nil {
 		t.Fatalf("set pre-active version error...%s", err)
 	}
-	vget := GetPreActiveVersion(blockHash)
+	vget := gdb.GetPreActiveVersion(blockHash)
 	if vget != version {
 		t.Fatalf("get pre-active version error,expect version:%d,get version:%d", version, vget)
 	}
@@ -480,8 +494,9 @@ func TestGovDB_SetPreActiveVersion(t *testing.T) {
 func TestGovDB_GetPreActiveVersionNotExist(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
+	gdb := NewGovDB(chain.SnapDB)
 	blockHash := newBlock(chain)
-	vget := GetPreActiveVersion(blockHash)
+	vget := gdb.GetPreActiveVersion(blockHash)
 	t.Logf("get pre-active version error,get version:%d", vget)
 }
 
@@ -489,19 +504,22 @@ func TestGovDB_AddActiveVersion(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
+
 	version := uint32(32)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := AddActiveVersion(version, 10000, chain.StateDB); err != nil {
+	if err := gdb.AddActiveVersion(version, 10000, chain.StateDB); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 
 	version = uint32(33)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := AddActiveVersion(version, 20000, chain.StateDB); err != nil {
+	if err := gdb.AddActiveVersion(version, 20000, chain.StateDB); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 
-	vget := GetCurrentActiveVersion(chain.StateDB)
+	vget := gov.GetCurrentActiveVersion(chain.StateDB)
 	if vget != version {
 		t.Fatalf("get current active version error,expect version:%d,get version:%d", version, vget)
 	}
@@ -511,8 +529,10 @@ func TestGovDB_TallyResult(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+
 	proposal := getVerProposal(common.Hash{0x03})
-	if e := SetProposal(proposal, chain.StateDB); e != nil {
+	if e := gdb.SetProposal(proposal, chain.StateDB); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}
 
@@ -527,11 +547,11 @@ func TestGovDB_TallyResult(t *testing.T) {
 		Status:        Pass,
 	}
 
-	if err := SetTallyResult(tallyResult, chain.StateDB); err != nil {
+	if err := gdb.SetTallyResult(tallyResult, chain.StateDB); err != nil {
 		t.Fatalf("set vote result error")
 	}
 
-	if result, err := GetTallyResult(proposalID, chain.StateDB); err != nil {
+	if result, err := gdb.GetTallyResult(proposalID, chain.StateDB); err != nil {
 		t.Fatalf("get vote result error,%s", err)
 	} else {
 		if result.Status != tallyResult.Status {
@@ -544,6 +564,8 @@ func TestGovDB_GetTallyResult_ProposalNotFound(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+
 	proposalID := common.Hash{0x03}
 
 	tallyResult := TallyResult{
@@ -555,11 +577,11 @@ func TestGovDB_GetTallyResult_ProposalNotFound(t *testing.T) {
 		Status:        Pass,
 	}
 
-	if err := SetTallyResult(tallyResult, chain.StateDB); err != nil {
+	if err := gdb.SetTallyResult(tallyResult, chain.StateDB); err != nil {
 		t.Fatalf("set vote result error")
 	}
 
-	if result, err := GetTallyResult(proposalID, chain.StateDB); err != nil {
+	if result, err := gdb.GetTallyResult(proposalID, chain.StateDB); err != nil {
 		if err == ProposalNotFound {
 			t.Log("get expected error")
 		} else {
@@ -576,18 +598,19 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	proposal := getTxtProposal()
 
 	for _, node := range voteValueList {
-		if err := AddActiveNode(blockHash, proposal.ProposalID, node.VoteNodeID); err != nil {
+		if err := gdb.AddActiveNode(blockHash, proposal.ProposalID, node.VoteNodeID); err != nil {
 			t.Fatalf("add active node error...%s", err)
 		}
 	}
 
-	if ids, err := GetActiveNodeList(blockHash, proposal.ProposalID); err != nil {
+	if ids, err := gdb.GetActiveNodeList(blockHash, proposal.ProposalID); err != nil {
 		t.Fatalf("get active node list error...%s", err)
 	} else {
 		if len(ids) != len(voteValueList) {
@@ -595,10 +618,10 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 		}
 	}
 
-	if err := ClearActiveNodes(blockHash, proposal.ProposalID); err != nil {
+	if err := gdb.ClearActiveNodes(blockHash, proposal.ProposalID); err != nil {
 		t.Fatalf("clear active node list error...%s", err)
 	} else {
-		if ids, err := GetActiveNodeList(blockHash, proposal.ProposalID); err != nil {
+		if ids, err := gdb.GetActiveNodeList(blockHash, proposal.ProposalID); err != nil {
 			t.Fatalf("get active node list after clear error...%s", err)
 		} else {
 			if len(ids) != 0 {
@@ -612,14 +635,15 @@ func TestGovDB_addAccuVerifiers(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	proposalID := generateHash("pipID")
 
 	blockHash := newBlock(chain)
 
-	if err := addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
+	if err := gdb.addAccuVerifiers(blockHash, proposalID, NodeIDList); err != nil {
 		t.Fatalf("addAccuVerifiers error...%s", err)
 	} else {
-		if nodeList, err := ListAccuVerifier(blockHash, proposalID); err != nil {
+		if nodeList, err := gdb.ListAccuVerifier(blockHash, proposalID); err != nil {
 			t.Fatalf("ListAccuVerifier error...%s", err)
 		} else {
 			if len(nodeList) != 4 {
@@ -633,7 +657,9 @@ func TestGovDB_AddPIPID(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
-	if err := AddPIPID("pip_1", chain.StateDB); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+
+	if err := gdb.AddPIPID("pip_1", chain.StateDB); err != nil {
 		t.Fatalf("add PIPID error ...%s", err)
 	}
 }
@@ -642,14 +668,16 @@ func TestGovDB_ListPIPID(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
-	if err := AddPIPID("pip_1", chain.StateDB); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+
+	if err := gdb.AddPIPID("pip_1", chain.StateDB); err != nil {
 		t.Fatalf("add PIPID error ...%s", err)
 	}
-	if err := AddPIPID("pip_2", chain.StateDB); err != nil {
+	if err := gdb.AddPIPID("pip_2", chain.StateDB); err != nil {
 		t.Fatalf("add PIPID error ...%s", err)
 	}
 
-	if idList, err := ListPIPID(chain.StateDB); err != nil {
+	if idList, err := gdb.ListPIPID(chain.StateDB); err != nil {
 		t.Fatalf("list PIPID error ...%s", err)
 	} else {
 		if len(idList) != 2 {
@@ -664,12 +692,14 @@ func TestGovDB_GetExistProposal(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+
 	proposal := getTxtProposal()
-	if err := SetProposal(proposal, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(proposal, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
 
-	if existing, err := GetExistProposal(proposal.ProposalID, chain.StateDB); err != nil {
+	if existing, err := gdb.GetExistProposal(proposal.ProposalID, chain.StateDB); err != nil {
 		t.Errorf("get exist proposal error,%s", err)
 	} else {
 		if existing.GetPIPID() != proposal.GetPIPID() {
@@ -677,7 +707,7 @@ func TestGovDB_GetExistProposal(t *testing.T) {
 		}
 	}
 
-	if _, err := GetExistProposal(common.Hash{0x10}, chain.StateDB); err != nil {
+	if _, err := gdb.GetExistProposal(common.Hash{0x10}, chain.StateDB); err != nil {
 		if err == ProposalNotFound {
 			t.Log("throw exception correctly if not found the proposal")
 		} else {
@@ -692,33 +722,35 @@ func TestGovDB_FindVotingVersionProposal_success(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	tp := getTxtProposal()
-	if err := SetProposal(tp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(tp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	vp := getVerProposal(common.Hash{0x2})
-	if err := SetProposal(vp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(vp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	cp := getCancelProposal()
-	if err := SetProposal(cp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(cp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
+	if p, err := gov.FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
@@ -732,24 +764,26 @@ func TestGovDB_FindVotingVersionProposal_NoVersionProposalID(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 	tp := getTxtProposal()
-	if err := SetProposal(tp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(tp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	cp := getCancelProposal()
-	if err := SetProposal(cp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(cp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
+	if p, err := gov.FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
 		t.Fatalf("find voting proposal ID error,%s", err)
 	} else if p == nil {
 		t.Log("not find voting proposal ID")
@@ -763,33 +797,35 @@ func TestGovDB_FindVotingVersionProposal_DataError(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
 	//create block
 	blockHash := newBlock(chain)
 
 	tp := getTxtProposal()
-	if err := SetProposal(tp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(tp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, tp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	/*vp := getVerProposal(common.Hash{0x2})
-	if e := SetProposal(vp, statedb); e != nil {
+	if e := gdb.SetProposal(vp, statedb); e != nil {
 		t.Errorf("set proposal error,%s", e)
 	}*/
-	if err := AddVotingProposalID(blockHash, common.Hash{0x2}); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, common.Hash{0x2}); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
 
 	cp := getCancelProposal()
-	if err := SetProposal(cp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(cp, chain.StateDB); err != nil {
 		t.Errorf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, cp.ProposalID); err != nil {
 		t.Errorf("add voting proposal ID error,%s", err)
 	}
-	if p, err := FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
+	if p, err := gov.FindVotingProposal(blockHash, chain.StateDB, Version); err != nil {
 		if err == ProposalNotFound {
 			t.Log("throw a exception correctly if data error")
 		} else {
@@ -807,19 +843,22 @@ func TestGovDB_ListActiveVersion(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
+
 	version := uint32(32)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := AddActiveVersion(version, 10000, chain.StateDB); err != nil {
+	if err := gdb.AddActiveVersion(version, 10000, chain.StateDB); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 
 	version = uint32(33)
 	//proposal := getVerProposal(common.Hash{0x1})
-	if err := AddActiveVersion(version, 20000, chain.StateDB); err != nil {
+	if err := gdb.AddActiveVersion(version, 20000, chain.StateDB); err != nil {
 		t.Fatalf("add active version error...%s", err)
 	}
 
-	if avList, err := ListActiveVersion(chain.StateDB); err != nil {
+	if avList, err := gov.GetCurrentActiveVersionList(chain.StateDB); err != nil {
 		t.Fatal("list active version error")
 	} else if len(avList) != 2 {
 		t.Fatal("count of active version error")
@@ -830,9 +869,10 @@ func TestGovDB_AddGovernParam(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	blockHash := newBlock(chain)
 
-	if err := addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
+	if err := gdb.addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	}
 }
@@ -840,12 +880,14 @@ func TestGovDB_AddGovernParam(t *testing.T) {
 func TestGovDB_FindGovernParamValue(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
+
+	gdb := NewGovDB(chain.SnapDB)
 	blockHash := newBlock(chain)
-	if err := addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
+	if err := gdb.addGovernParam("PPOS", "testName1", "desc1", &ParamValue{"", "initValue", 0}, blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	}
 
-	if item, err := findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
+	if item, err := gdb.findGovernParamValue("PPOS", "testName1", blockHash); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	} else if item == nil {
 		t.Logf("govern param not found")
@@ -858,13 +900,14 @@ func TestGovDB_setPreactiveVersion(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
 	blockHash := newBlock(chain)
 	version := uint32(2561)
-	if err := setPreActiveVersion(blockHash, version); err != nil {
+	if err := gdb.SetPreActiveVersion(blockHash, version); err != nil {
 		t.Fatalf("add govern param error...%s", err)
 	}
 
-	ver := getPreActiveVersion(blockHash)
+	ver := gdb.GetPreActiveVersion(blockHash)
 	assert.Equal(t, version, ver)
 }
 
@@ -872,35 +915,37 @@ func TestGovDB_setPreactiveProposalID(t *testing.T) {
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
 
+	gdb := NewGovDB(chain.SnapDB)
+
 	pid := common.Hash{0x1}
 	//create block
 	blockHash := newBlock(chain)
 	vp := getVerProposal(pid)
-	if err := SetProposal(vp, chain.StateDB); err != nil {
+	if err := gdb.SetProposal(vp, chain.StateDB); err != nil {
 		t.Fatalf("set proposal error,%s", err)
 	}
-	if err := AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
+	if err := gdb.AddVotingProposalID(blockHash, vp.ProposalID); err != nil {
 		t.Fatalf("add voting proposal ID error,%s", err)
 	}
 
-	if err := MoveVotingProposalIDToPreActive(blockHash, vp.ProposalID, vp.NewVersion); err != nil {
+	if err := gdb.MoveVotingProposalIDToPreActive(blockHash, vp.ProposalID, vp.NewVersion); err != nil {
 		t.Fatalf("move voting ID to pre-active ID error,%s", err)
 	}
-	if p, err := getPreActiveProposalID(blockHash); err != nil {
+	if p, err := gdb.GetPreActiveProposalID(blockHash); err != nil {
 		t.Fatalf("find  pre-active ID error,%s", err)
 	} else {
 		t.Log("p:", p)
 		assert.Equal(t, vp.ProposalID, p)
 	}
 
-	version := getPreActiveVersion(blockHash)
+	version := gdb.GetPreActiveVersion(blockHash)
 	assert.Equal(t, vp.NewVersion, version)
 
-	if err := put(blockHash, KeyPreActiveProposal(), common.Hash{0x00}); err != nil {
+	if err := gdb.MovePreActiveProposalIDToEnd(blockHash, vp.ProposalID); err != nil {
 		t.Fatalf("reset pre-active ID error,%s", err)
 	}
 
-	if p, err := GetPreActiveProposalID(blockHash); err != nil {
+	if p, err := gdb.GetPreActiveProposalID(blockHash); err != nil {
 		t.Fatalf("find  pre-active ID error,%s", err)
 	} else {
 		t.Log("p:", p)

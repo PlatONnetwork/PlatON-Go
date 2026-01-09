@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 var (
@@ -182,7 +181,8 @@ func setup(t *testing.T) *mock.Chain {
 
 	RegisterGovernParamVerifiers()
 
-	if err := AddActiveVersion(params.GenesisVersion, 0, chain.StateDB); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+	if err := gdb.AddActiveVersion(params.GenesisVersion, 0, chain.StateDB); err != nil {
 		t.Error("AddActiveVersion, err", err)
 	}
 	commit_sndb(chain)
@@ -194,20 +194,23 @@ func setup(t *testing.T) *mock.Chain {
 }
 
 func submitText(t *testing.T, chain *mock.Chain) Proposal {
+	gov := NewGov(chain.SnapDB)
 	p := &TextProposal{
 		PIPID:        tpPIPID,
 		ProposalType: Text,
 		SubmitBlock:  chain.CurrentHeader().Number.Uint64(),
 		ProposalID:   tpProposalID,
 		Proposer:     nodeID,
+		Gov:          gov,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB, chainID); err != nil {
+	if err := gov.Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), NewMockStaking(), chain.StateDB, chainID); err != nil {
 		t.Error("submitText, err", err)
 	}
 	return p
 }
 
 func submitVersion(t *testing.T, chain *mock.Chain, stk *MockStaking) Proposal {
+	gov := NewGov(chain.SnapDB)
 	p := &VersionProposal{
 		PIPID:           vpPIPID,
 		ProposalType:    Version,
@@ -216,8 +219,9 @@ func submitVersion(t *testing.T, chain *mock.Chain, stk *MockStaking) Proposal {
 		Proposer:        nodeID,
 		NewVersion:      tempActiveVersion,
 		EndVotingRounds: vpEndVotingRounds,
+		Gov:             gov,
 	}
-	if err := Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB, chainID); err != nil {
+	if err := gov.Submit(sender, p, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB, chainID); err != nil {
 		t.Error("submitVersion, err", err)
 	}
 	return p
@@ -234,7 +238,8 @@ func TestGov_GetVersionForStaking_No_PreActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	version := GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
+	gov := NewGov(chain.SnapDB)
+	version := gov.GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
 	assert.Equal(t, params.GenesisVersion, version)
 }
 
@@ -242,16 +247,21 @@ func TestGov_GetVersionForStaking_With_PreActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	if err := SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
+
+	if err := gdb.SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
 		t.Error("SetPreActiveVersion, err", err)
 	}
-	version := GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
+	version := gov.GetVersionForStaking(chain.CurrentHeader().Hash(), chain.StateDB)
 	assert.Equal(t, tempActiveVersion, version)
 }
 func TestGov_GetCurrentActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	version := GetCurrentActiveVersion(chain.StateDB)
+
+	gov := NewGov(chain.SnapDB)
+	version := gov.GetCurrentActiveVersion(chain.StateDB)
 	t.Log("version", version)
 	assert.Equal(t, params.GenesisVersion, version)
 }
@@ -260,19 +270,22 @@ func TestGov_GetCurrentActiveVersion_NewActiveVersion(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
+
 	commit_sndb(chain)
 	skip_emptyBlock(chain, 1001)
 
-	if err := AddActiveVersion(tempActiveVersion, 1002, chain.StateDB); err != nil {
+	if err := gdb.AddActiveVersion(tempActiveVersion, 1002, chain.StateDB); err != nil {
 		t.Error("AddActiveVersion, err", err)
 	}
 
-	version := GetCurrentActiveVersion(chain.StateDB)
+	version := gov.GetCurrentActiveVersion(chain.StateDB)
 	t.Log("1st version", version, "chain.CurrentHeader().Number", chain.CurrentHeader().Number.Uint64())
 	assert.Equal(t, tempActiveVersion, version)
 
 	skip_emptyBlock(chain, 1002)
-	version = GetCurrentActiveVersion(chain.StateDB)
+	version = gov.GetCurrentActiveVersion(chain.StateDB)
 	t.Log("2nd version", version, "chain.CurrentHeader().Number", chain.CurrentHeader().Number.Uint64())
 	assert.Equal(t, tempActiveVersion, version)
 }
@@ -285,7 +298,8 @@ func TestGov_Submit(t *testing.T) {
 	prepare_sndb(chain)
 	submitText(t, chain)
 
-	if tp, err := FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Text); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if tp, err := gov.FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Text); err != nil {
 		t.Error("FindVotingProposal, err", err)
 	} else {
 		assert.Equal(t, tpProposalID, tp.(*TextProposal).ProposalID)
@@ -301,10 +315,11 @@ func TestGov_Vote(t *testing.T) {
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
+	gov := NewGov(chain.SnapDB)
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
 	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, NewMockStaking(), chain.StateDB); err != nil {
+	if err := gov.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, NewMockStaking(), chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
@@ -312,13 +327,14 @@ func TestGov_Vote(t *testing.T) {
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+	if vvList, err := gdb.ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
+	if avList, err := gdb.ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
 		t.Error("ListAccuVerifier, err", err)
 	} else {
 		assert.Equal(t, 1, len(avList))
@@ -332,8 +348,9 @@ func TestGov_DeclareVersion_1(t *testing.T) {
 	defer clear(chain, t)
 	stk := NewMockStaking()
 
+	gov := NewGov(chain.SnapDB)
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	if err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := gov.DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
@@ -347,21 +364,24 @@ func TestGov_DeclareVersion_2(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
-	if err := SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
+	gdb := NewGovDB(chain.SnapDB)
+	gov := NewGov(chain.SnapDB)
+
+	if err := gdb.SetPreActiveVersion(chain.CurrentHeader().Hash(), tempActiveVersion); err != nil {
 		t.Error("SetPreActiveVersion, err", err)
 	}
 
 	stk := NewMockStaking()
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err := gov.DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, DeclareVersionError, err)
 
-	err = DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err = gov.DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, VersionSignError, err)
 
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := gov.DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
@@ -375,6 +395,8 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gov := NewGov(chain.SnapDB)
+	gdb := NewGovDB(chain.SnapDB)
 	stk := NewMockStaking()
 
 	submitVersion(t, chain, stk)
@@ -383,7 +405,7 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 	prepare_sndb(chain)
 
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
-	if err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := gov.DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
 		anList := stk.ListDeclaredNode()
@@ -393,10 +415,10 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 
 	//declared new version, gov will save all these nodes and notify staking if proposal is passed
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
+	if err := gov.DeclareVersion(sender, nodeID, tempActiveVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB); err != nil {
 		t.Error("DeclareVersion, err", err)
 	} else {
-		if anList, err := GetActiveNodeList(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
+		if anList, err := gdb.GetActiveNodeList(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
 			t.Error("DeclareVersion, err", err)
 		} else {
 			assert.Equal(t, 1, len(anList))
@@ -404,7 +426,7 @@ func TestGov_DeclareVersion_3(t *testing.T) {
 		}
 	}
 
-	err := DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
+	err := gov.DeclareVersion(sender, nodeID, params.GenesisVersion, versionSign, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), stk, chain.StateDB)
 	assert.Equal(t, VersionSignError, err)
 }
 
@@ -412,13 +434,14 @@ func TestGov_ListProposal(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gdb := NewGovDB(chain.SnapDB)
 	stk := NewMockStaking()
 
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if pList, err := ListProposal(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+	if pList, err := gdb.GetProposalList(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("ListProposal, err", err)
 	} else {
 		assert.Equal(t, 1, len(pList))
@@ -430,6 +453,7 @@ func TestGov_ListVotingProposalID(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gdb := NewGovDB(chain.SnapDB)
 	stk := NewMockStaking()
 
 	submitVersion(t, chain, stk)
@@ -437,7 +461,7 @@ func TestGov_ListVotingProposalID(t *testing.T) {
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if pIDList, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if pIDList, err := gdb.ListVotingProposal(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
 	} else {
 		assert.Equal(t, 1, len(pIDList))
@@ -449,13 +473,14 @@ func TestGov_FindVotingProposal(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gov := NewGov(chain.SnapDB)
 	stk := NewMockStaking()
 
 	submitVersion(t, chain, stk)
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if p, err := FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Version); err != nil {
+	if p, err := gov.FindVotingProposal(chain.CurrentHeader().Hash(), chain.StateDB, Version); err != nil {
 		t.Error("FindVotingProposal, err", err)
 	} else {
 		assert.NotNil(t, p)
@@ -467,6 +492,7 @@ func TestGov_GetMaxEndVotingBlock(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gov := NewGov(chain.SnapDB)
 	stk := NewMockStaking()
 
 	tp := submitText(t, chain)
@@ -482,19 +508,19 @@ func TestGov_GetMaxEndVotingBlock(t *testing.T) {
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
 	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := gov.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
 	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := gov.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
-	if maxBlockNumber, err := GetMaxEndVotingBlock(nodeID, chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+	if maxBlockNumber, err := gov.GetMaxEndVotingBlock(nodeID, chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("FindVotingProposal, err", err)
 	} else {
 		t.Log("maxBlockNumber", maxBlockNumber, "tp.GetEndVotingBlock()", tp.GetEndVotingBlock(), "vp.GetEndVotingBlock()", vp.GetEndVotingBlock())
@@ -509,6 +535,8 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 	stk := NewMockStaking()
 
 	submitText(t, chain)
+	gov := NewGov(chain.SnapDB)
+	gdb := NewGovDB(chain.SnapDB)
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
@@ -521,27 +549,27 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
 	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := gov.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
 	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := gov.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(vvList))
@@ -550,17 +578,17 @@ func TestGov_NotifyPunishedVerifiers(t *testing.T) {
 	punishedVerifierMap := make(map[enode.IDv0]struct{})
 	punishedVerifierMap[nodeID] = struct{}{}
 
-	if err := NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punishedVerifierMap, chain.StateDB); err != nil {
+	if err := gov.NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punishedVerifierMap, chain.StateDB); err != nil {
 		t.Error("NotifyPunishedVerifiers, err", err)
 	}
 
-	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(vvList))
 	}
 
-	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(vvList))
@@ -571,17 +599,18 @@ func TestGov_SetGovernParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gov := NewGov(chain.SnapDB)
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if gp, err := FindGovernParam("myModule", "myName", chain.CurrentHeader().Hash()); err != nil {
+	if gp, err := gov.FindGovernParam("myModule", "myName", chain.CurrentHeader().Hash()); err != nil {
 		t.Error("FindGovernParam, err", err)
 	} else {
 		assert.NotNil(t, gp)
@@ -596,20 +625,21 @@ func TestGov_UpdateGovernParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
 
+	gov := NewGov(chain.SnapDB)
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := UpdateGovernParamValue("myModule", "myName", "newValue", uint64(4), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.UpdateGovernParamValue("myModule", "myName", "newValue", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("UpdateGovernParamValue, err", err)
 	}
 
-	if gp, err := FindGovernParam("myModule", "myName", chain.CurrentHeader().Hash()); err != nil {
+	if gp, err := gov.FindGovernParam("myModule", "myName", chain.CurrentHeader().Hash()); err != nil {
 		t.Error("FindGovernParam, err", err)
 	} else {
 		assert.NotNil(t, gp)
@@ -626,25 +656,25 @@ func TestGov_ListGovernParam(t *testing.T) {
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
-
-	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if err := gov.SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
-	if gpList, err := ListGovernParam("myModule", chain.CurrentHeader().Hash()); err != nil {
+	if gpList, err := gov.ListGovernParam("myModule", chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListGovernParam, err", err)
 	} else {
 		assert.NotNil(t, gpList)
@@ -668,25 +698,25 @@ func TestGov_UpdateGovernParamValue(t *testing.T) {
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
-
-	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if err := gov.SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule", "myName2", "myDesc2", "initValue2", uint64(3), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if err := SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
+	if err := gov.SetGovernParam("myModule3", "myName3", "myDesc3", "initValue3", uint64(4), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 
-	if gpList, err := ListGovernParam("myModule", chain.CurrentHeader().Hash()); err != nil {
+	if gpList, err := gov.ListGovernParam("myModule", chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListGovernParam, err", err)
 	} else {
 		assert.NotNil(t, gpList)
@@ -710,14 +740,14 @@ func TestGov_GetGovernParamValue(t *testing.T) {
 
 	commit_sndb(chain)
 	prepare_sndb(chain)
-
-	if err := SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if err := gov.SetGovernParam("myModule", "myName", "myDesc", "initValue", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("SetGovernParam, err", err)
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if gpv, err := GetGovernParamValue("myModule", "myName", uint64(2), chain.CurrentHeader().Hash()); err != nil {
+	if gpv, err := gov.GetGovernParamValue("myModule", "myName", uint64(2), chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GetGovernParamValue, err", err)
 	} else {
 		assert.NotNil(t, gpv)
@@ -730,11 +760,12 @@ func TestGov_GovernStakeThreshold(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernStakeThreshold(1, chain.CurrentHeader().Hash()); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if threshold, err := gov.GovernStakeThreshold(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernStakeThreshold, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.StakeThreshold().String(), threshold.String())
+		assert.Equal(t, params.StakeThreshold().String(), threshold.String())
 	}
 }
 
@@ -743,11 +774,12 @@ func TestGov_GovernOperatingThreshold(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernOperatingThreshold(1, chain.CurrentHeader().Hash()); err != nil {
+	gov := NewGov(chain.SnapDB)
+	if threshold, err := gov.GovernOperatingThreshold(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernOperatingThreshold, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.OperatingThreshold().String(), threshold.String())
+		assert.Equal(t, params.OperatingThreshold().String(), threshold.String())
 	}
 }
 
@@ -756,11 +788,12 @@ func TestGov_GovernMaxValidators(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernMaxValidators(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernMaxValidators(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernMaxValidators, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.MaxValidators(), threshold)
+		assert.Equal(t, params.MaxValidators(), threshold)
 	}
 }
 
@@ -769,11 +802,12 @@ func TestGov_GovernUnStakeFreezeDuration(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernUnStakeFreezeDuration(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernUnStakeFreezeDuration(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernUnStakeFreezeDuration, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.UnStakeFreezeDuration(), threshold)
+		assert.Equal(t, params.UnStakeFreezeDuration(), threshold)
 	}
 }
 
@@ -782,11 +816,12 @@ func TestGov_GovernSlashFractionDuplicateSign(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernSlashFractionDuplicateSign(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernSlashFractionDuplicateSign(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernSlashFractionDuplicateSign, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.SlashFractionDuplicateSign(), threshold)
+		assert.Equal(t, params.SlashFractionDuplicateSign(), threshold)
 	}
 }
 
@@ -795,11 +830,12 @@ func TestGov_GovernDuplicateSignReportReward(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernDuplicateSignReportReward(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernDuplicateSignReportReward(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernDuplicateSignReportReward, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.DuplicateSignReportReward(), threshold)
+		assert.Equal(t, params.DuplicateSignReportReward(), threshold)
 	}
 }
 
@@ -808,11 +844,12 @@ func TestGov_GovernMaxEvidenceAge(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernMaxEvidenceAge(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernMaxEvidenceAge(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernMaxEvidenceAge, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.MaxEvidenceAge(), threshold)
+		assert.Equal(t, params.MaxEvidenceAge(), threshold)
 	}
 }
 
@@ -821,11 +858,12 @@ func TestGov_GovernSlashBlocksReward(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernSlashBlocksReward(1, chain.CurrentHeader().Hash()); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernSlashBlocksReward(1, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GovernSlashBlocksReward, err", err)
 	} else {
 		assert.NotNil(t, threshold)
-		assert.Equal(t, xcom.SlashBlocksReward(), threshold)
+		assert.Equal(t, params.SlashBlocksReward(), threshold)
 	}
 }
 
@@ -834,7 +872,8 @@ func TestGov_GovernMaxBlockGasLimit(t *testing.T) {
 	defer clear(chain, t)
 	commit_sndb(chain)
 	prepare_sndb(chain)
-	if threshold, err := GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash(), chain.SnapDB); err != nil {
+	govInstance := NewGov(chain.SnapDB)
+	if threshold, err := govInstance.GovernMaxBlockGasLimit(1, chain.CurrentHeader().Hash(), chain.SnapDB); err != nil {
 		t.Error("GovernMaxBlockGasLimit, err", err)
 	} else {
 		assert.NotNil(t, threshold)
@@ -849,6 +888,8 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	prepare_sndb(chain)
 
 	stk := NewMockStaking()
+	govInstance := NewGov(chain.SnapDB)
+	gdb := NewGovDB(chain.SnapDB)
 
 	submitText(t, chain)
 
@@ -863,89 +904,89 @@ func TestGov_ClearProcessingProposals(t *testing.T) {
 	versionSign := common.BytesToVersionSign(sign(params.GenesisVersion))
 
 	vi := VoteInfo{ProposalID: tpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := govInstance.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), params.GenesisVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 
 	vi = VoteInfo{ProposalID: vpProposalID, VoteNodeID: nodeID, VoteOption: Yes}
 	versionSign = common.BytesToVersionSign(sign(tempActiveVersion))
-	if err := Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
+	if err := govInstance.Vote(sender, vi, chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64(), tempActiveVersion, versionSign, stk, chain.StateDB); err != nil {
 		t.Error("Vote, err", err)
 		return
 	}
 	commit_sndb(chain)
 	prepare_sndb(chain)
 
-	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if votinglist, err := govInstance.ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
 	} else {
 		assert.Equal(t, 2, len(votinglist))
 	}
 
-	if endList, err := ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if endList, err := gdb.ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListEndProposalID, err", err)
 	} else {
 		assert.Equal(t, 0, len(endList))
 	}
 
-	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(vvList))
 	}
 
-	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
+	if avList, err := gdb.ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(avList))
 	}
 
-	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(vvList))
 	}
-	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
+	if avList, err := gdb.ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 1, len(avList))
 	}
 
-	if err := ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+	if err := govInstance.ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("ClearProcessingProposals, err", err)
 	}
 
-	if votinglist, err := ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if votinglist, err := govInstance.ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVotingProposalID, err", err)
 	} else {
 		assert.Equal(t, 0, len(votinglist))
 	}
 
-	if endList, err := ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if endList, err := gdb.ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListEndProposalID, err", err)
 	} else {
 		assert.Equal(t, 2, len(endList))
 	}
 
-	if vvList, err := ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(tpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(vvList))
 	}
 
-	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
+	if avList, err := gdb.ListAccuVerifier(chain.CurrentHeader().Hash(), tpProposalID); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(avList))
 	}
 
-	if vvList, err := ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
+	if vvList, err := gdb.ListVoteValue(vpProposalID, chain.CurrentHeader().Hash()); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(vvList))
 	}
-	if avList, err := ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
+	if avList, err := gdb.ListAccuVerifier(chain.CurrentHeader().Hash(), vpProposalID); err != nil {
 		t.Error("ListVoteValue, err", err)
 	} else {
 		assert.Equal(t, 0, len(avList))

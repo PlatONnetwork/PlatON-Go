@@ -56,6 +56,7 @@ type (
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
 	if contract.CodeAddr != nil {
+		gov := gov.NewGov(evm.SnapshotDB)
 		precompiles := PrecompiledContractsByzantium
 		if gov.Gte150VersionState(evm.StateDB) {
 			precompiles = PrecompiledContractsBerlin2
@@ -89,36 +90,38 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 
 			case *StakingContract:
 				staking := &StakingContract{
-					Plugin:   plugin.StakingInstance(),
+					Plugin:   plugin.NewStakingPluginOnce(evm.SnapshotDB),
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(staking, input, contract)
 			case *RestrictingContract:
 				restricting := &RestrictingContract{
-					Plugin:   plugin.RestrictingInstance(),
+					Plugin:   plugin.NewRestrictingPlugin(evm.SnapshotDB),
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(restricting, input, contract)
 			case *SlashingContract:
 				slashing := &SlashingContract{
-					Plugin:   plugin.SlashInstance(),
+					Plugin:   plugin.NewSlashingPlugin(evm.SnapshotDB),
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(slashing, input, contract)
 			case *GovContract:
 				govContract := &GovContract{
-					Plugin:   plugin.GovPluginInstance(),
+					Plugin:   plugin.NewGovPlugin(evm.SnapshotDB),
+					Gov:      gov,
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(govContract, input, contract)
 			case *DelegateRewardContract:
+				skt := plugin.NewStakingPluginOnce(evm.SnapshotDB)
 				delegateRewardContract := &DelegateRewardContract{
-					Plugin:    plugin.RewardMgrInstance(),
-					stkPlugin: plugin.StakingInstance(),
+					Plugin:    plugin.NewRewardMgrPlugin(evm.SnapshotDB, skt),
+					stkPlugin: skt,
 					Contract:  contract,
 					Evm:       evm,
 				}
@@ -311,7 +314,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsByzantium
-		gte150 := gov.Gte150VersionState(evm.StateDB)
+		gte150 := gov.NewGov(evm.SnapshotDB).Gte150VersionState(evm.StateDB)
 		if gte150 {
 			precompiles = PrecompiledContractsBerlin2
 		} else if evm.chainRules.IsHubble {
@@ -535,7 +538,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	evm.StateDB.SetNonce(caller.Address(), nonce+1)
 	// We add this to the access list _before_ taking a snapshot. Even if the creation fails,
 	// the access-list change should not be rolled back
-	if gov.Gte150VersionState(evm.StateDB) {
+	if gov.NewGov(evm.SnapshotDB).Gte150VersionState(evm.StateDB) {
 		evm.StateDB.AddAddressToAccessList(address)
 	}
 	// Ensure there's no existing contract already at the designated address
@@ -566,7 +569,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	ret, err := run(evm, contract, nil, false)
 
 	// Reject code starting with 0xEF if EIP-3541 is enabled.
-	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && gov.Gte150VersionState(evm.StateDB) {
+	if err == nil && len(ret) >= 1 && ret[0] == 0xEF && gov.NewGov(evm.SnapshotDB).Gte150VersionState(evm.StateDB) {
 		err = ErrInvalidCode
 	}
 

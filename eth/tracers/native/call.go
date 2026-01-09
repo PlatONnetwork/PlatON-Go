@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
@@ -89,6 +90,39 @@ func (f *callFrame) processOutput(output []byte, err error) {
 	}
 }
 
+func (f callFrame) MarshalJSON2() ([]byte, error) {
+	type callFrame0 struct {
+		Type         vm.OpCode      `json:"-"`
+		From         common.Address `json:"from"`
+		Gas          hexutil.Uint64 `json:"gas"`
+		GasUsed      hexutil.Uint64 `json:"gasUsed"`
+		To           common.Address `json:"to,omitempty" rlp:"optional"`
+		Input        hexutil.Bytes  `json:"input" rlp:"optional"`
+		Output       hexutil.Bytes  `json:"output,omitempty" rlp:"optional"`
+		Error        string         `json:"error,omitempty" rlp:"optional"`
+		RevertReason string         `json:"revertReason,omitempty"`
+		Calls        []callFrame    `json:"calls,omitempty" rlp:"optional"`
+		Logs         []callLog      `json:"logs,omitempty" rlp:"optional"`
+		Value        *hexutil.Big   `json:"value,omitempty" rlp:"optional"`
+		TypeString   string         `json:"type"`
+	}
+	var enc callFrame0
+	enc.Type = f.Type
+	enc.From = f.From
+	enc.Gas = hexutil.Uint64(f.Gas)
+	enc.GasUsed = hexutil.Uint64(f.GasUsed)
+	enc.To = f.To
+	enc.Input = f.Input
+	enc.Output = f.Output
+	enc.Error = f.Error
+	enc.RevertReason = f.RevertReason
+	enc.Calls = f.Calls
+	enc.Logs = f.Logs
+	enc.Value = (*hexutil.Big)(f.Value)
+	enc.TypeString = f.TypeString()
+	return json2.Marshal(&enc)
+}
+
 type callFrameMarshaling struct {
 	TypeString string `json:"type"`
 	Gas        hexutil.Uint64
@@ -110,6 +144,8 @@ type callTracer struct {
 type callTracerConfig struct {
 	OnlyTopCall bool `json:"onlyTopCall"` // If true, call tracer won't collect any subcalls
 	WithLog     bool `json:"withLog"`     // If true, call tracer will collect event logs
+
+	ethCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 // newCallTracer returns a native go tracer which tracks
@@ -120,6 +156,9 @@ func newCallTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, e
 		if err := json.Unmarshal(cfg, &config); err != nil {
 			return nil, err
 		}
+	}
+	if ctx != nil {
+		config.ethCompatible = ctx.EthCompatible
 	}
 	// First callframe contains tx context info
 	// and is populated on start and end.
@@ -240,6 +279,13 @@ func (t *callTracer) CaptureTxEnd(restGas uint64) {
 func (t *callTracer) GetResult() (json.RawMessage, error) {
 	if len(t.callstack) != 1 {
 		return nil, errors.New("incorrect number of top-level calls")
+	}
+	if t.config.ethCompatible {
+		res, err := json2.Marshal(t.callstack[0])
+		if err != nil {
+			return nil, err
+		}
+		return json.RawMessage(res), t.reason
 	}
 	res, err := json.Marshal(t.callstack[0])
 	if err != nil {

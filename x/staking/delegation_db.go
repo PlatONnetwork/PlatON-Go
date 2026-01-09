@@ -28,6 +28,7 @@ func (db *StakingDB) GetDelegateStore(blockHash common.Hash, delAddr common.Addr
 func (db *StakingDB) GetDelegatesInfo(blockHash common.Hash, delAddr common.Address) ([]*DelegationInfo, error) {
 	key := GetDelegateKeyBySuffix(delAddr.Bytes())
 	itr := db.ranking(blockHash, key, 0)
+	defer itr.Release()
 	if itr.Error() != nil {
 		return nil, itr.Error()
 	}
