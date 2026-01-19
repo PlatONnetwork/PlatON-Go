@@ -710,9 +710,9 @@ func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header
 	// Verify the block's gas usage and (if applicable) verify the base fee.
 	if !chain.Config().IsPauli(header.Number) {
 		// Verify BaseFee not present before EIP-1559 fork.
-		if header.BaseFee != nil {
-			return fmt.Errorf("invalid baseFee before fork: have %d, expected 'nil'", header.BaseFee)
-		}
+		//if header.BaseFee != nil {
+		//	return fmt.Errorf("invalid baseFee before fork: have %d, expected 'nil'", header.BaseFee)
+		//}
 		// In earlier versions, the calculation of Gaslimit has been changed
 		// so the VerifyGaslimit method cannot be simply called here for verification
 		//if err := misc.VerifyGaslimit(parent.GasLimit, header.GasLimit); err != nil {
