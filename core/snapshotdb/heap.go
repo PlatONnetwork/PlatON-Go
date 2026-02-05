@@ -103,3 +103,7 @@ func (r *rankingHeap) push2Heap(k, v []byte, deepCopy bool) {
 		}
 	}
 }
+func (r *rankingHeap) release() {
+	r.heap = nil
+	r.handledKey = nil
+}

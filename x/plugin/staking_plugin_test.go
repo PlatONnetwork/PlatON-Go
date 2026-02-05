@@ -22,9 +22,9 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/AlayaNetwork/Alaya-Go/p2p/discover"
 	"github.com/AlayaNetwork/Alaya-Go/p2p/discv5"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 	"math/big"
 	mrand "math/rand"
 	"testing"
@@ -52,7 +52,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/handler"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -90,7 +90,7 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.MaxValidators()); i++ {
+	for i := 0; i < int(params.MaxValidators()); i++ {
 		preNonces = append(preNonces, crypto.Keccak256([]byte(time.Now().Add(time.Duration(i)).String())[:]))
 		time.Sleep(time.Microsecond * 10)
 	}
@@ -111,7 +111,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
+	validatorQueue := make(staking.ValidatorQueue, params.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -212,7 +212,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 			}
 		}
 
-		if j < int(xcom.MaxValidators()) {
+		if j < int(params.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canTmp.NodeId,
@@ -285,8 +285,8 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		return nil, err
 	}
 
-	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:params.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:params.MaxConsensusVals()])
 	if nil != err {
 		t.Errorf("Failed to rlp encodeing genesis validators. error:%s", err.Error())
 		return nil, err
@@ -311,7 +311,7 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 	}
 	nodeId := enode.PublicKeyToIDv0(&privateKey.PublicKey)
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
-	newNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	newNumber := big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(newNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
 		panic(fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error()))
@@ -472,7 +472,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
+	validatorQueue := make(staking.ValidatorQueue, params.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -566,7 +566,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			}
 		}
 
-		if j < int(xcom.MaxValidators()) {
+		if j < int(params.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canBase.NodeId,
@@ -639,8 +639,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return
 	}
 
-	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:params.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:params.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
@@ -657,7 +657,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	}
 
 	// SetCurrent to snapshotDB
-	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
 		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
@@ -668,7 +668,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	EndBlock to Election()
 	*/
 	// new block
-	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())) // 50
 
 	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
@@ -784,7 +784,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	currentHash := crypto.Keccak256Hash([]byte(nodeId.String()))
 
 	// build genesis veriferList and validatorList
-	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
+	validatorQueue := make(staking.ValidatorQueue, params.MaxValidators())
 
 	for j := 0; j < 1000; j++ {
 		var index int = j % 25
@@ -880,7 +880,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			}
 		}
 
-		if j < int(xcom.MaxValidators()) {
+		if j < int(params.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     canAddr,
 				NodeId:          canBase.NodeId,
@@ -952,8 +952,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		return
 	}
 
-	PrintObject("Test round", validatorQueue[:xcom.MaxConsensusVals()])
-	roundArr, err := rlp.EncodeToBytes(validatorQueue[:xcom.MaxConsensusVals()])
+	PrintObject("Test round", validatorQueue[:params.MaxConsensusVals()])
+	roundArr, err := rlp.EncodeToBytes(validatorQueue[:params.MaxConsensusVals()])
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to rlp encodeing genesis validators. error: %v", err)) {
 		return
 	}
@@ -970,7 +970,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	}
 
 	// SetCurrent to snapshotDB
-	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber := big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())) // 50
 	preNum1 := new(big.Int).Sub(currentNumber, big.NewInt(1))
 	if err := sndb.SetCurrent(currentHash, *preNum1, *preNum1); nil != err {
 		t.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
@@ -981,7 +981,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	EndBlock to Election()
 	*/
 	// new block
-	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())) // 50
+	currentNumber = big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())) // 50
 
 	nonce := crypto.Keccak256([]byte(time.Now().Add(time.Duration(1)).String()))[:]
 	header := &types.Header{
@@ -1464,7 +1464,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	/**
 	Start HandleUnCandidateItem
 	*/
-	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.UnStakeFreezeDuration())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+params.UnStakeFreezeDuration())
 
 	if !assert.Nil(t, err, fmt.Sprintf("Failed to HandleUnCandidateItem: %v", err)) {
 		return
@@ -1485,7 +1485,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		return
 	}
 	epoch = xutil.CalculateEpoch(blockNumber2.Uint64())
-	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+xcom.ZeroProduceFreezeDuration())
+	err = StakingInstance().HandleUnCandidateItem(state, blockNumber2.Uint64(), blockHash2, epoch+params.ZeroProduceFreezeDuration())
 	assert.Nil(t, err)
 
 	recoveryCan, err := getCandidate(blockHash2, index)
@@ -1513,7 +1513,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		t.Error("Failed to AddUnStakeItemStore:", err)
 		return
 	}
-	newBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.ZeroProduceFreezeDuration() + blockNumber2.Uint64())
+	newBlockNumber := new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*params.ZeroProduceFreezeDuration() + blockNumber2.Uint64())
 	epoch = xutil.CalculateEpoch(newBlockNumber.Uint64())
 	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, epoch)
 	assert.Nil(t, err)
@@ -1526,8 +1526,8 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	assert.False(t, recoveryCan2.IsInvalidLowRatio())
 
 	// Handle double-signature freeze and release staking, delete nodes
-	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*xcom.UnStakeFreezeDuration()))
-	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, xcom.UnStakeFreezeDuration()+epoch)
+	newBlockNumber.Add(newBlockNumber, new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*params.UnStakeFreezeDuration()))
+	err = StakingInstance().HandleUnCandidateItem(state, newBlockNumber.Uint64(), blockHash2, params.UnStakeFreezeDuration()+epoch)
 	assert.Nil(t, err)
 	_, err = getCandidate(blockHash2, index)
 	assert.True(t, snapshotdb.IsDbNotFoundErr(err))
@@ -1653,7 +1653,7 @@ func TestStakingPlugin_DelegateLock(t *testing.T) {
 		chain.StateDB.AddBalance(addr, amount)
 	}
 
-	gov.AddActiveVersion(params.CodeVersion(), 0, chain.StateDB)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, chain.StateDB)
 	gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, params.CodeVersion())
 
 	index := 1
@@ -1857,7 +1857,7 @@ func TestStakingPlugin_WithdrewLockDelegate(t *testing.T) {
 
 	newPlugins()
 
-	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, state)
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), params.CodeVersion())
 
 	sndb := snapshotdb.Instance()
@@ -2257,7 +2257,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.MaxValidators() {
+		if uint64(count) == params.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2432,7 +2432,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.MaxValidators() {
+		if uint64(count) == params.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2474,7 +2474,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		End:   xutil.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.MaxConsensusVals())]
+	new_validatorArr.Arr = queue[:int(params.MaxConsensusVals())]
 
 	err = setRoundValList(blockHash, new_validatorArr)
 	if nil != err {
@@ -2506,7 +2506,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash: blockHash,
-		Number:     big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())),
+		Number:     big.NewInt(int64(xutil.ConsensusSize() - params.ElectionDistance())),
 		Nonce:      types.EncodeNonce(currNonce),
 	}
 
@@ -2640,7 +2640,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.MaxValidators() {
+		if uint64(count) == params.MaxValidators() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4395,7 +4395,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte("nonce"))
-	for i := 0; i < int(xcom.MaxValidators()); i++ {
+	for i := 0; i < int(params.MaxValidators()); i++ {
 		mrand.Seed(time.Now().UnixNano())
 		v1 := new(big.Int).SetInt64(time.Now().UnixNano())
 		v1.Mul(v1, new(big.Int).SetInt64(1e18))
@@ -4430,7 +4430,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonces, 1, true)
+	result, err := probabilityElection(vqList, int(params.ShiftValidatorNum()), currentNonce, preNonces, 1, true)
 	assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 	assert.True(t, nil != result, "the result is nil")
 }
@@ -4486,7 +4486,7 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 		vqList, preNonceList := buildCandidate(stakeThreshold)
 		stakeThreshold *= 10
 		t.Run(fmt.Sprintf("Election_%d", i+1), func(t *testing.T) {
-			result, err := probabilityElection(vqList, int(xcom.ShiftValidatorNum()), currentNonce, preNonceList, 1, true)
+			result, err := probabilityElection(vqList, int(params.ShiftValidatorNum()), currentNonce, preNonceList, 1, true)
 			assert.Nil(t, err, fmt.Sprintf("Failed to probabilityElection, err: %v", err))
 			assert.True(t, nil != result, "the result is nil")
 		})
@@ -4509,7 +4509,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 	if err := slash.db.NewBlock(new(big.Int).SetUint64(1), blockHash, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
-	for i := 0; i < int(xcom.MaxConsensusVals()); i++ {
+	for i := 0; i < int(params.MaxConsensusVals()); i++ {
 		vrfData, err := vrf.Prove(privateKey, data)
 		if nil != err {
 			t.Fatal(err)
@@ -4533,7 +4533,7 @@ func TestStakingPlugin_RandomOrderValidatorQueue(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	resultQueue, err := randomOrderValidatorQueue(1, common.ZeroHash, vqList)
+	resultQueue, err := StakingInstance().randomOrderValidatorQueue(1, common.ZeroHash, vqList)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -4771,7 +4771,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 	StakingInstance().SetChainDB(diskDB, diskDB)
 	StakingInstance().EnableValidatorsHistory()
 	// Set to the latest version.
-	gov.AddActiveVersion(params.CodeVersion(), 0, state)
+	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.CodeVersion(), 0, state)
 	sndb := snapshotdb.Instance()
 	defer func() {
 		sndb.Clear()
@@ -4782,7 +4782,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		return
 	}
 	queue := make(staking.ValidatorQueue, 0)
-	for i := 0; i < int(xcom.MaxValidators()); i++ {
+	for i := 0; i < int(params.MaxValidators()); i++ {
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
 			t.Fatalf("Failed to generate random NodeId private key: %v", err)
@@ -4826,7 +4826,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		Start: start,
 		End:   xutil.ConsensusSize(),
 	}
-	newValidatorArr.Arr = queue[:int(xcom.MaxConsensusVals())]
+	newValidatorArr.Arr = queue[:int(params.MaxConsensusVals())]
 	err = setRoundValList(blockHash, newValidatorArr)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
@@ -4836,7 +4836,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		Start: newValidatorArr.End + 1,
 		End:   newValidatorArr.End + xutil.ConsensusSize(),
 	}
-	newValidatorArr2.Arr = queue[:int(xcom.MaxConsensusVals())]
+	newValidatorArr2.Arr = queue[:int(params.MaxConsensusVals())]
 	err = setRoundValList(blockHash, newValidatorArr2)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
@@ -4882,7 +4882,7 @@ func TestStakingPlugin_HistoryValidatorList(t *testing.T) {
 		Start: newValidatorArr2.End + 1,
 		End:   newValidatorArr2.End + xutil.ConsensusSize(),
 	}
-	newValidatorArr3.Arr = queue[1:int(xcom.MaxConsensusVals()+1)]
+	newValidatorArr3.Arr = queue[1:int(params.MaxConsensusVals()+1)]
 	err = setRoundValList(blockHash2, newValidatorArr3)
 	if nil != err {
 		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)

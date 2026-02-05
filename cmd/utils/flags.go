@@ -892,6 +892,24 @@ Please note that --` + MetricsHTTPFlag.Name + ` must be set to start the server.
 		Usage: "Number of cache epoch states, default 10",
 		Value: ethconfig.Defaults.DBCacheEpoch,
 	}
+	SnapshotArchiveFlag = &cli.BoolFlag{
+		Name:     "snapshot.archive",
+		Usage:    "Take a snapshot archive",
+		Value:    ethconfig.Defaults.SnapshotArchive,
+		Category: flags.SnapshotDbCategory,
+	}
+	SnapshotArchiveTrieOversizeThresholdFlag = &cli.Uint64Flag{
+		Name:     "snapshot.archive.triecache",
+		Usage:    "Megabytes of memory allocated to trie cache",
+		Value:    ethconfig.Defaults.SnapshotArchiveTrieOversizeThreshold,
+		Category: flags.SnapshotDbCategory,
+	}
+	SnapshotArchiveDatabaseCacheFlag = &cli.IntFlag{
+		Name:     "snapshot.archive.dbcache",
+		Usage:    "Megabytes of memory allocated to archive database cache",
+		Value:    ethconfig.Defaults.SnapshotArchiveDatabaseCache,
+		Category: flags.SnapshotDbCategory,
+	}
 )
 
 var (
@@ -1546,6 +1564,16 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 			cfg.DBCacheEpoch = b
 		}
 	}
+
+	if ctx.IsSet(SnapshotArchiveFlag.Name) {
+		cfg.SnapshotArchive = ctx.Bool(SnapshotArchiveFlag.Name)
+	}
+	if ctx.IsSet(SnapshotArchiveTrieOversizeThresholdFlag.Name) {
+		cfg.SnapshotArchiveTrieOversizeThreshold = ctx.Uint64(SnapshotArchiveTrieOversizeThresholdFlag.Name)
+	}
+	if ctx.IsSet(SnapshotArchiveDatabaseCacheFlag.Name) {
+		cfg.SnapshotArchiveDatabaseCache = ctx.Int(SnapshotArchiveDatabaseCacheFlag.Name)
+	}
 }
 
 // SetDNSDiscoveryDefaults configures DNS discovery with the given URL if
@@ -1799,7 +1827,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node, readonly bool) (*core.BlockCh
 	//if err != nil {
 	//	Fatalf("%v", err)
 	//}
-	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true)
+	basedb, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), 0, 0, true, false)
 	if err != nil {
 		Fatalf("%v", err)
 	}

@@ -24,6 +24,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
@@ -70,6 +71,8 @@ type prestateTracer struct {
 
 type prestateTracerConfig struct {
 	DiffMode bool `json:"diffMode"` // If true, this tracer will return state modifications
+
+	ethCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 func newPrestateTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Tracer, error) {
@@ -78,6 +81,9 @@ func newPrestateTracer(ctx *tracers.Context, cfg json.RawMessage) (tracers.Trace
 		if err := json.Unmarshal(cfg, &config); err != nil {
 			return nil, err
 		}
+	}
+	if ctx != nil {
+		config.ethCompatible = ctx.EthCompatible
 	}
 	return &prestateTracer{
 		pre:     state{},
@@ -239,13 +245,24 @@ func (t *prestateTracer) CaptureTxEnd(restGas uint64) {
 func (t *prestateTracer) GetResult() (json.RawMessage, error) {
 	var res []byte
 	var err error
-	if t.config.DiffMode {
-		res, err = json.Marshal(struct {
-			Post state `json:"post"`
-			Pre  state `json:"pre"`
-		}{t.post, t.pre})
+	if t.config.ethCompatible {
+		if t.config.DiffMode {
+			res, err = json2.Marshal(struct {
+				Post state `json:"post"`
+				Pre  state `json:"pre"`
+			}{t.post, t.pre})
+		} else {
+			res, err = json2.Marshal(t.pre)
+		}
 	} else {
-		res, err = json.Marshal(t.pre)
+		if t.config.DiffMode {
+			res, err = json.Marshal(struct {
+				Post state `json:"post"`
+				Pre  state `json:"pre"`
+			}{t.post, t.pre})
+		} else {
+			res, err = json.Marshal(t.pre)
+		}
 	}
 	if err != nil {
 		return nil, err

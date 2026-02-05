@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/params"
+
 	"github.com/pkg/errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -80,16 +82,30 @@ type SlashingPlugin struct {
 	db             snapshotdb.DB
 	decodeEvidence func(dupType consensus.EvidenceType, data string) (consensus.Evidence, error)
 	privateKey     *ecdsa.PrivateKey
+	stk            *StakingPlugin
+	gov            *gov.Gov
 }
 
 func SlashInstance() *SlashingPlugin {
 	once.Do(func() {
 		log.Info("Init Slashing plugin ...")
 		slash = &SlashingPlugin{
-			db: snapshotdb.Instance(),
+			db:  snapshotdb.Instance(),
+			stk: StakingInstance(),
+			gov: gov.NewGov(snapshotdb.Instance()),
 		}
 	})
 	return slash
+}
+
+func NewSlashingPlugin(db snapshotdb.DB) *SlashingPlugin {
+	return &SlashingPlugin{
+		db:             db,
+		decodeEvidence: SlashInstance().decodeEvidence,
+		privateKey:     SlashInstance().privateKey,
+		stk:            NewStakingPluginOnce(db),
+		gov:            gov.NewGov(db),
+	}
 }
 
 func (sp *SlashingPlugin) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
@@ -118,7 +134,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 	// Do this from the second consensus round
 	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("Call GetPrePackAmount", "blockNumber", header.Number.Uint64(), "blockHash",
-			blockHash.TerminalString(), "consensusSize", xutil.ConsensusSize(), "electionDistance", xcom.ElectionDistance())
+			blockHash.TerminalString(), "consensusSize", xutil.ConsensusSize(), "electionDistance", params.ElectionDistance())
 		if result, err := sp.GetPrePackAmount(header.Number.Uint64(), header.ParentHash); nil != err {
 			return err
 		} else {
@@ -127,7 +143,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 				return errors.New("packAmount data not found")
 			}
 
-			preRoundVal, err := stk.getPreValList(blockHash, header.Number.Uint64(), QueryStartIrr)
+			preRoundVal, err := sp.stk.getPreValList(blockHash, header.Number.Uint64(), QueryStartIrr)
 			if nil != err {
 				log.Error("Failed to BeginBlock, query previous round validators is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 				return err
@@ -135,7 +151,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 			var slashQueue staking.SlashQueue
 
-			currentVersion := gov.GetCurrentActiveVersion(state)
+			currentVersion := sp.gov.GetCurrentActiveVersion(state)
 			if currentVersion == 0 {
 				log.Error("Failed to BeginBlock, GetCurrentActiveVersion is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString())
 				return errors.New("Failed to get CurrentActiveVersion")
@@ -164,7 +180,7 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 			if len(slashQueue) != 0 {
 				//stats
 				sp.saveSlashNode(header.Number.Uint64(), slashQueue)
-				if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
+				if err := sp.stk.SlashCandidates(state, blockHash, header.Number.Uint64(), slashQueue...); nil != err {
 					log.Error("Failed to BeginBlock, call SlashCandidates is failed", "blockNumber", header.Number.Uint64(), "blockHash", blockHash.TerminalString(), "err", err)
 					return err
 				}
@@ -203,13 +219,13 @@ func (sp *SlashingPlugin) zeroProduceProcess(blockHash common.Hash, header *type
 		return nil, err
 	}
 
-	zeroProduceNumberThreshold, err := gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
+	zeroProduceNumberThreshold, err := sp.gov.GovernZeroProduceNumberThreshold(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to zeroProduceProcess, call GovernZeroProduceNumberThreshold is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
 		return nil, err
 	}
-	zeroProduceCumulativeTime, err := gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
+	zeroProduceCumulativeTime, err := sp.gov.GovernZeroProduceCumulativeTime(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to zeroProduceProcess, call GovernZeroProduceCumulativeTime is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
@@ -376,7 +392,7 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 				log.Error("Failed to convert nodeID to address", "nodeId", nodeId.TerminalString(), "error", err)
 				return nil, err
 			}
-			canMutable, err := stk.GetCanMutableByIrr(nodeAddr)
+			canMutable, err := sp.stk.GetCanMutableByIrr(nodeAddr)
 			if nil != err {
 				log.Error("Failed to zeroProduceProcess, call candidate mutable info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 					"nodeAddr", nodeAddr.Hex(), "err", err)
@@ -388,7 +404,7 @@ func (sp *SlashingPlugin) checkSlashing(blockNumber uint64, blockHash common.Has
 
 			slashAmount := new(big.Int).SetUint64(0)
 			totalBalance := calcCanTotalBalance(blockNumber, canMutable)
-			blocksReward, err := gov.GovernSlashBlocksReward(blockNumber, blockHash)
+			blocksReward, err := sp.gov.GovernSlashBlocksReward(blockNumber, blockHash)
 			if nil != err {
 				log.Error("Failed to zeroProduceProcess, query GovernSlashBlocksReward is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 				return nil, err
@@ -542,7 +558,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 	blocksOfEpoch := xutil.CalcBlocksEachEpoch()
 	invalidNum := evidenceEpoch * blocksOfEpoch
 	if invalidNum < blockNumber {
-		evidenceAge, err := gov.GovernMaxEvidenceAge(blockNumber, blockHash)
+		evidenceAge, err := sp.gov.GovernMaxEvidenceAge(blockNumber, blockHash)
 		if nil != err {
 			log.Error("Failed to Slash, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 				"err", err)
@@ -570,7 +586,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrDuplicateSignVerify
 	}
 	canAddr := crypto.PubkeyToNodeAddress(*evidencePubKey)
-	canBase, err := stk.GetCanBase(blockHash, canAddr)
+	canBase, err := sp.stk.GetCanBase(blockHash, canAddr)
 	if nil != err {
 		log.Error("Failed to Slash, query CandidateBase info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"evidenceBlockNumber", evidence.BlockNumber(), "evidenceNodeId", evidence.NodeID().TerminalString(), "err", err)
@@ -603,7 +619,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrBlsPubKeyMismatch
 	}
 
-	if has, err := stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), canAddr); nil != err {
+	if has, err := sp.stk.checkRoundValidatorAddr(blockHash, evidence.BlockNumber(), canAddr); nil != err {
 		log.Error("Failed to Slash, checkRoundValidatorAddr is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"evidenceBlockNum", evidence.BlockNumber(), "canAddr", canAddr.Hex(), "err", err)
 		return slashing.ErrDuplicateSignVerify
@@ -613,21 +629,21 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		return slashing.ErrNotValidator
 	}
 
-	canMutable, err := stk.GetCanMutable(blockHash, canAddr)
+	canMutable, err := sp.stk.GetCanMutable(blockHash, canAddr)
 	if nil != err {
 		log.Error("Failed to Slash, query CandidateMutable info is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"evidenceBlockNumber", evidence.BlockNumber(), "canAddr", canAddr.Hex(), "err", err)
 		return slashing.ErrGetCandidate
 	}
 
-	fraction, err := gov.GovernSlashFractionDuplicateSign(blockNumber, blockHash)
+	fraction, err := sp.gov.GovernSlashFractionDuplicateSign(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to Slash, query Gov SlashFractionDuplicateSign is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
 		return err
 	}
 
-	rewardFraction, err := gov.GovernDuplicateSignReportReward(blockNumber, blockHash)
+	rewardFraction, err := sp.gov.GovernDuplicateSignReportReward(blockNumber, blockHash)
 	if nil != err {
 		log.Error("Failed to Slash, query Gov DuplicateSignReportReward is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"err", err)
@@ -657,7 +673,7 @@ func (sp *SlashingPlugin) Slash(evidence consensus.Evidence, blockHash common.Ha
 		BenefitAddr: vm.RewardManagerPoolAddr,
 	}
 
-	if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
+	if err := sp.stk.SlashCandidates(stateDB, blockHash, blockNumber, toCallerItem, toRewardPoolItem); nil != err {
 		log.Error("Failed to Slash, call SlashCandidates is failed", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(),
 			"nodeId", canBase.NodeId.TerminalString(), "err", err)
 		return slashing.ErrSlashingFail

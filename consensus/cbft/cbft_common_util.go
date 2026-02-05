@@ -28,8 +28,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/network"
@@ -154,8 +152,8 @@ func CreateGenesis(db ethdb.Database) (core.Genesis, *types.Block) {
 			Alloc:  core.GenesisAlloc{},
 		}
 	)
-	gspec.Alloc[xcom.PlatONFundAccount()] = core.GenesisAccount{
-		Balance: xcom.PlatONFundBalance(),
+	gspec.Alloc[params.PlatONFundAccount()] = core.GenesisAccount{
+		Balance: params.PlatONFundBalance(),
 	}
 	gspec.Alloc[cvm.RewardManagerPoolAddr] = core.GenesisAccount{
 		Balance: twoBillion,

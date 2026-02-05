@@ -53,6 +53,7 @@ var (
 
 type GovContract struct {
 	Plugin   *plugin.GovPlugin
+	Gov      *gov.Gov
 	Contract *Contract
 	Evm      *EVM
 }
@@ -145,8 +146,9 @@ func (gc *GovContract) submitText(verifier enode.IDv0, pipID string) ([]byte, er
 		SubmitBlock:  blockNumber,
 		ProposalID:   txHash,
 		Proposer:     verifier,
+		Gov:          gc.Gov,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
+	err := gc.Gov.Submit(from, p, blockHash, blockNumber, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitText", SubmitText, err)
 }
 
@@ -187,8 +189,9 @@ func (gc *GovContract) submitVersion(verifier enode.IDv0, pipID string, newVersi
 		ProposalID:      txHash,
 		Proposer:        verifier,
 		NewVersion:      newVersion,
+		Gov:             gc.Gov,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
+	err := gc.Gov.Submit(from, p, blockHash, blockNumber, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitVersion", SubmitVersion, err)
 }
 
@@ -228,8 +231,9 @@ func (gc *GovContract) submitCancel(verifier enode.IDv0, pipID string, endVoting
 		ProposalID:      txHash,
 		Proposer:        verifier,
 		TobeCanceled:    tobeCanceledProposalID,
+		Gov:             gc.Gov,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
+	err := gc.Gov.Submit(from, p, blockHash, blockNumber, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitCancel", SubmitCancel, err)
 }
 
@@ -270,8 +274,9 @@ func (gc *GovContract) submitParam(verifier enode.IDv0, pipID string, module, na
 		Module:       module,
 		Name:         name,
 		NewValue:     newValue,
+		Gov:          gc.Gov,
 	}
-	err := gov.Submit(from, p, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
+	err := gc.Gov.Submit(from, p, blockHash, blockNumber, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB, gc.Evm.chainConfig.ChainID)
 	return gc.nonCallHandler("submitParam", SubmitParam, err)
 }
 
@@ -306,7 +311,7 @@ func (gc *GovContract) vote(verifier enode.IDv0, proposalID common.Hash, op uint
 	v.VoteNodeID = verifier
 	v.VoteOption = option
 
-	err := gov.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gc.Gov.Vote(from, v, blockHash, blockNumber, programVersion, programVersionSign, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB)
 
 	return gc.nonCallHandler("vote", Vote, err)
 }
@@ -332,7 +337,7 @@ func (gc *GovContract) declareVersion(activeNode enode.IDv0, programVersion uint
 		return nil, nil
 	}
 
-	err := gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, plugin.StakingInstance(), gc.Evm.StateDB)
+	err := gc.Gov.DeclareVersion(from, activeNode, programVersion, programVersionSign, blockHash, blockNumber, plugin.NewStakingPluginOnce(gc.Evm.SnapshotDB), gc.Evm.StateDB)
 
 	return gc.nonCallHandler("declareVersion", Declare, err)
 }
@@ -348,7 +353,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	proposal, err := gov.GetExistProposal(proposalID, gc.Evm.StateDB)
+	proposal, err := gov.NewGovDB(gc.Evm.SnapshotDB).GetExistProposal(proposalID, gc.Evm.StateDB)
 
 	return gc.callHandler("getProposal", proposal, err)
 }
@@ -364,7 +369,7 @@ func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"blockNumber", blockNumber,
 		"proposalID", proposalID)
 
-	tallyResult, err := gov.GetTallyResult(proposalID, gc.Evm.StateDB)
+	tallyResult, err := gov.NewGovDB(gc.Evm.SnapshotDB).GetTallyResult(proposalID, gc.Evm.StateDB)
 
 	if tallyResult == nil {
 		err = gov.TallyResultNotFound
@@ -382,7 +387,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	proposalList, err := gov.ListProposal(gc.Evm.Context.BlockHash, gc.Evm.StateDB)
+	proposalList, err := gc.Gov.ListProposal(gc.Evm.Context.BlockHash, gc.Evm.StateDB)
 
 	return gc.callHandler("listProposal", proposalList, err)
 }
@@ -397,7 +402,7 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 		"txHash", txHash,
 		"blockNumber", blockNumber)
 
-	activeVersion := gov.GetCurrentActiveVersion(gc.Evm.StateDB)
+	activeVersion := gc.Gov.GetCurrentActiveVersion(gc.Evm.StateDB)
 
 	return gc.callHandler("getActiveVersion", activeVersion, nil)
 }
@@ -414,19 +419,20 @@ func (gc *GovContract) getAccuVerifiersCount(proposalID, blockHash common.Hash) 
 		"blockHash", blockHash,
 		"proposalID", proposalID)
 
-	proposal, err := gov.GetProposal(proposalID, gc.Evm.StateDB)
+	gdb := gov.NewGovDB(gc.Evm.SnapshotDB)
+	proposal, err := gdb.GetProposal(proposalID, gc.Evm.StateDB)
 	if err != nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	} else if proposal == nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, gov.ProposalNotFound)
 	}
 
-	list, err := gov.ListAccuVerifier(blockHash, proposalID)
+	list, err := gdb.ListAccuVerifier(blockHash, proposalID)
 	if err != nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
 
-	yeas, nays, abstentions, err := gov.TallyVoteValue(proposalID, blockHash)
+	yeas, nays, abstentions, err := gdb.TallyVoteValue(proposalID, blockHash)
 	if err != nil {
 		return gc.callHandler("getAccuVerifiesCount", nil, common.InternalError.Wrap(err.Error()))
 	}
@@ -448,7 +454,7 @@ func (gc *GovContract) getGovernParamValue(module, name string) ([]byte, error) 
 		"name", name,
 		"blockNumber", blockNumber)
 
-	value, err := gov.GetGovernParamValue(module, name, blockNumber, blockHash)
+	value, err := gc.Gov.GetGovernParamValue(module, name, blockNumber, blockHash)
 
 	return gc.callHandler("getGovernParamValue", value, err)
 }
@@ -465,7 +471,7 @@ func (gc *GovContract) listGovernParam(module string) ([]byte, error) {
 		"module", module,
 		"blockNumber", blockNumber)
 
-	paramList, err := gov.ListGovernParam(module, blockHash)
+	paramList, err := gc.Gov.ListGovernParam(module, blockHash)
 
 	return gc.callHandler("listGovernParam", paramList, err)
 }

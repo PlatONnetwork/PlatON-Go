@@ -20,6 +20,8 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"os"
 	"sync"
@@ -58,7 +60,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	vrfhandler "github.com/PlatONnetwork/PlatON-Go/x/handler"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 // Ethereum implements the Ethereum full node service.
@@ -73,8 +74,8 @@ type Ethereum struct {
 	snapDialCandidates enode.Iterator
 
 	// DB interfaces
-	chainDb ethdb.Database // Block chain database
-
+	chainDb        ethdb.Database // Block chain database
+	traceDb        state.Database
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
 	accountManager *accounts.Manager
@@ -134,7 +135,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	xplugin.STAKING_DB = &xplugin.StakingDB{
 		HistoryDB: hDB,
 	}
-	snapshotBaseDB, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+
+	snapshotBaseDB, err := snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true, config.SnapshotArchive)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +189,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 				return nil, err
 			}
 
-			snapshotBaseDB, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true)
+			snapshotBaseDB, err = snapshotdb.Open(stack.ResolvePath(snapshotdb.DBPath), config.DatabaseCache, config.DatabaseHandles, true, config.SnapshotArchive)
 			if err != nil {
 				return nil, err
 			}
@@ -247,6 +249,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	eth := &Ethereum{
 		config:            config,
 		chainDb:           chainDb,
+		traceDb:           state.NewDatabaseWithConfig(chainDb, &trie.Config{Cache: 128}), //fixed to 128Mb
 		eventMux:          stack.EventMux(),
 		accountManager:    stack.AccountManager(),
 		engine:            ethconfig.CreateConsensusEngine(stack, genesisChainConfig, config.Miner.Noverify, chainDb, &config.CbftConfig, stack.EventMux()),
@@ -319,7 +322,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return nil, err
 		}
-		ActiveVersionList, err := gov.GetCurrentActiveVersionList(state)
+		ActiveVersionList, err := gov.NewGov(snapshotBaseDB).GetCurrentActiveVersionList(state)
 		if err != nil {
 			return nil, err
 		}
@@ -347,7 +350,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	currentBlock := eth.blockchain.CurrentBlock()
 	currentNumber := currentBlock.NumberU64()
 	currentHash := currentBlock.Hash()
-	gasCeil, err := gov.GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
+	gasCeil, err := gov.NewGov(snapshotBaseDB).GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
 	if err := snapshotBaseDB.Close(); err != nil {
 		return nil, err
 	}
@@ -689,15 +692,15 @@ func (s *Ethereum) Stop() error {
 func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chainConfig *params.ChainConfig, isValidatorsHistory bool) {
 	xplugin.RewardMgrInstance().SetCurrentNodeID(reactor.NodeId)
 
-	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
+	reactor.RegisterPlugin(params.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(evidence.NewEvidence)
-	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
-	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RestrictingInstance())
-	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(params.StakingRule, xplugin.StakingInstance())
+	reactor.RegisterPlugin(params.RestrictingRule, xplugin.RestrictingInstance())
+	reactor.RegisterPlugin(params.RewardRule, xplugin.RewardMgrInstance())
 
 	xplugin.GovPluginInstance().SetChainID(reactor.GetChainID())
 	xplugin.GovPluginInstance().SetChainDB(chainDB)
-	reactor.RegisterPlugin(xcom.GovernanceRule, xplugin.GovPluginInstance())
+	reactor.RegisterPlugin(params.GovernanceRule, xplugin.GovPluginInstance())
 
 	xplugin.StakingInstance().SetChainDB(chainDB, chainDB)
 	xplugin.StakingInstance().SetChainConfig(chainConfig)
@@ -707,6 +710,6 @@ func handlePlugin(reactor *core.BlockChainReactor, chainDB ethdb.Database, chain
 	}
 
 	// set rule order
-	reactor.SetBeginRule([]int{xcom.StakingRule, xcom.SlashingRule, xcom.CollectDeclareVersionRule, xcom.GovernanceRule})
-	reactor.SetEndRule([]int{xcom.CollectDeclareVersionRule, xcom.RestrictingRule, xcom.RewardRule, xcom.GovernanceRule, xcom.StakingRule})
+	reactor.SetBeginRule([]int{params.StakingRule, params.SlashingRule, params.CollectDeclareVersionRule, params.GovernanceRule})
+	reactor.SetEndRule([]int{params.CollectDeclareVersionRule, params.RestrictingRule, params.RewardRule, params.GovernanceRule, params.StakingRule})
 }

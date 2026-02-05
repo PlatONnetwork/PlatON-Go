@@ -273,7 +273,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -424,7 +424,7 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -433,32 +433,32 @@ func TestStakingContract_editCandidate_updateRewardPer2(t *testing.T) {
 	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
-	var params [][]byte
-	params = make([][]byte, 0)
+	var param [][]byte
+	param = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[0])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
-	rewardPer, _ := rlp.EncodeToBytes(5001 + xcom.RewardPerMaxChangeRange())
+	rewardPer, _ := rlp.EncodeToBytes(5001 + params.RewardPerMaxChangeRange())
 	externalId, _ := rlp.EncodeToBytes("I am Xu !?")
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")
 	details, _ := rlp.EncodeToBytes("Xu super node")
 
-	params = append(params, fnType)
-	params = append(params, benefitAddress)
-	params = append(params, nodeId)
-	params = append(params, rewardPer)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
+	param = append(param, fnType)
+	param = append(param, benefitAddress)
+	param = append(param, nodeId)
+	param = append(param, rewardPer)
+	param = append(param, externalId)
+	param = append(param, nodeName)
+	param = append(param, website)
+	param = append(param, details)
 
 	//runContractSendTransaction(contract2, params, "editCandidate_updateRewardPer", t)
 
 	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
+	err := rlp.Encode(buf, param)
 	if err != nil {
 		t.Errorf("editCandidate_updateRewardPer2 encode rlp data fail: %v", err)
 	} else {
@@ -503,7 +503,7 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -512,32 +512,32 @@ func TestStakingContract_editCandidate_updateRewardPer3(t *testing.T) {
 	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
-	var params [][]byte
-	params = make([][]byte, 0)
+	var param [][]byte
+	param = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
 	benefitAddress, _ := rlp.EncodeToBytes(addrArr[0])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
-	rewardPer, _ := rlp.EncodeToBytes(5000 - (xcom.RewardPerMaxChangeRange() + 1))
+	rewardPer, _ := rlp.EncodeToBytes(5000 - (params.RewardPerMaxChangeRange() + 1))
 	externalId, _ := rlp.EncodeToBytes("I am Xu !?")
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")
 	details, _ := rlp.EncodeToBytes("Xu super node")
 
-	params = append(params, fnType)
-	params = append(params, benefitAddress)
-	params = append(params, nodeId)
-	params = append(params, rewardPer)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
+	param = append(param, fnType)
+	param = append(param, benefitAddress)
+	param = append(param, nodeId)
+	param = append(param, rewardPer)
+	param = append(param, externalId)
+	param = append(param, nodeName)
+	param = append(param, website)
+	param = append(param, details)
 
 	//runContractSendTransaction(contract2, params, "editCandidate_updateRewardPer", t)
 
 	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
+	err := rlp.Encode(buf, param)
 	if err != nil {
 		t.Errorf("editCandidate_updateRewardPer3 encode rlp data fail: %v", err)
 	} else {
@@ -582,7 +582,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*2), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*2), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -591,8 +591,8 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
-	var params [][]byte
-	params = make([][]byte, 0)
+	var param [][]byte
+	param = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
@@ -604,19 +604,19 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")
 	details, _ := rlp.EncodeToBytes("Xu super node")
 
-	params = append(params, fnType)
-	params = append(params, benefitAddress)
-	params = append(params, nodeId)
-	params = append(params, rewardPer)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
+	param = append(param, fnType)
+	param = append(param, benefitAddress)
+	param = append(param, nodeId)
+	param = append(param, rewardPer)
+	param = append(param, externalId)
+	param = append(param, nodeName)
+	param = append(param, website)
+	param = append(param, details)
 
 	//runContractSendTransaction(contract2, params, "editCandidate_updateRewardPer", t)
 
 	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
+	err := rlp.Encode(buf, param)
 	if err != nil {
 		t.Errorf("editCandidate_continuousUpdateRewardPer encode rlp data fail: %v", err)
 	} else {
@@ -634,7 +634,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	contract2 = &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*4), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -643,7 +643,7 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	chain.StateDB.SetTxContext(txHashArr[1], 1)
 
 	// edit
-	params = make([][]byte, 0)
+	param = make([][]byte, 0)
 
 	fnType, _ = rlp.EncodeToBytes(uint16(1001))
 
@@ -655,17 +655,17 @@ func TestStakingContract_editCandidate_continuousUpdateRewardPer(t *testing.T) {
 	website, _ = rlp.EncodeToBytes("https://www.Xu.net")
 	details, _ = rlp.EncodeToBytes("Xu super node")
 
-	params = append(params, fnType)
-	params = append(params, benefitAddress)
-	params = append(params, nodeId)
-	params = append(params, rewardPer)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
+	param = append(param, fnType)
+	param = append(param, benefitAddress)
+	param = append(param, nodeId)
+	param = append(param, rewardPer)
+	param = append(param, externalId)
+	param = append(param, nodeName)
+	param = append(param, website)
+	param = append(param, details)
 
 	buf = new(bytes.Buffer)
-	err = rlp.Encode(buf, params)
+	err = rlp.Encode(buf, param)
 	if err != nil {
 		t.Errorf("editCandidate_continuousUpdateRewardPer encode rlp data fail: %v", err)
 	} else {
@@ -709,7 +709,7 @@ func TestStakingContract_editCandidate_updateNilRewardPer(t *testing.T) {
 	contract2 := &StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0, sender),
-		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(xcom.RewardPerChangeInterval())*4), blockHash2, chain),
+		Evm:      newEvm(new(big.Int).SetUint64(xutil.CalcBlocksEachEpoch()*uint64(params.RewardPerChangeInterval())*4), blockHash2, chain),
 	}
 
 	// get CandidateInfo
@@ -1302,8 +1302,14 @@ func TestStakingContract_DelegateMerge(t *testing.T) {
 
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
-	gov.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
+
+	// Initialize plugin instances before any operations
+	plugin.GovPluginInstance()
 	plugin.RewardMgrInstance()
+
+	// Initialize GovDB with chain.SnapDB to ensure data consistency
+	govDB := gov.NewGovDB(chain.SnapDB)
+	govDB.AddActiveVersion(initProgramVersion, 0, chain.StateDB)
 
 	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
 		t.Error("error", err)
@@ -1394,6 +1400,7 @@ func newStakingContact(add common.Address, blockHash common.Hash, blockNum *big.
 	contact.Contract.CallerAddress = add
 	contact.Evm = &EVM{
 		StateDB: statedb,
+		SnapshotDB: sdb,
 		Context: BlockContext{
 			BlockNumber: blockNum,
 			BlockHash:   blockHash,

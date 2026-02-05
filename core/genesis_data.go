@@ -19,7 +19,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -31,19 +30,19 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 
 	var length int
 
-	if int(xcom.MaxConsensusVals()) <= len(g.Config.Cbft.InitialNodes) {
-		length = int(xcom.MaxConsensusVals())
+	if int(params.MaxConsensusVals()) <= len(g.Config.Cbft.InitialNodes) {
+		length = int(params.MaxConsensusVals())
 	} else {
 		length = len(g.Config.Cbft.InitialNodes)
 	}
 
 	// Check the balance of Staking Account
-	needStaking := new(big.Int).Mul(xcom.GeneStakingAmount, big.NewInt(int64(length)))
-	remain := stateDB.GetBalance(xcom.CDFAccount())
+	needStaking := new(big.Int).Mul(params.GeneStakingAmount, big.NewInt(int64(length)))
+	remain := stateDB.GetBalance(params.CDFAccount())
 
 	if remain.Cmp(needStaking) < 0 {
 		return prevHash, fmt.Errorf("Failed to store genesis staking data, the balance of '%s' is no enough. "+
-			"balance: %s, need staking: %s", xcom.CDFAccount().String(), remain.String(), needStaking.String())
+			"balance: %s, need staking: %s", params.CDFAccount().String(), remain.String(), needStaking.String())
 	}
 
 	initQueue := g.Config.Cbft.InitialNodes
@@ -75,7 +74,7 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		base := &staking.CandidateBase{
 			NodeId:          node.Node.IDv0(),
 			BlsPubKey:       keyHex,
-			StakingAddress:  xcom.CDFAccount(),
+			StakingAddress:  params.CDFAccount(),
 			BenefitAddress:  vm.RewardManagerPoolAddr,
 			StakingTxIndex:  uint32(index),           // txIndex from zero to n
 			ProgramVersion:  g.Config.GenesisVersion, // genesis version
@@ -91,8 +90,8 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		mutable := &staking.CandidateMutable{
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
-			Shares:             new(big.Int).Set(xcom.GeneStakingAmount),
-			Released:           new(big.Int).Set(xcom.GeneStakingAmount),
+			Shares:             new(big.Int).Set(params.GeneStakingAmount),
+			Released:           new(big.Int).Set(params.GeneStakingAmount),
 			ReleasedHes:        new(big.Int).SetInt64(0),
 			RestrictingPlan:    new(big.Int).SetInt64(0),
 			RestrictingPlanHes: new(big.Int).SetInt64(0),
@@ -151,15 +150,15 @@ func genesisStakingData(prevHash common.Hash, snapdb snapshotdb.BaseDB, g *Genes
 		}
 		validatorQueue[index] = validator
 
-		stateDB.SubBalance(xcom.CDFAccount(), new(big.Int).Set(xcom.GeneStakingAmount))
-		stateDB.AddBalance(vm.StakingContractAddr, new(big.Int).Set(xcom.GeneStakingAmount))
+		stateDB.SubBalance(params.CDFAccount(), new(big.Int).Set(params.GeneStakingAmount))
+		stateDB.AddBalance(vm.StakingContractAddr, new(big.Int).Set(params.GeneStakingAmount))
 	}
 
 	// store the account staking Reference Count
-	lastHash, err := putbasedbFn(staking.GetAccountStakeRcKey(xcom.CDFAccount()), common.Uint64ToBytes(uint64(length)), lastHash)
+	lastHash, err := putbasedbFn(staking.GetAccountStakeRcKey(params.CDFAccount()), common.Uint64ToBytes(uint64(length)), lastHash)
 	if nil != err {
 		return lastHash, fmt.Errorf("Failed to Store Staking Account Reference Count. account: %s, error:%s",
-			xcom.CDFAccount().String(), err.Error())
+			params.CDFAccount().String(), err.Error())
 	}
 
 	validatorArr, err := rlp.EncodeToBytes(validatorQueue)
@@ -276,7 +275,7 @@ func genesisGovernParamData(prevHash common.Hash, snapdb snapshotdb.BaseDB, gene
 	return gov.InitGenesisGovernParam(prevHash, snapdb, genesisVersion)
 }
 
-func hashEconomicConfig(economicModel *xcom.EconomicModel, prevHash common.Hash) (common.Hash, error) {
+func hashEconomicConfig(economicModel *params.EconomicModel, prevHash common.Hash) (common.Hash, error) {
 	if economicModel != nil {
 		bytes, err := rlp.EncodeToBytes(economicModel)
 		if err != nil {

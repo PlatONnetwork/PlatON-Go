@@ -19,6 +19,7 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"testing"
 
@@ -52,6 +53,9 @@ var (
 	defaultProposalID = txHashArr[1]
 )
 
+func init() {
+	params.GetEc(params.DefaultUnitTestNet)
+}
 func commit_sndb(chain *mock.Chain) {
 	/*
 		//Flush() signs a Hash to the current block which has no hash yet. Flush() do not write the data to database.
@@ -135,7 +139,7 @@ func buildSubmitVersionInput() []byte {
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("verionPIPID"))
 	input = append(input, common.MustRlpEncode(promoteVersion)) //new version : 1.1.1
-	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())))
+	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())))
 
 	return common.MustRlpEncode(input)
 }
@@ -158,7 +162,7 @@ func buildSubmitCancelInput() []byte {
 	input = append(input, common.MustRlpEncode(uint16(2005))) // func type code
 	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ..
 	input = append(input, common.MustRlpEncode("cancelPIPID"))
-	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1))
+	input = append(input, common.MustRlpEncode(xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1))
 	input = append(input, common.MustRlpEncode(defaultProposalID))
 	return common.MustRlpEncode(input)
 }
@@ -282,6 +286,7 @@ func setup(t *testing.T) *mock.Chain {
 	newPlugins()
 	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
+	gc.Gov = gov.NewGov(chain.SnapDB)
 	build_staking_data_new(chain)
 
 	if _, err := gov.InitGenesisGovernParam(common.ZeroHash, chain.SnapDB, 2048); err != nil {
@@ -385,10 +390,10 @@ func TestGovContract_GetGovernParamValue_NotFound(t *testing.T) {
 func TestGovContract_SubmitParam(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-
+	govdb := gov.NewGovDB(chain.SnapDB)
 	runGovContract(false, gc, buildSubmitParam(nodeIdArr[1], "pipid3", paramModule, paramName, "30"), t)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	} else {
@@ -426,8 +431,8 @@ func TestGovContract_SubmitParam_thenSubmitVersionFailed(t *testing.T) {
 func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-
-	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	govdb := gov.NewGov(chain.SnapDB)
+	value, err := govdb.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
@@ -449,8 +454,8 @@ func TestGovContract_SubmitParam_GetAccuVerifiers(t *testing.T) {
 func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-
-	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	govdb := gov.NewGov(chain.SnapDB)
+	value, err := govdb.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
@@ -484,7 +489,7 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 	lastOne := currentValidatorList[len(currentValidatorList)-1]
 	punished[lastOne] = struct{}{}
 
-	gov.NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punished, chain.StateDB)
+	govdb.NotifyPunishedVerifiers(chain.CurrentHeader().Hash(), punished, chain.StateDB)
 
 	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
@@ -494,8 +499,10 @@ func TestGovContract_voteTwoProposal_punished(t *testing.T) {
 func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
+	govins := gov.NewGov(chain.SnapDB)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	value, err := gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	value, err := govins.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
@@ -513,7 +520,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 
 	runGovContract(true, gc, buildGetAccuVerifiersCountInput(defaultProposalID, chain.CurrentHeader().Hash()), t)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -527,7 +534,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 	commit_sndb(chain)
 
 	//at the end of voting block, the status=pass;
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -541,7 +548,7 @@ func TestGovContract_SubmitParam_Pass(t *testing.T) {
 
 	//from the next to voting block, the parameter value will be the new value
 	skip_emptyBlock(chain, p.GetEndVotingBlock()+1)
-	value, err = gov.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
+	value, err = govins.GetGovernParamValue(paramModule, paramName, chain.CurrentHeader().Number.Uint64(), chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Errorf("%s", err)
 	} else {
@@ -582,12 +589,12 @@ func TestGovContract_SubmitVersion_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[2])
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())), t, gov.VotingVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed(t *testing.T) {
@@ -604,8 +611,8 @@ func TestGovContract_SubmitVersion_Passed(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
-
-	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	govdb := gov.NewGovDB(chain.SnapDB)
+	pTemp, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -619,7 +626,7 @@ func TestGovContract_SubmitVersion_Passed(t *testing.T) {
 	endBlock(chain, t)
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -649,8 +656,9 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	pTemp, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -664,7 +672,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	endBlock(chain, t)
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -679,7 +687,7 @@ func TestGovContract_SubmitVersion_AnotherPreActive(t *testing.T) {
 	//skip empty blocks, this version proposal is pre-active
 	skip_emptyBlock(chain, p.GetActiveBlock()-1)
 	//submit another version proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[2], "versionPIPID2", promoteVersion, xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())), t, gov.PreActiveVersionProposalExist)
 }
 
 func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
@@ -696,8 +704,9 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
-
-	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	govdb := gov.NewGovDB(chain.SnapDB)
+	govins := gov.NewGov(chain.SnapDB)
+	pTemp, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -711,7 +720,7 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 	endBlock(chain, t)
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -728,7 +737,7 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 
 	prepareSndb(chain, common.ZeroHash)
 
-	if preactiveID, err := gov.GetPreActiveProposalID(chain.CurrentHeader().Hash()); err != nil {
+	if preactiveID, err := govdb.GetPreActiveProposalID(chain.CurrentHeader().Hash()); err != nil {
 		t.Error("GetPreActiveProposalID error", err)
 	} else {
 		assert.Equal(t, preactiveID, defaultProposalID)
@@ -739,29 +748,29 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 	}*/
 
 	//----clear all data of this pre-active proposal
-	if err := gov.ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
+	if err := govins.ClearProcessingProposals(chain.CurrentHeader().Hash(), chain.StateDB); err != nil {
 		t.Error("ClearProcessingProposals error", err)
 	} else {
-		if votinglist, err := gov.ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
+		if votinglist, err := govins.ListVotingProposalID(chain.CurrentHeader().Hash()); err != nil {
 			t.Error("ListVotingProposalID, err", err)
 		} else {
 			assert.Equal(t, 0, len(votinglist))
 		}
 
-		if endList, err := gov.ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
+		if endList, err := govdb.ListEndProposalID(chain.CurrentHeader().Hash()); err != nil {
 			t.Error("ListEndProposalID, err", err)
 		} else {
 			assert.Equal(t, 1, len(endList))
 		}
 
 		//-------
-		if vvList, err := gov.ListVoteValue(defaultProposalID, chain.CurrentHeader().Hash()); err != nil {
+		if vvList, err := govdb.ListVoteValue(defaultProposalID, chain.CurrentHeader().Hash()); err != nil {
 			t.Error("ListVoteValue, err", err)
 		} else {
 			assert.Equal(t, 0, len(vvList))
 		}
 
-		if avList, err := gov.ListAccuVerifier(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+		if avList, err := govdb.ListAccuVerifier(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 			t.Error("ListVoteValue, err", err)
 		} else {
 			assert.Equal(t, 0, len(avList))
@@ -772,7 +781,7 @@ func TestGovContract_SubmitVersion_Passed_Clear(t *testing.T) {
 func TestGovContract_SubmitVersion_NewVersionError(t *testing.T) {
 	chain := setup(t)
 	defer clear(chain, t)
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", uint32(32), xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())), t, gov.NewVersionError)
 }
 
 func TestGovContract_SubmitVersion_EndVotingRoundsTooSmall(t *testing.T) {
@@ -786,7 +795,7 @@ func TestGovContract_SubmitVersion_EndVotingRoundsTooLarge(t *testing.T) {
 	defer clear(chain, t)
 
 	//the default rounds is 6 for developer test net
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[1], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())+1), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t *testing.T) {
@@ -807,7 +816,7 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareActiveVersion(t 
 
 	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t)
 
-	//if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	//if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 	//	t.Error("cannot list ActiveNode")
 	//} else if len(nodeList) == 0 {
 	//	t.Log("in this case, Gov will notify Staking immediately, so, there's no active node list")
@@ -827,8 +836,8 @@ func TestGovContract_DeclareVersion_VotingStage_NotVoted_DeclareNewVersion(t *te
 	chandler := node.GetCryptoHandler()
 	chandler.SetPrivateKey(priKeyArr[0])
 	runGovContract(false, gc, buildDeclareInput(), t)
-
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("in this case, Gov will save the declared node, and notify Staking if the proposal is passed later")
@@ -873,8 +882,8 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareNewVersion(t *testi
 
 	//declare new version
 	runGovContract(false, gc, buildDeclare(nodeIdArr[0], promoteVersion, versionSign), t)
-
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
@@ -903,8 +912,8 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOldVersion_ERROR(t 
 
 	//vote new version, but declare old version
 	runGovContract(false, gc, buildDeclare(nodeIdArr[0], initProgramVersion, sign), t, gov.DeclareVersionError)
-
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
@@ -933,8 +942,8 @@ func TestGovContract_DeclareVersion_VotingStage_Voted_DeclareOtherVersion_ERROR(
 
 	//vote new version, but declare other version
 	runGovContract(false, gc, buildDeclare(nodeIdArr[0], otherVersion, sign), t, gov.DeclareVersionError)
-
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
@@ -958,16 +967,16 @@ func TestGovContract_SubmitCancel_AnotherVoting(t *testing.T) {
 	defer clear(chain, t)
 
 	//submit a proposal
-	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())), t)
+	runGovContract(false, gc, buildSubmitVersion(nodeIdArr[0], "versionPIPID", promoteVersion, xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())), t)
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[1], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[3])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[2], "cancelPIPIDAnother", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[2], "cancelPIPIDAnother", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.VotingCancelProposalExist)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
@@ -977,7 +986,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TooLarge(t *testing.T) {
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[2])
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds()), defaultProposalID), t, gov.EndVotingRoundsTooLarge)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testing.T) {
@@ -989,7 +998,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotExist(t *testin
 
 	prepareSndb(chain, txHashArr[2])
 	//the version proposal's endVotingRounds=5
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, txHashArr[3]), t, gov.TobeCanceledProposalNotFound)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal(t *testing.T) {
@@ -1001,7 +1010,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotVersionProposal
 
 	prepareSndb(chain, txHashArr[2])
 	//try to cancel a text proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalTypeError)
 }
 
 func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t *testing.T) {
@@ -1012,8 +1021,10 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[2])
+	govdb := gov.NewGovDB(chain.SnapDB)
+
 	//move the proposal ID from voting-list to end-list
-	err := gov.MoveVotingProposalIDToEnd(defaultProposalID, chain.CurrentHeader().Hash())
+	err := govdb.MoveVotingProposalIDToEnd(defaultProposalID, chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Fatal("err", err)
 	}
@@ -1021,7 +1032,7 @@ func TestGovContract_SubmitCancel_EndVotingRounds_TobeCanceledNotAtVotingStage(t
 
 	prepareSndb(chain, txHashArr[3])
 	//try to cancel a closed version proposal
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t, gov.TobeCanceledProposalNotAtVoting)
 }
 
 func TestGovContract_GetCancelProposal(t *testing.T) {
@@ -1033,7 +1044,7 @@ func TestGovContract_GetCancelProposal(t *testing.T) {
 
 	prepareSndb(chain, txHashArr[2])
 	//submit a proposal and get it.
-	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(xcom.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
+	runGovContract(false, gc, buildSubmitCancel(nodeIdArr[0], "cancelPIPID", xutil.EstimateConsensusRoundsForGov(params.VersionProposalVote_DurationSeconds())-1, defaultProposalID), t)
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[3])
@@ -1050,8 +1061,9 @@ func TestGovContract_Vote_VersionProposal(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 
 	runGovContract(false, gc, buildVoteInput(0, defaultProposalID), t)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode", "err", err)
 	} else if len(nodeList) == 1 {
 		t.Log("voted, Gov will save the declared node, and notify Staking if the proposal is passed later")
@@ -1069,7 +1081,9 @@ func TestGovContract_Vote_Duplicated(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	runGovContract(false, gc, buildVoteInput(0, defaultProposalID), t)
 	runGovContract(false, gc, buildVoteInput(0, defaultProposalID), t, gov.VoteDuplicated)
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 1 {
 		t.Log("voted duplicated, Gov will count this node once in active node list")
@@ -1088,8 +1102,9 @@ func TestGovContract_Vote_OptionError(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	// vote option = 0, it's wrong
 	runGovContract(false, gc, buildVote(0, defaultProposalID, 0, promoteVersion, versionSign), t, gov.VoteOptionError)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 0 {
 		t.Log("option error, this node will not be added to active list")
@@ -1115,8 +1130,9 @@ func TestGovContract_Vote_ProposalNotExist(t *testing.T) {
 	// txIdx=4, not a proposalID
 	prepareSndb(chain, txHashArr[2])
 	runGovContract(false, gc, buildVote(0, txHashArr[4], gov.Yes, initProgramVersion, sign), t, gov.ProposalNotFound)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("list ActiveNode error", "err", err)
 	} else if len(nodeList) == 0 {
 		t.Log("proposal not found, this node will not be added to active list")
@@ -1138,8 +1154,9 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1155,7 +1172,7 @@ func TestGovContract_Vote_TextProposalPassed(t *testing.T) {
 
 	runGovContract(false, gc, buildVote(0, defaultProposalID, gov.No, promoteVersion, versionSign), t, gov.ProposalNotAtVoting)
 
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("cannot list ActiveNode")
 	} else if len(nodeList) == 0 {
 		t.Log("option error, this node will not be added to active list")
@@ -1178,8 +1195,9 @@ func TestGovContract_SubmitText_passed_PIPID_exist(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1232,8 +1250,9 @@ func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.No)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1250,7 +1269,7 @@ func TestGovContract_SubmitText_NotPassed_SamePIPID_Allowed(t *testing.T) {
 	prepareSndb(chain, txHashArr[3])
 	runGovContract(false, gc, buildSubmitText(nodeIdArr[2], "pipid1"), t)
 
-	p, err = gov.GetProposal(txHashArr[3], chain.StateDB)
+	p, err = govdb.GetProposal(txHashArr[3], chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	} else {
@@ -1277,8 +1296,9 @@ func TestGovContract_Vote_VerifierNotUpgraded(t *testing.T) {
 	//txIdx should figure out the proposalID
 	runGovContract(false, gc, buildVote(0, defaultProposalID, gov.Yes, initProgramVersion, sign), t, gov.VerifierNotUpgraded)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), txHashArr[1]); err != nil {
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), txHashArr[1]); err != nil {
 		t.Error("list ActiveNode error", "err", err)
 	} else if len(nodeList) == 0 {
 		t.Log("verifier not upgraded, this node will not be added to active list")
@@ -1307,7 +1327,9 @@ func TestGovContract_Vote_ProgramVersionError(t *testing.T) {
 	commit_sndb(chain)
 
 	prepareSndb(chain, txHashArr[3])
-	if nodeList, err := gov.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
+	govdb := gov.NewGovDB(chain.SnapDB)
+
+	if nodeList, err := govdb.GetActiveNodeList(chain.CurrentHeader().Hash(), defaultProposalID); err != nil {
 		t.Error("list ActiveNode error", "err", err)
 	} else if len(nodeList) == 0 {
 		t.Log("verifier program version error, this node will not be added to active list")
@@ -1344,8 +1366,9 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, txHashArr[1], gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	p, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	p, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1358,7 +1381,7 @@ func TestGovContract_TextProposal_pass(t *testing.T) {
 	endBlock(chain, t)
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -1382,8 +1405,9 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	pTemp, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1398,7 +1422,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -1418,7 +1442,7 @@ func TestGovContract_VersionProposal_Active(t *testing.T) {
 	beginBlock(chain, t)
 	commit_sndb(chain)
 
-	result, err = gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err = govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -1442,8 +1466,9 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 	prepareSndb(chain, txHashArr[2])
 	allVote(chain, t, defaultProposalID, gov.Yes)
 	commit_sndb(chain)
+	govdb := gov.NewGovDB(chain.SnapDB)
 
-	pTemp, err := gov.GetProposal(defaultProposalID, chain.StateDB)
+	pTemp, err := govdb.GetProposal(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("find proposal error", "err", err)
 	}
@@ -1458,7 +1483,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 
 	commit_sndb(chain)
 
-	result, err := gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err := govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -1475,15 +1500,16 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 
 	// build_staking_data_more will build a new block base on chain.SnapDB.Current
 	build_staking_data_more(chain)
+	govins := gov.NewGov(chain.SnapDB)
 
 	// the version proposal is not be active yet, so the new extra gov parameters do not exist
-	govParam, err := gov.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
+	govParam, err := govins.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Fatal("find govern param err", err)
 	}
 	assert.Nil(t, govParam)
 
-	govParam, err = gov.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
+	govParam, err = govins.FindGovernParam(gov.ModuleStaking, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Fatal("find govern param err", err)
 	}
@@ -1494,7 +1520,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 
 	//prepareSndb(chain, common.ZeroHash)
 
-	result, err = gov.GetTallyResult(defaultProposalID, chain.StateDB)
+	result, err = govdb.GetTallyResult(defaultProposalID, chain.StateDB)
 	if err != nil {
 		t.Fatal("get tally result err", err)
 	}
@@ -1504,7 +1530,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 	assert.Equal(t, gov.Active, result.Status)
 
 	// the version proposal is active, so the new extra gov parameters are existing also
-	govParam, err = gov.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
+	govParam, err = govins.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceNumberThreshold, chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Fatal("find govern param err", err)
 	}
@@ -1514,7 +1540,7 @@ func TestGovContract_VersionProposal_Active_GetExtraParam_V0_11_0(t *testing.T) 
 		assert.Equal(t, "2", govParam.ParamValue.Value)
 	}
 
-	govParam, err = gov.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
+	govParam, err = govins.FindGovernParam(gov.ModuleSlashing, gov.KeyZeroProduceCumulativeTime, chain.CurrentHeader().Hash())
 	if err != nil {
 		t.Fatal("find govern param err", err)
 	}
@@ -1673,6 +1699,7 @@ func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOp
 	//for _, nodeID := range nodeIdArr {
 	currentValidatorList, _ := plugin.StakingInstance().ListCurrentValidatorID(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 	voteCount := len(currentValidatorList)
+	govins := gov.NewGov(chain.SnapDB)
 	chandler := node.GetCryptoHandler()
 	for i := 0; i < voteCount; i++ {
 		vote := gov.VoteInfo{
@@ -1685,7 +1712,7 @@ func allVote(chain *mock.Chain, t *testing.T, pid common.Hash, option gov.VoteOp
 		versionSign := common.VersionSign{}
 		versionSign.SetBytes(chandler.MustSign(promoteVersion))
 
-		err := gov.Vote(sender, vote, chain.CurrentHeader().Hash(), 1, promoteVersion, versionSign, plugin.StakingInstance(), chain.StateDB)
+		err := govins.Vote(sender, vote, chain.CurrentHeader().Hash(), 1, promoteVersion, versionSign, plugin.StakingInstance(), chain.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}

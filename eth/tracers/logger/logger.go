@@ -29,6 +29,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	json2 "github.com/PlatONnetwork/PlatON-Go/common/json"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -57,6 +58,8 @@ type Config struct {
 	Limit            int  // maximum length of output, but zero means unlimited
 	// Chain overrides, can be used to execute a trace using future fork rules
 	Overrides *params.ChainConfig `json:"overrides,omitempty"`
+
+	EthCompatible bool //内部实现，仅为了让返回值适配eth的地址格式
 }
 
 //go:generate go run github.com/fjl/gencodec -type StructLog -field-override structLogMarshaling -out gen_structlog.go
@@ -247,6 +250,14 @@ func (l *StructLogger) GetResult() (json.RawMessage, error) {
 	returnVal := fmt.Sprintf("%x", returnData)
 	if failed && l.err != vm.ErrExecutionReverted {
 		returnVal = ""
+	}
+	if l.cfg.EthCompatible {
+		return json2.Marshal(&ExecutionResult{
+			Gas:         l.usedGas,
+			Failed:      failed,
+			ReturnValue: returnVal,
+			StructLogs:  formatLogs(l.StructLogs()),
+		})
 	}
 	return json.Marshal(&ExecutionResult{
 		Gas:         l.usedGas,

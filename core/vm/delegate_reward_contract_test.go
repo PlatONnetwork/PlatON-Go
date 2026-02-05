@@ -23,10 +23,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 
@@ -415,7 +413,7 @@ func TestWithdrawDelegateRewardWithMultiNode(t *testing.T) {
 		if len(rewards) == 0 {
 			return errors.New("rewards must not be zero")
 		}
-		assert.True(t, len(rewards) == int(xcom.TheNumberOfDelegationsReward()))
+		assert.True(t, len(rewards) == int(params.TheNumberOfDelegationsReward()))
 		assert.True(t, rewards[0].NodeID == can2.NodeId)
 		assert.True(t, rewards[1].NodeID == can3.NodeId)
 		return nil

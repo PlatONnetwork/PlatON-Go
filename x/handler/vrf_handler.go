@@ -60,6 +60,13 @@ func NewVrfHandler(genesisNonce []byte) *VrfHandler {
 	return vh
 }
 
+func NewVrfHandlerOnce(db snapshotdb.DB) *VrfHandler {
+	return &VrfHandler{
+		db:           db,
+		genesisNonce: GetVrfHandlerInstance().genesisNonce,
+	}
+}
+
 func GetVrfHandlerInstance() *VrfHandler {
 	return vh
 }
@@ -122,7 +129,7 @@ func (vh *VrfHandler) Storage(blockNumber *big.Int, parentHash common.Hash, bloc
 		parentHash, "current hash", blockHash, "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
 
-	maxValidatorsNum, err := gov.GovernMaxValidators(blockNumber.Uint64(), blockHash)
+	maxValidatorsNum, err := gov.NewGov(vh.db).GovernMaxValidators(blockNumber.Uint64(), blockHash)
 	if nil != err {
 		log.Error("Failed to Storage VRF nonce", "blockNumber", blockNumber, "blockHash", blockHash.TerminalString(), "err", err)
 		return err

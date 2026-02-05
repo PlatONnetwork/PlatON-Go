@@ -44,7 +44,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		baseFee *big.Int
 		random  common.Hash
 	)
-	beneficiary := header.Coinbase // we're must using header validation
+	beneficiary := header.Coinbase // we must use header validation
 
 	blockHash := common.ZeroHash
 	// store the sign in  header.Extra[32:97]

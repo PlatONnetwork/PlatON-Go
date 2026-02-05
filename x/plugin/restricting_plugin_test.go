@@ -29,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -95,7 +96,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
-
+	plugin.db = snapshotdb.Instance()
 	from, to := addrArr[0], addrArr[1]
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
@@ -258,6 +259,7 @@ type TestRestrictingPlugin struct {
 func NewTestRestrictingPlugin() *TestRestrictingPlugin {
 	tp := new(TestRestrictingPlugin)
 	tp.log = log.Root()
+	tp.db = snapshotdb.Instance()
 	tp.from, tp.to = common.MustBech32ToAddress("lax1avltgjnqmy6alefayfry3cd9rpguduawcph8ja"), common.MustBech32ToAddress("lax1rkdnqnnsl5shqm7e00897dpey33h3pcntluqar")
 	tp.mockDB = mock.NewChain().StateDB
 	tp.mockDB.AddBalance(tp.from, big.NewInt(9e18))
@@ -314,6 +316,7 @@ func TestRestrictingPlugin_Compose2(t *testing.T) {
 	}
 
 	plugin.log = log.Root()
+	plugin.db = sdb
 	from, to := addrArr[0], addrArr[1]
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	mockDB := buildStateDB(t)
@@ -360,6 +363,7 @@ func TestRestrictingPlugin_Compose(t *testing.T) {
 
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
+	plugin.db = sdb
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
 	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
 	if err := sdb.PutBaseDB(key, value); nil != err {
@@ -485,6 +489,9 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 }
 
 func TestRestrictingInstance(t *testing.T) {
+	// Initialize economic model configuration
+	params.GetEc(params.DefaultTestNet)
+
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
@@ -497,6 +504,7 @@ func TestRestrictingInstance(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
+	plugin.db = sdb
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
@@ -544,6 +552,9 @@ func TestRestrictingInstance(t *testing.T) {
 }
 
 func TestNewRestrictingPlugin_MixAdvanceLockedFunds(t *testing.T) {
+	// Initialize economic model configuration
+	params.GetEc(params.DefaultTestNet)
+
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
@@ -556,6 +567,7 @@ func TestNewRestrictingPlugin_MixAdvanceLockedFunds(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
+	plugin.db = sdb
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
@@ -590,6 +602,9 @@ func TestNewRestrictingPlugin_MixAdvanceLockedFunds(t *testing.T) {
 }
 
 func TestRestrictingInstanceWithSlashing(t *testing.T) {
+	// Initialize economic model configuration
+	params.GetEc(params.DefaultTestNet)
+
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
@@ -601,6 +616,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
+	plugin.db = sdb
 	//	plugin.log.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(4), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
@@ -661,6 +677,9 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 }
 
 func TestRestrictingGetRestrictingInfo(t *testing.T) {
+	// Initialize economic model configuration
+	params.GetEc(params.DefaultTestNet)
+
 	sdb := snapshotdb.Instance()
 	defer sdb.Clear()
 	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
@@ -672,6 +691,7 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	mockDB := buildStateDB(t)
 	plugin := new(RestrictingPlugin)
 	plugin.log = log.Root()
+	plugin.db = sdb
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9e18).Add(big.NewInt(9e18), big.NewInt(9e18)))
 	plans := make([]restricting.RestrictingPlan, 0)

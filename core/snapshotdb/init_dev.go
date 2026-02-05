@@ -34,7 +34,8 @@ const (
 	//DBPath path of db
 	DBPath = "snapshotdb_test"
 	//DBBasePath path of basedb
-	DBBasePath = "base"
+	DBBasePath    = "base"
+	DBArchivePath = "archive"
 )
 
 func init() {

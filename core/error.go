@@ -94,4 +94,7 @@ var (
 
 	// ErrSenderNoEOA is returned if the sender of a transaction is a contract.
 	ErrSenderNoEOA = errors.New("sender not an eoa")
+
+	// ErrPlatONTxNotSupportTracing is returned if tracing an inner tx.
+	ErrPlatONTxNotSupportTracing = errors.New("PlatON-inner transactions' tracing are not currently supported")
 )

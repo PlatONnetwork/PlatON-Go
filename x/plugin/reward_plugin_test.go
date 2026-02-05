@@ -38,12 +38,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, error) {
-	validatorQueue := make(staking.ValidatorQueue, xcom.MaxValidators())
+	validatorQueue := make(staking.ValidatorQueue, params.MaxValidators())
 	for i := 0; i < 50; i++ {
 		privateKey, err := crypto.GenerateKey()
 		if nil != err {
@@ -78,7 +77,7 @@ func buildTestStakingData(epochStart, epochEnd uint64) (staking.ValidatorQueue, 
 				return nil, err
 			}
 		}
-		if i < int(xcom.MaxValidators()) {
+		if i < int(params.MaxValidators()) {
 			v := &staking.Validator{
 				NodeAddress:     addr,
 				NodeId:          canTmp.NodeId,
@@ -127,7 +126,7 @@ func TestRewardPlugin_CalcEpochReward(t *testing.T) {
 		return time + 1000
 	})
 	snapshotdb.SetDBBlockChain(chain)
-	xcom.GetEc(xcom.DefaultTestNet)
+	params.GetEc(params.DefaultTestNet)
 
 	yearBalance := big.NewInt(1e18)
 	SetYearEndCumulativeIssue(chain.StateDB, 0, yearBalance)
@@ -174,20 +173,20 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	plugin.SetCurrentNodeID(nodeIdArr[0])
 	chain := mock.NewChain()
 	defer chain.SnapDB.Clear()
-	packTime := int64(xcom.Interval() * uint64(millisecond))
+	packTime := int64(params.Interval() * uint64(millisecond))
 	chain.SetHeaderTimeGenerate(func(b uint64) uint64 {
 		return b + uint64(packTime)
 	})
 	mockDB := chain.StateDB
 	snapshotdb.SetDBBlockChain(chain)
 
-	defaultEc := *xcom.GetEc(xcom.DefaultTestNet)
+	defaultEc := *params.GetEc(params.DefaultTestNet)
 	defer func() {
-		xcom.ResetEconomicDefaultConfig(&defaultEc)
+		params.ResetEconomicDefaultConfig(&defaultEc)
 		snapshotdb.Instance().Clear()
 	}()
 
-	ec := xcom.GetEc(xcom.DefaultTestNet)
+	ec := params.GetEc(params.DefaultTestNet)
 	ec.Common.AdditionalCycleTime = 3
 	ec.Common.MaxEpochMinutes = 1
 	ec.Common.MaxConsensusVals = 1
@@ -281,8 +280,8 @@ func TestIncreaseIssuance(t *testing.T) {
 	var plugin = RewardMgrInstance()
 
 	mockDB := buildStateDB(t)
-
-	initIncreaseIssuanceRatio := xcom.IncreaseIssuanceRatio()
+	govInstance := gov.NewGov(snapshotdb.Instance())
+	initIncreaseIssuanceRatio := params.IncreaseIssuanceRatio()
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 
 	thisYear, lastYear := uint32(1), uint32(0)
@@ -300,7 +299,7 @@ func TestIncreaseIssuance(t *testing.T) {
 
 	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
 
-	increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
+	increaseIssuanceRatio, err := govInstance.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -310,10 +309,10 @@ func TestIncreaseIssuance(t *testing.T) {
 	assert.Equal(t, tmp, new(big.Int).Div(new(big.Int).Mul(lastIssue, big.NewInt(int64(initIncreaseIssuanceRatio))), big.NewInt(int64(10000))))
 
 	if plugin.isLessThanFoundationYear(thisYear) {
-		mockDB.GetBalance(xcom.CDFAccount())
+		mockDB.GetBalance(params.CDFAccount())
 	} else {
-		mockDB.GetBalance(xcom.CDFAccount())
-		mockDB.GetBalance(xcom.PlatONFundAccount())
+		mockDB.GetBalance(params.CDFAccount())
+		mockDB.GetBalance(params.PlatONFundAccount())
 	}
 }
 
@@ -322,7 +321,7 @@ func TestZeroIncreaseIssuance(t *testing.T) {
 	_, genesis, _ := newChainState()
 
 	mockDB := buildStateDB(t)
-
+	govInstance := gov.NewGov(snapshotdb.Instance())
 	gov.InitGenesisGovernParam(common.ZeroHash, snapshotdb.Instance(), 2048)
 
 	if err := snapshotdb.Instance().NewBlock(blockNumber, genesis.Hash(), common.ZeroHash); nil != err {
@@ -332,7 +331,7 @@ func TestZeroIncreaseIssuance(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 
-	if err := gov.SetGovernParam(gov.ModuleReward, gov.KeyIncreaseIssuanceRatio, "", "0", 0, common.ZeroHash); nil != err {
+	if err := govInstance.SetGovernParam(gov.ModuleReward, gov.KeyIncreaseIssuanceRatio, "", "0", 0, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
 
@@ -351,7 +350,7 @@ func TestZeroIncreaseIssuance(t *testing.T) {
 
 	newIssue := GetHistoryCumulativeIssue(mockDB, thisYear)
 
-	increaseIssuanceRatio, err := gov.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
+	increaseIssuanceRatio, err := govInstance.GovernIncreaseIssuanceRatio(1, common.ZeroHash)
 	if nil != err {
 		t.Fatal(err)
 	}
@@ -377,7 +376,7 @@ func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
 
 	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
 
-	CDFAccountBalance := mockDB.GetBalance(xcom.CDFAccount())
+	CDFAccountBalance := mockDB.GetBalance(params.CDFAccount())
 	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
@@ -386,7 +385,7 @@ func TestCDFAccountOneYearIncreaseIssuance(t *testing.T) {
 
 	currIssue := new(big.Int).Sub(newIssue, lastIssue)
 
-	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
+	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(params.CDFAccount()), CDFAccountBalance)
 	rewardpoolIncr := percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate))
 	assert.Equal(t, currCDFAccountBalance, new(big.Int).Sub(currIssue, rewardpoolIncr))
 }
@@ -407,8 +406,8 @@ func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
 
 	mockDB.AddBalance(vm.RestrictingContractAddr, genesisIssue)
 
-	CDFAccountBalance := mockDB.GetBalance(xcom.CDFAccount())
-	PlatONFundAccountBalance := mockDB.GetBalance(xcom.PlatONFundAccount())
+	CDFAccountBalance := mockDB.GetBalance(params.CDFAccount())
+	PlatONFundAccountBalance := mockDB.GetBalance(params.PlatONFundAccount())
 	if err := plugin.increaseIssuance(thisYear, lastYear, mockDB, 1, common.ZeroHash); nil != err {
 		t.Fatal(err)
 	}
@@ -417,8 +416,8 @@ func TestCDFAccountTenYearIncreaseIssuance(t *testing.T) {
 
 	currIssue := new(big.Int).Sub(newIssue, lastIssue)
 
-	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.CDFAccount()), CDFAccountBalance)
-	currPlatONFundAccountBalance := new(big.Int).Sub(mockDB.GetBalance(xcom.PlatONFundAccount()), PlatONFundAccountBalance)
+	currCDFAccountBalance := new(big.Int).Sub(mockDB.GetBalance(params.CDFAccount()), CDFAccountBalance)
+	currPlatONFundAccountBalance := new(big.Int).Sub(mockDB.GetBalance(params.PlatONFundAccount()), PlatONFundAccountBalance)
 
 	lessBalance := new(big.Int).Sub(currIssue, percentageCalculation(currIssue, uint64(RewardPoolIncreaseRate)))
 	assert.Equal(t, currCDFAccountBalance, percentageCalculation(lessBalance, uint64(AfterFoundationYearDeveloperRewardRate)))
