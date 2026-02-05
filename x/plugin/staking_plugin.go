@@ -419,7 +419,7 @@ func (sk *StakingPlugin) Confirmed(nodeId enode.IDv0, block *types.Block) error 
 			return err
 		}
 		//stats
-		numStr = strconv.FormatUint(block.NumberU64()+xcom.ElectionDistance(), 10)
+		numStr = strconv.FormatUint(block.NumberU64()+params.ElectionDistance(), 10)
 		err = sk.SetValidator(block, numStr, current)
 		if nil != err {
 			log.Error("Failed to SetVerifier on stakingPlugin Confirmed When Settletmetn block", "err", err)
@@ -4259,7 +4259,7 @@ func (sk *StakingPlugin) SetReward(block *types.Block, numStr string) error {
 			YearStartNum:  0,
 			YearEndNum:    xutil.CalcBlocksEachYear(),
 			RemainEpoch:   uint32(xutil.EpochsPerYear()),
-			AvgPackTime:   xcom.Interval() * 1000,
+			AvgPackTime:   params.Interval() * 1000,
 		}
 		numberStart, err := rlp.EncodeToBytes(uint64(0))
 		if nil != err {
