@@ -24,6 +24,9 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
+	"math/big"
+	"strconv"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -33,8 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/syndtr/goleveldb/leveldb"
-	"math/big"
-	"strconv"
 )
 
 func opAdd(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byte, error) {
@@ -753,7 +754,7 @@ func opCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext) ([]byt
 	interpreter.returnData = ret
 
 	//stats
-	gte150 := gov.Gte150VersionState(interpreter.evm.StateDB)
+	gte150 := gov.NewGov(interpreter.evm.SnapshotDB).Gte150VersionState(interpreter.evm.StateDB)
 	if IsPlatONPrecompiledContract(toAddr, interpreter.evm.chainRules, gte150) {
 		saveTransData(interpreter, args, scope.Contract.self.Address().Bytes(), addr.Bytes(), string(ret))
 	}
@@ -823,7 +824,7 @@ func opDelegateCall(pc *uint64, interpreter *EVMInterpreter, scope *ScopeContext
 	interpreter.returnData = ret
 
 	//stats
-	gte150 := gov.Gte150VersionState(interpreter.evm.StateDB)
+	gte150 := gov.NewGov(interpreter.evm.SnapshotDB).Gte150VersionState(interpreter.evm.StateDB)
 	if IsPlatONPrecompiledContract(toAddr, interpreter.evm.chainRules, gte150) {
 		saveTransData(interpreter, args, scope.Contract.CallerAddress.Bytes(), addr.Bytes(), string(ret))
 	}
