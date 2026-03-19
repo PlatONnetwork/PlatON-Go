@@ -46,7 +46,7 @@ func TestFilters(t *testing.T) {
 	fm.Notify(Generic{Str1: "hello"}, true)
 	fm.Stop()
 
-	// Ensure only the mathcing filters fire
+	// Ensure only the matching filters fire
 	select {
 	case <-first:
 	case <-time.After(100 * time.Millisecond):

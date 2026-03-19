@@ -36,6 +36,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
+  
+	// Force-load native and js packages, to trigger registration
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
+	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
 )
 
 type callContext struct {
@@ -327,7 +331,7 @@ func TestZeroValueToNotExitCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to retrieve trace result: %v", err)
 	}
-	wantStr := `{"from":"0x682a80a6f560eec50d54e63cbeda1c324c5f8d1b","gas":"0x7148","gasUsed":"0x54d8","to":"0x00000000000000000000000000000000deadbeef","input":"0x","calls":[{"from":"0x00000000000000000000000000000000deadbeef","gas":"0x6cbf","gasUsed":"0x0","to":"0x00000000000000000000000000000000000000ff","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`
+	wantStr := `{"from":"lat1dq4gpfh4vrhv2r25uc7taksuxfx9lrgmakk7yu","gas":"0x7148","gasUsed":"0x54d8","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","calls":[{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","gas":"0x6cbf","gasUsed":"0x0","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8l6c4vgy","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`
 	if string(res) != wantStr {
 		t.Fatalf("trace mismatch\n have: %v\n want: %v\n", string(res), wantStr)
 	}

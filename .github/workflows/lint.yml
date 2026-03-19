@@ -27,6 +27,6 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           version: 'latest'
-          args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --skip-dirs="tests" --skip-dirs-use-default=true --disable-all   --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen
+          args: --no-config  --issues-exit-code=0 --timeout=30m --tests=false --exclude-dirs="tests" --exclude-dirs-use-default=true --disable-all   --enable=misspell --enable=goconst --enable=gofmt --enable=goimports  --enable=gosec  --enable=unconvert  --enable=unparam  --enable=funlen
           skip-go-installation: true
           skip-pkg-cache: true

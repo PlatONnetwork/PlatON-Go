@@ -213,6 +213,10 @@ func ActivePrecompilesByRules(rules params.Rules) []common.Address {
 	switch {
 	case rules.IsPauli:
 		return PrecompiledAddressesBerlin2
+	case rules.IsHubble:
+		return PrecompiledAddressesBerlin
+	case rules.IsEinstein:
+		return PrecompiledAddressesByzantium
 	default:
 		return PrecompiledAddressesBerlin
 	}

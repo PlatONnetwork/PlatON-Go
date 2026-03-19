@@ -697,7 +697,8 @@ func (srv *Server) setupDialScheduler() {
 	srv.dialsched = newDialScheduler(config, srv.discmix, srv.SetupConn)
 
 	dialstateRemoveConsensusPeerFn := func(node *enode.Node) {
-		srv.doPeerOp(func(peers map[enode.ID]*Peer) {
+		// 避免peerOp死锁，这里要go出去
+		go srv.doPeerOp(func(peers map[enode.ID]*Peer) {
 			srv.dialsched.removeConsensusFromQueue(node)
 			if p, ok := peers[node.ID()]; ok {
 				p.rw.set(consensusDialedConn, false)
