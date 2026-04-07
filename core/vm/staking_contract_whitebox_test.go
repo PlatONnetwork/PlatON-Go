@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	params2 "github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"testing"
 
@@ -460,8 +461,8 @@ func Test_CreateStake_LowBalance_by_freeVon(t *testing.T) {
 	// reset sender balance
 	chain.StateDB.SubBalance(sender, chain.StateDB.GetBalance(sender))
 
-	StakeThreshold := xcom.StakeThreshold()
-	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
+	StakeThreshold := params2.StakeThreshold()
+	initBalance := new(big.Int).Sub(params2.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 	chain.StateDB.AddBalance(sender, initBalance)
 
 	var params [][]byte
@@ -569,7 +570,7 @@ func Test_CreateStake_LowThreshold_by_freeVon(t *testing.T) {
 	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
 	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
-	StakeThreshold := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
+	StakeThreshold := new(big.Int).Sub(params2.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	rewardPer, _ := rlp.EncodeToBytes(uint64(5000))
@@ -640,8 +641,8 @@ func Test_CreateStake_LowBalance_by_restrictplanVon(t *testing.T) {
 
 	index := 1
 
-	StakeThreshold := xcom.StakeThreshold()
-	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
+	StakeThreshold := params2.StakeThreshold()
+	initBalance := new(big.Int).Sub(params2.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
 	buildDbRestrictingPlan(t, sender, initBalance, 1, chain.StateDB)
 
@@ -738,8 +739,8 @@ func Test_CreateStake_LowThreshold_by_restrictplanVon(t *testing.T) {
 
 	index := 1
 
-	StakeThreshold := xcom.StakeThreshold()
-	initBalance := new(big.Int).Sub(xcom.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
+	StakeThreshold := params2.StakeThreshold()
+	initBalance := new(big.Int).Sub(params2.StakeThreshold(), common.Big1) // equal or more than "1000000000000000000000000"
 
 	buildDbRestrictingPlan(t, sender, StakeThreshold, 1, chain.StateDB)
 

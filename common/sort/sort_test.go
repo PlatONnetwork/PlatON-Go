@@ -327,12 +327,6 @@ func (d *testingData) Swap(i, j int) {
 	d.data[i], d.data[j] = d.data[j], d.data[i]
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 
 func lg(n int) int {
 	i := 0

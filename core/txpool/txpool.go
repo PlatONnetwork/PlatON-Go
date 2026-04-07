@@ -351,11 +351,11 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
 		stateDB, err := chain.GetState(currentBlock.Header())
 		if err == nil && stateDB != nil {
-			if gte150 := gov.Gte150VersionState(stateDB); gte150 {
+			if gte150 := gov.NewGov(nil).Gte150VersionState(stateDB); gte150 {
 				pool.eip2718, pool.eip1559 = true, true
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
 			}
-			if gte160 := gov.Gte160VersionState(stateDB); gte160 {
+			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
 				pool.dirac = true
 			} else {
 				pool.dirac = false
@@ -1504,7 +1504,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 }
 
 func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
-	gte150 := gov.Gte150VersionState(statedb)
+	gte150 := gov.NewGov(nil).Gte150VersionState(statedb)
 	if gte150 {
 		pool.eip2718, pool.eip1559 = true, true
 	} else {
@@ -1513,7 +1513,7 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer
 	pool.cacheAccountNeedPromoted.signer = pool.signer
-	gte160 := gov.Gte160VersionState(statedb)
+	gte160 := gov.NewGov(nil).Gte160VersionState(statedb)
 	if gte160 {
 		pool.dirac = true
 	} else {

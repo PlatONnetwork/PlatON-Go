@@ -138,7 +138,7 @@ func (bcr *BlockChainReactor) commit(block *types.Block) error {
 	/**
 	notify P2P module the nodeId of the next round validator
 	*/
-	if plugin, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+	if plugin, ok := bcr.basePluginMap[params.StakingRule]; ok {
 		if err := plugin.Confirmed(bcr.NodeId, block); nil != err {
 			log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 		}
@@ -206,7 +206,7 @@ func (bcr *BlockChainReactor) SetWorkerCoinBase(header *types.Header, nodeId eno
 		panic(fmt.Sprintf("parse current nodeId is failed: %s", err.Error()))
 	}
 
-	if plu, ok := bcr.basePluginMap[xcom.StakingRule]; ok {
+	if plu, ok := bcr.basePluginMap[params.StakingRule]; ok {
 		stake := plu.(*plugin.StakingPlugin)
 		can, err := stake.GetCandidateInfo(common.ZeroHash, nodeIdAddr)
 		if nil != err {

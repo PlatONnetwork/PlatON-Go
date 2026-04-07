@@ -593,7 +593,7 @@ func NewBlockChainAPI(b Backend) *BlockChainAPI {
 // wasn't synced up to a block where EIP-155 is enabled, but this behavior caused issues
 // in CL clients.
 func (s *BlockChainAPI) ChainId() *hexutil.Big {
-	return (*hexutil.Big)(s.b.ChainConfig().ChainID)
+	return (*hexutil.Big)(s.b.ChainConfig().PIP7ChainID)
 }
 
 // BlockNumber returns the block number of the chain head.

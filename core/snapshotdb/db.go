@@ -34,6 +34,9 @@ import (
 func getBaseDBPath(dbpath string) string {
 	return path.Join(dbpath, DBBasePath)
 }
+func getArchiveDBPath(dbpath string) string {
+	return path.Join(dbpath, DBArchivePath)
+}
 
 func (s *snapshotDB) getBlockFromWal(block []byte) (*BlockData, error) {
 	bk := new(BlockData)

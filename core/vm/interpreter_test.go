@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"testing"
 	"time"
@@ -49,7 +50,7 @@ func TestLoopInterrupt(t *testing.T) {
 		statedb.CreateAccount(address)
 		statedb.SetCode(address, common.Hex2Bytes(tt))
 		statedb.Finalise(true)
-		gov.AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
+		gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
 
 		evm := NewEVM(vmctx, TxContext{}, nil, statedb, params.AllEthashProtocolChanges, Config{})
 

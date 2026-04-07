@@ -82,6 +82,8 @@ type Database struct {
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 
 	log log.Logger // Contextual logger tracking the database path
+
+	readOptions *opt.ReadOptions // Read options for Get operations
 }
 
 // New returns a wrapped LevelDB object. The namespace is the prefix that the
@@ -183,14 +185,24 @@ func (db *Database) Close() error {
 	return db.db.Close()
 }
 
+// SetReadOptions sets the read options for all subsequent Get operations.
+func (db *Database) SetReadOptions(opts *opt.ReadOptions) {
+	db.readOptions = opts
+}
+
+// GetReadOptions returns the current read options.
+func (db *Database) GetReadOptions() *opt.ReadOptions {
+	return db.readOptions
+}
+
 // Has retrieves if a key is present in the key-value store.
 func (db *Database) Has(key []byte) (bool, error) {
-	return db.db.Has(key, nil)
+	return db.db.Has(key, db.readOptions)
 }
 
 // Get retrieves the given key if it's present in the key-value store.
 func (db *Database) Get(key []byte) ([]byte, error) {
-	dat, err := db.db.Get(key, nil)
+	dat, err := db.db.Get(key, db.readOptions)
 	if err != nil {
 		return nil, err
 	}

@@ -18,6 +18,7 @@ package vm
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"testing"
 
@@ -38,7 +39,7 @@ func buildRestrictingPlanData() ([]byte, error) {
 	for index := 0; index < len(plans); index++ {
 		epoch = uint64(index + 1)
 		plan.Epoch = epoch
-		plan.Amount = xcom.FloorMinimumRelease
+		plan.Amount = params.FloorMinimumRelease
 		plans[index] = plan
 	}
 
@@ -60,7 +61,7 @@ func buildErrorRestrictingPlanData() ([]byte, error) {
 	var plans = make([]restricting.RestrictingPlan, 1)
 
 	plan.Epoch = uint64(0)
-	plan.Amount = xcom.FloorMinimumRelease
+	plan.Amount = params.FloorMinimumRelease
 	plans[0] = plan
 
 	var params [][]byte

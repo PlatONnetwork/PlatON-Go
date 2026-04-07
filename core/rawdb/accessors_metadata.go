@@ -22,8 +22,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -85,7 +83,7 @@ func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.Cha
 }
 
 // WriteEconomicModel writes the EconomicModel settings to the database.
-func WriteEconomicModel(db ethdb.Writer, hash common.Hash, ec *xcom.EconomicModel) {
+func WriteEconomicModel(db ethdb.Writer, hash common.Hash, ec *params.EconomicModel) {
 	if ec == nil {
 		return
 	}
@@ -100,7 +98,7 @@ func WriteEconomicModel(db ethdb.Writer, hash common.Hash, ec *xcom.EconomicMode
 }
 
 // WriteEconomicModelExtend writes the EconomicModelExtend settings to the database.
-func WriteEconomicModelExtend(db ethdb.Writer, hash common.Hash, ec *xcom.EconomicModelExtend) {
+func WriteEconomicModelExtend(db ethdb.Writer, hash common.Hash, ec *params.EconomicModelExtend) {
 	if ec == nil {
 		return
 	}
@@ -115,13 +113,13 @@ func WriteEconomicModelExtend(db ethdb.Writer, hash common.Hash, ec *xcom.Econom
 }
 
 // ReadEconomicModel retrieves the EconomicModel settings based on the given genesis hash.
-func ReadEconomicModel(db ethdb.Reader, hash common.Hash) *xcom.EconomicModel {
+func ReadEconomicModel(db ethdb.Reader, hash common.Hash) *params.EconomicModel {
 	data, _ := db.Get(economicModelKey(hash))
 	if len(data) == 0 {
 		return nil
 	}
 
-	var ec xcom.EconomicModel
+	var ec params.EconomicModel
 	// reset the global ec
 	if err := json.Unmarshal(data, &ec); err != nil {
 		log.Error("Invalid EconomicModel JSON", "hash", hash, "err", err)
@@ -131,13 +129,13 @@ func ReadEconomicModel(db ethdb.Reader, hash common.Hash) *xcom.EconomicModel {
 }
 
 // ReadEconomicModelExtend retrieves the EconomicModelExtend settings based on the given genesis hash.
-func ReadEconomicModelExtend(db ethdb.Reader, hash common.Hash) *xcom.EconomicModelExtend {
+func ReadEconomicModelExtend(db ethdb.Reader, hash common.Hash) *params.EconomicModelExtend {
 	data, _ := db.Get(economicModelExtendKey(hash))
 	if len(data) == 0 {
 		return nil
 	}
 
-	var ec xcom.EconomicModelExtend
+	var ec params.EconomicModelExtend
 	// reset the global ec
 	if err := json.Unmarshal(data, &ec); err != nil {
 		log.Error("Invalid EconomicModelExtend JSON", "hash", hash, "err", err)
