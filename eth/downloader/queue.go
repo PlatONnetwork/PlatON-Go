@@ -81,6 +81,9 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	//	item.pending |= (1 << bodyType)
 	//}
 
+	if header.WithdrawalsHash != nil {
+		item.Withdrawals = make(types.Withdrawals, 0)
+	}
 	if fastSync && !header.EmptyReceipts() {
 		item.pending |= (1 << receiptType) // The receipt is not synchronized in PlatON SnapSync mode, so comment here
 	}
