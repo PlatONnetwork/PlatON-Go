@@ -57,7 +57,7 @@ func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engin
 // header's transaction. The headers are assumed to be already
 // validated at this point.
 func (v *BlockValidator) ValidateBody(block *types.Block) error {
-	// Check whether the block's known, and if not, that it's linkable
+	// Check whether the block is already imported.
 	if v.bc.HasBlockAndState(block.Hash(), block.NumberU64()) {
 		return ErrKnownBlock
 	}
@@ -67,16 +67,27 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	//	}
 	//	return consensus.ErrPrunedAncestor
 	//}
-	// Header validity is known at this point, check the transactions
+
+	// Header validity is known at this point. Here we verify that uncles, transactions
+	// and withdrawals given in the block body match the header.
 	header := block.Header()
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
+	// Withdrawals are present after the Shanghai fork.
 	if header.WithdrawalsHash != nil {
+		// Withdrawals list must be present in body after Shanghai.
+		if block.Withdrawals() == nil {
+			return fmt.Errorf("missing withdrawals in block body")
+		}
 		if hash := types.DeriveSha(block.Withdrawals(), trie.NewStackTrie(nil)); hash != *header.WithdrawalsHash {
 			return fmt.Errorf("withdrawals root hash mismatch (header value %x, calculated %x)", *header.WithdrawalsHash, hash)
 		}
+	} else if block.Withdrawals() != nil {
+		// Withdrawals are not allowed prior to shanghai fork
+		return fmt.Errorf("withdrawals present in block body")
 	}
+
 	return nil
 }
 
