@@ -23,17 +23,12 @@ import (
 	mrand "math/rand"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 )
-
-func init() {
-	mrand.Seed(time.Now().Unix())
-}
 
 // makeProvers creates Merkle trie provers based on different implementations to
 // test all variations.

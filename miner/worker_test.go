@@ -19,7 +19,6 @@ package miner
 import (
 	"errors"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -91,8 +90,7 @@ func init() {
 		GasPrice: big.NewInt(params.InitialBaseFee),
 	})
 	newTxs = append(newTxs, tx2)
-
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	//rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.

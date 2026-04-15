@@ -22,7 +22,6 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mock"
@@ -316,7 +315,6 @@ func build_staking_data_more(block uint64) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		rand.Seed(time.Now().UnixNano())
 		weight := rand.Intn(1000000000)
 		ii := rand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -464,7 +462,6 @@ func build_staking_data(genesisHash common.Hash) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		rand.Seed(time.Now().UnixNano())
 		weight := rand.Intn(1000000000)
 		ii := rand.Intn(len(chaList))
 
