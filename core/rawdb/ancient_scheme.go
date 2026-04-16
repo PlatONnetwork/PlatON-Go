@@ -18,26 +18,26 @@ package rawdb
 
 // The list of table names of chain freezer.
 const (
-	// chainFreezerHeaderTable indicates the name of the freezer header table.
-	chainFreezerHeaderTable = "headers"
+	// ChainFreezerHeaderTable indicates the name of the freezer header table.
+	ChainFreezerHeaderTable = "headers"
 
-	// chainFreezerHashTable indicates the name of the freezer canonical hash table.
-	chainFreezerHashTable = "hashes"
+	// ChainFreezerHashTable indicates the name of the freezer canonical hash table.
+	ChainFreezerHashTable = "hashes"
 
-	// chainFreezerBodiesTable indicates the name of the freezer block body table.
-	chainFreezerBodiesTable = "bodies"
+	// ChainFreezerBodiesTable indicates the name of the freezer block body table.
+	ChainFreezerBodiesTable = "bodies"
 
-	// chainFreezerReceiptTable indicates the name of the freezer receipts table.
-	chainFreezerReceiptTable = "receipts"
+	// ChainFreezerReceiptTable indicates the name of the freezer receipts table.
+	ChainFreezerReceiptTable = "receipts"
 )
 
 // chainFreezerNoSnappy configures whether compression is disabled for the ancient-tables.
 // Hashes and difficulties don't compress well.
 var chainFreezerNoSnappy = map[string]bool{
-	chainFreezerHeaderTable:  false,
-	chainFreezerHashTable:    true,
-	chainFreezerBodiesTable:  false,
-	chainFreezerReceiptTable: false,
+	ChainFreezerHeaderTable:  false,
+	ChainFreezerHashTable:    true,
+	ChainFreezerBodiesTable:  false,
+	ChainFreezerReceiptTable: false,
 }
 
 // The list of identifiers of ancient stores.

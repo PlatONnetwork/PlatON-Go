@@ -149,7 +149,7 @@ type queue struct {
 	active *sync.Cond
 	closed bool
 
-	lastStatLog time.Time
+	logTime time.Time // Time instance when status was last reported
 
 	decodeExtra decodeExtraFn
 }
@@ -395,11 +395,12 @@ func (q *queue) Results(block bool) []*fetchResult {
 		}
 	}
 	// Log some info at certain times
-	if time.Since(q.lastStatLog) > 60*time.Second {
-		q.lastStatLog = time.Now()
+	if time.Since(q.logTime) >= 60*time.Second {
+		q.logTime = time.Now()
+
 		info := q.Stats()
 		info = append(info, "throttle", throttleThreshold)
-		log.Info("Downloader queue stats", info...)
+		log.Debug("Downloader queue stats", info...)
 	}
 	return results
 }
@@ -511,6 +512,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		// the task queue will pop items in order, so the highest prio block
 		// is also the lowest block number.
 		header, _ := taskQueue.Peek()
+
 		// we can ask the resultcache if this header is within the
 		// "prioritized" segment of blocks. If it is not, we need to throttle
 

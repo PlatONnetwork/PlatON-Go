@@ -20,11 +20,12 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -156,6 +157,11 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
+
+	// Progress reporting metrics
+	syncStartBlock uint64    // Head snap block when Geth was started
+	syncStartTime  time.Time // Time instance when chain sync started
+	syncLogTime    time.Time // Time instance when status was last reported
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -229,6 +235,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, mux *event.TypeMux, c
 		quitCh:           make(chan struct{}),
 		SnapSyncer:       snap.NewSyncer(stateDb, chain.TrieDB().Scheme()),
 		stateSyncStart:   make(chan *stateSync),
+		syncStartBlock:   chain.CurrentFastBlock().NumberU64(),
 		snapshotDB:       snapshotDB,
 	}
 	go dl.stateFetcher()
@@ -1456,6 +1463,7 @@ func (d *Downloader) processSnapSyncContent() error {
 		if len(results) == 0 {
 			// If pivot sync is done, stop
 			if oldPivot == nil {
+				d.reportSnapSyncProgress(true)
 				return sync.Cancel()
 			}
 			// If sync failed, stop
@@ -1469,6 +1477,8 @@ func (d *Downloader) processSnapSyncContent() error {
 		if d.chainInsertHook != nil {
 			d.chainInsertHook(results)
 		}
+		d.reportSnapSyncProgress(false)
+
 		// If we haven't downloaded the pivot block yet, check pivot staleness
 		// notifications from the header downloader
 		d.pivotLock.RLock()
@@ -1606,7 +1616,7 @@ func (d *Downloader) commitSnapSyncData(results []*fetchResult, stateSync *state
 		}
 	default:
 	}
-	// Retrieve the a batch of results to import
+	// Retrieve the batch of results to import
 	first, last := results[0].Header, results[len(results)-1].Header
 	log.Debug("Inserting snap-sync blocks", "items", len(results),
 		"firstnum", first.Number, "firsthash", first.Hash(),
@@ -1703,4 +1713,57 @@ func (d *Downloader) deliver(destCh chan dataPack, packet dataPack, inMeter, dro
 	case <-cancel:
 		return errNoSyncActive
 	}
+}
+
+// reportSnapSyncProgress calculates various status reports and provides it to the user.
+func (d *Downloader) reportSnapSyncProgress(force bool) {
+	// Initialize the sync start time if it's the first time we're reporting
+	if d.syncStartTime.IsZero() {
+		d.syncStartTime = time.Now().Add(-time.Millisecond) // -1ms offset to avoid division by zero
+	}
+	// Don't report all the events, just occasionally
+	if !force && time.Since(d.syncLogTime) < 8*time.Second {
+		return
+	}
+	// Don't report anything until we have a meaningful progress
+	var (
+		headerBytes, _  = d.stateDB.AncientSize(rawdb.ChainFreezerHeaderTable)
+		bodyBytes, _    = d.stateDB.AncientSize(rawdb.ChainFreezerBodiesTable)
+		receiptBytes, _ = d.stateDB.AncientSize(rawdb.ChainFreezerReceiptTable)
+	)
+	syncedBytes := common.StorageSize(headerBytes + bodyBytes + receiptBytes)
+	if syncedBytes == 0 {
+		return
+	}
+	var (
+		header = d.blockchain.CurrentHeader()
+		block  = d.blockchain.CurrentFastBlock()
+	)
+	syncedBlocks := block.NumberU64() - d.syncStartBlock
+	if syncedBlocks == 0 {
+		return
+	}
+	// Retrieve the highest known block number and calculate the ETA.
+	// We don't have skeleton support here, so fall back to the
+	// downloader's internal sync statistics.
+	d.syncStatsLock.RLock()
+	highest := d.syncStatsChainHeight
+	d.syncStatsLock.RUnlock()
+	// If we don't yet know any remote height, or the advertised height
+	// is not ahead of our current fast block, skip reporting to avoid
+	// zero/负进度或除零问题。
+	if highest == 0 || highest <= block.NumberU64() {
+		return
+	}
+	var (
+		left = highest - block.NumberU64()
+		eta  = time.Since(d.syncStartTime) / time.Duration(syncedBlocks) * time.Duration(left)
+
+		progress = fmt.Sprintf("%.2f%%", float64(block.NumberU64())*100/float64(highest))
+		headers  = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(header.Number.Uint64()), common.StorageSize(headerBytes).TerminalString())
+		bodies   = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.NumberU64()), common.StorageSize(bodyBytes).TerminalString())
+		receipts = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.NumberU64()), common.StorageSize(receiptBytes).TerminalString())
+	)
+	log.Info("Syncing: chain download in progress", "synced", progress, "chain", syncedBytes, "headers", headers, "bodies", bodies, "receipts", receipts, "eta", common.PrettyDuration(eta))
+	d.syncLogTime = time.Now()
 }
