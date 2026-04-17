@@ -25,6 +25,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
@@ -185,7 +186,7 @@ func NewSync(root common.Hash, database ethdb.KeyValueReader, callback LeafCallb
 // hex format and contain all the parent path if it's layered trie node.
 func (s *Sync) AddSubTrie(root common.Hash, path []byte, parent common.Hash, parentPath []byte, callback LeafCallback) {
 	// Short circuit if the trie is empty or already known
-	if root == emptyRoot {
+	if root == types.EmptyRootHash {
 		return
 	}
 	if s.membatch.hasNode(path) {
@@ -218,7 +219,7 @@ func (s *Sync) AddSubTrie(root common.Hash, path []byte, parent common.Hash, par
 // as is.
 func (s *Sync) AddCodeEntry(hash common.Hash, path []byte, parent common.Hash, parentPath []byte) {
 	// Short circuit if the entry is empty or already known
-	if hash == emptyState {
+	if hash == types.EmptyCodeHash {
 		return
 	}
 	if s.membatch.hasCode(hash) {

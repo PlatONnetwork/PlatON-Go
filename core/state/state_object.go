@@ -35,8 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
-var emptyCodeHash = crypto.Keccak256(nil)
-
 type Code []byte
 
 func (c Code) String() string {
@@ -100,7 +98,7 @@ func (s *stateObject) empty() bool {
 	if cvm.PrecompiledContractCheckInstance.IsPlatONPrecompiledContract(s.address) {
 		return false
 	}
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, types.EmptyCodeHash.Bytes())
 }
 
 // newObject creates a state object.
@@ -109,10 +107,10 @@ func newObject(db *StateDB, address common.Address, data types.StateAccount) *st
 		data.Balance = new(big.Int)
 	}
 	if data.CodeHash == nil {
-		data.CodeHash = emptyCodeHash
+		data.CodeHash = types.EmptyCodeHash.Bytes()
 	}
 	if data.Root == (common.Hash{}) {
-		data.Root = emptyRoot
+		data.Root = types.EmptyRootHash
 	}
 	return &stateObject{
 		db:             db,
@@ -519,7 +517,7 @@ func (s *stateObject) Code(db Database) []byte {
 	if s.code != nil {
 		return s.code
 	}
-	if bytes.Equal(s.CodeHash(), emptyCodeHash) {
+	if bytes.Equal(s.CodeHash(), types.EmptyCodeHash.Bytes()) {
 		return nil
 	}
 	code, err := db.ContractCode(s.addrHash, common.BytesToHash(s.CodeHash()))
@@ -537,7 +535,7 @@ func (s *stateObject) CodeSize(db Database) int {
 	if s.code != nil {
 		return len(s.code)
 	}
-	if bytes.Equal(s.CodeHash(), emptyCodeHash) {
+	if bytes.Equal(s.CodeHash(), types.EmptyCodeHash.Bytes()) {
 		return 0
 	}
 	size, err := db.ContractCodeSize(s.addrHash, common.BytesToHash(s.CodeHash()))

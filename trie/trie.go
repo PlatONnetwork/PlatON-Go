@@ -23,23 +23,9 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
-
-var (
-	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
-	// emptyState is the known hash of an empty state trie entry.
-	emptyState = crypto.Keccak256Hash(nil)
-)
-
-// Trie is a Merkle Patricia Trie. Use New to create a trie that sits on
-// top of a database. Whenever trie performs a commit operation, the generated
-// nodes will be gathered and returned in a set. Once the trie is committed,
-// it's not usable anymore. Callers have to re-create the trie with new root
-// based on the updated trie database.
 
 // Trie is a Merkle Patricia Trie. Use New to create a trie that sits on
 // top of a database. Whenever trie performs a commit operation, the generated
@@ -92,7 +78,7 @@ func New(id *ID, db NodeReader) (*Trie, error) {
 		reader: reader,
 		//tracer: newTracer(),
 	}
-	if id.Root != (common.Hash{}) && id.Root != emptyRoot {
+	if id.Root != (common.Hash{}) && id.Root != types.EmptyRootHash {
 		rootnode, err := trie.resolveAndTrack(id.Root[:], nil)
 		if err != nil {
 			return nil, err
@@ -572,7 +558,7 @@ func (t *Trie) Commit(collectLeaf bool) (common.Hash, *NodeSet, error) {
 		// Wrap tracked deletions as the return
 		set := NewNodeSet(t.owner)
 		t.tracer.markDeletions(set)
-		return emptyRoot, set, nil
+		return types.EmptyRootHash, set, nil
 	}
 
 	if t.reader == nil {
@@ -589,7 +575,7 @@ func (t *Trie) Commit(collectLeaf bool) (common.Hash, *NodeSet, error) {
 
 func (t *Trie) hashRoot() (node, node, error) {
 	if t.root == nil {
-		return hashNode(emptyRoot.Bytes()), nil, nil
+		return hashNode(types.EmptyRootHash.Bytes()), nil, nil
 	}
 	h := newHasher()
 	defer returnHasherToPool(h)

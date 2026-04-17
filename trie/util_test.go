@@ -22,6 +22,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // Tests if the trie diffs are tracked correctly.
@@ -286,7 +287,7 @@ func TestDeleteAll(t *testing.T) {
 		trie.Delete([]byte(val.k))
 	}
 	root, set, _ = trie.Commit(false)
-	if root != emptyRoot {
+	if root != types.EmptyRootHash {
 		t.Fatalf("Invalid trie root %v", root)
 	}
 	for path, blob := range set.deletes {

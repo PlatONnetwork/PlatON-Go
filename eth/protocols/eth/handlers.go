@@ -303,7 +303,7 @@ func ServiceGetReceiptsQuery(chain *core.BlockChain, query GetReceiptsPacket) []
 		// Retrieve the requested block's receipts
 		results := chain.GetReceiptsByHash(hash)
 		if results == nil {
-			if header := chain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyRootHash {
+			if header := chain.GetHeaderByHash(hash); header == nil || header.ReceiptHash != types.EmptyReceiptsHash {
 				continue
 			}
 		}

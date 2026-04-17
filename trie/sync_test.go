@@ -26,6 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
@@ -109,7 +110,7 @@ func TestEmptySync(t *testing.T) {
 	dbA := NewDatabase(rawdb.NewMemoryDatabase())
 	dbB := NewDatabase(rawdb.NewMemoryDatabase())
 	emptyA, _ := New(TrieID(common.Hash{}), dbA)
-	emptyB, _ := New(TrieID(emptyRoot), dbB)
+	emptyB, _ := New(TrieID(types.EmptyRootHash), dbB)
 
 	for i, trie := range []*Trie{emptyA, emptyB} {
 		sync := NewSync(trie.Hash(), memorydb.New(), nil, []*Database{dbA, dbB}[i].Scheme())

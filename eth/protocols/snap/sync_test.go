@@ -1355,7 +1355,7 @@ func getCodeHash(i uint64) []byte {
 
 // getCodeByHash convenience function to lookup the code from the code hash
 func getCodeByHash(hash common.Hash) []byte {
-	if hash == emptyCode {
+	if hash == types.EmptyCodeHash {
 		return nil
 	}
 	for i, h := range codehashes {
@@ -1378,7 +1378,7 @@ func makeAccountTrieNoStorage(n int) (string, *trie.Trie, entrySlice) {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(i),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
@@ -1430,7 +1430,7 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            uint64(0),
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(uint64(i)),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
@@ -1443,7 +1443,7 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(i),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
@@ -1477,7 +1477,7 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		codehash := emptyCode[:]
+		codehash := types.EmptyCodeHash.Bytes()
 		if code {
 			codehash = getCodeHash(i)
 		}
@@ -1533,7 +1533,7 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		codehash := emptyCode[:]
+		codehash := types.EmptyCodeHash.Bytes()
 		if code {
 			codehash = getCodeHash(i)
 		}
@@ -1689,7 +1689,7 @@ func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err)
 		}
 		accounts++
-		if acc.Root != emptyRoot {
+		if acc.Root != types.EmptyRootHash {
 			id := trie.StorageTrieID(root, common.BytesToHash(accIt.Key), acc.Root)
 			storeTrie, err := trie.NewStateTrie(id, triedb)
 			if err != nil {
