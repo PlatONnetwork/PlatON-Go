@@ -17,8 +17,6 @@
 package eth
 
 import (
-	"math/big"
-
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/snap"
 )
@@ -26,9 +24,7 @@ import (
 // ethPeerInfo represents a short summary of the `eth` sub-protocol metadata known
 // about a connected peer.
 type ethPeerInfo struct {
-	Version uint     `json:"version"` // Ethereum protocol version negotiated
-	BN      *big.Int `json:"number"`  // The block number of the peer's blockchain
-	Head    string   `json:"head"`    // Hex hash of the peer's best owned block
+	Version uint `json:"version"` // Ethereum protocol version negotiated
 }
 
 // ethPeer is a wrapper around eth.Peer to maintain a few extra metadata.
@@ -39,12 +35,8 @@ type ethPeer struct {
 
 // info gathers and returns some `eth` protocol metadata known about a peer.
 func (p *ethPeer) info() *ethPeerInfo {
-	hash, bn := p.Head()
-
 	return &ethPeerInfo{
 		Version: p.Version(),
-		BN:      bn,
-		Head:    hash.Hex(),
 	}
 }
 
