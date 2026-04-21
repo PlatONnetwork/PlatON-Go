@@ -114,8 +114,9 @@ func (ec *Client) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumb
 }
 
 type rpcBlock struct {
-	Hash         common.Hash      `json:"hash"`
-	Transactions []rpcTransaction `json:"transactions"`
+	Hash         common.Hash         `json:"hash"`
+	Transactions []rpcTransaction    `json:"transactions"`
+	Withdrawals  []*types.Withdrawal `json:"withdrawals,omitempty"`
 }
 
 func (ec *Client) getBlock(ctx context.Context, method string, args ...interface{}) (*types.Block, error) {
@@ -154,7 +155,7 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, nil), nil
+	return types.NewBlockWithHeader(head).WithBody(txs, nil).WithWithdrawals(body.Withdrawals), nil
 }
 
 // HeaderByHash returns the block header with the given hash.
