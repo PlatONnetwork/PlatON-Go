@@ -287,6 +287,7 @@ func (t *callTracer) GetResult() (json.RawMessage, error) {
 		}
 		return json.RawMessage(res), t.reason
 	}
+
 	res, err := json.Marshal(t.callstack[0])
 	if err != nil {
 		return nil, err
