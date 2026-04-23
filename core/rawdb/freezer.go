@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/prometheus/tsdb/fileutil"
+	"github.com/gofrs/flock"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -76,7 +76,7 @@ type Freezer struct {
 
 	readonly     bool
 	tables       map[string]*freezerTable // Data tables for storing everything
-	instanceLock fileutil.Releaser        // File-system lock to prevent double opens
+	instanceLock *flock.Flock             // File-system lock to prevent double opens
 	closeOnce    sync.Once
 }
 
@@ -105,11 +105,17 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 			return nil, errSymlinkDatadir
 		}
 	}
+	flockFile := filepath.Join(datadir, "FLOCK")
+	if err := os.MkdirAll(filepath.Dir(flockFile), 0755); err != nil {
+		return nil, err
+	}
 	// Leveldb uses LOCK as the filelock filename. To prevent the
 	// name collision, we use FLOCK as the lock name.
-	lock, _, err := fileutil.Flock(filepath.Join(datadir, "FLOCK"))
-	if err != nil {
+	lock := flock.New(flockFile)
+	if locked, err := lock.TryLock(); err != nil {
 		return nil, err
+	} else if !locked {
+		return nil, errors.New("locking failed")
 	}
 	// Open all the supported data tables
 	freezer := &Freezer{
@@ -125,12 +131,12 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 			for _, table := range freezer.tables {
 				table.Close()
 			}
-			lock.Release()
+			lock.Unlock()
 			return nil, err
 		}
 		freezer.tables[name] = table
 	}
-
+	var err error
 	if freezer.readonly {
 		// In readonly mode only validate, don't truncate.
 		// validate also sets `freezer.frozen`.
@@ -143,7 +149,7 @@ func NewFreezer(datadir string, namespace string, readonly bool, maxTableSize ui
 		for _, table := range freezer.tables {
 			table.Close()
 		}
-		lock.Release()
+		lock.Unlock()
 		return nil, err
 	}
 
@@ -166,7 +172,7 @@ func (f *Freezer) Close() error {
 				errs = append(errs, err)
 			}
 		}
-		if err := f.instanceLock.Release(); err != nil {
+		if err := f.instanceLock.Unlock(); err != nil {
 			errs = append(errs, err)
 		}
 	})
