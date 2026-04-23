@@ -70,6 +70,7 @@ require (
 	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/karalabe/usb v0.0.2
+	github.com/kylelemons/godebug v1.1.0
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/net v0.34.0
