@@ -221,9 +221,6 @@ type worker struct {
 	running int32 // The indicator whether the consensus engine is running or not.
 	newTxs  int32 // New arrival transaction count since last sealing work submitting.
 
-	// External functions
-	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
-
 	blockChainCache *core.BlockChainCache
 	commitWorkEnv   *commitWorkEnv
 	recommit        time.Duration
@@ -242,8 +239,7 @@ type worker struct {
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
-	eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool,
-	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
+	eth Backend, mux *event.TypeMux, blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -252,7 +248,6 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *co
 		eth:                eth,
 		mux:                mux,
 		chain:              eth.BlockChain(),
-		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
 		chainHeadCh:        make(chan core.ChainHeadEvent, miningConfig.ChainHeadChanSize),
@@ -465,8 +460,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		select {
 		case <-w.startCh:
 			timestamp = time.Now()
-			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().NumberU64())
-			clearPending(w.chain.CurrentBlock().NumberU64())
+			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().Number.Uint64())
+			clearPending(w.chain.CurrentBlock().Number.Uint64())
 			if _, ok := w.engine.(consensus.Bft); ok {
 				//w.makePending()
 				timer.Reset(50 * time.Millisecond)
@@ -898,7 +893,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = genParams.parent
 	} else {
-		parent = w.chain.CurrentBlock()
+		parent = w.chain.CurrentFullBlock()
 
 		// Sanity check the timestamp correctness, recap the timestamp
 		// to parent+1 if the mutation is allowed.
@@ -1127,7 +1122,7 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	var parent = w.engine.NextBaseBlock()
-	var parentChain = w.chain.CurrentBlock()
+	var parentChain = w.chain.CurrentFullBlock()
 
 	if parentChain.NumberU64() >= parent.NumberU64() {
 		parent = parentChain

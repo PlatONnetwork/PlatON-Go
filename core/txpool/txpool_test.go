@@ -82,15 +82,16 @@ func dynamicFeeTx(nonce uint64, gaslimit uint64, gasFee *big.Int, tip *big.Int, 
 	return tx
 }
 
-func (bc *testBlockChain) CurrentBlock() *types.Block {
-	return types.NewBlock(&types.Header{
+func (bc *testBlockChain) CurrentBlock() *types.Header {
+	return &types.Header{
+		Number:   new(big.Int),
 		GasLimit: atomic.LoadUint64(&bc.gasLimit),
 		BaseFee:  new(big.Int),
-	}, nil, nil, trie.NewStackTrie(nil))
+	}
 }
 
 func (bc *testBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return bc.CurrentBlock()
+	return types.NewBlock(bc.CurrentBlock(), nil, nil, trie.NewStackTrie(nil))
 }
 
 func (bc *testBlockChain) GetState(header *types.Header) (*state.StateDB, error) {
@@ -246,7 +247,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 
 	// trigger state change in the background
 	trigger = true
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 
 	nonce = pool.Nonce(address)
 	if nonce != 2 {
@@ -314,7 +315,7 @@ func TestTransactionQueue(t *testing.T) {
 	tx := transaction(0, 100, key, pool.chainconfig.PIP7ChainID)
 	from, _ := deriveSender(tx, pool.chainconfig.PIP7ChainID)
 	testAddBalance(pool, from, big.NewInt(1000))
-	pool.requestReset(nil, pool.resetHead.Header())
+	pool.requestReset(nil, pool.resetHead)
 
 	pool.enqueueTx(tx.Hash(), tx, false, true)
 
@@ -344,7 +345,7 @@ func TestTransactionQueue(t *testing.T) {
 	tx3 := transaction(11, 100, key, pool.chainconfig.PIP7ChainID)
 	from, _ = deriveSender(tx1, pool.chainconfig.PIP7ChainID)
 	testAddBalance(pool, from, big.NewInt(1000))
-	pool.requestReset(nil, pool.resetHead.Header())
+	pool.requestReset(nil, pool.resetHead)
 
 	pool.enqueueTx(tx1.Hash(), tx1, false, true)
 	pool.enqueueTx(tx2.Hash(), tx2, false, true)
@@ -444,7 +445,7 @@ func TestTransactionDoubleNonce(t *testing.T) {
 		statedb.AddBalance(addr, big.NewInt(100000000000000))
 
 		pool.chain = &testBlockChain{1000000, statedb, new(event.Feed)}
-		<-pool.requestReset(nil, pool.resetHead.Header())
+		<-pool.requestReset(nil, pool.resetHead)
 	}
 	resetState()
 
@@ -582,7 +583,7 @@ func TestTransactionDropping(t *testing.T) {
 	if pool.all.Count() != 6 {
 		t.Errorf("total transaction mismatch: have %d, want %d", pool.all.Count(), 6)
 	}
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 	if pool.pending[account].Len() != 3 {
 		t.Errorf("pending transaction mismatch: have %d, want %d", pool.pending[account].Len(), 3)
 	}
@@ -594,7 +595,7 @@ func TestTransactionDropping(t *testing.T) {
 	}
 	// Reduce the balance of the account, and check that invalidated transactions are dropped
 	testAddBalance(pool, account, big.NewInt(-650))
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 
 	if _, ok := pool.pending[account].txs.items[tx0.Nonce()]; !ok {
 		t.Errorf("funded pending transaction missing: %v", tx0)
@@ -619,7 +620,7 @@ func TestTransactionDropping(t *testing.T) {
 	}
 	// Reduce the block gas limit, check that invalidated transactions are dropped
 	atomic.StoreUint64(&pool.chain.(*testBlockChain).gasLimit, 100)
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 
 	if _, ok := pool.pending[account].txs.items[tx0.Nonce()]; !ok {
 		t.Errorf("funded pending transaction missing: %v", tx0)
@@ -695,7 +696,7 @@ func TestTransactionPostponing(t *testing.T) {
 	if pool.all.Count() != len(txs) {
 		t.Errorf("total transaction mismatch: have %d, want %d", pool.all.Count(), len(txs))
 	}
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 	if pending := pool.pending[accs[0]].Len() + pool.pending[accs[1]].Len(); pending != len(txs) {
 		t.Errorf("pending transaction mismatch: have %d, want %d", pending, len(txs))
 	}
@@ -709,7 +710,7 @@ func TestTransactionPostponing(t *testing.T) {
 	for _, addr := range accs {
 		testAddBalance(pool, addr, big.NewInt(-1))
 	}
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 
 	// The first account's first transaction remains valid, check that subsequent
 	// ones are either filtered out, or queued up for later.
@@ -2200,7 +2201,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	}
 	// Bump the nonce temporarily and ensure the newly invalidated transaction is removed
 	pool.currentState.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 2)
-	<-pool.requestReset(nil, pool.chain.CurrentBlock().Header())
+	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 	time.Sleep(2 * config.Rejournal)
 	pool.Stop()
 

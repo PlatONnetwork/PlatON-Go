@@ -52,8 +52,11 @@ type ChainReader interface {
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
+	// CurrentFullBlock retrieves the current head block of the canonical chain.
+	CurrentFullBlock() *types.Block
+
 	// CurrentBlock retrieves the current head block of the canonical chain.
-	CurrentBlock() *types.Block
+	CurrentBlock() *types.Header
 }
 
 // TxPoolReset stands for transaction pool.

@@ -170,7 +170,7 @@ func testBrokenChain(t *testing.T, full bool) {
 	// Create a forked chain, and try to insert with a missing link
 	if full {
 		engine := consensus.NewFailFaker(4)
-		chain := makeBlockChain(blockchain.chainConfig, blockchain.CurrentBlock(), 5, engine, genDb, forkSeed)[1:]
+		chain := makeBlockChain(blockchain.chainConfig, blockchain.GetBlockByHash(blockchain.CurrentBlock().Hash()), 5, engine, genDb, forkSeed)[1:]
 		blockchain.engine = engine
 		if err := testBlockChainImport(chain, blockchain); err == nil {
 			t.Errorf("broken block chain not reported")
@@ -226,10 +226,10 @@ func testReorg(t *testing.T, first, second []int64, td int64, full bool) {
 	defer blockchain.Stop()
 
 	// Insert an easy and a difficult chain afterwards
-	easyBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), genDb, len(first), func(i int, b *BlockGen) {
+	easyBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.GetBlockByHash(blockchain.CurrentBlock().Hash()), consensus.NewFaker(), genDb, len(first), func(i int, b *BlockGen) {
 		b.OffsetTime(first[i])
 	})
-	diffBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.CurrentBlock(), consensus.NewFaker(), genDb, len(second), func(i int, b *BlockGen) {
+	diffBlocks, _ := GenerateChain(params.TestChainConfig, blockchain.GetBlockByHash(blockchain.CurrentBlock().Hash()), consensus.NewFaker(), genDb, len(second), func(i int, b *BlockGen) {
 		b.OffsetTime(second[i])
 	})
 	if full {
@@ -448,7 +448,7 @@ func TestLightVsFastVsFullChainHeads(t *testing.T) {
 		if num := chain.CurrentBlock().NumberU64(); num != block {
 			t.Errorf("%s head block mismatch: have #%v, want #%v", kind, num, block)
 		}
-		if num := chain.CurrentFastBlock().NumberU64(); num != fast {
+		if num := chain.CurrentSnapBlock().NumberU64(); num != fast {
 			t.Errorf("%s head fast-block mismatch: have #%v, want #%v", kind, num, fast)
 		}
 		if num := chain.CurrentHeader().Number.Uint64(); num != header {
@@ -1824,7 +1824,7 @@ func TestEIP1559Transition(t *testing.T) {
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}
-	chain.currentBlock.Store(blocks[len(blocks)-1])
+	chain.currentBlock.Store(blocks[len(blocks)-1].Header())
 
 	block := chain.GetBlockByNumber(1)
 
@@ -1869,7 +1869,7 @@ func TestEIP1559Transition(t *testing.T) {
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}
-	chain.currentBlock.Store(blocks[len(blocks)-1])
+	chain.currentBlock.Store(blocks[len(blocks)-1].Header())
 
 	block = chain.GetBlockByNumber(2)
 	state, _ = chain.State()

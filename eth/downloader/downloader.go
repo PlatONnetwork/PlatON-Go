@@ -193,10 +193,10 @@ type BlockChain interface {
 	GetBlockByHash(common.Hash) *types.Block
 
 	// CurrentBlock retrieves the head block from the local chain.
-	CurrentBlock() *types.Block
+	CurrentBlock() *types.Header
 
-	// CurrentFastBlock retrieves the head snap block from the local chain.
-	CurrentFastBlock() *types.Block
+	// CurrentSnapBlock retrieves the head snap block from the local chain.
+	CurrentSnapBlock() *types.Header
 
 	// SnapSyncCommitHead directly commits the head block to a certain entity.
 	SnapSyncCommitHead(common.Hash) error
@@ -235,7 +235,7 @@ func New(stateDb ethdb.Database, snapshotDB snapshotdb.DB, mux *event.TypeMux, c
 		quitCh:           make(chan struct{}),
 		SnapSyncer:       snap.NewSyncer(stateDb, chain.TrieDB().Scheme()),
 		stateSyncStart:   make(chan *stateSync),
-		syncStartBlock:   chain.CurrentFastBlock().NumberU64(),
+		syncStartBlock:   chain.CurrentSnapBlock().Number.Uint64(),
 		snapshotDB:       snapshotDB,
 	}
 	go dl.stateFetcher()
@@ -258,9 +258,9 @@ func (d *Downloader) Progress() ethereum.SyncProgress {
 	mode := d.getMode()
 	switch {
 	case d.blockchain != nil && mode == FullSync:
-		current = d.blockchain.CurrentBlock().NumberU64()
+		current = d.blockchain.CurrentBlock().Number.Uint64()
 	case d.blockchain != nil && mode == SnapSync:
-		current = d.blockchain.CurrentFastBlock().NumberU64()
+		current = d.blockchain.CurrentSnapBlock().Number.Uint64()
 	case d.lightchain != nil:
 		current = d.lightchain.CurrentHeader().Number.Uint64()
 	default:
@@ -490,7 +490,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		// threshold (i.e. new chain). In that case we won't really snap sync
 		// anyway, but still need a valid pivot block to avoid some code hitting
 		// nil panics on an access.
-		pivot = d.blockchain.CurrentBlock().Header()
+		pivot = d.blockchain.CurrentBlock()
 	}
 	height := latest.Number.Uint64()
 
@@ -757,7 +757,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 		}
 	}
 	mode := d.getMode()
-	current := d.blockchain.CurrentBlock().NumberU64()
+	current := d.blockchain.CurrentBlock().Number.Uint64()
 	if mode == SnapSync {
 		if failed && current == 0 {
 			if err := d.setFastSyncStatus(FastSyncFail); err != nil {
@@ -830,9 +830,9 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 	var current *types.Header
 	mode := d.getMode()
 	if mode == FullSync {
-		current = d.blockchain.CurrentBlock().Header()
+		current = d.blockchain.CurrentBlock()
 	} else if mode == SnapSync {
-		current = d.blockchain.CurrentFastBlock().Header()
+		current = d.blockchain.CurrentSnapBlock()
 	} else {
 		current = d.lightchain.CurrentHeader()
 	}
@@ -1089,8 +1089,8 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 				if mode == LightSync {
 					head = d.lightchain.CurrentHeader().Number.Uint64()
 				} else {
-					head = d.blockchain.CurrentFastBlock().NumberU64()
-					if full := d.blockchain.CurrentBlock().NumberU64(); head < full {
+					head = d.blockchain.CurrentSnapBlock().Number.Uint64()
+					if full := d.blockchain.CurrentBlock().Number.Uint64(); head < full {
 						head = full
 					}
 				}
@@ -1206,8 +1206,8 @@ func (d *Downloader) processHeaders(origin uint64, bn *big.Int) error {
 		if rollback > 0 {
 			lastHeader, lastFastBlock, lastBlock := d.lightchain.CurrentHeader().Number, common.Big0, common.Big0
 			if mode != LightSync {
-				lastFastBlock = d.blockchain.CurrentFastBlock().Number()
-				lastBlock = d.blockchain.CurrentBlock().Number()
+				lastFastBlock = d.blockchain.CurrentSnapBlock().Number
+				lastBlock = d.blockchain.CurrentBlock().Number
 			}
 			if err := d.lightchain.SetHead(rollback - 1); err != nil { // -1 to target the parent of the first uncertain block
 				// We're already unwinding the stack, only print the error to make it more visible
@@ -1215,8 +1215,8 @@ func (d *Downloader) processHeaders(origin uint64, bn *big.Int) error {
 			}
 			curFastBlock, curBlock := common.Big0, common.Big0
 			if mode != LightSync {
-				curFastBlock = d.blockchain.CurrentFastBlock().Number()
-				curBlock = d.blockchain.CurrentBlock().Number()
+				curFastBlock = d.blockchain.CurrentSnapBlock().Number
+				curBlock = d.blockchain.CurrentBlock().Number
 			}
 			log.Warn("Rolled back chain segment",
 				"header", fmt.Sprintf("%d->%d", lastHeader, d.lightchain.CurrentHeader().Number),
@@ -1257,7 +1257,7 @@ func (d *Downloader) processHeaders(origin uint64, bn *big.Int) error {
 				// R: Nothing to give
 				if mode != LightSync {
 					head := d.blockchain.CurrentBlock()
-					if !gotHeaders && bn.Cmp(head.Number()) > 0 {
+					if !gotHeaders && bn.Cmp(head.Number) > 0 {
 						return errStallingPeer
 					}
 				}
@@ -1737,9 +1737,9 @@ func (d *Downloader) reportSnapSyncProgress(force bool) {
 	}
 	var (
 		header = d.blockchain.CurrentHeader()
-		block  = d.blockchain.CurrentFastBlock()
+		block  = d.blockchain.CurrentSnapBlock()
 	)
-	syncedBlocks := block.NumberU64() - d.syncStartBlock
+	syncedBlocks := block.Number.Uint64() - d.syncStartBlock
 	if syncedBlocks == 0 {
 		return
 	}
@@ -1752,17 +1752,17 @@ func (d *Downloader) reportSnapSyncProgress(force bool) {
 	// If we don't yet know any remote height, or the advertised height
 	// is not ahead of our current fast block, skip reporting to avoid
 	// zero/负进度或除零问题。
-	if highest == 0 || highest <= block.NumberU64() {
+	if highest == 0 || highest <= block.Number.Uint64() {
 		return
 	}
 	var (
-		left = highest - block.NumberU64()
+		left = highest - block.Number.Uint64()
 		eta  = time.Since(d.syncStartTime) / time.Duration(syncedBlocks) * time.Duration(left)
 
-		progress = fmt.Sprintf("%.2f%%", float64(block.NumberU64())*100/float64(highest))
+		progress = fmt.Sprintf("%.2f%%", float64(block.Number.Uint64())*100/float64(highest))
 		headers  = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(header.Number.Uint64()), common.StorageSize(headerBytes).TerminalString())
-		bodies   = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.NumberU64()), common.StorageSize(bodyBytes).TerminalString())
-		receipts = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.NumberU64()), common.StorageSize(receiptBytes).TerminalString())
+		bodies   = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.Number.Uint64()), common.StorageSize(bodyBytes).TerminalString())
+		receipts = fmt.Sprintf("%v@%v", log.FormatLogfmtUint64(block.Number.Uint64()), common.StorageSize(receiptBytes).TerminalString())
 	)
 	log.Info("Syncing: chain download in progress", "synced", progress, "chain", syncedBytes, "headers", headers, "bodies", bodies, "receipts", receipts, "eta", common.PrettyDuration(eta))
 	d.syncLogTime = time.Now()

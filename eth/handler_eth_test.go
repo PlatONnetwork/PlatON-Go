@@ -114,7 +114,7 @@ func testRecvTransactions(t *testing.T, protocol uint) {
 		genesis = handler.chain.Genesis()
 		head    = handler.chain.CurrentBlock()
 	)
-	if err := src.Handshake(1, head.Number(), head.Hash(), genesis.Hash(), nil); err != nil {
+	if err := src.Handshake(1, head.Number, head.Hash(), genesis.Hash(), nil); err != nil {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// Send the transaction to the sink and verify that it's added to the tx pool
@@ -176,7 +176,7 @@ func testSendTransactions(t *testing.T, protocol uint) {
 		genesis = handler.chain.Genesis()
 		head    = handler.chain.CurrentBlock()
 	)
-	if err := sink.Handshake(1, head.Number(), head.Hash(), genesis.Hash(), nil); err != nil {
+	if err := sink.Handshake(1, head.Number, head.Hash(), genesis.Hash(), nil); err != nil {
 		t.Fatalf("failed to run protocol handshake")
 	}
 	// After the handshake completes, the source handler should stream the sink
@@ -427,15 +427,16 @@ func testBroadcastMalformedBlock(t *testing.T, protocol uint) {
 
 	// Create various combinations of malformed blocks
 	head := source.chain.CurrentBlock()
+	block := source.chain.GetBlock(head.Hash(), head.Number.Uint64())
 
-	malformedTransactions := head.Header()
+	malformedTransactions := head
 	malformedTransactions.TxHash[0]++
-	malformedEverything := head.Header()
+	malformedEverything := head
 	malformedEverything.TxHash[0]++
 
 	// Try to broadcast all malformations and ensure they all get discarded
 	for _, header := range []*types.Header{malformedTransactions, malformedEverything} {
-		block := types.NewBlockWithHeader(header).WithBody(head.Transactions(), head.Extra())
+		block := types.NewBlockWithHeader(header).WithBody(block.Transactions(), block.Extra())
 		if err := src.SendNewBlock(block); err != nil {
 			t.Fatalf("failed to broadcast block: %v", err)
 		}

@@ -113,7 +113,7 @@ func (dl *downloadTester) terminate() {
 func (dl *downloadTester) sync(id string, bn *big.Int, mode SyncMode) error {
 	head := dl.peers[id].chain.CurrentBlock()
 	if bn == nil {
-		bn = head.Number()
+		bn = head.Number
 	}
 	// Synchronise with the chosen peer and ensure proper cleanup afterwards
 	err := dl.downloader.synchronise(id, head.Hash(), bn, mode)
@@ -171,7 +171,7 @@ type downloadTesterPeer struct {
 // and Number.
 func (dlp *downloadTesterPeer) Head() (common.Hash, *big.Int) {
 	head := dlp.chain.CurrentBlock()
-	return head.Hash(), head.Number()
+	return head.Hash(), head.Number
 }
 
 func unmarshalRlpHeaders(rlpdata []rlp.RawValue) []*types.Header {
@@ -531,7 +531,7 @@ func assertOwnChain(t *testing.T, tester *downloadTester, length int) {
 	if hs := int(tester.chain.CurrentHeader().Number.Uint64()) + 1; hs != headers {
 		t.Fatalf("synchronised headers mismatch: have %v, want %v", hs, headers)
 	}
-	if bs := int(tester.chain.CurrentBlock().NumberU64()) + 1; bs != blocks {
+	if bs := int(tester.chain.CurrentBlock().Number.Uint64()) + 1; bs != blocks {
 		t.Fatalf("synchronised blocks mismatch: have %v, want %v", bs, blocks)
 	}
 
@@ -590,7 +590,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 	for {
 		// Check the retrieval count synchronously (! reason for this ugly block)
 		tester.lock.RLock()
-		retrieved := int(tester.chain.CurrentFastBlock().Number().Uint64()) + 1
+		retrieved := int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
 		tester.lock.RUnlock()
 		if retrieved >= targetBlocks+1 {
 			break
@@ -606,7 +606,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 			{
 				cached = tester.downloader.queue.resultCache.countCompleted()
 				frozen = int(atomic.LoadUint32(&blocked))
-				retrieved = int(tester.chain.CurrentFastBlock().Number().Uint64()) + 1
+				retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
 			}
 			tester.downloader.queue.resultCache.lock.Unlock()
 			tester.downloader.queue.lock.Unlock()
@@ -622,7 +622,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		// Make sure we filled up the cache, then exhaust it
 		time.Sleep(25 * time.Millisecond) // give it a chance to screw up
 		tester.lock.RLock()
-		retrieved = int(tester.chain.CurrentFastBlock().Number().Uint64()) + 1
+		retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
 		tester.lock.RUnlock()
 		if cached != blockCacheMaxItems && cached != blockCacheMaxItems-reorgProtHeaderDelay && retrieved+cached+frozen != targetBlocks+1 && retrieved+cached+frozen != targetBlocks+1-reorgProtHeaderDelay {
 			t.Fatalf("block count mismatch: have %v, want %v (owned %v, blocked %v, target %v)", cached, blockCacheMaxItems, retrieved, frozen, targetBlocks+1)

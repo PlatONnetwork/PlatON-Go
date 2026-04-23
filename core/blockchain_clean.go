@@ -137,7 +137,7 @@ func (c *Cleaner) Cleanup() {
 
 func (c *Cleaner) NeedCleanup() bool {
 	lastNumber := atomic.LoadUint64(&c.lastNumber)
-	return c.blockchain.CurrentBlock().NumberU64()-lastNumber >= 2*c.interval && !c.cleaning.IsSet()
+	return c.blockchain.CurrentBlock().Number.Uint64()-lastNumber >= 2*c.interval && !c.cleaning.IsSet()
 }
 
 func (c *Cleaner) loop() {
@@ -160,7 +160,7 @@ func (c *Cleaner) cleanup() {
 
 	lastNumber := atomic.LoadUint64(&c.lastNumber)
 	currentBlock := c.blockchain.CurrentBlock()
-	if currentBlock.NumberU64()-lastNumber <= cleanDistance {
+	if currentBlock.Number.Uint64()-lastNumber <= cleanDistance {
 		return
 	}
 
@@ -171,14 +171,14 @@ func (c *Cleaner) cleanup() {
 	)
 
 	t := time.Now()
-	log.Info("Start cleanup database", "interval", c.interval, "cleanTimeout", c.cleanTimeout, "gcMpt", c.gcMpt, "lastNumber", atomic.LoadUint64(&c.lastNumber), "number", currentBlock.NumberU64(), "hash", currentBlock.Hash())
+	log.Info("Start cleanup database", "interval", c.interval, "cleanTimeout", c.cleanTimeout, "gcMpt", c.gcMpt, "lastNumber", atomic.LoadUint64(&c.lastNumber), "number", currentBlock.Number.Uint64(), "hash", currentBlock.Hash())
 	defer func() {
 		log.Info("Finish cleanup database", "lastNumber", atomic.LoadUint64(&c.lastNumber), "receipts", receipts, "txs", txs, "keys", keys, "elapsed", time.Since(t))
 	}()
 
-	if currentBlock.NumberU64()-c.lastNumber >= 2*c.interval {
+	if currentBlock.Number.Uint64()-c.lastNumber >= 2*c.interval {
 		number := lastNumber + 1
-		for ; number <= currentBlock.NumberU64()-c.interval; number++ {
+		for ; number <= currentBlock.Number.Uint64()-c.interval; number++ {
 			block := c.blockchain.GetBlockByNumber(number)
 			if block == nil {
 				log.Error("Found bad header", "number", number)

@@ -632,8 +632,14 @@ func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
 
+// CurrentFullBlock implements consensus.ChainReader, and returns nil for every input as
+// a header chain does not have blocks available for retrieval.
+func (hc *HeaderChain) CurrentFullBlock() *types.Block {
+	return nil
+}
+
 // CurrentBlock implements consensus.ChainReader, and returns nil for every input as
 // a header chain does not have blocks available for retrieval.
-func (hc *HeaderChain) CurrentBlock() *types.Block {
+func (hc *HeaderChain) CurrentBlock() *types.Header {
 	return nil
 }

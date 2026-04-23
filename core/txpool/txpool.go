@@ -152,7 +152,7 @@ const (
 // blockChain provides the state of blockchain and current gas limit to do
 // some pre checks in tx pool and event subscribers.
 type txPoolBlockChain interface {
-	CurrentBlock() *types.Block
+	CurrentBlock() *types.Header
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	//StateAt(root common.Hash) (*state.StateDB, error)
 	GetState(header *types.Header) (*state.StateDB, error)
@@ -168,10 +168,10 @@ func NewTxPoolBlockChain(chain *core.BlockChainCache) *TxPoolBlockChain {
 		chain: chain,
 	}
 }
-func (tx *TxPoolBlockChain) CurrentBlock() *types.Block {
+func (tx *TxPoolBlockChain) CurrentBlock() *types.Header {
 	block := tx.chain.Engine().CurrentBlock()
 	if block != nil {
-		return block
+		return block.Header()
 	}
 	return tx.chain.BlockChain.CurrentBlock()
 }
@@ -299,7 +299,7 @@ type TxPool struct {
 	knowns       sync.Map // All know transactions
 	filterKnowns int32
 
-	resetHead *types.Block
+	resetHead *types.Header
 
 	exitCh          chan struct{}
 	reqResetCh      chan *txpoolResetRequest
@@ -349,11 +349,11 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 		initDoneCh:      make(chan struct{}),
 	}
 	if currentBlock := chain.CurrentBlock(); currentBlock != nil {
-		stateDB, err := chain.GetState(currentBlock.Header())
+		stateDB, err := chain.GetState(currentBlock)
 		if err == nil && stateDB != nil {
 			if gte150 := gov.NewGov(nil).Gte150VersionState(stateDB); gte150 {
 				pool.eip2718, pool.eip1559 = true, true
-				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
+				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, gte150)
 			}
 			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
 				pool.dirac = true
@@ -371,7 +371,7 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 		pool.locals.add(addr)
 	}
 	pool.priced = newPricedList(pool.all)
-	pool.reset(nil, chain.CurrentBlock().Header())
+	pool.reset(nil, chain.CurrentBlock())
 
 	// Start the reorg loop early so it can handle requests generated during journal loading.
 	pool.wg.Add(1)
@@ -489,8 +489,8 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 	if newBlock != nil {
 		//	pool.mu.Lock()
-		<-pool.requestReset(pool.resetHead.Header(), newBlock.Header())
-		pool.resetHead = newBlock
+		<-pool.requestReset(pool.resetHead, newBlock.Header())
+		pool.resetHead = newBlock.Header()
 
 		//	pool.mu.Unlock()
 	}
@@ -799,7 +799,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// Verify inner contract tx
 	if nil != tx.To() {
-		if err := core.GetReactorInstance().VerifyTx(tx, *(tx.To()), pool.chainconfig.Rules(pool.resetHead.Number())); nil != err {
+		if err := core.GetReactorInstance().VerifyTx(tx, *(tx.To()), pool.chainconfig.Rules(pool.resetHead.Number)); nil != err {
 			log.Error("Failed to verify tx", "txHash", tx.Hash().Hex(), "to", tx.To().Hex(), "err", err)
 			return fmt.Errorf("%s: %s", ErrPlatONTxDataInvalid.Error(), err.Error())
 		}
@@ -1484,7 +1484,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 	// Initialize the internal state to the current head
 	if newHead == nil {
-		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
+		newHead = pool.chain.CurrentBlock() // Special case during testing
 	}
 	statedb, err := pool.chain.GetState(newHead)
 	if err != nil {

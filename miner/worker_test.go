@@ -147,7 +147,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	}
 	parent := genesis
 	if n > 0 {
-		parent = chain.GetBlockByHash(chain.CurrentBlock().ParentHash())
+		parent = chain.GetBlockByHash(chain.CurrentBlock().ParentHash)
 	}
 	core.GenerateChain(chainConfig, parent, engine, db, 1, func(i int, gen *core.BlockGen) {
 		gen.SetCoinbase(testUserAddress)
@@ -175,7 +175,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
-	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
+	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, backend.chainCache, 0)
 	go func() {
 		for obj := range bftResultSub.Chan() {
 			if obj == nil {
