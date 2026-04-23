@@ -859,6 +859,7 @@ func (w *worker) updateSnapshot(env *environment) {
 
 func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*types.Log, error) {
 	snapForSnap, snapForState := env.DBSnapshot()
+	gp := env.gasPool.Gas()
 
 	vmCfg := *w.chain.GetVMConfig()       // value copy
 	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
@@ -867,6 +868,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", env.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
 		env.RevertToDBSnapshot(snapForSnap, snapForState)
+		env.gasPool.SetGas(gp)
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
