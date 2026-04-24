@@ -67,7 +67,6 @@ require (
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/herumi/bls v1.37.0
-	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/karalabe/usb v0.0.2
 	github.com/kylelemons/godebug v1.1.0
