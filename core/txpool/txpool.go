@@ -306,7 +306,7 @@ type TxPool struct {
 	wg sync.WaitGroup // for shutdown sync
 
 	knowns       sync.Map // All know transactions
-	filterKnowns int32
+	filterKnowns atomic.Int32
 
 	resetHead *types.Header
 
@@ -440,10 +440,10 @@ func (pool *TxPool) loop() {
 			pool.mu.RLock()
 			pending, queued := pool.stats()
 			pool.mu.RUnlock()
-			stales := int(atomic.LoadInt64(&pool.priced.stales))
+			stales := int(pool.priced.stales.Load())
 
 			if pending != prevPending || queued != prevQueued || stales != prevStales {
-				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "filterKnowns", atomic.SwapInt32(&pool.filterKnowns, 0))
+				log.Debug("Transaction pool status report", "executable", pending, "queued", queued, "stales", stales, "filterKnowns", pool.filterKnowns.Swap(0))
 				prevPending, prevQueued, prevStales = pending, queued, stales
 			}
 
@@ -1134,7 +1134,7 @@ func (pool *TxPool) addTxs(txs []*types.Transaction, local, sync bool) []error {
 		hash := tx.Hash()
 
 		if _, ok := pool.knowns.Load(hash); ok {
-			atomic.AddInt32(&pool.filterKnowns, 1)
+			pool.filterKnowns.Add(1)
 			log.Trace("Discarding already known transaction", "hash", hash)
 			errs[i] = ErrAlreadyKnown
 			knownTxMeter.Mark(1)

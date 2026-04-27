@@ -62,9 +62,15 @@ func init() {
 }
 
 type testBlockChain struct {
-	gasLimit      uint64 // must be first field for 64 bit alignment (atomic access)
+	gasLimit      atomic.Uint64
 	statedb       *state.StateDB
 	chainHeadFeed *event.Feed
+}
+
+func newTestBlockChain(gasLimit uint64, statedb *state.StateDB, chainHeadFeed *event.Feed) *testBlockChain {
+	bc := testBlockChain{statedb: statedb, chainHeadFeed: new(event.Feed)}
+	bc.gasLimit.Store(gasLimit)
+	return &bc
 }
 
 func dynamicFeeTx(nonce uint64, gaslimit uint64, gasFee *big.Int, tip *big.Int, key *ecdsa.PrivateKey) *types.Transaction {
@@ -85,7 +91,7 @@ func dynamicFeeTx(nonce uint64, gaslimit uint64, gasFee *big.Int, tip *big.Int, 
 func (bc *testBlockChain) CurrentBlock() *types.Header {
 	return &types.Header{
 		Number:   new(big.Int),
-		GasLimit: atomic.LoadUint64(&bc.gasLimit),
+		GasLimit: bc.gasLimit.Load(),
 		BaseFee:  new(big.Int),
 	}
 }
@@ -113,7 +119,7 @@ func setupTxPool() (*TxPool, *ecdsa.PrivateKey) {
 
 func setupTxPoolWithConfig(config *params.ChainConfig) (*TxPool, *ecdsa.PrivateKey) {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
-	blockchain := &testBlockChain{10000000, statedb, new(event.Feed)}
+	blockchain := newTestBlockChain(10000000, statedb, new(event.Feed))
 
 	key, _ := crypto.GenerateKey()
 	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 0, blockchain.statedb)
@@ -261,7 +267,7 @@ func TestStateChangeDuringTransactionPoolReset(t *testing.T) {
 	)
 
 	statedb.SetBalance(address, new(big.Int).SetUint64(params.LAT))
-	blockchain := &testChain{&testBlockChain{1000000000, statedb, new(event.Feed)}, address, &trigger}
+	blockchain := &testChain{newTestBlockChain(1000000000, statedb, new(event.Feed)), address, &trigger}
 
 	// setup pool with 2 transaction in it
 	pool := NewTxPool(testTxPoolConfig, params.TestChainConfig, blockchain)
@@ -481,7 +487,7 @@ func TestTransactionDoubleNonce(t *testing.T) {
 		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		statedb.AddBalance(addr, big.NewInt(100000000000000))
 
-		pool.chain = &testBlockChain{1000000, statedb, new(event.Feed)}
+		pool.chain = newTestBlockChain(1000000, statedb, new(event.Feed))
 		<-pool.requestReset(nil, pool.resetHead)
 	}
 	resetState()
@@ -656,7 +662,7 @@ func TestTransactionDropping(t *testing.T) {
 		t.Errorf("total transaction mismatch: have %d, want %d", pool.all.Count(), 4)
 	}
 	// Reduce the block gas limit, check that invalidated transactions are dropped
-	atomic.StoreUint64(&pool.chain.(*testBlockChain).gasLimit, 100)
+	pool.chain.(*testBlockChain).gasLimit.Store(100)
 	<-pool.requestReset(nil, pool.chain.CurrentBlock())
 
 	if _, ok := pool.pending[account].txs.items[tx0.Nonce()]; !ok {
@@ -679,7 +685,7 @@ func TestTransactionDropping(t *testing.T) {
 func newTestTxPool(config Config, chainconfig *params.ChainConfig) *TxPool {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	gov.NewGovDB(snapshotdb.Instance()).AddActiveVersion(params.FORKVERSION_1_5_0, 0, statedb)
-	blockchain := &testBlockChain{1000000, statedb, new(event.Feed)}
+	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
 	evictionInterval = time.Minute * 20
 	return NewTxPool(config, chainconfig, blockchain)
 }
@@ -2221,7 +2227,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	pool.Stop()
 	pool.currentState.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
 
-	blockchain := &testBlockChain{1000000, pool.currentState, new(event.Feed)}
+	blockchain := newTestBlockChain(1000000, pool.currentState, new(event.Feed))
 
 	pool = NewTxPool(config, params.TestChainConfig, blockchain)
 
@@ -2248,7 +2254,7 @@ func testTransactionJournaling(t *testing.T, nolocals bool) {
 	pool.Stop()
 
 	pool.currentState.SetNonce(crypto.PubkeyToAddress(local.PublicKey), 1)
-	blockchain = &testBlockChain{1000000, pool.currentState, new(event.Feed)}
+	blockchain = newTestBlockChain(1000000, pool.currentState, new(event.Feed))
 	pool = NewTxPool(config, params.TestChainConfig, blockchain)
 
 	pending, queued = pool.Stats()
