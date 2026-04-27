@@ -74,9 +74,6 @@ func TestOutput(t *testing.T) {
 			if err != nil {
 				t.Fatal("error loading expected test output:", err)
 			}
-			//strOut := string(output)
-			//strWantOut := string(wantOutput)
-			//t.Log("result", "out", strOut, "wantout", strWantOut)
 			if !bytes.Equal(output, wantOutput) {
 				t.Fatal("output mismatch:\n", string(output))
 			}
