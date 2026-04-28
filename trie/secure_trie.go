@@ -245,6 +245,16 @@ func (t *StateTrie) Copy() *StateTrie {
 	return cpy
 }
 
+func (t *StateTrie) DeepCopy() *StateTrie {
+	cpy := &StateTrie{
+		trie:             *t.trie.Copy(),
+		secKeyCache:      t.secKeyCache,
+		secKeyCacheOwner: t.secKeyCacheOwner,
+		preimages:        t.preimages,
+	}
+	return cpy
+}
+
 func (t *StateTrie) New() *StateTrie {
 	cpy := &StateTrie{
 		trie: *t.trie.DeepCopyTrie(),

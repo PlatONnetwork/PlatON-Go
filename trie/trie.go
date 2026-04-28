@@ -76,7 +76,7 @@ func New(id *ID, db NodeReader) (*Trie, error) {
 	trie := &Trie{
 		owner:  id.Owner,
 		reader: reader,
-		//tracer: newTracer(),
+		tracer: newTracer(),
 	}
 	if id.Root != (common.Hash{}) && id.Root != types.EmptyRootHash {
 		rootnode, err := trie.resolveAndTrack(id.Root[:], nil)
@@ -541,7 +541,7 @@ func (t *Trie) resolveAndTrack(n hashNode, prefix []byte) (node, error) {
 // Hash returns the root hash of the trie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *Trie) Hash() common.Hash {
-	hash, cached, _ := t.hashRoot()
+	hash, cached := t.hashRoot()
 	t.root = cached
 	return common.BytesToHash(hash.(hashNode))
 }
@@ -551,35 +551,41 @@ func (t *Trie) Hash() common.Hash {
 func (t *Trie) Commit(collectLeaf bool) (common.Hash, *NodeSet, error) {
 	defer t.tracer.reset()
 
+	nodes := NewNodeSet(t.owner, t.tracer.accessList)
+	t.tracer.markDeletions(nodes)
+
 	// Trie is empty and can be classified into two types of situations:
 	// - The trie was empty and no update happens
 	// - The trie was non-empty and all nodes are dropped
 	if t.root == nil {
-		// Wrap tracked deletions as the return
-		set := NewNodeSet(t.owner)
-		t.tracer.markDeletions(set)
-		return types.EmptyRootHash, set, nil
+		return types.EmptyRootHash, nodes, nil
 	}
 
 	if t.reader == nil {
 		panic("commit called on trie with nil database")
 	}
 
-	hash, cached, set, err := t.commitRoot(collectLeaf)
+	hash, cached, err := t.commitRoot(nodes, collectLeaf)
 	if err != nil {
 		return common.Hash{}, nil, err
 	}
 	t.root = cached
-	return common.BytesToHash(hash.(hashNode)), set, nil
+	return common.BytesToHash(hash.(hashNode)), nodes, nil
 }
 
-func (t *Trie) hashRoot() (node, node, error) {
+// hashRoot calculates the root hash of the given trie
+func (t *Trie) hashRoot() (node, node) {
 	if t.root == nil {
-		return hashNode(types.EmptyRootHash.Bytes()), nil, nil
+		return hashNode(types.EmptyRootHash.Bytes()), nil
 	}
 	h := newHasher()
-	defer returnHasherToPool(h)
-	return h.hash(t.root, true)
+	defer func() {
+		returnHasherToPool(h)
+		//t.unhashed = 0
+	}()
+
+	hashed, cached, _ := h.hash(t.root, true)
+	return hashed, cached
 }
 
 // Reset drops the referenced root node and cleans all internal state.
@@ -594,21 +600,17 @@ func (t *Trie) Owner() common.Hash {
 	return t.owner
 }
 
-func (t *Trie) commitRoot(collectLeaf bool) (node, node, *NodeSet, error) {
-	//if t.root == nil {
-	//	return hashNode(emptyRoot.Bytes()), nil, nil, nil
-	//}
-
-	c := newCommitter(t.owner, t.tracer, collectLeaf)
+func (t *Trie) commitRoot(nodeset *NodeSet, collectLeaf bool) (node, node, error) {
+	c := newCommitter(nodeset, collectLeaf)
 	hashed, cached, err := c.commit(nil, t.root, true)
 
-	// Some nodes can be deleted from trie which can't be captured
-	// by committer itself. Iterate all deleted nodes tracked by
-	// tracer and marked them as deleted only if they are present
-	// in database previously.
-	c.tracer.markDeletions(c.nodes)
+	//// Some nodes can be deleted from trie which can't be captured
+	//// by committer itself. Iterate all deleted nodes tracked by
+	//// tracer and marked them as deleted only if they are present
+	//// in database previously.
+	//c.tracer.markDeletions(c.nodes)
 
-	return hashed, cached, c.nodes, err
+	return hashed, cached, err
 }
 
 func (t *Trie) DeepCopyTrie() *Trie {

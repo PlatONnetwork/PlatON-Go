@@ -999,16 +999,26 @@ func (db *Database) Update(nodes *MergedNodeSet) error {
 	if _, ok := nodes.sets[common.Hash{}]; ok {
 		order = append(order, common.Hash{})
 	}
+	//for _, owner := range order {
+	//	subset := nodes.sets[owner]
+	//	for _, path := range subset.updates.order {
+	//		n, ok := subset.updates.nodes[path]
+	//		if !ok {
+	//			return fmt.Errorf("missing node %x %v", owner, path)
+	//		}
+	//		db.insert(n.hash, int(n.size), n.node)
+	//		db.insertFreshNode(n.hash)
+	//	}
+	//}
 	for _, owner := range order {
 		subset := nodes.sets[owner]
-		for _, path := range subset.updates.order {
-			n, ok := subset.updates.nodes[path]
-			if !ok {
-				return fmt.Errorf("missing node %x %v", owner, path)
+		subset.forEachWithOrder(func(path string, n *memoryNode) {
+			if n.isDeleted() {
+				return // ignore deletion
 			}
 			db.insert(n.hash, int(n.size), n.node)
 			db.insertFreshNode(n.hash)
-		}
+		})
 	}
 	// Link up the account trie and storage trie if the node points
 	// to an account trie leaf.

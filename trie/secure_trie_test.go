@@ -119,7 +119,10 @@ func TestStateTrieConcurrency(t *testing.T) {
 	threads := runtime.NumCPU()
 	tries := make([]*StateTrie, threads)
 	for i := 0; i < threads; i++ {
-		tries[i] = trie.Copy()
+		// 浅拷贝会导致并发 goroutine 实际上还在共享底层 Trie 的可变状态，最终触发 concurrent map writes
+		// 这个 panic 栈指向了共享 map：tracer.onRead（trie/tracer.go）里的 accessList 被并发写入
+		//tries[i] = trie.Copy()
+		tries[i] = trie.DeepCopy()
 	}
 	// Start a batch of goroutines interacting with the trie
 	pend := new(sync.WaitGroup)
