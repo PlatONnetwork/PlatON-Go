@@ -86,7 +86,7 @@ func newShanghaiInstructionSet() JumpTable {
 }
 
 // newLondonInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg, berlin and london instructions.
+// constantinople, istanbul, petersburg, berlin and london instructions.
 func newLondonInstructionSet() JumpTable {
 	instructionSet := newBerlinInstructionSet()
 	enable3529(&instructionSet) // EIP-3529: Reduction in refunds https://eips.ethereum.org/EIPS/eip-3529
@@ -104,7 +104,7 @@ func newLondonInstructionSet() JumpTable {
 }
 
 // newBerlinInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul, petersburg and berlin instructions.
+// constantinople, istanbul, petersburg and berlin instructions.
 func newBerlinInstructionSet() JumpTable {
 	instructionSet := newIstanbulInstructionSet()
 	enable2200(&instructionSet) // Net metered SSTORE - https://eips.ethereum.org/EIPS/eip-2200
@@ -113,7 +113,7 @@ func newBerlinInstructionSet() JumpTable {
 }
 
 // newIstanbulInstructionSet returns the frontier, homestead, byzantium,
-// contantinople, istanbul and petersburg instructions.
+// constantinople, istanbul and petersburg instructions.
 func newIstanbulInstructionSet() JumpTable {
 	instructionSet := newConstantinopleInstructionSet()
 
@@ -126,7 +126,7 @@ func newIstanbulInstructionSet() JumpTable {
 }
 
 // newConstantinopleInstructionSet returns the frontier, homestead,
-// byzantium and contantinople instructions.
+// byzantium and constantinople instructions.
 func newConstantinopleInstructionSet() JumpTable {
 	instructionSet := newByzantiumInstructionSet()
 	instructionSet[SHL] = &operation{
