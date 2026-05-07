@@ -19,6 +19,10 @@ package rlp
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
+	"github.com/holiman/uint256"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -128,5 +132,16 @@ func Fuzz(input []byte) int {
 		var rs types.Receipts
 		decodeEncode(input, &rs, i)
 	}
-	return 0
+	{
+		i++
+		var v struct {
+			AnIntPtr  *big.Int
+			AnInt     big.Int
+			AnU256Ptr *uint256.Int
+			AnU256    uint256.Int
+			NotAnU256 [4]uint64
+		}
+		decodeEncode(input, &v, i)
+	}
+	return 1
 }
