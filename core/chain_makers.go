@@ -344,7 +344,7 @@ func GenerateBlockChain2(gspec *Genesis, parent *types.Block, engine consensus.E
 	return blockchain, blocks
 }
 
-func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) *BlockChain {
+func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) (*BlockChain, []*types.Block) {
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -383,7 +383,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 		receipts[i] = receipt
 		parent = block
 	}
-	return chain
+	return chain, blocks
 }
 
 func GenerateBlockChain(gspec *Genesis, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {

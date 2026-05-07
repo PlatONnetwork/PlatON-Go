@@ -29,12 +29,11 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-
-	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -276,7 +275,8 @@ func (bm *BftMock) Finalize(chain ChainReader, header *types.Header, state *stat
 	header.Root = state.IntermediateRoot(true)
 
 	// Header seems complete, assemble into a block and return
-	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
+	//return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
+	return types.NewBlock(header, txs, receipts, trie.NewEmpty(trie.NewDatabase(rawdb.NewMemoryDatabase()))), nil
 }
 
 // Seal generates a new sealing request for the given input block and pushes
