@@ -1,4 +1,4 @@
-// Copyright 2014 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -83,7 +83,7 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 	return common.CopyBytes(buf.Bytes())
 }
 
-// DeriveSha creates the tree hashes of transactions and receipts in a block header.
+// DeriveSha creates the tree hashes of transactions, receipts, and withdrawals in a block header.
 func DeriveSha(list DerivableList, hasher TrieHasher) common.Hash {
 	hasher.Reset()
 
