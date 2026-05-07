@@ -52,6 +52,11 @@ var (
 		Usage:    "Format logs with JSON",
 		Category: flags.LoggingCategory,
 	}
+	logfmtFlag = &cli.BoolFlag{
+		Name:     "log.logfmt",
+		Usage:    "Format logs with logfmt",
+		Category: flags.LoggingCategory,
+	}
 	logFileFlag = &cli.StringFlag{
 		Name:     "log.file",
 		Usage:    "Write logs to a file",
@@ -119,6 +124,7 @@ var Flags = []cli.Flag{
 	verbosityFlag,
 	vmoduleFlag,
 	logjsonFlag,
+	logfmtFlag,
 	logFileFlag,
 	backtraceAtFlag,
 	debugFlag,
@@ -152,6 +158,8 @@ func Setup(ctx *cli.Context) error {
 	var logfmt log.Format
 	if ctx.Bool(logjsonFlag.Name) {
 		logfmt = log.JSONFormat()
+	} else if ctx.Bool(logfmtFlag.Name) {
+		logfmt = log.LogfmtFormat()
 	} else {
 		logfmt = log.TerminalFormat(useColor)
 	}
