@@ -287,7 +287,7 @@ func (b *EthAPIBackend) SyncProgress() PlatON.SyncProgress {
 	return b.eth.Downloader().Progress()
 }
 
-func (b *EthAPIBackend) FeeHistory(ctx context.Context, blockCount int, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, err error) {
+func (b *EthAPIBackend) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (firstBlock *big.Int, reward [][]*big.Int, baseFee []*big.Int, gasUsedRatio []float64, err error) {
 	return b.gpo.FeeHistory(ctx, blockCount, lastBlock, rewardPercentiles)
 }
 
