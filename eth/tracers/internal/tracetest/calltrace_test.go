@@ -31,12 +31,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/tests"
-  
+
 	// Force-load native and js packages, to trigger registration
 	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/js"
 	_ "github.com/PlatONnetwork/PlatON-Go/eth/tracers/native"
@@ -264,75 +263,114 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 	}
 }
 
-// TestZeroValueToNotExitCall tests the calltracer(s) on the following:
-// Tx to A, A calls B with zero value. B does not already exist.
-// Expected: that enter/exit is invoked and the inner call is shown in the result
-func TestZeroValueToNotExitCall(t *testing.T) {
-	var to = common.HexToAddress("0x00000000000000000000000000000000deadbeef")
-	privkey, err := crypto.HexToECDSA("0000000000000000deadbeef00000000000000000000000000000000deadbeef")
-	if err != nil {
-		t.Fatalf("err %v", err)
+func TestInternals(t *testing.T) {
+	var (
+		to        = common.HexToAddress("0x00000000000000000000000000000000deadbeef")
+		origin    = common.HexToAddress("0x00000000000000000000000000000000feed")
+		txContext = vm.TxContext{
+			Origin:   origin,
+			GasPrice: big.NewInt(1),
+		}
+		context = vm.BlockContext{
+			CanTransfer: core.CanTransfer,
+			Transfer:    core.Transfer,
+			Coinbase:    common.Address{},
+			BlockNumber: new(big.Int).SetUint64(8000000),
+			Time:        5,
+			Difficulty:  big.NewInt(0x30000),
+			GasLimit:    uint64(6000000),
+		}
+	)
+	mkTracer := func(name string, cfg json.RawMessage) tracers.Tracer {
+		tr, err := tracers.DefaultDirectory.New(name, nil, cfg)
+		if err != nil {
+			t.Fatalf("failed to create call tracer: %v", err)
+		}
+		return tr
 	}
-	signer := types.NewEIP155Signer(big.NewInt(1))
-	tx, err := types.SignNewTx(privkey, signer, &types.LegacyTx{
-		GasPrice: big.NewInt(0),
-		Gas:      50000,
-		To:       &to,
-	})
-	if err != nil {
-		t.Fatalf("err %v", err)
-	}
-	origin, _ := signer.Sender(tx)
-	txContext := vm.TxContext{
-		Origin:   origin,
-		GasPrice: big.NewInt(1),
-	}
-	context := vm.BlockContext{
-		CanTransfer: core.CanTransfer,
-		Transfer:    core.Transfer,
-		Coinbase:    common.Address{},
-		BlockNumber: new(big.Int).SetUint64(8000000),
-		Time:        5,
-		Difficulty:  big.NewInt(0x30000),
-		GasLimit:    uint64(6000000),
-	}
-	var code = []byte{
-		byte(vm.PUSH1), 0x0, byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1), // in and outs zero
-		byte(vm.DUP1), byte(vm.PUSH1), 0xff, byte(vm.GAS), // value=0,address=0xff, gas=GAS
-		byte(vm.CALL),
-	}
-	var alloc = core.GenesisAlloc{
-		to: core.GenesisAccount{
-			Nonce: 1,
-			Code:  code,
+
+	for _, tc := range []struct {
+		name   string
+		code   []byte
+		tracer tracers.Tracer
+		want   string
+	}{
+		{
+			// TestZeroValueToNotExitCall tests the calltracer(s) on the following:
+			// Tx to A, A calls B with zero value. B does not already exist.
+			// Expected: that enter/exit is invoked and the inner call is shown in the result
+			name: "ZeroValueToNotExitCall",
+			code: []byte{
+				byte(vm.PUSH1), 0x0, byte(vm.DUP1), byte(vm.DUP1), byte(vm.DUP1), // in and outs zero
+				byte(vm.DUP1), byte(vm.PUSH1), 0xff, byte(vm.GAS), // value=0,address=0xff, gas=GAS
+				byte(vm.CALL),
+			},
+			tracer: mkTracer("callTracer", nil),
+			// PlatON: addresses JSON-marshal as bech32; top-level gas is post-intrinsic (50000-21000=0x7148).
+			want:   `{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7","gas":"0x7148","gasUsed":"0x54d8","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","calls":[{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","gas":"0x6cbf","gasUsed":"0x0","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8l6c4vgy","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`,
 		},
-		origin: core.GenesisAccount{
-			Nonce:   0,
-			Balance: big.NewInt(500000000000000),
+		{
+			name:   "Stack depletion in LOG0",
+			code:   []byte{byte(vm.LOG3)},
+			tracer: mkTracer("callTracer", json.RawMessage(`{ "withLog": true }`)),
+			want:   `{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7","gas":"0x7148","gasUsed":"0xc350","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","error":"stack underflow (0 \u003c=\u003e 5)","value":"0x0","type":"CALL"}`,
 		},
-	}
-	_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(), alloc, false)
-	// Create the tracer, the EVM environment and run it
-	tracer, err := tracers.DefaultDirectory.New("callTracer", nil, nil)
-	if err != nil {
-		t.Fatalf("failed to create call tracer: %v", err)
-	}
-	evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tracer})
-	msg, err := tx.AsMessage(signer, nil)
-	if err != nil {
-		t.Fatalf("failed to prepare transaction for tracing: %v", err)
-	}
-	st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
-	if _, err = st.TransitionDb(); err != nil {
-		t.Fatalf("failed to execute transaction: %v", err)
-	}
-	// Retrieve the trace result and compare against the etalon
-	res, err := tracer.GetResult()
-	if err != nil {
-		t.Fatalf("failed to retrieve trace result: %v", err)
-	}
-	wantStr := `{"from":"lat1dq4gpfh4vrhv2r25uc7taksuxfx9lrgmakk7yu","gas":"0x7148","gasUsed":"0x54d8","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","calls":[{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","gas":"0x6cbf","gasUsed":"0x0","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8l6c4vgy","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`
-	if string(res) != wantStr {
-		t.Fatalf("trace mismatch\n have: %v\n want: %v\n", string(res), wantStr)
+		{
+			name: "Mem expansion in LOG0",
+			code: []byte{
+				byte(vm.PUSH1), 0x1,
+				byte(vm.PUSH1), 0x0,
+				byte(vm.MSTORE),
+				byte(vm.PUSH1), 0xff,
+				byte(vm.PUSH1), 0x0,
+				byte(vm.LOG0),
+			},
+			tracer: mkTracer("callTracer", json.RawMessage(`{ "withLog": true }`)),
+			want:   `{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7","gas":"0x7148","gasUsed":"0x5b9e","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","logs":[{"address":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","topics":[],"data":"0x000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"}],"value":"0x0","type":"CALL"}`,
+		},
+		{
+			// Leads to OOM on the prestate tracer
+			name: "Prestate-tracer - mem expansion in CREATE2",
+			code: []byte{
+				byte(vm.PUSH1), 0x1,
+				byte(vm.PUSH1), 0x0,
+				byte(vm.MSTORE),
+				byte(vm.PUSH1), 0x1,
+				byte(vm.PUSH5), 0xff, 0xff, 0xff, 0xff, 0xff,
+				byte(vm.PUSH1), 0x1,
+				byte(vm.PUSH1), 0x0,
+				byte(vm.CREATE2),
+				byte(vm.PUSH1), 0xff,
+				byte(vm.PUSH1), 0x0,
+				byte(vm.LOG0),
+			},
+			tracer: mkTracer("prestateTracer", json.RawMessage(`{ "withLog": true }`)),
+			want:   `{"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7":{"balance":"0x1c6bf52640350"},"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq542u6a":{"balance":"0x0"},"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd":{"balance":"0x0","code":"0x6001600052600164ffffffffff60016000f560ff6000a0"}}`,
+		},
+	} {
+		_, statedb := tests.MakePreState(rawdb.NewMemoryDatabase(),
+			core.GenesisAlloc{
+				to: core.GenesisAccount{
+					Code: tc.code,
+				},
+				origin: core.GenesisAccount{
+					Balance: big.NewInt(500000000000000),
+				},
+			}, false)
+		evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tc.tracer})
+		// types.Message implements core.Message (PlatON uses this instead of a separate core.Message struct).
+		msg := types.NewMessage(origin, &to, 0, big.NewInt(0), 50000, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, false)
+		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(msg.Gas()))
+		if _, err := st.TransitionDb(); err != nil {
+			t.Fatalf("test %v: failed to execute transaction: %v", tc.name, err)
+		}
+		// Retrieve the trace result and compare against the expected
+		res, err := tc.tracer.GetResult()
+		if err != nil {
+			t.Fatalf("test %v: failed to retrieve trace result: %v", tc.name, err)
+		}
+		if string(res) != tc.want {
+			t.Fatalf("test %v: trace mismatch\n have: %v\n want: %v\n", tc.name, string(res), tc.want)
+		}
 	}
 }
