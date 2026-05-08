@@ -3,6 +3,13 @@ package snapshotdb
 import (
 	"bytes"
 	"container/heap"
+	"math/big"
+	"sync"
+
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/util"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -10,11 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/memdb"
-	"github.com/syndtr/goleveldb/leveldb/util"
-	"math/big"
-	"sync"
 )
 
 var (
@@ -150,7 +152,7 @@ func (a *archiveSnapshot) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return a.vrfNonce, nil
 	}
 	log.Debug("Get from archive snapshot", "hash", hash, "key", common.Bytes2Hex(key))
-	v, err := a.trie.TryGet(key)
+	v, err := a.trie.TryGetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return nil, ErrNotFound
 	}
@@ -159,7 +161,7 @@ func (a *archiveSnapshot) Get(hash common.Hash, key []byte) ([]byte, error) {
 }
 
 func (a *archiveSnapshot) GetFromCommittedBlock(key []byte) ([]byte, error) {
-	v, err := a.trie.TryGet(key)
+	v, err := a.trie.TryGetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return nil, ErrNotFound
 	}
@@ -172,7 +174,7 @@ func (a *archiveSnapshot) Del(hash common.Hash, key []byte) error {
 }
 
 func (a *archiveSnapshot) Has(hash common.Hash, key []byte) (bool, error) {
-	v, err := a.trie.TryGet(key)
+	v, err := a.trie.TryGetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return true, ErrNotFound
 	}

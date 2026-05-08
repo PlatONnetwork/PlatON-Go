@@ -7,7 +7,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
@@ -37,21 +36,19 @@ func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *state
 	//	log.Trace("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
 	//}
 	//start = time.Now()
-	enc, err := self.trie.TryGet(addr[:])
+	data, err := self.trie.TryGetAccount(addr)
 	//if start.Add(20 * time.Millisecond).Before(time.Now()) {
 	//	log.Trace("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
 	//}
 	parallelLocker.Unlock()
-	if len(enc) == 0 {
+	if err != nil {
 		self.setError(err)
 		return nil
 	}
-	var data types.StateAccount
-	if err := rlp.DecodeBytes(enc, &data); err != nil {
-		log.Error("Failed to decode state object", "addr", addr, "err", err)
+	if data == nil {
 		return nil
 	}
-	obj := newObject(self, addr, data)
+	obj := newObject(self, addr, *data)
 	//do not set to state.stateObjects.
 	//self.setStateObject(obj)
 	return obj

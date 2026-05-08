@@ -65,10 +65,10 @@ type Database interface {
 
 // Trie is a Ethereum Merkle Patricia trie.
 type Trie interface {
-	// TryGet returns the value for key stored in the trie. The value bytes must
-	// not be modified by the caller. If a node was not found in the database, a
-	// trie.MissingNodeError is returned.
-	TryGet(key []byte) ([]byte, error)
+	// TryGetStorage returns the value for key stored in the trie. The value bytes
+	// must not be modified by the caller. If a node was not found in the database,
+	// a trie.MissingNodeError is returned.
+	TryGetStorage(addr common.Address, key []byte) ([]byte, error)
 
 	// TryGetAccount abstracts an account read from the trie. It retrieves the
 	// account blob from the trie with provided account address and decodes it
@@ -78,18 +78,20 @@ type Trie interface {
 	// be returned.
 	TryGetAccount(address common.Address) (*types.StateAccount, error)
 
-	// TryUpdate associates key with value in the trie. If value has length zero, any
-	// existing value is deleted from the trie. The value bytes must not be modified
+	// TryUpdateStorage associates key with value in the trie. If value has length zero,
+	// any existing value is deleted from the trie. The value bytes must not be modified
 	// by the caller while they are stored in the trie. If a node was not found in the
 	// database, a trie.MissingNodeError is returned.
-	TryUpdate(key, value []byte) error
+	TryUpdateStorage(addr common.Address, key, value []byte) error
 
 	// TryUpdateAccount abstracts an account write to the trie. It encodes the
 	// provided account object with associated algorithm and then updates it
 	// in the trie with provided address.
 	TryUpdateAccount(address common.Address, account *types.StateAccount) error
 
-	TryDelete(key []byte) error
+	// TryDeleteStorage removes any existing value for key from the trie. If a node
+	// was not found in the database, a trie.MissingNodeError is returned.
+	TryDeleteStorage(addr common.Address, key []byte) error
 
 	// TryDeleteAccount abstracts an account deletion from the trie.
 	TryDeleteAccount(address common.Address) error
