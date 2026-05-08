@@ -1,4 +1,4 @@
-// Copyright 2019 The go-ethereum Authors
+// Copyright 2020 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -132,11 +132,12 @@ func iterateTransactions(db ethdb.Database, from uint64, to uint64, reverse bool
 		}
 	}
 	// process runs in parallel
-	nThreadsAlive := int32(threads)
+	var nThreadsAlive atomic.Int32
+	nThreadsAlive.Store(int32(threads))
 	process := func() {
 		defer func() {
 			// Last processor closes the result channel
-			if atomic.AddInt32(&nThreadsAlive, -1) == 0 {
+			if nThreadsAlive.Add(-1) == 0 {
 				close(hashesCh)
 			}
 		}()
