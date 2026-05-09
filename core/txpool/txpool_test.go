@@ -319,30 +319,30 @@ func TestInvalidTransactions(t *testing.T) {
 	tx := transaction(0, 100, key, pool.chainconfig.PIP7ChainID)
 	from, _ := deriveSender(tx, pool.chainconfig.PIP7ChainID)
 
+	// Intrinsic gas too low
 	testAddBalance(pool, from, big.NewInt(1))
-	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrInsufficientFunds) {
-		t.Error("expected", err)
+	if err, want := pool.AddRemote(tx), core.ErrIntrinsicGas; !errors.Is(err, want) {
+		t.Errorf("want %v have %v", want, err)
 	}
 
 	tx = transaction(1, 100, key, pool.chainconfig.PIP7ChainID)
-
 	balance := new(big.Int).Add(tx.Value(), new(big.Int).Mul(new(big.Int).SetUint64(tx.Gas()), tx.GasPrice()))
 	testAddBalance(pool, from, balance)
-	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrIntrinsicGas) {
-		t.Error("expected", core.ErrIntrinsicGas, "got", err)
+	if err, want := pool.AddRemote(tx), core.ErrIntrinsicGas; !errors.Is(err, want) {
+		t.Errorf("want %v have %v", want, err)
 	}
 
 	testSetNonce(pool, from, 1)
 	testAddBalance(pool, from, big.NewInt(0xffffffffffffff))
 	tx = transaction(0, 100000, key, pool.chainconfig.PIP7ChainID)
-	if err := pool.AddRemote(tx); !errors.Is(err, core.ErrNonceTooLow) {
-		t.Error("expected", core.ErrNonceTooLow, err)
+	if err, want := pool.AddRemote(tx), core.ErrNonceTooLow; !errors.Is(err, want) {
+		t.Errorf("want %v have %v", want, err)
 	}
 
 	tx = transaction(1, 100000, key, pool.chainconfig.PIP7ChainID)
 	pool.gasPrice = big.NewInt(1000)
-	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
-		t.Error("expected", ErrUnderpriced, "got", err)
+	if err, want := pool.AddRemote(tx), ErrUnderpriced; !errors.Is(err, want) {
+		t.Errorf("want %v have %v", want, err)
 	}
 	if err := pool.AddLocal(tx); err == nil {
 		t.Error("expected", ErrAlreadyKnown, "got", err)
