@@ -19,6 +19,7 @@ package miner
 import (
 	"errors"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -449,11 +450,11 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 		progress = make(chan struct{}, 10)
 		result   = make([]float64, 0, 10)
 		index    = 0
-		start    = false
+		start    atomic.Bool
 	)
 	w.resubmitHook = func(minInterval time.Duration, recommitInterval time.Duration) {
 		// Short circuit if interval checking hasn't started.
-		if !start {
+		if !start.Load() {
 			return
 		}
 		var wantMinInterval, wantRecommitInterval time.Duration
@@ -499,7 +500,7 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 
 	time.Sleep(time.Second)
 
-	start = true
+	start.Store(true)
 	w.setRecommitInterval(3 * time.Second)
 	go func() {
 		select {

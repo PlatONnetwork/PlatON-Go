@@ -22,7 +22,6 @@ func minerStart(t *testing.T) *Miner {
 		startCh: make(chan struct{}),
 		stopCh:  make(chan struct{}),
 		worker: &worker{
-			running:            0,
 			startCh:            make(chan struct{}),
 			exitCh:             make(chan struct{}),
 			resubmitIntervalCh: make(chan time.Duration),
@@ -62,15 +61,15 @@ func TestMiner_Stop(t *testing.T) {
 		startCh: make(chan struct{}),
 		stopCh:  make(chan struct{}),
 		worker: &worker{
-			running: 1,
 			//startCh: make(chan struct{}),
 		},
 	}
+	miner.worker.running.Store(true)
 	go miner.update()
 
 	miner.Stop()
-	assert.Equal(t, int32(0), miner.worker.running,
-		fmt.Sprintf("After Stop, the worker flag `running` expect: %d, got: %d", int32(0), miner.worker.running))
+	assert.False(t, miner.worker.running.Load(),
+		fmt.Sprintf("After Stop, the worker flag `running` expect false, got %v", miner.worker.running.Load()))
 }
 
 func TestMiner_Mining(t *testing.T) {
