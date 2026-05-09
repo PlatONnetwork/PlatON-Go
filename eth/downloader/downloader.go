@@ -103,7 +103,7 @@ type headerTask struct {
 }
 
 type Downloader struct {
-	mode uint32         // Synchronisation mode defining the strategy used (per sync cycle), use d.getMode() to get the SyncMode
+	mode atomic.Uint32  // Synchronisation mode defining the strategy used (per sync cycle), use d.getMode() to get the SyncMode
 	mux  *event.TypeMux // Event multiplexer to announce sync operation events
 
 	queue *queue   // Scheduler for selecting the hashes to download
@@ -125,9 +125,9 @@ type Downloader struct {
 
 	// Status
 	synchroniseMock func(id string, hash common.Hash) error // Replacement for synchronise during testing
-	synchronising   int32
-	notified        int32
-	committed       int32
+	synchronising   atomic.Bool
+	notified        atomic.Bool
+	committed       atomic.Bool
 	ancientLimit    uint64 // The maximum block number which can be regarded as ancient data.
 
 	// Channels
@@ -289,7 +289,7 @@ func (d *Downloader) Progress() ethereum.SyncProgress {
 
 // Synchronising returns whether the downloader is currently retrieving blocks.
 func (d *Downloader) Synchronising() bool {
-	return atomic.LoadInt32(&d.synchronising) > 0
+	return d.synchronising.Load()
 }
 
 // RegisterPeer injects a new download peer into the set of block source to be
@@ -372,13 +372,13 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 		return d.synchroniseMock(id, hash)
 	}
 	// Make sure only one goroutine is ever allowed past this point at once
-	if !atomic.CompareAndSwapInt32(&d.synchronising, 0, 1) {
+	if !d.synchronising.CompareAndSwap(false, true) {
 		return errBusy
 	}
-	defer atomic.StoreInt32(&d.synchronising, 0)
+	defer d.synchronising.Store(false)
 
 	// Post a user notification of the sync (only once per session)
-	if atomic.CompareAndSwapInt32(&d.notified, 0, 1) {
+	if d.notified.CompareAndSwap(false, true) {
 		log.Info("Block synchronisation started")
 	}
 	// If snap sync was requested, create the snap scheduler and switch to snap
@@ -428,7 +428,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 	defer d.Cancel() // No matter what, we can't leave the cancel channel open
 
 	// Atomically set the requested sync mode
-	atomic.StoreUint32(&d.mode, uint32(mode))
+	d.mode.Store(uint32(mode))
 
 	// Retrieve the origin peer and initiate the downloading process
 	p := d.peers.Peer(id)
@@ -439,7 +439,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 }
 
 func (d *Downloader) getMode() SyncMode {
-	return SyncMode(atomic.LoadUint32(&d.mode))
+	return SyncMode(d.mode.Load())
 }
 
 // syncWithPeer starts a block synchronization based on the hash chain from the
@@ -501,9 +501,9 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	d.syncStatsChainHeight = height
 	d.syncStatsLock.Unlock()
 
-	d.committed = 1
+	d.committed.Store(true)
 	if mode == SnapSync && pivot.Number.Uint64() != 0 {
-		d.committed = 0
+		d.committed.Store(false)
 	}
 	if mode == SnapSync {
 		// Set the ancient data limitation.
@@ -1043,7 +1043,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, head uint64) e
 		// If no more headers are inbound, notify the content fetchers and return
 		if len(headers) == 0 {
 			// Don't abort header fetches while the pivot is downloading
-			if atomic.LoadInt32(&d.committed) == 0 && pivot <= from {
+			if !d.committed.Load() && pivot <= from {
 				p.log.Debug("No headers, waiting for pivot commit")
 				select {
 				case <-time.After(fsHeaderContCheck):
@@ -1496,7 +1496,7 @@ func (d *Downloader) processSnapSyncContent() error {
 			results = append(append([]*fetchResult{oldPivot}, oldTail...), results...)
 		}
 		// Split around the pivot block and process the two sides via snap/full sync
-		if atomic.LoadInt32(&d.committed) == 0 {
+		if !d.committed.Load() {
 			latest := results[len(results)-1].Header
 			// If the height is above the pivot block by 2 sets, it means the pivot
 			// become stale in the network and it was garbage collected, move to a
@@ -1647,7 +1647,7 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 	if err := d.blockchain.SnapSyncCommitHead(block.Hash()); err != nil {
 		return err
 	}
-	atomic.StoreInt32(&d.committed, 1)
+	d.committed.Store(true)
 	return nil
 }
 
