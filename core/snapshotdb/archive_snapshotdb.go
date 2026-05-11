@@ -138,7 +138,7 @@ type archiveSnapshot struct {
 }
 
 func (a *archiveSnapshot) Put(hash common.Hash, key, value []byte) error {
-	a.trie.Update(key, value)
+	a.trie.MustUpdate(key, value)
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (a *archiveSnapshot) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return a.vrfNonce, nil
 	}
 	log.Debug("Get from archive snapshot", "hash", hash, "key", common.Bytes2Hex(key))
-	v, err := a.trie.TryGetStorage(common.Address{}, key)
+	v, err := a.trie.GetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return nil, ErrNotFound
 	}
@@ -161,7 +161,7 @@ func (a *archiveSnapshot) Get(hash common.Hash, key []byte) ([]byte, error) {
 }
 
 func (a *archiveSnapshot) GetFromCommittedBlock(key []byte) ([]byte, error) {
-	v, err := a.trie.TryGetStorage(common.Address{}, key)
+	v, err := a.trie.GetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return nil, ErrNotFound
 	}
@@ -169,12 +169,12 @@ func (a *archiveSnapshot) GetFromCommittedBlock(key []byte) ([]byte, error) {
 }
 
 func (a *archiveSnapshot) Del(hash common.Hash, key []byte) error {
-	a.trie.Delete(key)
+	a.trie.MustDelete(key)
 	return nil
 }
 
 func (a *archiveSnapshot) Has(hash common.Hash, key []byte) (bool, error) {
-	v, err := a.trie.TryGetStorage(common.Address{}, key)
+	v, err := a.trie.GetStorage(common.Address{}, key)
 	if len(v) == 0 && err == nil {
 		return true, ErrNotFound
 	}

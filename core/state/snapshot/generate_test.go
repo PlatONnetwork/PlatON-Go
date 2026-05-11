@@ -162,7 +162,7 @@ func newHelper() *testHelper {
 
 func (t *testHelper) addTrieAccount(acckey string, acc *Account) {
 	val, _ := rlp.EncodeToBytes(acc)
-	t.accTrie.Update([]byte(acckey), val)
+	t.accTrie.MustUpdate([]byte(acckey), val)
 }
 
 func (t *testHelper) addSnapAccount(acckey string, acc *Account) {
@@ -187,7 +187,7 @@ func (t *testHelper) makeStorageTrie(stateRoot, owner common.Hash, keys []string
 	id := trie.StorageTrieID(stateRoot, owner, common.Hash{})
 	stTrie, _ := trie.NewStateTrie(id, t.triedb)
 	for i, k := range keys {
-		stTrie.Update([]byte(k), []byte(vals[i]))
+		stTrie.MustUpdate([]byte(k), []byte(vals[i]))
 	}
 	if !commit {
 		return stTrie.Hash().Bytes()
@@ -492,7 +492,7 @@ func TestGenerateWithExtraAccounts(t *testing.T) {
 		)
 		acc := &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()}
 		val, _ := rlp.EncodeToBytes(acc)
-		helper.accTrie.Update([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
+		helper.accTrie.MustUpdate([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
 
 		// Identical in the snap
 		key := hashData([]byte("acc-1"))
@@ -563,7 +563,7 @@ func TestGenerateWithManyExtraAccounts(t *testing.T) {
 		)
 		acc := &Account{Balance: big.NewInt(1), Root: stRoot, CodeHash: types.EmptyCodeHash.Bytes()}
 		val, _ := rlp.EncodeToBytes(acc)
-		helper.accTrie.Update([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
+		helper.accTrie.MustUpdate([]byte("acc-1"), val) // 0x9250573b9c18c664139f3b6a7a8081b7d8f8916a8fcc5d94feec6c29f5fd4e9e
 
 		// Identical in the snap
 		key := hashData([]byte("acc-1"))
@@ -615,8 +615,8 @@ func TestGenerateWithExtraBeforeAndAfter(t *testing.T) {
 	{
 		acc := &Account{Balance: big.NewInt(1), Root: types.EmptyRootHash.Bytes(), CodeHash: types.EmptyCodeHash.Bytes()}
 		val, _ := rlp.EncodeToBytes(acc)
-		helper.accTrie.Update(common.HexToHash("0x03").Bytes(), val)
-		helper.accTrie.Update(common.HexToHash("0x07").Bytes(), val)
+		helper.accTrie.MustUpdate(common.HexToHash("0x03").Bytes(), val)
+		helper.accTrie.MustUpdate(common.HexToHash("0x07").Bytes(), val)
 
 		rawdb.WriteAccountSnapshot(helper.diskdb, common.HexToHash("0x01"), val)
 		rawdb.WriteAccountSnapshot(helper.diskdb, common.HexToHash("0x02"), val)
@@ -652,7 +652,7 @@ func TestGenerateWithMalformedSnapdata(t *testing.T) {
 	{
 		acc := &Account{Balance: big.NewInt(1), Root: types.EmptyRootHash.Bytes(), CodeHash: types.EmptyCodeHash.Bytes()}
 		val, _ := rlp.EncodeToBytes(acc)
-		helper.accTrie.Update(common.HexToHash("0x03").Bytes(), val)
+		helper.accTrie.MustUpdate(common.HexToHash("0x03").Bytes(), val)
 
 		junk := make([]byte, 100)
 		copy(junk, []byte{0xde, 0xad})

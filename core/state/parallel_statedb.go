@@ -36,7 +36,7 @@ func (self *StateDB) justGetStateObject(addr common.Address) (stateObject *state
 	//	log.Trace("Get parallelLocker overtime", "address", addr.String(), "duration", time.Since(start))
 	//}
 	//start = time.Now()
-	data, err := self.trie.TryGetAccount(addr)
+	data, err := self.trie.GetAccount(addr)
 	//if start.Add(20 * time.Millisecond).Before(time.Now()) {
 	//	log.Trace("Trie tryGet overtime", "address", addr.String(), "duration", time.Since(start))
 	//}

@@ -238,7 +238,7 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 			s.db.setError(err)
 			return []byte{}
 		}
-		enc, err = tr.TryGetStorage(s.address, key[:])
+		enc, err = tr.GetStorage(s.address, key[:])
 	}
 	value := make([]byte, 0)
 	if len(enc) > 0 {
@@ -353,7 +353,7 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 
 		var v []byte
 		if len(value) == 0 {
-			if err := tr.TryDeleteStorage(s.address, []byte(key)); err != nil {
+			if err := tr.DeleteStorage(s.address, []byte(key)); err != nil {
 				s.db.setError(err)
 				return nil, err
 			}
@@ -361,7 +361,7 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ = rlp.EncodeToBytes(value[:])
-			if err := tr.TryUpdateStorage(s.address, []byte(key), v); err != nil {
+			if err := tr.UpdateStorage(s.address, []byte(key), v); err != nil {
 				s.db.setError(err)
 				return nil, err
 			}
