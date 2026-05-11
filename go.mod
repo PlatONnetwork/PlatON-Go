@@ -56,6 +56,7 @@ require (
 	golang.org/x/time v0.5.0
 	golang.org/x/tools v0.29.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gotest.tools v2.2.0+incompatible
 )
