@@ -817,7 +817,6 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 			// Swap out the noop logger to the standard tracer
 			writer = bufio.NewWriter(dump)
 			vmConf = vm.Config{
-				Debug:  true,
 				Tracer: logger.NewJSONLogger(&logConfig, writer),
 			}
 		}
@@ -990,7 +989,7 @@ func (api *API) traceTx(ctx context.Context, message core.Message, txctx *Contex
 			return nil, err
 		}
 	}
-	vmenv := vm.NewEVM(vmctx, txContext, archiveDB, statedb, api.backend.ChainConfig(), vm.Config{Debug: true, Tracer: tracer, NoBaseFee: true})
+	vmenv := vm.NewEVM(vmctx, txContext, archiveDB, statedb, api.backend.ChainConfig(), vm.Config{Tracer: tracer, NoBaseFee: true})
 
 	// Define a meaningful timeout of a single transaction trace
 	if config.Timeout != nil {

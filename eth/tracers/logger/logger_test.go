@@ -61,7 +61,7 @@ func (*dummyStatedb) SetTransientState(_ common.Address, _ []byte, _ []byte) {}
 func TestStoreCapture(t *testing.T) {
 	var (
 		logger   = NewStructLogger(nil)
-		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: logger})
+		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Tracer: logger})
 		contract = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}
@@ -121,7 +121,7 @@ func TestNewWasmLogger(t *testing.T) {
 		return []byte(r.Msg)
 	}))))
 
-	wasmLog := vm.NewWasmLogger(vm.Config{Debug: true}, logger)
+	wasmLog := vm.NewWasmLogger(vm.Config{}, logger)
 
 	wasmLog.Info("hello")
 	wasmLog.Flush()

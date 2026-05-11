@@ -61,7 +61,7 @@ func NewWasmLogger(cfg Config, root log.Logger) *WasmLogger {
 
 	level := log.LvlInfo
 
-	if cfg.Debug {
+	if cfg.Tracer != nil {
 		level = log.LvlDebug
 	}
 	if log.GetWasmLogLevel() >= log.LvlDebug {

@@ -1320,7 +1320,6 @@ func TestDeleteRecreateAccount(t *testing.T) {
 	diskdb := rawdb.NewMemoryDatabase()
 	gspec.MustCommit(diskdb)
 	chain, err := NewBlockChain(diskdb, nil, params.TestChainConfig, engine, vm.Config{
-		Debug:  true,
 		Tracer: vm.NewJSONLogger(nil, os.Stdout),
 	}, nil)
 	if err != nil {
@@ -1493,7 +1492,6 @@ func TestDeleteRecreateSlotsAcrossManyBlocks(t *testing.T) {
 	diskdb := rawdb.NewMemoryDatabase()
 	gspec.MustCommit(diskdb)
 	chain, err := NewBlockChain(diskdb, nil, params.TestChainConfig, engine, vm.Config{
-		//Debug:  true,
 		//Tracer: vm.NewJSONLogger(nil, os.Stdout),
 	}, nil)
 	if err != nil {
@@ -1627,7 +1625,6 @@ func TestInitThenFailCreateContract(t *testing.T) {
 	diskdb := rawdb.NewMemoryDatabase()
 	gspec.MustCommit(diskdb)
 	chain, err := NewBlockChain(diskdb, nil, params.TestChainConfig, engine, vm.Config{
-		//Debug:  true,
 		//Tracer: vm.NewJSONLogger(nil, os.Stdout),
 	}, nil)
 	if err != nil {

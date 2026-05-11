@@ -147,7 +147,7 @@ func testCallTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 			msg, err := tx.AsMessage(signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)
@@ -250,7 +250,7 @@ func benchTracer(tracerName string, test *callTracerTest, b *testing.B) {
 		if err != nil {
 			b.Fatalf("failed to create call tracer: %v", err)
 		}
-		evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+		evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 		snap := statedb.Snapshot()
 		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(tx.Gas()))
 		if _, err = st.TransitionDb(); err != nil {
@@ -307,7 +307,7 @@ func TestInternals(t *testing.T) {
 			},
 			tracer: mkTracer("callTracer", nil),
 			// PlatON: addresses JSON-marshal as bech32; top-level gas is post-intrinsic (50000-21000=0x7148).
-			want:   `{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7","gas":"0x7148","gasUsed":"0x54d8","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","calls":[{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","gas":"0x6cbf","gasUsed":"0x0","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8l6c4vgy","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`,
+			want: `{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqplhdujaqu7","gas":"0x7148","gasUsed":"0x54d8","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","input":"0x","calls":[{"from":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqr02m0h0ekanzd","gas":"0x6cbf","gasUsed":"0x0","to":"lat1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq8l6c4vgy","input":"0x","value":"0x0","type":"CALL"}],"value":"0x0","type":"CALL"}`,
 		},
 		{
 			name:   "Stack depletion in LOG0",
@@ -357,7 +357,7 @@ func TestInternals(t *testing.T) {
 					Balance: big.NewInt(500000000000000),
 				},
 			}, false)
-		evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Debug: true, Tracer: tc.tracer})
+		evm := vm.NewEVM(context, txContext, nil, statedb, params.MainnetChainConfig, vm.Config{Tracer: tc.tracer})
 		// types.Message implements core.Message (PlatON uses this instead of a separate core.Message struct).
 		msg := types.NewMessage(origin, &to, 0, big.NewInt(0), 50000, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, false)
 		st := core.NewStateTransition(evm, msg, new(core.GasPool).AddGas(msg.Gas()))
