@@ -884,7 +884,7 @@ func (bc *BlockChain) getBlock(hash common.Hash, number uint64) *types.Block {
 	return block
 }
 
-// stop stops the blockchain service. If any imports are currently in progress
+// stopWithoutSaving stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt. This method stops all running
 // goroutines, but does not do all the post-stop work of persisting data.
 // OBS! It is generally recommended to use the Stop method!
