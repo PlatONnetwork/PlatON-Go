@@ -657,7 +657,8 @@ func (f *BlockFetcher) loop() {
 							}
 						}
 						if txnHash == (common.Hash{}) {
-							txnHash = types.DeriveSha(types.Transactions(task.transactions[i]), new(trie.Trie))
+							//txnHash = types.DeriveSha(types.Transactions(task.transactions[i]), new(trie.Trie))
+							txnHash = types.DeriveSha(types.Transactions(task.transactions[i]), trie.NewStackTrie(nil))
 						}
 						if txnHash != announce.header.TxHash {
 							continue

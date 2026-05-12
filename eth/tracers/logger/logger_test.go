@@ -48,7 +48,11 @@ func (d *dummyContractRef) SetNonce(uint64)            {}
 func (d *dummyContractRef) Balance() *big.Int          { return new(big.Int) }
 
 type dummyStatedb struct {
-	mock.MockStateDB
+	*mock.MockStateDB
+}
+
+func newDummyStatedb() *dummyStatedb {
+	return &dummyStatedb{MockStateDB: mock.NewMockStateDB()}
 }
 
 func (*dummyStatedb) GetRefund() uint64                             { return 1337 }
@@ -61,10 +65,13 @@ func (*dummyStatedb) SetTransientState(_ common.Address, _ []byte, _ []byte) {}
 func TestStoreCapture(t *testing.T) {
 	var (
 		logger   = NewStructLogger(nil)
-		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Tracer: logger})
+		statedb  = newDummyStatedb()
+		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, statedb, params.TestChainConfig, vm.Config{Tracer: logger})
 		contract = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}
+	// EIP-2929: contract address must be warm before first cold SSTORE on that account.
+	statedb.AddAddressToAccessList(contract.Address())
 	var index common.Hash
 	logger.CaptureStart(env, common.Address{}, contract.Address(), false, nil, 0, nil)
 	_, err := env.Interpreter().Run(contract, []byte{}, false)
