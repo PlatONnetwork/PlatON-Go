@@ -1821,6 +1821,7 @@ func TestEIP1559Transition(t *testing.T) {
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}
+	chain.currentFullBlock.Store(blocks[len(blocks)-1])
 	chain.currentBlock.Store(blocks[len(blocks)-1].Header())
 
 	block := chain.GetBlockByNumber(1)
@@ -1866,6 +1867,7 @@ func TestEIP1559Transition(t *testing.T) {
 	if n, err := chain.InsertChain(blocks); err != nil {
 		t.Fatalf("block %d: failed to insert into chain: %v", n, err)
 	}
+	chain.currentFullBlock.Store(blocks[len(blocks)-1])
 	chain.currentBlock.Store(blocks[len(blocks)-1].Header())
 
 	block = chain.GetBlockByNumber(2)
