@@ -275,7 +275,11 @@ func accountUpdate(ctx *cli.Context) error {
 		utils.Fatalf("No accounts specified to update")
 	}
 	stack, _ := makeConfigNode(ctx)
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
+	if len(backends) == 0 {
+		utils.Fatalf("Keystore is not available")
+	}
+	ks := backends[0].(*keystore.KeyStore)
 
 	for _, addr := range ctx.Args().Slice() {
 		account, oldPassword := unlockAccount(ks, addr, 0, nil)
@@ -299,7 +303,11 @@ func accountImport(ctx *cli.Context) error {
 	stack, _ := makeConfigNode(ctx)
 	passphrase := utils.GetPassPhraseWithList("Your new account is locked with a password. Please give a password. Do not forget this password.", true, 0, utils.MakePasswordList(ctx))
 
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
+	if len(backends) == 0 {
+		utils.Fatalf("Keystore is not available")
+	}
+	ks := backends[0].(*keystore.KeyStore)
 	acct, err := ks.ImportECDSA(key, passphrase)
 	if err != nil {
 		utils.Fatalf("Could not create the account: %v", err)

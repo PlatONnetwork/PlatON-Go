@@ -17,10 +17,10 @@
 package network
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"strings"
 	"sync"

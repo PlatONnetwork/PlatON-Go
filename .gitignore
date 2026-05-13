@@ -46,6 +46,7 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+logs/
 
 # for life vm
 .idea/

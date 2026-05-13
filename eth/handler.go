@@ -160,13 +160,13 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		// * the last snap sync is not finished while user specifies a full sync this
 		//   time. But we don't have any recent state for full sync.
 		// In these cases however it's safe to reenable snap sync.
-		fullBlock, fastBlock := h.chain.CurrentBlock(), h.chain.CurrentFastBlock()
-		if fullBlock.NumberU64() == 0 && fastBlock.NumberU64() > 0 {
+		fullBlock, snapBlock := h.chain.CurrentBlock(), h.chain.CurrentSnapBlock()
+		if fullBlock.Number.Uint64() == 0 && snapBlock.Number.Uint64() > 0 {
 			h.snapSync = uint32(1)
 			log.Warn("Switch sync mode from full sync to snap sync")
 		}
 	} else {
-		if h.chain.CurrentBlock().NumberU64() > 0 {
+		if h.chain.CurrentBlock().Number.Uint64() > 0 {
 			// Print warning log if database is not empty to run snap sync.
 			log.Warn("Switch sync mode from snap sync to full sync")
 		} else {

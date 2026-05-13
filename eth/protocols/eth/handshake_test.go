@@ -49,15 +49,15 @@ func testHandshake(t *testing.T, protocol uint) {
 			want: errNoStatusMsg,
 		},
 		{
-			code: StatusMsg, data: StatusPacket{10, 1, head.Number(), head.Hash(), genesis.Hash()},
+			code: StatusMsg, data: StatusPacket{10, 1, head.Number, head.Hash(), genesis.Hash()},
 			want: errProtocolVersionMismatch,
 		},
 		{
-			code: StatusMsg, data: StatusPacket{uint32(protocol), 999, head.Number(), head.Hash(), genesis.Hash()},
+			code: StatusMsg, data: StatusPacket{uint32(protocol), 999, head.Number, head.Hash(), genesis.Hash()},
 			want: errNetworkIDMismatch,
 		},
 		{
-			code: StatusMsg, data: StatusPacket{uint32(protocol), 1, head.Number(), head.Hash(), common.Hash{3}},
+			code: StatusMsg, data: StatusPacket{uint32(protocol), 1, head.Number, head.Hash(), common.Hash{3}},
 			want: errGenesisMismatch,
 		},
 	}
@@ -75,7 +75,7 @@ func testHandshake(t *testing.T, protocol uint) {
 		// Send the junk test with one peer, check the handshake failure
 		go p2p.Send(app, test.code, test.data)
 
-		err := peer.Handshake(1, head.Number(), head.Hash(), genesis.Hash(), nil)
+		err := peer.Handshake(1, head.Number, head.Hash(), genesis.Hash(), nil)
 		if err == nil {
 			t.Errorf("test %d: protocol returned nil error, want %q", i, test.want)
 		} else if !errors.Is(err, test.want) {

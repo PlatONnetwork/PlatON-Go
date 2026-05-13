@@ -5,6 +5,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+	"sync"
+
+	"github.com/VictoriaMetrics/fastcache"
+	lru "github.com/hashicorp/golang-lru"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -12,13 +21,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/VictoriaMetrics/fastcache"
-	lru "github.com/hashicorp/golang-lru"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/memdb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
-	"math/big"
-	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -218,7 +220,7 @@ func (a *archiveDB) init(walk func(slice *util.Range, f func(num *big.Int, iter 
 			for iter.Next() {
 				total += 1
 				size += len(iter.Key()) + len(iter.Value())
-				a.trie.Update(common.CopyBytes(iter.Key()), common.CopyBytes(iter.Value()))
+				a.trie.MustUpdate(common.CopyBytes(iter.Key()), common.CopyBytes(iter.Value()))
 			}
 			root, set, err := a.trie.Commit(false)
 			if err != nil {
@@ -270,9 +272,9 @@ func (a *archiveDB) CommitBlock(block *BlockData) error {
 			a.SetVrfNonce(batch, block.Number.Uint64(), &VRFNonce{MaxValidatorNum: uint32(len(nonces)), Nonce: nonces[len(nonces)-1]})
 		} else {
 			if itr.Value() != nil {
-				a.trie.Update(common.CopyBytes(itr.Key()), common.CopyBytes(itr.Value()))
+				a.trie.MustUpdate(common.CopyBytes(itr.Key()), common.CopyBytes(itr.Value()))
 			} else {
-				a.trie.Delete(common.CopyBytes(itr.Key()))
+				a.trie.MustDelete(common.CopyBytes(itr.Key()))
 			}
 		}
 		total++

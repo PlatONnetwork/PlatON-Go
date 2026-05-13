@@ -88,7 +88,7 @@ func withTrace(t *testing.T, gasLimit uint64, test func(vm.Config) error) {
 		return
 	}
 	tracer := logger.NewStructLogger(nil)
-	err2 := test(vm.Config{Debug: true, Tracer: tracer})
+	err2 := test(vm.Config{Tracer: tracer})
 	if !reflect.DeepEqual(err, err2) {
 		t.Errorf("different error for second run: %v", err2)
 	}

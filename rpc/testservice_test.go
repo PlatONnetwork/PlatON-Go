@@ -1,4 +1,4 @@
-// Copyright 2018 The go-ethereum Authors
+// Copyright 2019 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -77,6 +77,10 @@ func (o *MarshalErrObj) MarshalText() ([]byte, error) {
 }
 
 func (s *testService) NoArgsRets() {}
+
+func (s *testService) Null() any {
+	return nil
+}
 
 func (s *testService) Echo(str string, i int, args *echoArgs) echoResult {
 	return echoResult{str, i, args}

@@ -64,7 +64,7 @@ func testCtx() *vmContext {
 
 func runTrace(tracer tracers.Tracer, vmctx *vmContext, chaincfg *params.ChainConfig, contractCode []byte) (json.RawMessage, error) {
 	var (
-		env             = vm.NewEVM(vmctx.blockCtx, vmctx.txCtx, nil, &dummyStatedb{}, chaincfg, vm.Config{Debug: true, Tracer: tracer})
+		env             = vm.NewEVM(vmctx.blockCtx, vmctx.txCtx, nil, &dummyStatedb{}, chaincfg, vm.Config{Tracer: tracer})
 		gasLimit uint64 = 31000
 		startGas uint64 = 10000
 		value           = big.NewInt(0)
@@ -152,12 +152,12 @@ func TestTracer(t *testing.T) {
 		}, {
 			code:     "{res: [], step: function(log) { if (log.op.toString() === 'STOP') { this.res.push(log.memory.slice(5, 1025 * 1024)) } }, fault: function() {}, result: function() { return this.res }}",
 			want:     "",
-			fail:     "tracer reached limit for padding memory slice: end 1049600, memorySize 32 at step (<eval>:1:83(20))    in server-side tracer function 'step'",
+			fail:     "reached limit for padding memory slice: 1049568 at step (<eval>:1:83(20))    in server-side tracer function 'step'",
 			contract: []byte{byte(vm.PUSH1), byte(0xff), byte(vm.PUSH1), byte(0x00), byte(vm.MSTORE8), byte(vm.STOP)},
 		},
 	} {
 		if have, err := execTracer(tt.code, tt.contract); tt.want != string(have) || tt.fail != err {
-			t.Errorf("testcase %d: expected return value to be '%s' got '%s', error to be '%s' got '%s'\n\tcode: %v", i, tt.want, string(have), tt.fail, err, tt.code)
+			t.Errorf("testcase %d: expected return value to be \n'%s'\n\tgot\n'%s'\nerror to be\n'%s'\n\tgot\n'%s'\n\tcode: %v", i, tt.want, string(have), tt.fail, err, tt.code)
 		}
 	}
 }
@@ -182,7 +182,7 @@ func TestHaltBetweenSteps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	env := vm.NewEVM(vm.BlockContext{BlockNumber: big.NewInt(1)}, vm.TxContext{GasPrice: big.NewInt(1)}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+	env := vm.NewEVM(vm.BlockContext{BlockNumber: big.NewInt(1)}, vm.TxContext{GasPrice: big.NewInt(1)}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Tracer: tracer})
 	scope := &vm.ScopeContext{
 		Contract: vm.NewContract(&account{}, &account{}, big.NewInt(0), 0),
 	}
@@ -206,7 +206,7 @@ func TestNoStepExec(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		env := vm.NewEVM(vm.BlockContext{BlockNumber: big.NewInt(1)}, vm.TxContext{GasPrice: big.NewInt(100)}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: tracer})
+		env := vm.NewEVM(vm.BlockContext{BlockNumber: big.NewInt(1)}, vm.TxContext{GasPrice: big.NewInt(100)}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Tracer: tracer})
 		tracer.CaptureStart(env, common.Address{}, common.Address{}, false, []byte{}, 1000, big.NewInt(0))
 		tracer.CaptureEnd(nil, 0, nil)
 		ret, err := tracer.GetResult()
@@ -231,10 +231,25 @@ func TestNoStepExec(t *testing.T) {
 }
 
 func TestIsPrecompile(t *testing.T) {
-	chaincfg := params.TestChainConfig
-	chaincfg.EinsteinBlock = big.NewInt(100)
-	chaincfg.HubbleBlock = big.NewInt(200)
-	chaincfg.PauliBlock = big.NewInt(300)
+	// PlatON Rules use GenesisVersion OR fork block height. TestChainConfig sets
+	// GenesisVersion to CodeVersion(), which activates all forks at every height;
+	// use GenesisVersion 0 so Einstein/Hubble boundaries match the block numbers below.
+	cfg := &params.ChainConfig{
+		ChainID:         params.TestChainConfig.ChainID,
+		PIP7ChainID:     params.TestChainConfig.PIP7ChainID,
+		AddressHRP:      params.TestChainConfig.AddressHRP,
+		EmptyBlock:      params.TestChainConfig.EmptyBlock,
+		EIP155Block:     params.TestChainConfig.EIP155Block,
+		CopernicusBlock: params.TestChainConfig.CopernicusBlock,
+		NewtonBlock:     params.TestChainConfig.NewtonBlock,
+		GenesisVersion:  0,
+		EinsteinBlock:   big.NewInt(100),
+		HubbleBlock:     big.NewInt(200),
+		PauliBlock:      big.NewInt(300),
+		DiracBlock:      params.TestChainConfig.DiracBlock,
+		Cbft:            params.TestChainConfig.Cbft,
+	}
+
 	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
 	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	if err != nil {
@@ -242,7 +257,7 @@ func TestIsPrecompile(t *testing.T) {
 	}
 
 	blockCtx := vm.BlockContext{BlockNumber: big.NewInt(150)}
-	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
+	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, cfg, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -252,9 +267,7 @@ func TestIsPrecompile(t *testing.T) {
 
 	tracer, _ = newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	blockCtx = vm.BlockContext{BlockNumber: big.NewInt(250)}
-	chaincfg = params.TestChainConfig
-	chaincfg.HubbleBlock = big.NewInt(200)
-	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
+	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, cfg, nil)
 	if err != nil {
 		t.Error(err)
 	}

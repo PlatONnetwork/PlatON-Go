@@ -25,10 +25,11 @@ import (
 
 	"github.com/VictoriaMetrics/fastcache"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -36,12 +37,6 @@ import (
 )
 
 var (
-	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-
-	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
-
 	// accountCheckRange is the upper limit of the number of accounts involved in
 	// each range check. This is a value estimated based on experience. If this
 	// range is too large, the failure rate of range proof will increase. Otherwise,
@@ -237,7 +232,7 @@ func (dl *diskLayer) proveRange(ctx *generatorContext, trieId *trie.ID, prefix [
 	if origin == nil && !diskMore {
 		stackTr := trie.NewStackTrie(nil)
 		for i, key := range keys {
-			stackTr.TryUpdate(key, vals[i])
+			stackTr.Update(key, vals[i])
 		}
 		if gotRoot := stackTr.Hash(); gotRoot != root {
 			return &proofResult{
@@ -593,10 +588,10 @@ func generateAccounts(ctx *generatorContext, dl *diskLayer, accMarker []byte) er
 		if accMarker == nil || !bytes.Equal(account[:], accMarker) {
 			dataLen := len(val) // Approximate size, saves us a round of RLP-encoding
 			if !write {
-				if bytes.Equal(acc.CodeHash, emptyCode[:]) {
+				if bytes.Equal(acc.CodeHash, types.EmptyCodeHash[:]) {
 					dataLen -= 32
 				}
-				if acc.Root == emptyRoot {
+				if acc.Root == types.EmptyRootHash {
 					dataLen -= 32
 				}
 				snapRecoveredAccountMeter.Mark(1)
@@ -623,7 +618,7 @@ func generateAccounts(ctx *generatorContext, dl *diskLayer, accMarker []byte) er
 
 		// If the iterated account is the contract, create a further loop to
 		// verify or regenerate the contract storage.
-		if acc.Root == emptyRoot {
+		if acc.Root == types.EmptyRootHash {
 			ctx.removeStorageAt(account)
 		} else {
 			var storeMarker []byte

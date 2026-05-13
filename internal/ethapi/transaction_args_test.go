@@ -255,7 +255,7 @@ func (b *backendMock) ChainConfig() *params.ChainConfig { return b.config }
 
 // Other methods needed to implement Backend interface.
 func (b *backendMock) SyncProgress() platon.SyncProgress { return platon.SyncProgress{} }
-func (b *backendMock) FeeHistory(ctx context.Context, blockCount int, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
+func (b *backendMock) FeeHistory(ctx context.Context, blockCount uint64, lastBlock rpc.BlockNumber, rewardPercentiles []float64) (*big.Int, [][]*big.Int, []*big.Int, []float64, error) {
 	return nil, nil, nil, nil, nil
 }
 func (b *backendMock) ChainDb() ethdb.Database           { return nil }
@@ -275,7 +275,7 @@ func (b *backendMock) HeaderByHash(ctx context.Context, hash common.Hash) (*type
 func (b *backendMock) HeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*types.Header, error) {
 	return nil, nil
 }
-func (b *backendMock) CurrentBlock() *types.Block { return nil }
+func (b *backendMock) CurrentBlock() *types.Header { return nil }
 func (b *backendMock) BlockByNumber(ctx context.Context, number rpc.BlockNumber) (*types.Block, error) {
 	return nil, nil
 }

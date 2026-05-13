@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -143,7 +144,9 @@ func (st *StackTrie) unmarshalBinary(r io.Reader) error {
 		Val      []byte
 		Key      []byte
 	}
-	gob.NewDecoder(r).Decode(&dec)
+	if err := gob.NewDecoder(r).Decode(&dec); err != nil {
+		return err
+	}
 	st.owner = dec.Owner
 	st.nodeType = dec.NodeType
 	st.val = dec.Val
@@ -157,7 +160,9 @@ func (st *StackTrie) unmarshalBinary(r io.Reader) error {
 			continue
 		}
 		var child StackTrie
-		child.unmarshalBinary(r)
+		if err := child.unmarshalBinary(r); err != nil {
+			return err
+		}
 		st.children[i] = &child
 	}
 	return nil
@@ -197,8 +202,8 @@ const (
 	hashedNode
 )
 
-// TryUpdate inserts a (key, value) pair into the stack trie
-func (st *StackTrie) TryUpdate(key, value []byte) error {
+// Update inserts a (key, value) pair into the stack trie.
+func (st *StackTrie) Update(key, value []byte) error {
 	k := keybytesToHex(key)
 	if len(value) == 0 {
 		panic("deletion not supported")
@@ -207,8 +212,10 @@ func (st *StackTrie) TryUpdate(key, value []byte) error {
 	return nil
 }
 
-func (st *StackTrie) Update(key, value []byte) {
-	if err := st.TryUpdate(key, value); err != nil {
+// MustUpdate is a wrapper of Update and will omit any encountered error but
+// just print out an error message.
+func (st *StackTrie) MustUpdate(key, value []byte) {
+	if err := st.Update(key, value); err != nil {
 		log.Error("Unhandled trie error in StackTrie.Update", "err", err)
 	}
 }
@@ -407,7 +414,7 @@ func (st *StackTrie) hashRec(hasher *hasher, path []byte) {
 		return
 
 	case emptyNode:
-		st.val = emptyRoot.Bytes()
+		st.val = types.EmptyRootHash.Bytes()
 		st.key = st.key[:0]
 		st.nodeType = hashedNode
 		return

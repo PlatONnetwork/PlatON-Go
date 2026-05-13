@@ -142,7 +142,7 @@ func newTestHandlerWithBlocks(blocks int) *testHandler {
 
 	chain, _ := core.NewBlockChain(db, nil, gspec, nil, engine, vm.Config{}, nil, nil)
 
-	engine.InsertChain(chain.CurrentBlock())
+	engine.InsertChain(chain.CurrentFullBlock())
 	bs, _ := core.GenerateChain(params.TestChainConfig, chain.Genesis(), engine, db, blocks, nil)
 	if _, err := chain.InsertChain(bs); err != nil {
 		panic(err)

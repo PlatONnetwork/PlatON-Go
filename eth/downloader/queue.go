@@ -63,7 +63,7 @@ type fetchRequest struct {
 // fetchResult is a struct collecting partial results from data fetchers until
 // all outstanding pieces complete and the result as a whole can be processed.
 type fetchResult struct {
-	pending int32 // Flag telling what deliveries are outstanding
+	pending atomic.Int32 // Flag telling what deliveries are outstanding
 
 	Header       *types.Header
 	Transactions types.Transactions
@@ -76,39 +76,42 @@ func newFetchResult(header *types.Header, fastSync bool) *fetchResult {
 	item := &fetchResult{
 		Header: header,
 	}
-	item.pending |= (1 << bodyType) // PlatON needs to deliver ExtraData
+	item.pending.Store(item.pending.Load() | (1 << bodyType)) // PlatON needs to deliver ExtraData
 	//if !header.EmptyBody() {
 	//	item.pending |= (1 << bodyType)
 	//}
 
+	if header.EmptyBody() && header.WithdrawalsHash != nil {
+		item.Withdrawals = make(types.Withdrawals, 0)
+	}
 	if fastSync && !header.EmptyReceipts() {
-		item.pending |= (1 << receiptType) // The receipt is not synchronized in PlatON SnapSync mode, so comment here
+		item.pending.Store(item.pending.Load() | (1 << receiptType)) // The receipt is not synchronized in PlatON SnapSync mode, so comment here
 	}
 	return item
 }
 
 // SetBodyDone flags the body as finished.
 func (f *fetchResult) SetBodyDone() {
-	if v := atomic.LoadInt32(&f.pending); (v & (1 << bodyType)) != 0 {
-		atomic.AddInt32(&f.pending, -1)
+	if v := f.pending.Load(); (v & (1 << bodyType)) != 0 {
+		f.pending.Add(-1)
 	}
 }
 
 // AllDone checks if item is done.
 func (f *fetchResult) AllDone() bool {
-	return atomic.LoadInt32(&f.pending) == 0
+	return f.pending.Load() == 0
 }
 
 // SetReceiptsDone flags the receipts as finished.
 func (f *fetchResult) SetReceiptsDone() {
-	if v := atomic.LoadInt32(&f.pending); (v & (1 << receiptType)) != 0 {
-		atomic.AddInt32(&f.pending, -2)
+	if v := f.pending.Load(); (v & (1 << receiptType)) != 0 {
+		f.pending.Add(-2)
 	}
 }
 
 // Done checks if the given type is done already
 func (f *fetchResult) Done(kind uint) bool {
-	v := atomic.LoadInt32(&f.pending)
+	v := f.pending.Load()
 	return v&(1<<kind) == 0
 }
 
@@ -146,7 +149,7 @@ type queue struct {
 	active *sync.Cond
 	closed bool
 
-	lastStatLog time.Time
+	logTime time.Time // Time instance when status was last reported
 
 	decodeExtra decodeExtraFn
 }
@@ -392,11 +395,12 @@ func (q *queue) Results(block bool) []*fetchResult {
 		}
 	}
 	// Log some info at certain times
-	if time.Since(q.lastStatLog) > 60*time.Second {
-		q.lastStatLog = time.Now()
+	if time.Since(q.logTime) >= 60*time.Second {
+		q.logTime = time.Now()
+
 		info := q.Stats()
 		info = append(info, "throttle", throttleThreshold)
-		log.Info("Downloader queue stats", info...)
+		log.Debug("Downloader queue stats", info...)
 	}
 	return results
 }
@@ -508,6 +512,7 @@ func (q *queue) reserveHeaders(p *peerConnection, count int, taskPool map[common
 		// the task queue will pop items in order, so the highest prio block
 		// is also the lowest block number.
 		header, _ := taskQueue.Peek()
+
 		// we can ask the resultcache if this header is within the
 		// "prioritized" segment of blocks. If it is not, we need to throttle
 
@@ -793,14 +798,17 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			return errInvalidBody
 		}
 		if header.WithdrawalsHash == nil {
-			// discard any withdrawals if we don't have a withdrawal hash set
-			withdrawalLists[index] = nil
-		} else if *header.WithdrawalsHash == types.EmptyRootHash && withdrawalLists[index] == nil {
-			// if the withdrawal hash is the emptyRootHash,
-			// we expect withdrawals to be [] instead of nil
-			withdrawalLists[index] = make([]*types.Withdrawal, 0)
-		} else if withdrawalListHashes[index] != *header.WithdrawalsHash {
-			return errInvalidBody
+			// nil hash means that withdrawals should not be present in body
+			if withdrawalLists[index] != nil {
+				return errInvalidBody
+			}
+		} else { // non-nil hash: body must have withdrawals
+			if withdrawalLists[index] == nil {
+				return errInvalidBody
+			}
+			if withdrawalListHashes[index] != *header.WithdrawalsHash {
+				return errInvalidBody
+			}
 		}
 		return nil
 	}

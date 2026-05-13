@@ -29,10 +29,11 @@ func TestMeterDecay(t *testing.T) {
 	defer ma.ticker.Stop()
 	m := newStandardMeter()
 	ma.meters[m] = struct{}{}
-	go ma.tick()
 	m.Mark(1)
+	ma.tickMeters()
 	rateMean := m.RateMean()
 	time.Sleep(100 * time.Millisecond)
+	ma.tickMeters()
 	if m.RateMean() >= rateMean {
 		t.Error("m.RateMean() didn't decrease")
 	}

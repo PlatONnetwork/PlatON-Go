@@ -30,6 +30,25 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
+// istanbulGasTableChainConfig keeps Rules below Pauli/Dirac and genesis below 1.5.0 so
+// NewEVMInterpreter picks istanbulInstructionSet (EIP-2200 SSTORE without EIP-2929),
+// matching the expected gas/refund vectors in eip2200Tests.
+var istanbulGasTableChainConfig = &params.ChainConfig{
+	ChainID:         big.NewInt(1337),
+	PIP7ChainID:     params.PrivatePIP7ChainID,
+	AddressHRP:      "lat",
+	EmptyBlock:      "",
+	EIP155Block:     big.NewInt(0),
+	CopernicusBlock: big.NewInt(0),
+	NewtonBlock:     big.NewInt(0),
+	EinsteinBlock:   big.NewInt(0),
+	HubbleBlock:     big.NewInt(0),
+	PauliBlock:      nil,
+	DiracBlock:      nil,
+	Cbft:            &params.CbftConfig{Period: 3},
+	GenesisVersion:  params.FORKVERSION_1_4_0,
+}
+
 func TestMemoryGasCost(t *testing.T) {
 	tests := []struct {
 		size     uint64
@@ -90,11 +109,12 @@ func TestEIP2200(t *testing.T) {
 		statedb.Finalise(true) // Push the state into the "original" slot
 
 		vmctx := BlockContext{
+			BlockNumber: big.NewInt(0),
 			CanTransfer: func(StateDB, common.Address, *big.Int) bool { return true },
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 			Ctx:         context.Background(),
 		}
-		vmenv := NewEVM(vmctx, TxContext{}, nil, statedb, params.AllEthashProtocolChanges, Config{})
+		vmenv := NewEVM(vmctx, TxContext{}, nil, statedb, istanbulGasTableChainConfig, Config{})
 
 		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {

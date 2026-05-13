@@ -37,7 +37,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
@@ -46,11 +45,6 @@ type revision struct {
 	id           int
 	journalIndex int
 }
-
-var (
-	// emptyRoot is the known root hash of an empty trie.
-	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-)
 
 // StateDB structs within the ethereum protocol are used to store anything
 // within the merkle trie. StateDBs take care of caching and storing
@@ -79,8 +73,10 @@ type StateDB struct {
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
-	// during a database read is memoized here and will eventually be returned
-	// by StateDB.Commit.
+	// during a database read is memoized here and will eventually be
+	// returned by StateDB.Commit. Notably, this error is also shared
+	// by all cached state objects in case the database failure occurs
+	// when accessing state of accounts.
 	dbErr error
 
 	// The refund counter, also used by state transitioning.
@@ -221,6 +217,7 @@ func (s *StateDB) setError(err error) {
 	}
 }
 
+// Error returns the memorized database failure occurred earlier.
 func (s *StateDB) Error() error {
 	return s.dbErr
 }
@@ -581,13 +578,11 @@ func (s *StateDB) SetTransientState(addr common.Address, key, value []byte) {
 	if bytes.Equal(prev, value) {
 		return
 	}
-
 	s.journal.append(transientStorageChange{
 		account:  &addr,
 		key:      key,
 		prevalue: prev,
 	})
-
 	s.setTransientState(addr, key, value)
 }
 
@@ -613,7 +608,7 @@ func (s *StateDB) updateStateObject(obj *stateObject) {
 		defer func(start time.Time) { s.AccountUpdates += time.Since(start) }(time.Now())
 	}
 	addr := obj.Address()
-	if err := s.trie.TryUpdateAccount(addr, &obj.data); err != nil {
+	if err := s.trie.UpdateAccount(addr, &obj.data); err != nil {
 		s.setError(fmt.Errorf("updateStateObject (%x) error: %v", addr[:], err))
 	}
 
@@ -635,7 +630,7 @@ func (s *StateDB) deleteStateObject(obj *stateObject) {
 
 	// Delete the account from the trie
 	addr := obj.Address()
-	if err := s.trie.TryDeleteAccount(addr); err != nil {
+	if err := s.trie.DeleteAccount(addr); err != nil {
 		s.setError(fmt.Errorf("deleteStateObject (%x) error: %v", addr[:], err))
 	}
 }
@@ -829,30 +824,26 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 				StorageKeyPrefix: acc.StorageKeyPrefix,
 			}
 			if len(data.CodeHash) == 0 {
-				data.CodeHash = emptyCodeHash
+				data.CodeHash = types.EmptyCodeHash.Bytes()
 			}
 			if data.Root == (common.Hash{}) {
-				data.Root = emptyRoot
+				data.Root = types.EmptyRootHash
 			}
 		}
 	}
 	// If snapshot unavailable or reading from it failed, load from the database
 	if data == nil {
 		start := time.Now()
-		enc, err := s.trie.TryGet(addr[:])
+		var err error
+		data, err = s.trie.GetAccount(addr)
 		if metrics.EnabledExpensive {
 			s.AccountReads += time.Since(start)
 		}
 		if err != nil {
-			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %v", addr.Bytes(), err))
+			s.setError(fmt.Errorf("getDeleteStateObject (%x) error: %w", addr.Bytes(), err))
 			return nil
 		}
-		if len(enc) == 0 {
-			return nil
-		}
-		data = new(types.StateAccount)
-		if err := rlp.DecodeBytes(enc, data); err != nil {
-			log.Error("Failed to decode state object", "addr", addr, "err", err)
+		if data == nil {
 			return nil
 		}
 	}
@@ -860,7 +851,7 @@ func (s *StateDB) getDeletedStateObject(addr common.Address) *stateObject {
 	if data.Empty() {
 		data.StorageKeyPrefix = addr.Bytes()
 	}
-	// Insert into the live set.
+	// Insert into the live set
 	obj := newObject(s, addr, *data)
 	s.setStateObject(obj)
 	return obj
@@ -1334,6 +1325,10 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	// Short circuit in case any database failure occurred earlier.
+	if s.dbErr != nil {
+		return common.Hash{}, fmt.Errorf("commit aborted due to earlier error: %v", s.dbErr)
+	}
 	// Finalize any pending changes and merge everything into the tries
 	s.IntermediateRoot(deleteEmptyObjects)
 
@@ -1347,8 +1342,8 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		storageTrieNodesUpdated int
 		storageTrieNodesDeleted int
 		nodes                   = trie.NewMergedNodeSet()
+		codeWriter              = s.db.DiskDB().NewBatch()
 	)
-	codeWriter := s.db.DiskDB().NewBatch()
 	for addr := range s.stateObjectsDirty {
 		if obj := s.stateObjects[addr]; !obj.deleted {
 			// Write any contract code associated with the state object
@@ -1440,11 +1435,11 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 		s.stateObjectsDestruct = make(map[common.Address]struct{})
 	}
 	if root == (common.Hash{}) {
-		root = emptyRoot
+		root = types.EmptyRootHash
 	}
 	origin := s.originalRoot
 	if origin == (common.Hash{}) {
-		origin = emptyRoot
+		origin = types.EmptyRootHash
 	}
 	if root != origin {
 		start := time.Now()

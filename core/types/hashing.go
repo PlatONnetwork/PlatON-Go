@@ -1,4 +1,4 @@
-// Copyright 2014 The go-ethereum Authors
+// Copyright 2021 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"sync"
 
+	"golang.org/x/crypto/sha3"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"golang.org/x/crypto/sha3"
 )
 
 // hasherPool holds LegacyKeccak256 hashers for rlpHash.
@@ -62,7 +63,7 @@ func prefixedRlpHash(prefix byte, x interface{}) (h common.Hash) {
 // This is internal, do not use.
 type TrieHasher interface {
 	Reset()
-	Update([]byte, []byte)
+	Update([]byte, []byte) error
 	Hash() common.Hash
 }
 
@@ -83,7 +84,7 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 	return common.CopyBytes(buf.Bytes())
 }
 
-// DeriveSha creates the tree hashes of transactions and receipts in a block header.
+// DeriveSha creates the tree hashes of transactions, receipts, and withdrawals in a block header.
 func DeriveSha(list DerivableList, hasher TrieHasher) common.Hash {
 	hasher.Reset()
 
@@ -93,6 +94,9 @@ func DeriveSha(list DerivableList, hasher TrieHasher) common.Hash {
 	// StackTrie requires values to be inserted in increasing hash order, which is not the
 	// order that `list` provides hashes in. This insertion sequence ensures that the
 	// order is correct.
+	//
+	// The error returned by hasher is omitted because hasher will produce an incorrect
+	// hash in case any error occurs.
 	var indexBuf []byte
 	for i := 1; i < list.Len() && i <= 0x7f; i++ {
 		indexBuf = rlp.AppendUint64(indexBuf[:0], uint64(i))

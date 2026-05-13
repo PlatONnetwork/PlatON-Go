@@ -22,11 +22,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	mrand "math/rand"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/stretchr/testify/assert"
 
@@ -115,9 +116,6 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
 
 		ii := mrand.Intn(len(chaList))
@@ -321,8 +319,8 @@ func buildPrepareData(genesis *types.Block, t *testing.T) (*types.Header, error)
 		ParentHash:  currentHash,
 		Coinbase:    sender,
 		Root:        common.ZeroHash,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
 		Number:      newNumber,
 		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
@@ -476,9 +474,6 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
 
 		ii := mrand.Intn(len(chaList))
@@ -673,8 +668,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		ParentHash:  currentHash,
 		Coinbase:    sender,
 		Root:        common.ZeroHash,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
 		Number:      currentNumber,
 		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
@@ -728,8 +723,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		ParentHash:  currentHash,
 		Coinbase:    sender,
 		Root:        common.ZeroHash,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
 		Number:      currentNumber,
 		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
@@ -788,9 +783,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		var index int = j % 25
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
 
 		ii := mrand.Intn(len(chaList))
@@ -986,8 +978,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		ParentHash:  currentHash,
 		Coinbase:    sender,
 		Root:        common.ZeroHash,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyTxsHash,
+		ReceiptHash: types.EmptyReceiptsHash,
 		Number:      currentNumber,
 		Time:        uint64(time.Now().UnixNano()),
 		Extra:       make([]byte, 97),
@@ -2163,7 +2155,6 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -2340,7 +2331,6 @@ func TestStakingPlugin_Election(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -2542,7 +2532,6 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -2848,9 +2837,6 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-
-		mrand.Seed(time.Now().UnixNano())
-
 		weight := mrand.Intn(1000000000)
 
 		ii := mrand.Intn(len(chaList))
@@ -2975,7 +2961,6 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -3350,7 +3335,6 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -3609,7 +3593,6 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	preNonces := make([][]byte, 0)
 	currentNonce := crypto.Keccak256([]byte("nonce"))
 	for i := 0; i < int(params.MaxValidators()); i++ {
-		mrand.Seed(time.Now().UnixNano())
 		v1 := new(big.Int).SetInt64(time.Now().UnixNano())
 		v1.Mul(v1, new(big.Int).SetInt64(1e18))
 		v1.Add(v1, new(big.Int).SetInt64(int64(mrand.Intn(1000))))
@@ -3660,8 +3643,6 @@ func TestStakingPlugin_ProbabilityElectionDifferentWeights(t *testing.T) {
 		for i := 0; i < candidateNumber; i++ {
 			shares := new(big.Int).SetUint64(uint64(stakeThreshold))
 			shares.Mul(shares, new(big.Int).SetInt64(1e18))
-
-			mrand.Seed(time.Now().UnixNano())
 
 			var blsKey bls.SecretKey
 			blsKey.SetByCSPRNG()
@@ -3781,7 +3762,6 @@ func Test_IteratorCandidate(t *testing.T) {
 		}
 
 		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
-		mrand.Seed(time.Now().UnixNano())
 		weight := mrand.Intn(1000000000)
 		ii := mrand.Intn(len(chaList))
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
@@ -3945,30 +3925,29 @@ func TestStakingPlugin_RandSeedShuffle(t *testing.T) {
 	dataListCp3 := make([]int, len(dataList))
 	copy(dataListCp3, dataList)
 
-	rd := mrand.New(mrand.NewSource(110))
-	rd.Shuffle(len(dataList), func(i, j int) {
+	rd110 := mrand.New(mrand.NewSource(110))
+	rd110.Shuffle(len(dataList), func(i, j int) {
 		dataList[i], dataList[j] = dataList[j], dataList[i]
 	})
 
-	mrand.Seed(110)
-	mrand.Shuffle(len(dataListCp), func(i, j int) {
+	rd110b := mrand.New(mrand.NewSource(110))
+	rd110b.Shuffle(len(dataListCp), func(i, j int) {
 		dataListCp[i], dataListCp[j] = dataListCp[j], dataListCp[i]
 	})
 	for i := 0; i < len(dataList); i++ {
 		assert.True(t, dataList[i] == dataListCp[i])
 	}
 
-	// Reset Seed
-	rd.Seed(110)
-	mrand.Seed(119)
-	mrand.Shuffle(len(dataListCp2), func(i, j int) {
+	rd119 := mrand.New(mrand.NewSource(119))
+	rd119.Shuffle(len(dataListCp2), func(i, j int) {
 		dataListCp2[i], dataListCp2[j] = dataListCp2[j], dataListCp2[i]
 	})
 	for i := 0; i < len(dataList); i++ {
 		assert.True(t, dataList[i] != dataListCp2[i])
 	}
 
-	rd.Shuffle(len(dataListCp3), func(i, j int) {
+	rd110c := mrand.New(mrand.NewSource(110))
+	rd110c.Shuffle(len(dataListCp3), func(i, j int) {
 		dataListCp3[i], dataListCp3[j] = dataListCp3[j], dataListCp3[i]
 	})
 	for i := 0; i < len(dataList); i++ {

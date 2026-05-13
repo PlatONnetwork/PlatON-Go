@@ -137,7 +137,7 @@ const (
 
 // newWorkReq represents a request for new sealing work submitting with relative interrupt notifier.
 type newWorkReq struct {
-	interrupt     *int32
+	interrupt     *atomic.Int32
 	noempty       bool
 	timestamp     time.Time
 	blockDeadline time.Time
@@ -218,11 +218,8 @@ type worker struct {
 	snapshotState    *state.StateDB
 
 	// atomic status counters
-	running int32 // The indicator whether the consensus engine is running or not.
-	newTxs  int32 // New arrival transaction count since last sealing work submitting.
-
-	// External functions
-	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
+	running atomic.Bool  // The indicator whether the consensus engine is running or not.
+	newTxs  atomic.Int32 // New arrival transaction count since last sealing work submitting.
 
 	blockChainCache *core.BlockChainCache
 	commitWorkEnv   *commitWorkEnv
@@ -242,8 +239,7 @@ type worker struct {
 }
 
 func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine,
-	eth Backend, mux *event.TypeMux, isLocalBlock func(*types.Block) bool,
-	blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
+	eth Backend, mux *event.TypeMux, blockChainCache *core.BlockChainCache, vmTimeout uint64) *worker {
 	worker := &worker{
 		config:             config,
 		chainConfig:        chainConfig,
@@ -252,7 +248,6 @@ func newWorker(config *Config, chainConfig *params.ChainConfig, miningConfig *co
 		eth:                eth,
 		mux:                mux,
 		chain:              eth.BlockChain(),
-		isLocalBlock:       isLocalBlock,
 		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
 		chainHeadCh:        make(chan core.ChainHeadEvent, miningConfig.ChainHeadChanSize),
@@ -373,24 +368,24 @@ func (w *worker) pendingBlockAndReceipts() (*types.Block, types.Receipts) {
 
 // start sets the running status as 1 and triggers new work submitting.
 func (w *worker) start() {
-	atomic.StoreInt32(&w.running, 1)
+	w.running.Store(true)
 	w.startCh <- struct{}{}
 }
 
 // stop sets the running status as 0.
 func (w *worker) stop() {
-	atomic.StoreInt32(&w.running, 0)
+	w.running.Store(false)
 }
 
 // isRunning returns an indicator whether worker is running or not.
 func (w *worker) isRunning() bool {
-	return atomic.LoadInt32(&w.running) == 1
+	return w.running.Load()
 }
 
 // close terminates all background threads maintained by the worker.
 // Note the worker does not support being closed multiple times.
 func (w *worker) close() {
-	atomic.StoreInt32(&w.running, 0)
+	w.running.Store(false)
 	close(w.exitCh)
 	w.wg.Wait()
 }
@@ -421,7 +416,7 @@ func recalcRecommit(minRecommit, prev time.Duration, target float64, inc bool) t
 func (w *worker) newWorkLoop(recommit time.Duration) {
 	defer w.wg.Done()
 	var (
-		interrupt   *int32
+		interrupt   *atomic.Int32
 		minRecommit = recommit // minimal resubmit interval specified by user.
 		timestamp   time.Time  // timestamp for each round of mining.
 	)
@@ -433,13 +428,13 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(noempty bool, s int32, baseBlock *types.Block, blockDeadline time.Time) {
 		if interrupt != nil {
-			atomic.StoreInt32(interrupt, s)
+			interrupt.Store(s)
 		}
 		if baseBlock == nil {
 			// Just abort pending block
 			return
 		}
-		interrupt = new(int32)
+		interrupt = new(atomic.Int32)
 		log.Info("Begin to commit new worker", "baseBlockHash", baseBlock.Hash(), "baseBlockNumber", baseBlock.Number(), "timestamp", common.Millis(timestamp), "deadline", common.Millis(blockDeadline), "deadlineDuration", blockDeadline.Sub(timestamp))
 		select {
 		case w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, blockDeadline: blockDeadline, commitBlock: baseBlock}:
@@ -447,7 +442,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			return
 		}
 		timer.Reset(blockDeadline.Sub(timestamp))
-		atomic.StoreInt32(&w.newTxs, 0)
+		w.newTxs.Store(0)
 	}
 
 	// clearPending cleans the stale pending tasks.
@@ -465,8 +460,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		select {
 		case <-w.startCh:
 			timestamp = time.Now()
-			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().NumberU64())
-			clearPending(w.chain.CurrentBlock().NumberU64())
+			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().Number.Uint64())
+			clearPending(w.chain.CurrentBlock().Number.Uint64())
 			if _, ok := w.engine.(consensus.Bft); ok {
 				//w.makePending()
 				timer.Reset(50 * time.Millisecond)
@@ -520,7 +515,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 					timer.Reset(50 * time.Millisecond)
 				} else {
 					// Short circuit if no new transaction arrives.
-					if atomic.LoadInt32(&w.newTxs) == 0 {
+					if w.newTxs.Load() == 0 {
 						timer.Reset(recommit)
 						continue
 					}
@@ -864,6 +859,7 @@ func (w *worker) updateSnapshot(env *environment) {
 
 func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*types.Log, error) {
 	snapForSnap, snapForState := env.DBSnapshot()
+	gp := env.gasPool.Gas()
 
 	vmCfg := *w.chain.GetVMConfig()       // value copy
 	vmCfg.VmTimeoutDuration = w.vmTimeout // set vm execution smart contract timeout duration
@@ -872,6 +868,7 @@ func (w *worker) commitTransaction(env *environment, tx *types.Transaction) ([]*
 	if err != nil {
 		log.Error("Failed to commitTransaction on worker", "blockNumer", env.header.Number.Uint64(), "txHash", tx.Hash().String(), "err", err)
 		env.RevertToDBSnapshot(snapForSnap, snapForState)
+		env.gasPool.SetGas(gp)
 		return nil, err
 	}
 	env.txs = append(env.txs, tx)
@@ -898,7 +895,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = genParams.parent
 	} else {
-		parent = w.chain.CurrentBlock()
+		parent = w.chain.CurrentFullBlock()
 
 		// Sanity check the timestamp correctness, recap the timestamp
 		// to parent+1 if the mutation is allowed.
@@ -977,7 +974,7 @@ func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 // fillTransactions retrieves the pending transactions from the txpool and fills them
 // into the given sealing block. The transaction selection and ordering strategy can
 // be customized with the plugin in the future.
-func (w *worker) fillTransactions(interrupt *int32, env *environment, timestamp int64, blockDeadline time.Time) error {
+func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment, timestamp int64, blockDeadline time.Time) error {
 	// Split the pending transactions into locals and remotes
 	// Fill the block with all available pending transactions.
 	pending := w.eth.TxPool().Pending(true, true)
@@ -1016,7 +1013,7 @@ func (w *worker) fillTransactions(interrupt *int32, env *environment, timestamp 
 
 // commitWork generates several new sealing tasks based on the parent block
 // and submit them to the sealer.
-func (w *worker) commitWork(interrupt *int32, noempty bool, timestamp int64, commitBlock *types.Block, blockDeadline time.Time) error {
+func (w *worker) commitWork(interrupt *atomic.Int32, noempty bool, timestamp int64, commitBlock *types.Block, blockDeadline time.Time) error {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 	atomic.StoreInt32(&w.commitWorkEnv.commitStatus, commitStatusCommitting)
@@ -1127,7 +1124,7 @@ func copyReceipts(receipts []*types.Receipt) []*types.Receipt {
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	var parent = w.engine.NextBaseBlock()
-	var parentChain = w.chain.CurrentBlock()
+	var parentChain = w.chain.CurrentFullBlock()
 
 	if parentChain.NumberU64() >= parent.NumberU64() {
 		parent = parentChain

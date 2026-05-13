@@ -29,6 +29,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
@@ -48,7 +49,7 @@ func randomAccount() []byte {
 		Balance:  big.NewInt(rand.Int63()),
 		Nonce:    rand.Uint64(),
 		Root:     root[:],
-		CodeHash: emptyCode[:],
+		CodeHash: types.EmptyCodeHash[:],
 	}
 	data, _ := rlp.EncodeToBytes(a)
 	return data
@@ -118,7 +119,7 @@ func TestDiskLayerExternalInvalidationFullFlatten(t *testing.T) {
 	if err := snaps.Cap(common.HexToHash("0x02"), 0); err != nil {
 		t.Fatalf("failed to merge diff layer onto disk: %v", err)
 	}
-	// Since the base layer was modified, ensure that data retrieval on the external reference fail
+	// Since the base layer was modified, ensure that data retrievals on the external reference fail
 	if acc, err := ref.Account(common.HexToHash("0x01")); err != ErrSnapshotStale {
 		t.Errorf("stale reference returned account: %#x (err: %v)", acc, err)
 	}

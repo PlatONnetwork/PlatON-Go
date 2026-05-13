@@ -255,7 +255,7 @@ func (cbft *Cbft) recoveryChainState(chainState *protocols.ChainState) error {
 	// The highest block that has been written to disk
 
 	//rootBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
-	rootBlock := cbft.blockChain.CurrentBlock()
+	rootBlock := cbft.blockChain.CurrentFullBlock()
 
 	isCurrent := rootBlock.NumberU64() == commit.Block.NumberU64() && rootBlock.Hash() == commit.Block.Hash()
 	isParent := contiguousChainBlock(rootBlock, commit.Block)

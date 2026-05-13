@@ -217,7 +217,7 @@ func defaultTrieRequestHandler(t *testPeer, requestId uint64, root common.Hash, 
 	for _, pathset := range paths {
 		switch len(pathset) {
 		case 1:
-			blob, _, err := t.accountTrie.TryGetNode(pathset[0])
+			blob, _, err := t.accountTrie.GetNode(pathset[0])
 			if err != nil {
 				t.logger.Info("Error handling req", "error", err)
 				break
@@ -226,7 +226,7 @@ func defaultTrieRequestHandler(t *testPeer, requestId uint64, root common.Hash, 
 		default:
 			account := t.storageTries[(common.BytesToHash(pathset[0]))]
 			for _, path := range pathset[1:] {
-				blob, _, err := account.TryGetNode(path)
+				blob, _, err := account.GetNode(path)
 				if err != nil {
 					t.logger.Info("Error handling req", "error", err)
 					break
@@ -1355,7 +1355,7 @@ func getCodeHash(i uint64) []byte {
 
 // getCodeByHash convenience function to lookup the code from the code hash
 func getCodeByHash(hash common.Hash) []byte {
-	if hash == emptyCode {
+	if hash == types.EmptyCodeHash {
 		return nil
 	}
 	for i, h := range codehashes {
@@ -1373,18 +1373,17 @@ func makeAccountTrieNoStorage(n int) (string, *trie.Trie, entrySlice) {
 		accTrie = trie.NewEmpty(db)
 		entries entrySlice
 	)
-
 	for i := uint64(1); i <= uint64(n); i++ {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(i),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		key := key32(i)
 		elem := &kv{key, value}
-		accTrie.Update(elem.k, elem.v)
+		accTrie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
@@ -1430,12 +1429,12 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            uint64(0),
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(uint64(i)),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{boundaries[i].Bytes(), value}
-		accTrie.Update(elem.k, elem.v)
+		accTrie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	// Fill other accounts if required
@@ -1443,12 +1442,12 @@ func makeBoundaryAccountTrie(n int) (string, *trie.Trie, entrySlice) {
 		value, _ := rlp.EncodeToBytes(&types.StateAccount{
 			Nonce:            i,
 			Balance:          big.NewInt(int64(i)),
-			Root:             emptyRoot,
+			Root:             types.EmptyRootHash,
 			CodeHash:         getCodeHash(i),
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key32(i), value}
-		accTrie.Update(elem.k, elem.v)
+		accTrie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
@@ -1477,7 +1476,7 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		codehash := emptyCode[:]
+		codehash := types.EmptyCodeHash.Bytes()
 		if code {
 			codehash = getCodeHash(i)
 		}
@@ -1493,7 +1492,7 @@ func makeAccountTrieWithStorageWithUniqueStorage(accounts, slots int, code bool)
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key, value}
-		accTrie.Update(elem.k, elem.v)
+		accTrie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 
 		storageRoots[common.BytesToHash(key)] = stRoot
@@ -1533,7 +1532,7 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 	// Create n accounts in the trie
 	for i := uint64(1); i <= uint64(accounts); i++ {
 		key := key32(i)
-		codehash := emptyCode[:]
+		codehash := types.EmptyCodeHash.Bytes()
 		if code {
 			codehash = getCodeHash(i)
 		}
@@ -1558,7 +1557,7 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 			StorageKeyPrefix: big.NewInt(int64(i)).Bytes(),
 		})
 		elem := &kv{key, value}
-		accTrie.Update(elem.k, elem.v)
+		accTrie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 
 		// we reuse the same one for all accounts
@@ -1589,7 +1588,6 @@ func makeAccountTrieWithStorage(accounts, slots int, code, boundary bool) (strin
 		storageTries[common.BytesToHash(key)] = trie
 	}
 	return db.Scheme(), accTrie, entries, storageTries, storageEntries
-
 }
 
 // makeStorageTrieWithSeed fills a storage trie with n items, returning the
@@ -1607,7 +1605,7 @@ func makeStorageTrieWithSeed(owner common.Hash, n, seed uint64, db *trie.Databas
 		key := crypto.Keccak256Hash(slotKey[:])
 
 		elem := &kv{key[:], rlpSlotValue}
-		trie.Update(elem.k, elem.v)
+		trie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
@@ -1647,7 +1645,7 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 		val := []byte{0xde, 0xad, 0xbe, 0xef}
 
 		elem := &kv{key[:], val}
-		trie.Update(elem.k, elem.v)
+		trie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	// Fill other slots if required
@@ -1659,7 +1657,7 @@ func makeBoundaryStorageTrie(owner common.Hash, n int, db *trie.Database) (commo
 		rlpSlotValue, _ := rlp.EncodeToBytes(common.TrimLeftZeroes(slotValue[:]))
 
 		elem := &kv{key[:], rlpSlotValue}
-		trie.Update(elem.k, elem.v)
+		trie.MustUpdate(elem.k, elem.v)
 		entries = append(entries, elem)
 	}
 	sort.Sort(entries)
@@ -1689,7 +1687,7 @@ func verifyTrie(db ethdb.KeyValueStore, root common.Hash, t *testing.T) {
 			log.Crit("Invalid account encountered during snapshot creation", "err", err)
 		}
 		accounts++
-		if acc.Root != emptyRoot {
+		if acc.Root != types.EmptyRootHash {
 			id := trie.StorageTrieID(root, common.BytesToHash(accIt.Key), acc.Root)
 			storeTrie, err := trie.NewStateTrie(id, triedb)
 			if err != nil {

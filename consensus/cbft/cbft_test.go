@@ -137,7 +137,7 @@ func TestPrepareBlockBls(t *testing.T) {
 		receipts = append(receipts, receipt)
 	}
 
-	block := types.NewBlock(header, txs, receipts, new(trie.Trie))
+	block := types.NewBlock(header, txs, receipts, trie.NewStackTrie(nil))
 	pb := &protocols.PrepareBlock{
 		Epoch:         100,
 		ViewNumber:    99,

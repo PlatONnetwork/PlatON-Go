@@ -18,12 +18,13 @@ package tracetest
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -127,7 +128,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to create call tracer: %v", err)
 			}
-			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Debug: true, Tracer: tracer})
+			evm := vm.NewEVM(context, txContext, nil, statedb, test.Genesis.Config, vm.Config{Tracer: tracer})
 			msg, err := tx.AsMessage(signer, nil)
 			if err != nil {
 				t.Fatalf("failed to prepare transaction for tracing: %v", err)

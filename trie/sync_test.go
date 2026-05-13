@@ -27,6 +27,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/memorydb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
@@ -42,17 +43,17 @@ func makeTestTrie() (*Database, *StateTrie, map[string][]byte) {
 		// Map the same data under multiple keys
 		key, val := common.LeftPadBytes([]byte{1, i}, 32), []byte{i}
 		content[string(key)] = val
-		trie.Update(key, val)
+		trie.MustUpdate(key, val)
 
 		key, val = common.LeftPadBytes([]byte{2, i}, 32), []byte{i}
 		content[string(key)] = val
-		trie.Update(key, val)
+		trie.MustUpdate(key, val)
 
 		// Add some other data to inflate the trie
 		for j := byte(3); j < 13; j++ {
 			key, val = common.LeftPadBytes([]byte{j, i}, 32), []byte{j, i}
 			content[string(key)] = val
-			trie.Update(key, val)
+			trie.MustUpdate(key, val)
 		}
 	}
 	root, nodes, err := trie.Commit(false)
@@ -79,7 +80,7 @@ func checkTrieContents(t *testing.T, db *Database, root []byte, content map[stri
 		t.Fatalf("inconsistent trie at %x: %v", root, err)
 	}
 	for key, val := range content {
-		if have := trie.Get([]byte(key)); !bytes.Equal(have, val) {
+		if have := trie.MustGet([]byte(key)); !bytes.Equal(have, val) {
 			t.Errorf("entry %x: content mismatch: have %x, want %x", key, have, val)
 		}
 	}
@@ -110,7 +111,7 @@ func TestEmptySync(t *testing.T) {
 	dbA := NewDatabase(rawdb.NewMemoryDatabase())
 	dbB := NewDatabase(rawdb.NewMemoryDatabase())
 	emptyA, _ := New(TrieID(common.Hash{}), dbA)
-	emptyB, _ := New(TrieID(emptyRoot), dbB)
+	emptyB, _ := New(TrieID(types.EmptyRootHash), dbB)
 
 	for i, trie := range []*Trie{emptyA, emptyB} {
 		sync := NewSync(trie.Hash(), memorydb.New(), nil, []*Database{dbA, dbB}[i].Scheme())
@@ -159,7 +160,7 @@ func testIterativeSync(t *testing.T, count int, bypath bool) {
 			}
 		} else {
 			for i, element := range elements {
-				data, _, err := srcTrie.TryGetNode(element.syncPath[len(element.syncPath)-1])
+				data, _, err := srcTrie.GetNode(element.syncPath[len(element.syncPath)-1])
 				if err != nil {
 					t.Fatalf("failed to retrieve node data for path %x: %v", element.path, err)
 				}
@@ -439,6 +440,7 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 // Tests that at any point in time during a sync, only complete sub-tries are in
 // the database.
 func TestIncompleteSync(t *testing.T) {
+	t.Parallel()
 	// Create a random trie to copy
 	srcDb, srcTrie, _ := makeTestTrie()
 

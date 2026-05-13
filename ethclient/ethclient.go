@@ -114,8 +114,9 @@ func (ec *Client) BlockReceipts(ctx context.Context, blockNrOrHash rpc.BlockNumb
 }
 
 type rpcBlock struct {
-	Hash         common.Hash      `json:"hash"`
-	Transactions []rpcTransaction `json:"transactions"`
+	Hash         common.Hash         `json:"hash"`
+	Transactions []rpcTransaction    `json:"transactions"`
+	Withdrawals  []*types.Withdrawal `json:"withdrawals,omitempty"`
 }
 
 func (ec *Client) getBlock(ctx context.Context, method string, args ...interface{}) (*types.Block, error) {
@@ -123,23 +124,27 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 	err := ec.c.CallContext(ctx, &raw, method, args...)
 	if err != nil {
 		return nil, err
-	} else if len(raw) == 0 {
-		return nil, platon.NotFound
 	}
+
 	// Decode header and transactions.
 	var head *types.Header
-	var body rpcBlock
 	if err := json.Unmarshal(raw, &head); err != nil {
 		return nil, err
 	}
+	// When the block is not found, the API returns JSON null.
+	if head == nil {
+		return nil, platon.NotFound
+	}
+
+	var body rpcBlock
 	if err := json.Unmarshal(raw, &body); err != nil {
 		return nil, err
 	}
 	// Quick-verify transaction. This mostly helps with debugging the server.
-	if head.TxHash == types.EmptyRootHash && len(body.Transactions) > 0 {
+	if head.TxHash == types.EmptyTxsHash && len(body.Transactions) > 0 {
 		return nil, fmt.Errorf("server returned non-empty transaction list but block header indicates no transactions")
 	}
-	if head.TxHash != types.EmptyRootHash && len(body.Transactions) == 0 {
+	if head.TxHash != types.EmptyTxsHash && len(body.Transactions) == 0 {
 		return nil, fmt.Errorf("server returned empty transaction list but block header indicates transactions")
 	}
 	// Fill the sender cache of transactions in the block.
@@ -150,7 +155,7 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 		}
 		txs[i] = tx.tx
 	}
-	return types.NewBlockWithHeader(head).WithBody(txs, nil), nil
+	return types.NewBlockWithHeader(head).WithBody(txs, nil).WithWithdrawals(body.Withdrawals), nil
 }
 
 // HeaderByHash returns the block header with the given hash.
@@ -295,7 +300,14 @@ func (ec *Client) SyncProgress(ctx context.Context) (*platon.SyncProgress, error
 // SubscribeNewHead subscribes to notifications about the current blockchain head
 // on the given channel.
 func (ec *Client) SubscribeNewHead(ctx context.Context, ch chan<- *types.Header) (platon.Subscription, error) {
-	return ec.c.EthSubscribe(ctx, ch, "newHeads")
+	sub, err := ec.c.EthSubscribe(ctx, ch, "newHeads")
+	if err != nil {
+		// Defensively prefer returning nil interface explicitly on error-path, instead
+		// of letting default golang behavior wrap it with non-nil interface that stores
+		// nil concrete type value.
+		return nil, err
+	}
+	return sub, nil
 }
 
 // State Access
@@ -364,7 +376,14 @@ func (ec *Client) SubscribeFilterLogs(ctx context.Context, q platon.FilterQuery,
 	if err != nil {
 		return nil, err
 	}
-	return ec.c.EthSubscribe(ctx, ch, "logs", arg)
+	sub, err := ec.c.EthSubscribe(ctx, ch, "logs", arg)
+	if err != nil {
+		// Defensively prefer returning nil interface explicitly on error-path, instead
+		// of letting default golang behavior wrap it with non-nil interface that stores
+		// nil concrete type value.
+		return nil, err
+	}
+	return sub, nil
 }
 
 func toFilterArg(q platon.FilterQuery) (interface{}, error) {

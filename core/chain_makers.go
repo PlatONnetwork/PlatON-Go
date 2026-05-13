@@ -150,6 +150,11 @@ func (b *BlockGen) Number() *big.Int {
 	return new(big.Int).Set(b.header.Number)
 }
 
+// Timestamp returns the timestamp of the block being generated.
+func (b *BlockGen) Timestamp() uint64 {
+	return b.header.Time
+}
+
 // BaseFee returns the EIP-1559 base fee of the block being generated.
 func (b *BlockGen) BaseFee() *big.Int {
 	return new(big.Int).Set(b.header.BaseFee)
@@ -174,23 +179,31 @@ func (b *BlockGen) TxNonce(addr common.Address) uint64 {
 }
 
 // AddWithdrawal adds a withdrawal to the generated block.
-func (b *BlockGen) AddWithdrawal(w *types.Withdrawal) {
-	// The withdrawal will be assigned the next valid index.
-	var idx uint64
+// It returns the withdrawal index.
+func (b *BlockGen) AddWithdrawal(w *types.Withdrawal) uint64 {
+	cpy := *w
+	cpy.Index = b.nextWithdrawalIndex()
+	b.withdrawals = append(b.withdrawals, &cpy)
+	return cpy.Index
+}
+
+// nextWithdrawalIndex computes the index of the next withdrawal.
+func (b *BlockGen) nextWithdrawalIndex() uint64 {
+	if len(b.withdrawals) != 0 {
+		return b.withdrawals[len(b.withdrawals)-1].Index + 1
+	}
 	for i := b.i - 1; i >= 0; i-- {
 		if wd := b.chain[i].Withdrawals(); len(wd) != 0 {
-			idx = wd[len(wd)-1].Index + 1
-			break
+			return wd[len(wd)-1].Index + 1
 		}
 		if i == 0 {
-			// Correctly set the index if no parent had withdrawals
+			// Correctly set the index if no parent had withdrawals.
 			if wd := b.parent.Withdrawals(); len(wd) != 0 {
-				idx = wd[len(wd)-1].Index + 1
+				return wd[len(wd)-1].Index + 1
 			}
 		}
 	}
-	w.Index = idx
-	b.withdrawals = append(b.withdrawals, w)
+	return 0
 }
 
 // PrevBlock returns a previously generated block by number. It panics if
@@ -331,7 +344,7 @@ func GenerateBlockChain2(gspec *Genesis, parent *types.Block, engine consensus.E
 	return blockchain, blocks
 }
 
-func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) *BlockChain {
+func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, chain *BlockChain, n int, gen func(int, *BlockGen)) (*BlockChain, []*types.Block) {
 	if config == nil {
 		config = params.TestChainConfig
 	}
@@ -370,7 +383,7 @@ func GenerateBlockChain3(config *params.ChainConfig, parent *types.Block, engine
 		receipts[i] = receipt
 		parent = block
 	}
-	return chain
+	return chain, blocks
 }
 
 func GenerateBlockChain(gspec *Genesis, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
@@ -521,4 +534,5 @@ func (cr *fakeChainReader) GetHeaderByNumber(number uint64) *types.Header       
 func (cr *fakeChainReader) GetHeaderByHash(hash common.Hash) *types.Header          { return nil }
 func (cr *fakeChainReader) GetHeader(hash common.Hash, number uint64) *types.Header { return nil }
 func (cr *fakeChainReader) GetBlock(hash common.Hash, number uint64) *types.Block   { return nil }
-func (cr *fakeChainReader) CurrentBlock() *types.Block                              { return nil }
+func (cr *fakeChainReader) CurrentFullBlock() *types.Block                          { return nil }
+func (cr *fakeChainReader) CurrentBlock() *types.Header                             { return nil }
