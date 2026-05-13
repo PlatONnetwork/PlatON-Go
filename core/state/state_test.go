@@ -18,6 +18,7 @@ package state
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"testing"
 
@@ -35,13 +36,13 @@ type stateTest struct {
 
 func newStateTest() *stateTest {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabase(db), nil)
+	sdb, _ := New(types.EmptyRootHash, NewDatabase(db), nil)
 	return &stateTest{db: db, state: sdb}
 }
 
 func TestDump(t *testing.T) {
 	db := rawdb.NewMemoryDatabase()
-	sdb, _ := New(common.Hash{}, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
+	sdb, _ := New(types.EmptyRootHash, NewDatabaseWithConfig(db, &trie.Config{Preimages: true}), nil)
 	s := &stateTest{db: db, state: sdb}
 
 	// generate a few entries
@@ -153,7 +154,7 @@ func TestSnapshotEmpty(t *testing.T) {
 }
 
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	state, _ := New(types.EmptyRootHash, NewDatabase(rawdb.NewMemoryDatabase()), nil)
 
 	stateobjaddr0 := common.BytesToAddress([]byte("so0"))
 	stateobjaddr1 := common.BytesToAddress([]byte("so1"))

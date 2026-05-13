@@ -18,6 +18,7 @@ package vm
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestEIP2200(t *testing.T) {
 	for i, tt := range eip2200Tests {
 		address := common.BytesToAddress([]byte("contract"))
 
-		statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		statedb.CreateAccount(address)
 		statedb.SetCode(address, hexutil.MustDecode(tt.input))
 		statedb.SetState(address, common.Hash{}.Bytes(), common.BytesToHash([]byte{tt.original}).Bytes())
