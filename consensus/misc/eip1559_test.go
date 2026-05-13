@@ -46,6 +46,7 @@ func copyConfig(original *params.ChainConfig) *params.ChainConfig {
 func config() *params.ChainConfig {
 	config := copyConfig(params.TestChainConfig)
 	config.PauliBlock = big.NewInt(5)
+	config.GenesisVersion = params.FORKVERSION_1_4_0
 	return config
 }
 
