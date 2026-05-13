@@ -41,9 +41,6 @@ import (
 )
 
 var (
-	EmptyRootHash  = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-	EmptyUncleHash = rlpHash([]*Header(nil))
-
 	// Extra field in the block header, maximum length
 	ExtraMaxSize      = 97
 	HttpEthCompatible = false
@@ -347,14 +344,14 @@ func (h *Header) ExtraData() []byte {
 // that is: no transactions, no uncles and no withdrawals.
 func (h *Header) EmptyBody() bool {
 	if h.WithdrawalsHash == nil {
-		return h.TxHash == EmptyRootHash
+		return h.TxHash == EmptyTxsHash
 	}
-	return h.TxHash == EmptyRootHash && *h.WithdrawalsHash == EmptyRootHash
+	return h.TxHash == EmptyTxsHash && *h.WithdrawalsHash == EmptyWithdrawalsHash
 }
 
 // EmptyReceipts returns true if there are no receipts for this header/block.
 func (h *Header) EmptyReceipts() bool {
-	return h.ReceiptHash == EmptyRootHash
+	return h.ReceiptHash == EmptyReceiptsHash
 }
 
 // Body is a simple (mutable, non-safe) data container for storing and moving
@@ -404,7 +401,7 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher Tr
 
 	// TODO: panic if len(txs) != len(receipts)
 	if len(txs) == 0 {
-		b.header.TxHash = EmptyRootHash
+		b.header.TxHash = EmptyTxsHash
 	} else {
 		b.header.TxHash = DeriveSha(Transactions(txs), hasher)
 		b.transactions = make(Transactions, len(txs))
@@ -412,7 +409,7 @@ func NewBlock(header *Header, txs []*Transaction, receipts []*Receipt, hasher Tr
 	}
 
 	if len(receipts) == 0 {
-		b.header.ReceiptHash = EmptyRootHash
+		b.header.ReceiptHash = EmptyReceiptsHash
 	} else {
 		b.header.ReceiptHash = DeriveSha(Receipts(receipts), hasher)
 		b.header.Bloom = CreateBloom(receipts)
@@ -434,7 +431,7 @@ func NewBlockWithWithdrawals(header *Header, txs []*Transaction, receipts []*Rec
 	if withdrawals == nil {
 		b.header.WithdrawalsHash = nil
 	} else if len(withdrawals) == 0 {
-		b.header.WithdrawalsHash = &EmptyRootHash
+		b.header.WithdrawalsHash = &EmptyWithdrawalsHash
 	} else {
 		h := DeriveSha(Withdrawals(withdrawals), hasher)
 		b.header.WithdrawalsHash = &h
@@ -475,6 +472,7 @@ func CopyHeader(h *Header) *Header {
 		copy(cpy.Extra, h.Extra)
 	}
 	if h.WithdrawalsHash != nil {
+		cpy.WithdrawalsHash = new(common.Hash)
 		*cpy.WithdrawalsHash = *h.WithdrawalsHash
 	}
 	return &cpy

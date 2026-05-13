@@ -242,7 +242,7 @@ func Prepare(header *types.Header) error {
 
 func Finalize(chain consensus.ChainReader, header *types.Header, state *state2.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(true)
-	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
+	return types.NewBlock(header, txs, receipts, trie.NewStackTrie(nil)), nil
 }
 
 func signFn(m []byte) ([]byte, error) {

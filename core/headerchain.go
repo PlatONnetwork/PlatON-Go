@@ -352,7 +352,7 @@ func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, start time.Time)
 	if res.ignored > 0 {
 		context = append(context, []interface{}{"ignored", res.ignored}...)
 	}
-	log.Info("Imported new block headers", context...)
+	log.Debug("Imported new block headers", context...)
 	return res.status, err
 }
 
@@ -632,8 +632,14 @@ func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
 
+// CurrentFullBlock implements consensus.ChainReader, and returns nil for every input as
+// a header chain does not have blocks available for retrieval.
+func (hc *HeaderChain) CurrentFullBlock() *types.Block {
+	return nil
+}
+
 // CurrentBlock implements consensus.ChainReader, and returns nil for every input as
 // a header chain does not have blocks available for retrieval.
-func (hc *HeaderChain) CurrentBlock() *types.Block {
+func (hc *HeaderChain) CurrentBlock() *types.Header {
 	return nil
 }

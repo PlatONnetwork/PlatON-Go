@@ -136,8 +136,7 @@ func checkStateConsistency(db ethdb.Database, root common.Hash) error {
 // Tests that an empty state is not scheduled for syncing.
 func TestEmptyStateSync(t *testing.T) {
 	db := trie.NewDatabase(rawdb.NewMemoryDatabase())
-	empty := common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
-	sync := NewStateSync(empty, rawdb.NewMemoryDatabase(), nil, db.Scheme())
+	sync := NewStateSync(types.EmptyRootHash, rawdb.NewMemoryDatabase(), nil, db.Scheme())
 	if paths, nodes, codes := sync.Missing(1); len(paths) != 0 || len(nodes) != 0 || len(codes) != 0 {
 		t.Errorf("content requested for empty state: %v, %v, %v", nodes, paths, codes)
 	}
@@ -217,14 +216,14 @@ func testIterativeStateSync(t *testing.T, count int, commit bool, bypath bool) {
 		for i, node := range nodeElements {
 			if bypath {
 				if len(node.syncPath) == 1 {
-					data, _, err := srcTrie.TryGetNode(node.syncPath[0])
+					data, _, err := srcTrie.GetNode(node.syncPath[0])
 					if err != nil {
 						t.Fatalf("failed to retrieve node data for path %x: %v", node.syncPath[0], err)
 					}
 					nodeResults[i] = trie.NodeSyncResult{Path: node.path, Data: data}
 				} else {
 					var acc types.StateAccount
-					if err := rlp.DecodeBytes(srcTrie.Get(node.syncPath[0]), &acc); err != nil {
+					if err := rlp.DecodeBytes(srcTrie.MustGet(node.syncPath[0]), &acc); err != nil {
 						t.Fatalf("failed to decode account on path %x: %v", node.syncPath[0], err)
 					}
 					id := trie.StorageTrieID(srcRoot, common.BytesToHash(node.syncPath[0]), acc.Root)
@@ -232,7 +231,7 @@ func testIterativeStateSync(t *testing.T, count int, commit bool, bypath bool) {
 					if err != nil {
 						t.Fatalf("failed to retriev storage trie for path %x: %v", node.syncPath[1], err)
 					}
-					data, _, err := stTrie.TryGetNode(node.syncPath[1])
+					data, _, err := stTrie.GetNode(node.syncPath[1])
 					if err != nil {
 						t.Fatalf("failed to retrieve node data for path %x: %v", node.syncPath[1], err)
 					}
@@ -558,7 +557,7 @@ func TestIncompleteStateSync(t *testing.T) {
 			isCode[crypto.Keccak256Hash(acc.code)] = struct{}{}
 		}
 	}
-	isCode[common.BytesToHash(emptyCodeHash)] = struct{}{}
+	isCode[types.EmptyCodeHash] = struct{}{}
 	checkTrieConsistency(db, srcRoot)
 
 	// Create a destination state and sync with the scheduler

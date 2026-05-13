@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -272,7 +271,7 @@ func (t *Tree) Disable() {
 		case *diffLayer:
 			// If the layer is a simple diff, simply mark as stale
 			layer.lock.Lock()
-			atomic.StoreUint32(&layer.stale, 1)
+			layer.stale.Store(true)
 			layer.lock.Unlock()
 
 		default:
@@ -732,7 +731,7 @@ func (t *Tree) Rebuild(root common.Hash) {
 		case *diffLayer:
 			// If the layer is a simple diff, simply mark as stale
 			layer.lock.Lock()
-			atomic.StoreUint32(&layer.stale, 1)
+			layer.stale.Store(true)
 			layer.lock.Unlock()
 
 		default:

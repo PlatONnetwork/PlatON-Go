@@ -60,9 +60,10 @@ func (h *testHasher) Reset() {
 	h.hasher.Reset()
 }
 
-func (h *testHasher) Update(key, val []byte) {
+func (h *testHasher) Update(key, val []byte) error {
 	h.hasher.Write(key)
 	h.hasher.Write(val)
+	return nil
 }
 
 func (h *testHasher) Hash() common.Hash {
@@ -261,7 +262,14 @@ func NewMockStateDB() *MockStateDB {
 	db.Balance = make(map[common.Address]*big.Int)
 	db.Logs = make(map[common.Hash][]*types.Log)
 	db.Journal = NewJournal()
+	db.accessList = newAccessList()
 	return db
+}
+
+func (s *MockStateDB) ensureAccessList() {
+	if s.accessList == nil {
+		s.accessList = newAccessList()
+	}
 }
 
 type accessList struct {
@@ -639,17 +647,23 @@ func (s *MockStateDB) Prepare(rules params.Rules, sender, coinbase common.Addres
 }
 
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {
+	s.ensureAccessList()
 	return s.accessList.ContainsAddress(addr)
 }
 
-func (s *MockStateDB) AddSlotToAccessList(common.Address, common.Hash) {
+func (s *MockStateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
+	s.ensureAccessList()
+	s.accessList.AddSlot(addr, slot)
 }
 
 func (s *MockStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
+	s.ensureAccessList()
 	return s.accessList.Contains(addr, slot)
 }
 
-func (s *MockStateDB) AddAddressToAccessList(common.Address) {
+func (s *MockStateDB) AddAddressToAccessList(addr common.Address) {
+	s.ensureAccessList()
+	s.accessList.AddAddress(addr)
 }
 
 func generateHeader(num *big.Int, parentHash common.Hash, htime uint64, coninbase common.Address) *types.Header {

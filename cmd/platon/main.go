@@ -199,7 +199,6 @@ var (
 func init() {
 	// Initialize the CLI app and start PlatON
 	app.Action = platon
-	app.HideVersion = true // we have a command to print the version
 	app.Copyright = "Copyright 2024 The PlatON-Go Authors"
 	app.Commands = []*cli.Command{
 		// See chaincmd.go:
@@ -385,7 +384,12 @@ func unlockAccounts(ctx *cli.Context, stack *node.Node) {
 	if !stack.Config().InsecureUnlockAllowed && stack.Config().ExtRPCEnabled() {
 		utils.Fatalf("Account unlock with HTTP access is forbidden!")
 	}
-	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	backends := stack.AccountManager().Backends(keystore.KeyStoreType)
+	if len(backends) == 0 {
+		log.Warn("Failed to unlock accounts, keystore is not available")
+		return
+	}
+	ks := backends[0].(*keystore.KeyStore)
 	passwords := utils.MakePasswordList(ctx)
 	for i, account := range unlocks {
 		unlockAccount(ks, account, i, passwords)

@@ -60,7 +60,7 @@ func TestIterator(t *testing.T) {
 	all := make(map[string]string)
 	for _, val := range vals {
 		all[val.k] = val.v
-		trie.Update([]byte(val.k), []byte(val.v))
+		trie.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	root, nodes, err := trie.Commit(false)
 	if err != nil {
@@ -94,8 +94,8 @@ func TestIteratorLargeData(t *testing.T) {
 	for i := byte(0); i < 255; i++ {
 		value := &kv{common.LeftPadBytes([]byte{i}, 32), []byte{i}, false}
 		value2 := &kv{common.LeftPadBytes([]byte{10, i}, 32), []byte{i}, false}
-		trie.Update(value.k, value.v)
-		trie.Update(value2.k, value2.v)
+		trie.MustUpdate(value.k, value.v)
+		trie.MustUpdate(value2.k, value2.v)
 		vals[string(value.k)] = value
 		vals[string(value2.k)] = value2
 	}
@@ -183,7 +183,7 @@ var testdata2 = []kvs{
 func TestIteratorSeek(t *testing.T) {
 	trie := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase()))
 	for _, val := range testdata1 {
-		trie.Update([]byte(val.k), []byte(val.v))
+		trie.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 
 	// Seek to the middle.
@@ -225,7 +225,7 @@ func TestDifferenceIterator(t *testing.T) {
 	dba := NewDatabase(rawdb.NewMemoryDatabase())
 	triea := NewEmpty(dba)
 	for _, val := range testdata1 {
-		triea.Update([]byte(val.k), []byte(val.v))
+		triea.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootA, nodesA, _ := triea.Commit(false)
 	dba.Update(NewWithNodeSet(nodesA))
@@ -234,7 +234,7 @@ func TestDifferenceIterator(t *testing.T) {
 	dbb := NewDatabase(rawdb.NewMemoryDatabase())
 	trieb := NewEmpty(dbb)
 	for _, val := range testdata2 {
-		trieb.Update([]byte(val.k), []byte(val.v))
+		trieb.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootB, nodesB, _ := trieb.Commit(false)
 	dbb.Update(NewWithNodeSet(nodesB))
@@ -267,7 +267,7 @@ func TestUnionIterator(t *testing.T) {
 	dba := NewDatabase(rawdb.NewMemoryDatabase())
 	triea := NewEmpty(dba)
 	for _, val := range testdata1 {
-		triea.Update([]byte(val.k), []byte(val.v))
+		triea.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootA, nodesA, _ := triea.Commit(false)
 	dba.Update(NewWithNodeSet(nodesA))
@@ -276,7 +276,7 @@ func TestUnionIterator(t *testing.T) {
 	dbb := NewDatabase(rawdb.NewMemoryDatabase())
 	trieb := NewEmpty(dbb)
 	for _, val := range testdata2 {
-		trieb.Update([]byte(val.k), []byte(val.v))
+		trieb.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootB, nodesB, _ := trieb.Commit(false)
 	dbb.Update(NewWithNodeSet(nodesB))
@@ -319,7 +319,7 @@ func TestUnionIterator(t *testing.T) {
 func TestIteratorNoDups(t *testing.T) {
 	tr := NewEmpty(NewDatabase(rawdb.NewMemoryDatabase()))
 	for _, val := range testdata1 {
-		tr.Update([]byte(val.k), []byte(val.v))
+		tr.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	checkIteratorNoDups(t, tr.NodeIterator(nil), nil)
 }
@@ -334,7 +334,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 
 	tr := NewEmpty(triedb)
 	for _, val := range testdata1 {
-		tr.Update([]byte(val.k), []byte(val.v))
+		tr.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	_, nodes, _ := tr.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))
@@ -426,7 +426,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 
 	ctr := NewEmpty(triedb)
 	for _, val := range testdata1 {
-		ctr.Update([]byte(val.k), []byte(val.v))
+		ctr.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	root, nodes, _ := ctr.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))
@@ -545,7 +545,7 @@ func makeLargeTestTrie() (*Database, *StateTrie, *loggingDb) {
 		binary.BigEndian.PutUint64(val, uint64(i))
 		key = crypto.Keccak256(key)
 		val = crypto.Keccak256(val)
-		trie.Update(key, val)
+		trie.MustUpdate(key, val)
 	}
 	_, nodes, _ := trie.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))
@@ -586,7 +586,7 @@ func TestIteratorNodeBlob(t *testing.T) {
 	all := make(map[string]string)
 	for _, val := range vals {
 		all[val.k] = val.v
-		trie.Update([]byte(val.k), []byte(val.v))
+		trie.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	_, nodes, _ := trie.Commit(false)
 	triedb.Update(NewWithNodeSet(nodes))

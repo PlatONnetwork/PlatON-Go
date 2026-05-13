@@ -18,6 +18,7 @@ require (
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff
 	github.com/go-errors/errors v1.4.2
 	github.com/go-stack/stack v1.8.1
+	github.com/gofrs/flock v0.8.1
 	github.com/golang/protobuf v1.5.4
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
 	github.com/google/gofuzz v1.2.0
@@ -29,7 +30,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
 	github.com/huin/goupnp v1.3.0
-	github.com/influxdata/influxdb v1.7.6
+	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackpal/go-nat-pmp v1.0.2
 	github.com/jedisct1/go-minisign v0.0.0-20230811132847-661be99b8267
 	github.com/julienschmidt/httprouter v1.3.0
@@ -41,7 +42,6 @@ require (
 	github.com/panjf2000/ants/v2 v2.4.1
 	github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/tsdb v0.10.0
 	github.com/robfig/cron v1.2.1-0.20190616124356-61d93e07d1be
 	github.com/rs/cors v1.7.0
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible
@@ -56,6 +56,7 @@ require (
 	golang.org/x/time v0.5.0
 	golang.org/x/tools v0.29.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gotest.tools v2.2.0+incompatible
 )
@@ -67,9 +68,9 @@ require (
 	github.com/ethereum/go-ethereum v1.14.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/herumi/bls v1.37.0
-	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
 	github.com/karalabe/usb v0.0.2
+	github.com/kylelemons/godebug v1.1.0
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/net v0.34.0

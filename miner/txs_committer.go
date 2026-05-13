@@ -14,7 +14,7 @@ import (
 )
 
 type Committer interface {
-	CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool)
+	CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *atomic.Int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool)
 }
 
 type TxsCommitter struct {
@@ -27,7 +27,7 @@ func NewTxsCommitter(w *worker) *TxsCommitter {
 	}
 }
 
-func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
+func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *atomic.Int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
 	w := c.worker
 
 	// Short circuit if current is nil
@@ -59,9 +59,9 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 		// (3) worker recreate the mining block with any newly arrived transactions, the interrupt signal is 2.
 		// For the first two cases, the semi-finished work will be discarded.
 		// For the third case, the semi-finished work will be submitted to the consensus engine.
-		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
+		if interrupt != nil && interrupt.Load() != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
-			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
+			if interrupt.Load() == commitInterruptResubmit {
 				ratio := float64(env.header.GasLimit-env.gasPool.Gas()) / float64(env.header.GasLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
@@ -71,7 +71,7 @@ func (c *TxsCommitter) CommitTransactions(env *environment, txs *types.Transacti
 					inc:   true,
 				}
 			}
-			return atomic.LoadInt32(interrupt) == commitInterruptNewHead, timeout
+			return interrupt.Load() == commitInterruptNewHead, timeout
 		}
 		// If we don't have enough gas for any further transactions then we're done
 		if env.gasPool.Gas() < params.TxGas {

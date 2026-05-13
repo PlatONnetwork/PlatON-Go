@@ -22,7 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
-// MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)
+// // MissingNodeError is returned by the trie functions (Get, Update, Delete)
 // in the case where a trie node is not present in the local database. It contains
 // information necessary for retrieving the missing node.
 type MissingNodeError struct {

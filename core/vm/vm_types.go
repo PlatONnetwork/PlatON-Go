@@ -44,6 +44,10 @@ func (t *InterpType) SetBytes(b []byte) {
 
 func CanUseEVMInterp(b []byte) bool {
 	if len(b) != 0 {
+		// Bytecode shorter than the interpreter magic prefix cannot be WASM; avoid slicing past len(b).
+		if len(b) < InterpTypeLen {
+			return true
+		}
 		magicNum := BytesToInterpType(b[:InterpTypeLen])
 		if magicNum == EvmInterpOld || magicNum == EvmInterpNew {
 			return true
@@ -57,7 +61,7 @@ func CanUseEVMInterp(b []byte) bool {
 }
 
 func CanUseWASMInterp(b []byte) bool {
-	if len(b) != 0 {
+	if len(b) >= InterpTypeLen {
 		magicNum := BytesToInterpType(b[:InterpTypeLen])
 		if magicNum == WasmInterp {
 			return true

@@ -93,7 +93,11 @@ func main() {
 		enodes = append(enodes, enode)
 
 		// Inject the signer key and start sealing with it
-		store := node.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+		ks := node.AccountManager().Backends(keystore.KeyStoreType)
+		if len(ks) == 0 {
+			panic("Keystore is not available")
+		}
+		store := ks[0].(*keystore.KeyStore)
 		signer, err := store.ImportECDSA(sealer, "")
 		if err != nil {
 			panic(err)

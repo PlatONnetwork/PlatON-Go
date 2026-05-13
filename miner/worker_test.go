@@ -19,7 +19,7 @@ package miner
 import (
 	"errors"
 	"math/big"
-	"math/rand"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -91,8 +91,7 @@ func init() {
 		GasPrice: big.NewInt(params.InitialBaseFee),
 	})
 	newTxs = append(newTxs, tx2)
-
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	//rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // testWorkerBackend implements worker.Backend interfaces and wraps all information needed during the testing.
@@ -149,7 +148,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	}
 	parent := genesis
 	if n > 0 {
-		parent = chain.GetBlockByHash(chain.CurrentBlock().ParentHash())
+		parent = chain.GetBlockByHash(chain.CurrentBlock().ParentHash)
 	}
 	core.GenerateChain(chainConfig, parent, engine, db, 1, func(i int, gen *core.BlockGen) {
 		gen.SetCoinbase(testUserAddress)
@@ -177,7 +176,7 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, miningConfig *
 
 	bftResultSub := event.Subscribe(cbfttypes.CbftResult{})
 	core.NewBlockChainReactor(event, chainConfig.ChainID)
-	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, nil, backend.chainCache, 0)
+	w := newWorker(testConfig, chainConfig, miningConfig, engine, backend, event, backend.chainCache, 0)
 	go func() {
 		for obj := range bftResultSub.Chan() {
 			if obj == nil {
@@ -451,11 +450,11 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 		progress = make(chan struct{}, 10)
 		result   = make([]float64, 0, 10)
 		index    = 0
-		start    = false
+		start    atomic.Bool
 	)
 	w.resubmitHook = func(minInterval time.Duration, recommitInterval time.Duration) {
 		// Short circuit if interval checking hasn't started.
-		if !start {
+		if !start.Load() {
 			return
 		}
 		var wantMinInterval, wantRecommitInterval time.Duration
@@ -501,7 +500,7 @@ func testAdjustInterval(t *testing.T, chainConfig *params.ChainConfig, engine co
 
 	time.Sleep(time.Second)
 
-	start = true
+	start.Store(true)
 	w.setRecommitInterval(3 * time.Second)
 	go func() {
 		select {

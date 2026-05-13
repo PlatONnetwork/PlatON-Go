@@ -20,12 +20,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"math/big"
 	"os"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -309,7 +310,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 	//todo this is a hard code for 1.5.0
 	if eth.blockchain.Config().PauliBlock == nil {
-		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Header().Root)
+		state, err := eth.blockchain.StateAt(eth.blockchain.CurrentBlock().Root)
 		if err != nil {
 			return nil, err
 		}
@@ -339,7 +340,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	core.SenderCacher.SetTxPool(eth.txPool)
 
 	currentBlock := eth.blockchain.CurrentBlock()
-	currentNumber := currentBlock.NumberU64()
+	currentNumber := currentBlock.Number.Uint64()
 	currentHash := currentBlock.Hash()
 	gasCeil, err := gov.NewGov(snapshotBaseDB).GovernMaxBlockGasLimit(currentNumber, currentHash, snapshotBaseDB)
 	if err := snapshotBaseDB.Close(); err != nil {
@@ -354,8 +355,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		return nil, fmt.Errorf("the gasFloor must be less than gasCeil, got: %d, expect range (0, %d]", config.Miner.GasFloor, gasCeil)
 	}
 
-	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine,
-		eth.isLocalBlock, blockChainCache, config.VmTimeoutDuration)
+	eth.miner = miner.New(eth, &config.Miner, eth.blockchain.Config(), minningConfig, eth.EventMux(), eth.engine, blockChainCache, config.VmTimeoutDuration)
 
 	reactor := core.NewBlockChainReactor(eth.EventMux(), eth.blockchain.Config().ChainID)
 	node.GetCryptoHandler().SetPrivateKey(stack.Config().NodeKey())
@@ -521,10 +521,10 @@ func (s *Ethereum) APIs() []rpc.API {
 //
 // We regard two types of accounts as local miner account: etherbase
 // and accounts specified via `txpool.locals` flag.
-func (s *Ethereum) isLocalBlock(block *types.Block) bool {
-	author, err := s.engine.Author(block.Header())
+func (s *Ethereum) isLocalBlock(header *types.Header) bool {
+	author, err := s.engine.Author(header)
 	if err != nil {
-		log.Warn("Failed to retrieve block author", "number", block.NumberU64(), "hash", block.Hash(), "err", err)
+		log.Warn("Failed to retrieve block author", "number", header.Number.Uint64(), "hash", header.Hash(), "err", err)
 		return false
 	}
 	// Check whether the given address is etherbase.
@@ -547,7 +547,7 @@ func (s *Ethereum) isLocalBlock(block *types.Block) bool {
 // shouldPreserve checks whether we should preserve the given block
 // during the chain reorg depending on whether the author of block
 // is a local account.
-func (s *Ethereum) shouldPreserve(block *types.Block) bool {
+func (s *Ethereum) shouldPreserve(block *types.Header) bool {
 	// The reason we need to disable the self-reorg preserving for clique
 	// is it can be probable to introduce a deadlock.
 	//

@@ -52,8 +52,11 @@ type ChainReader interface {
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
+	// CurrentFullBlock retrieves the current head block of the canonical chain.
+	CurrentFullBlock() *types.Block
+
 	// CurrentBlock retrieves the current head block of the canonical chain.
-	CurrentBlock() *types.Block
+	CurrentBlock() *types.Header
 }
 
 // TxPoolReset stands for transaction pool.
@@ -97,10 +100,11 @@ type Engine interface {
 	// rules of a particular engine. The changes are executed inline.
 	Prepare(chain ChainReader, header *types.Header) error
 
-	// Finalize runs any post-transaction state modifications (e.g. block rewards)
-	// and assembles the final block.
-	// Note: The block header and state database might be updated to reflect any
-	// consensus rules that happen at finalization (e.g. block rewards).
+	// Finalize runs any post-transaction state modifications (e.g. block rewards
+	// or process withdrawals) but does not assemble the block.
+	//
+	// Note: The state database might be updated to reflect any consensus rules
+	// that happen at finalization (e.g. block rewards).
 	Finalize(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
 		receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error)
 

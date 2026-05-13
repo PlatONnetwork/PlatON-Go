@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -22,7 +23,7 @@ func NewParallelTxsCommitter(w *worker) *ParallelTxsCommitter {
 	}
 }
 
-func (c *ParallelTxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
+func (c *ParallelTxsCommitter) CommitTransactions(env *environment, txs *types.TransactionsByPriceAndNonce, interrupt *atomic.Int32, timestamp int64, blockDeadline time.Time, tempContractCache map[common.Address]struct{}) (bool, bool) {
 	w := c.worker
 
 	// Short circuit if current is nil

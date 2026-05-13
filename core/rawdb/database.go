@@ -24,7 +24,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/olekukonko/tablewriter"
@@ -73,9 +72,9 @@ func (frdb *freezerdb) Freeze(threshold uint64) error {
 	}
 	// Set the freezer threshold to a temporary value
 	defer func(old uint64) {
-		atomic.StoreUint64(&frdb.AncientStore.(*chainFreezer).threshold, old)
-	}(atomic.LoadUint64(&frdb.AncientStore.(*chainFreezer).threshold))
-	atomic.StoreUint64(&frdb.AncientStore.(*chainFreezer).threshold, threshold)
+		frdb.AncientStore.(*chainFreezer).threshold.Store(old)
+	}(frdb.AncientStore.(*chainFreezer).threshold.Load())
+	frdb.AncientStore.(*chainFreezer).threshold.Store(threshold)
 
 	// Trigger a freeze cycle and block until it's done
 	trigger := make(chan struct{}, 1)
@@ -201,7 +200,7 @@ func resolveChainFreezerDir(ancient string) string {
 // where the chain freezer can be opened.
 func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace string, readonly bool) (ethdb.Database, error) {
 	// Create the idle freezer instance
-	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly, freezerTableSize, chainFreezerNoSnappy)
+	frdb, err := newChainFreezer(resolveChainFreezerDir(ancient), namespace, readonly)
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +231,7 @@ func NewDatabaseWithFreezer(db ethdb.KeyValueStore, ancient string, namespace st
 			// If the freezer already contains something, ensure that the genesis blocks
 			// match, otherwise we might mix up freezers across chains and destroy both
 			// the freezer and the key-value store.
-			frgenesis, err := frdb.Ancient(chainFreezerHashTable, 0)
+			frgenesis, err := frdb.Ancient(ChainFreezerHashTable, 0)
 			if err != nil {
 				return nil, fmt.Errorf("failed to retrieve genesis from ancient %v", err)
 			} else if !bytes.Equal(kvgenesis, frgenesis) {

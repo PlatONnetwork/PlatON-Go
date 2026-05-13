@@ -64,15 +64,14 @@ type Miner struct {
 }
 
 func New(eth Backend, config *Config, chainConfig *params.ChainConfig, miningConfig *core.MiningConfig, mux *event.TypeMux,
-	engine consensus.Engine, isLocalBlock func(block *types.Block) bool,
-	blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
+	engine consensus.Engine, blockChainCache *core.BlockChainCache, vmTimeout uint64) *Miner {
 	miner := &Miner{
 		mux:     mux,
 		engine:  engine,
 		exitCh:  make(chan struct{}),
 		startCh: make(chan struct{}),
 		stopCh:  make(chan struct{}),
-		worker:  newWorker(config, chainConfig, miningConfig, engine, eth, mux, isLocalBlock, blockChainCache, vmTimeout),
+		worker:  newWorker(config, chainConfig, miningConfig, engine, eth, mux, blockChainCache, vmTimeout),
 	}
 	miner.wg.Add(1)
 	go miner.update()

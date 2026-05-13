@@ -187,7 +187,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// We have the genesis block in database(perhaps in ancient database)
 	// but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
-	if _, err := state.New(header.Root, state.NewDatabaseWithConfig(db, nil), nil); err != nil {
+	if header.Root != types.EmptyRootHash && !rawdb.HasLegacyTrieNode(db, header.Root) {
 		if genesis == nil {
 			genesis = DefaultGenesisBlock()
 		}

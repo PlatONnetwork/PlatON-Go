@@ -40,18 +40,16 @@ type committer struct {
 	tmp         sliceBuffer
 	encbuf      rlp.EncoderBuffer
 	nodes       *NodeSet
-	tracer      *tracer
 	collectLeaf bool
 }
 
 // newCommitter creates a new committer or picks one from the pool.
-func newCommitter(owner common.Hash, tracer *tracer, collectLeaf bool) *committer {
+func newCommitter(nodeset *NodeSet, collectLeaf bool) *committer {
 	return &committer{
 		tmp:         make(sliceBuffer, 0, 550), // cap is as large as a full fullNode.
 		sha:         sha3.NewLegacyKeccak256().(crypto.KeccakState),
 		encbuf:      rlp.NewEncoderBuffer(nil),
-		nodes:       NewNodeSet(owner),
-		tracer:      tracer,
+		nodes:       nodeset,
 		collectLeaf: collectLeaf,
 	}
 }
@@ -83,11 +81,13 @@ func (c *committer) commit(path []byte, n node, force bool) (node, node, error) 
 	// without copying the node first because hashChildren copies it.
 	cachedHash, _ := hashed.(hashNode)
 
-	// Mark the node as deleted if it's present in database previously.
-	// It's equivalent as deletion from database's perspective.
-	if prev := c.tracer.getPrev(path); len(prev) != 0 {
-		c.nodes.markDeleted(path, prev)
-	}
+	/*
+		// Mark the node as deleted if it's present in database previously.
+		// It's equivalent as deletion from database's perspective.
+		if prev := c.tracer.getPrev(path); len(prev) != 0 {
+			c.nodes.markDeleted(path, prev)
+		}
+	*/
 
 	switch cn := cached.(type) {
 	case *shortNode:
@@ -151,6 +151,12 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 	n.encode(c.encbuf)
 	enc := c.encodedBytes()
 	if len(enc) < 32 && !force {
+		// The node is embedded in its parent, in other words, this node
+		// will not be stored in the database independently, mark it as
+		// deleted only if the node was existent in database before.
+		if _, ok := c.nodes.accessList[string(path)]; ok {
+			c.nodes.markDeleted(path)
+		}
 		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
 
@@ -172,7 +178,7 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 		}
 	)
 	// Collect the dirty node to nodeset for return.
-	c.nodes.markUpdated(path, mnode, c.tracer.getPrev(path))
+	c.nodes.markUpdated(path, mnode)
 
 	// Collect the corresponding leaf node if it's required. We don't check
 	// full node since it's impossible to store value in fullNode. The key

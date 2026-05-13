@@ -70,12 +70,20 @@ type executeTask struct {
 	result chan error
 }
 
-func (pbc *BlockChainCache) CurrentBlock() *types.Block {
+func (pbc *BlockChainCache) CurrentFullBlock() *types.Block {
 	block := pbc.Engine().CurrentBlock()
 	if block != nil {
 		return block
 	}
-	return pbc.currentBlock.Load().(*types.Block)
+	return pbc.currentFullBlock.Load()
+}
+
+func (pbc *BlockChainCache) CurrentBlock() *types.Header {
+	block := pbc.Engine().CurrentBlock()
+	if block != nil {
+		return block.Header()
+	}
+	return pbc.currentBlock.Load()
 }
 
 func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Block {
