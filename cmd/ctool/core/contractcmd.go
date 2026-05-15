@@ -18,13 +18,15 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/urfave/cli/v2"
+
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -152,7 +154,7 @@ func invoke(c *cli.Context) error {
 func InvokeContract(contractAddr string, abiPath string, funcParams string, txType int) error {
 	//Judging whether this contract exists or not
 	if !getContractByAddress(contractAddr) {
-		return fmt.Errorf("the contract address is not exist ...")
+		return errors.New("the contract address is not exist ...")
 	}
 
 	//parse the function and param
