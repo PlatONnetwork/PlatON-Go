@@ -690,7 +690,7 @@ func (pool *TxPool) Pending(enforceTips, limited bool) map[common.Address]types.
 	defer pool.mu.Unlock()
 
 	txCount := 0
-	pending := make(map[common.Address]types.Transactions)
+	pending := make(map[common.Address]types.Transactions, len(pool.pending))
 	for addr, list := range pool.pending {
 		txs := list.Flatten()
 
