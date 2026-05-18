@@ -362,10 +362,11 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 			if gte150 := gov.NewGov(nil).Gte150VersionState(stateDB); gte150 {
 				pool.eip2718.Store(true)
 				pool.eip1559.Store(true)
-				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, gte150)
+				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, false)
 			}
 			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
 				pool.dirac.Store(true)
+				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, true)
 			} else {
 				pool.dirac.Store(false)
 			}
@@ -750,6 +751,10 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 	}
 	// Reject dynamic fee transactions until EIP-1559 activates.
 	if !pool.eip1559.Load() && tx.Type() == types.DynamicFeeTxType {
+		return core.ErrTxTypeNotSupported
+	}
+	// Reject blob transactions forever, those will have their own pool.
+	if tx.Type() == types.BlobTxType {
 		return core.ErrTxTypeNotSupported
 	}
 	// Reject transactions over defined size to prevent DOS attacks
@@ -1597,15 +1602,15 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 		pool.eip2718.Store(false)
 		pool.eip1559.Store(false)
 	}
-	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
-	pool.locals.signer = pool.signer
-	pool.cacheAccountNeedPromoted.signer = pool.signer
 	gte160 := gov.NewGov(nil).Gte160VersionState(statedb)
 	if gte160 {
 		pool.dirac.Store(true)
 	} else {
 		pool.dirac.Store(false)
 	}
+	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte160)
+	pool.locals.signer = pool.signer
+	pool.cacheAccountNeedPromoted.signer = pool.signer
 }
 
 // promoteExecutables moves transactions that have become processable from the
