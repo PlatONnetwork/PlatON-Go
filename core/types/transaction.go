@@ -420,11 +420,6 @@ func (tx *Transaction) Size() uint64 {
 		return size.(uint64)
 	}
 	c := writeCounter(0)
-	if tx.Type() == BlobTxType {
-		rlp.Encode(&c, &tx.inner) // TODO(karalabe): Replace with SSZ encoding
-	} else {
-		rlp.Encode(&c, &tx.inner)
-	}
 	rlp.Encode(&c, &tx.inner)
 
 	size := uint64(c)
