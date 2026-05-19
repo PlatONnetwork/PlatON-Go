@@ -575,12 +575,21 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 	targetBlocks := len(testChainBase.blocks) - 1
 	tester.newPeer("peer", protocol, testChainBase.blocks[1:])
 
-	// Wrap the importer to allow stepping
+	// Wrap the importer to allow stepping.
+	// done is closed before tester.terminate() (LIFO defer order) so that any
+	// goroutine blocked in chainInsertHook can exit before cancelWg.Wait() is
+	// called inside Downloader.Cancel, preventing a permanent deadlock when the
+	// test fails via t.Fatalf / runtime.Goexit.
 	var blocked atomic.Uint32
 	proceed := make(chan struct{})
+	done := make(chan struct{})
+	defer close(done)
 	tester.downloader.chainInsertHook = func(results []*fetchResult) {
 		blocked.Store(uint32(len(results)))
-		<-proceed
+		select {
+		case <-proceed:
+		case <-done:
+		}
 	}
 	// Start a synchronisation concurrently
 	errc := make(chan error, 1)
