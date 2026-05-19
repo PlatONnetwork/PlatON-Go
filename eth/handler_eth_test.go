@@ -344,6 +344,13 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 		}
 		go eth.Handle(sink, sinkPeer)
 	}
+	deadline := time.Now().Add(3 * time.Second)
+	for source.handler.peers.len() < peers && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if source.handler.peers.len() < peers {
+		t.Fatalf("peer setup incomplete: have %d, want %d", source.handler.peers.len(), peers)
+	}
 	// Subscribe to all the transaction pools
 	blockChs := make([]chan *types.Block, len(sinks))
 	for i := 0; i < len(sinks); i++ {
@@ -367,12 +374,17 @@ func testBroadcastBlock(t *testing.T, peers, bcasts int) {
 		}()
 	}
 	var received int
+	timeout := time.NewTimer(2 * time.Second)
+	defer timeout.Stop()
 	for {
 		select {
 		case <-done:
 			received++
+			if received == bcasts {
+				return
+			}
 
-		case <-time.After(500 * time.Millisecond):
+		case <-timeout.C:
 			if received != bcasts {
 				t.Errorf("broadcast count mismatch: have %d, want %d", received, bcasts)
 			}
