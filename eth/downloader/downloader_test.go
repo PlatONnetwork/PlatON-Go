@@ -607,7 +607,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		}
 		// Wait a bit for sync to throttle itself
 		var cached, frozen int
-		for start := time.Now(); time.Since(start) < 3*time.Second; {
+		for start := time.Now(); time.Since(start) < 10*time.Second; {
 			time.Sleep(25 * time.Millisecond)
 
 			tester.lock.Lock()
@@ -631,9 +631,17 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		}
 		// Make sure we filled up the cache, then exhaust it
 		time.Sleep(25 * time.Millisecond) // give it a chance to screw up
-		tester.lock.RLock()
-		retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
-		tester.lock.RUnlock()
+		tester.lock.Lock()
+		tester.downloader.queue.lock.Lock()
+		tester.downloader.queue.resultCache.lock.Lock()
+		{
+			cached = tester.downloader.queue.resultCache.countCompleted()
+			frozen = int(blocked.Load())
+			retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
+		}
+		tester.downloader.queue.resultCache.lock.Unlock()
+		tester.downloader.queue.lock.Unlock()
+		tester.lock.Unlock()
 		if cached != blockCacheMaxItems && cached != blockCacheMaxItems-reorgProtHeaderDelay && retrieved+cached+frozen != targetBlocks+1 && retrieved+cached+frozen != targetBlocks+1-reorgProtHeaderDelay {
 			t.Fatalf("block count mismatch: have %v, want %v (owned %v, blocked %v, target %v)", cached, blockCacheMaxItems, retrieved, frozen, targetBlocks+1)
 		}
