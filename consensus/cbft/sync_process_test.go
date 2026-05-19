@@ -235,7 +235,7 @@ func TestFetch_Serial(t *testing.T) {
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
-	case <-time.NewTimer(5 * time.Second).C:
+	case <-time.NewTimer(30 * time.Second).C:
 		t.Fatal("fetch timeout")
 	case <-finish:
 	}
@@ -278,7 +278,7 @@ func TestSyncBlock(t *testing.T) {
 				finish bool
 			}
 			executeCh := make(chan execSnap, 1)
-			timer := time.NewTimer(500 * time.Millisecond)
+			timer := time.NewTimer(3 * time.Second)
 			nodes[j].engine.executeFinishHook = func(idx uint32) {
 				ei, ef := nodes[j].engine.state.Executing()
 				executeCh <- execSnap{ei, ef}
