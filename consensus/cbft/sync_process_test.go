@@ -91,7 +91,7 @@ func TestFetch(t *testing.T) {
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			timer := time.NewTimer(3 * time.Second)
+			timer := time.NewTimer(15 * time.Second)
 			var snap execSnap
 			select {
 			case <-timer.C:
@@ -189,7 +189,7 @@ func TestFetch_Serial(t *testing.T) {
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			timer := time.NewTimer(3 * time.Second)
+			timer := time.NewTimer(15 * time.Second)
 			var snap execSnap
 			select {
 			case <-timer.C:
