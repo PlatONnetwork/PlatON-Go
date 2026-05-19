@@ -91,7 +91,13 @@ func TestFetch(t *testing.T) {
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			snap := <-executeCh
+			timer := time.NewTimer(3 * time.Second)
+			var snap execSnap
+			select {
+			case <-timer.C:
+				t.Fatalf("execute block timeout in TestFetch, i:%d, j:%d", i, j)
+			case snap = <-executeCh:
+			}
 			log.Info("===================================", "n", snap.index)
 			if !(snap.index == uint32(i) && snap.finish) {
 				t.Fatalf("i:%d,index:%d,finish:%v", i, snap.index, snap.finish)
@@ -127,7 +133,7 @@ SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
 	case <-time.NewTimer(30 * time.Second).C:
-		//t.Fatal("fetch timeout")
+		t.Fatal("fetch timeout")
 	case <-finish:
 	}
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -183,7 +189,13 @@ func TestFetch_Serial(t *testing.T) {
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			snap := <-executeCh
+			timer := time.NewTimer(3 * time.Second)
+			var snap execSnap
+			select {
+			case <-timer.C:
+				t.Fatalf("execute block timeout in TestFetch_Serial, i:%d, j:%d", i, j)
+			case snap = <-executeCh:
+			}
 			if !(snap.index == uint32(i) && snap.finish) {
 				t.Fatalf("i:%d,index:%d,finish:%v", i, snap.index, snap.finish)
 			}
@@ -224,6 +236,7 @@ SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
 	case <-time.NewTimer(5 * time.Second).C:
+		t.Fatal("fetch timeout")
 	case <-finish:
 	}
 	assert.Equal(t, uint64(2), nodes[1].engine.state.HighestQCBlock().NumberU64())
