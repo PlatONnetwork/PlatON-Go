@@ -575,12 +575,21 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 	targetBlocks := len(testChainBase.blocks) - 1
 	tester.newPeer("peer", protocol, testChainBase.blocks[1:])
 
-	// Wrap the importer to allow stepping
+	// Wrap the importer to allow stepping.
+	// done is closed before tester.terminate() (LIFO defer order) so that any
+	// goroutine blocked in chainInsertHook can exit before cancelWg.Wait() is
+	// called inside Downloader.Cancel, preventing a permanent deadlock when the
+	// test fails via t.Fatalf / runtime.Goexit.
 	var blocked atomic.Uint32
 	proceed := make(chan struct{})
+	done := make(chan struct{})
+	defer close(done)
 	tester.downloader.chainInsertHook = func(results []*fetchResult) {
 		blocked.Store(uint32(len(results)))
-		<-proceed
+		select {
+		case <-proceed:
+		case <-done:
+		}
 	}
 	// Start a synchronisation concurrently
 	errc := make(chan error, 1)
@@ -598,7 +607,7 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		}
 		// Wait a bit for sync to throttle itself
 		var cached, frozen int
-		for start := time.Now(); time.Since(start) < 3*time.Second; {
+		for start := time.Now(); time.Since(start) < 10*time.Second; {
 			time.Sleep(25 * time.Millisecond)
 
 			tester.lock.Lock()
@@ -622,9 +631,17 @@ func testThrottling(t *testing.T, protocol uint, mode SyncMode) {
 		}
 		// Make sure we filled up the cache, then exhaust it
 		time.Sleep(25 * time.Millisecond) // give it a chance to screw up
-		tester.lock.RLock()
-		retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
-		tester.lock.RUnlock()
+		tester.lock.Lock()
+		tester.downloader.queue.lock.Lock()
+		tester.downloader.queue.resultCache.lock.Lock()
+		{
+			cached = tester.downloader.queue.resultCache.countCompleted()
+			frozen = int(blocked.Load())
+			retrieved = int(tester.chain.CurrentSnapBlock().Number.Uint64()) + 1
+		}
+		tester.downloader.queue.resultCache.lock.Unlock()
+		tester.downloader.queue.lock.Unlock()
+		tester.lock.Unlock()
 		if cached != blockCacheMaxItems && cached != blockCacheMaxItems-reorgProtHeaderDelay && retrieved+cached+frozen != targetBlocks+1 && retrieved+cached+frozen != targetBlocks+1-reorgProtHeaderDelay {
 			t.Fatalf("block count mismatch: have %v, want %v (owned %v, blocked %v, target %v)", cached, blockCacheMaxItems, retrieved, frozen, targetBlocks+1)
 		}

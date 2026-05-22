@@ -220,19 +220,8 @@ func (c *callback) call(ctx context.Context, method string, args []reflect.Value
 	return results[0].Interface(), nil
 }
 
-// Is t context.Context or *context.Context?
-func isContextType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	return t == contextType
-}
-
 // Does t satisfy the error interface?
 func isErrorType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
 	return t.Implements(errorType)
 }
 
@@ -244,14 +233,14 @@ func isSubscriptionType(t reflect.Type) bool {
 	return t == subscriptionType
 }
 
-// isPubSub tests whether the given method has as first argument a context.Context and
+// isPubSub tests whether the given method has as as first argument a context.Context and
 // returns the pair (Subscription, error).
 func isPubSub(methodType reflect.Type) bool {
 	// numIn(0) is the receiver type
 	if methodType.NumIn() < 2 || methodType.NumOut() != 2 {
 		return false
 	}
-	return isContextType(methodType.In(1)) &&
+	return methodType.In(1) == contextType &&
 		isSubscriptionType(methodType.Out(0)) &&
 		isErrorType(methodType.Out(1))
 }

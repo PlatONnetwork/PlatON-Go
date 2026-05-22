@@ -195,6 +195,8 @@ const (
 	WithdrawDelegateRewardGas uint64 = 8000 // Gas needed for withdraw  delegate reward
 	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
 	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
+
+	BlobTxDataGasPerBlob = 1 << 17 // Gas consumption of a single data blob (== blob byte size)
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations

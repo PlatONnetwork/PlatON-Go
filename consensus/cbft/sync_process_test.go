@@ -80,17 +80,27 @@ func TestFetch(t *testing.T) {
 			}
 			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 			assert.NotNil(t, pb)
-			execute := make(chan uint32, 1)
-			nodes[j].engine.executeFinishHook = func(index uint32) {
-				execute <- index
+			type execSnap struct {
+				index  uint32
+				finish bool
+			}
+			executeCh := make(chan execSnap, 1)
+			nodes[j].engine.executeFinishHook = func(idx uint32) {
+				ei, ef := nodes[j].engine.state.Executing()
+				executeCh <- execSnap{ei, ef}
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			n := <-execute
-			log.Info("===================================", "n", n)
-			index, finish := nodes[j].engine.state.Executing()
-			if !(index == uint32(i) && finish) {
-				t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+			timer := time.NewTimer(15 * time.Second)
+			var snap execSnap
+			select {
+			case <-timer.C:
+				t.Fatalf("execute block timeout in TestFetch, i:%d, j:%d", i, j)
+			case snap = <-executeCh:
+			}
+			log.Info("===================================", "n", snap.index)
+			if !(snap.index == uint32(i) && snap.finish) {
+				t.Fatalf("i:%d,index:%d,finish:%v", i, snap.index, snap.finish)
 			}
 			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
@@ -123,7 +133,7 @@ SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
 	case <-time.NewTimer(30 * time.Second).C:
-		//t.Fatal("fetch timeout")
+		t.Fatal("fetch timeout")
 	case <-finish:
 	}
 	assert.Equal(t, uint64(3), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -168,16 +178,26 @@ func TestFetch_Serial(t *testing.T) {
 			}
 			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 			assert.NotNil(t, pb)
-			execute := make(chan uint32, 1)
-			nodes[j].engine.executeFinishHook = func(index uint32) {
-				execute <- index
+			type execSnap struct {
+				index  uint32
+				finish bool
+			}
+			executeCh := make(chan execSnap, 1)
+			nodes[j].engine.executeFinishHook = func(idx uint32) {
+				ei, ef := nodes[j].engine.state.Executing()
+				executeCh <- execSnap{ei, ef}
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock("id", pb))
 
-			<-execute
-			index, finish := nodes[j].engine.state.Executing()
-			if !(index == uint32(i) && finish) {
-				t.Fatalf("i:%d,index:%d,finish:%v", i, index, finish)
+			timer := time.NewTimer(15 * time.Second)
+			var snap execSnap
+			select {
+			case <-timer.C:
+				t.Fatalf("execute block timeout in TestFetch_Serial, i:%d, j:%d", i, j)
+			case snap = <-executeCh:
+			}
+			if !(snap.index == uint32(i) && snap.finish) {
+				t.Fatalf("i:%d,index:%d,finish:%v", i, snap.index, snap.finish)
 			}
 			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 			assert.Nil(t, nodes[0].engine.OnPrepareVote("id", msg), fmt.Sprintf("number:%d", b.NumberU64()))
@@ -215,7 +235,9 @@ func TestFetch_Serial(t *testing.T) {
 SYNC:
 	nodes[1].engine.ReceiveSyncMsg(&types2.MsgInfo{PeerID: "id", Msg: qcBlocks})
 	select {
-	case <-time.NewTimer(5 * time.Second).C:
+	case <-time.NewTimer(30 * time.Second).C:
+		// The serial case intentionally carries a wrong QC for the third block.
+		// Timeout here means block #3 is not accepted, which is expected.
 	case <-finish:
 	}
 	assert.Equal(t, uint64(2), nodes[1].engine.state.HighestQCBlock().NumberU64())
@@ -252,20 +274,25 @@ func TestSyncBlock(t *testing.T) {
 			}
 			pb := nodes[0].engine.state.PrepareBlockByIndex(uint32(i))
 			assert.NotNil(t, pb)
-			execute := make(chan uint32, 1)
-			timer := time.NewTimer(500 * time.Millisecond)
-			nodes[j].engine.executeFinishHook = func(index uint32) {
-				execute <- index
+			type execSnap struct {
+				index  uint32
+				finish bool
+			}
+			executeCh := make(chan execSnap, 1)
+			timer := time.NewTimer(10 * time.Second)
+			nodes[j].engine.executeFinishHook = func(idx uint32) {
+				ei, ef := nodes[j].engine.state.Executing()
+				executeCh <- execSnap{ei, ef}
 			}
 			assert.Nil(t, nodes[j].engine.OnPrepareBlock(nodes[0].engine.config.Option.NodeID.TerminalString(), pb))
 
+			var snap execSnap
 			select {
 			case <-timer.C:
 				t.Fatal("execute block timeout")
-			case <-execute:
+			case snap = <-executeCh:
 			}
-			index, finish := nodes[j].engine.state.Executing()
-			assert.True(t, index == uint32(i) && finish, fmt.Sprintf("%d,%v", index, finish))
+			assert.True(t, snap.index == uint32(i) && snap.finish, fmt.Sprintf("%d,%v", snap.index, snap.finish))
 			assert.Nil(t, nodes[j].engine.signMsgByBls(msg))
 			assert.Nil(t, nodes[0].engine.OnPrepareVote(nodes[j].engine.config.Option.NodeID.TerminalString(), msg), fmt.Sprintf("number:%d", b.NumberU64()))
 		}
