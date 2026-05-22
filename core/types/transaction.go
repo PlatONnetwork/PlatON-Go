@@ -201,7 +201,7 @@ func (tx *Transaction) decodeTyped(b []byte) (TxData, error) {
 		return &inner, err
 	case BlobTxType:
 		var inner BlobTx
-		err := rlp.DecodeBytes(b[1:], &inner) // TODO(karalabe): This needs to be ssz
+		err := rlp.DecodeBytes(b[1:], &inner)
 		return &inner, err
 	default:
 		return nil, ErrTxTypeNotSupported
