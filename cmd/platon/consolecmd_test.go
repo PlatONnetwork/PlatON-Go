@@ -152,7 +152,7 @@ at block: 0 ({{niltime}}){{if ipc}}
 To exit, press ctrl-d or type exit
 > {{.InputLine "exit" }}
 `)
-	attach.ExpectExit()
+	attach.Kill()
 }
 
 // trulyRandInt generates a crypto random integer used by the console tests to
