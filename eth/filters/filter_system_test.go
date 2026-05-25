@@ -46,6 +46,7 @@ import (
 
 type testBackend struct {
 	db              ethdb.Database
+	finalizedHash   common.Hash // zero means finalized block is unavailable
 	sections        uint64
 	txFeed          event.Feed
 	logsFeed        event.Feed
@@ -73,8 +74,18 @@ func (b *testBackend) HeaderByNumber(ctx context.Context, blockNr rpc.BlockNumbe
 		num  uint64
 	)
 	switch blockNr {
-	case rpc.LatestBlockNumber, rpc.FinalizedBlockNumber:
+	case rpc.LatestBlockNumber:
 		hash = rawdb.ReadHeadBlockHash(b.db)
+		number := rawdb.ReadHeaderNumber(b.db, hash)
+		if number == nil {
+			return nil, nil
+		}
+		num = *number
+	case rpc.FinalizedBlockNumber:
+		if b.finalizedHash == (common.Hash{}) {
+			return nil, nil
+		}
+		hash = b.finalizedHash
 		number := rawdb.ReadHeaderNumber(b.db, hash)
 		if number == nil {
 			return nil, nil

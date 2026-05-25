@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"math/big"
@@ -260,7 +261,7 @@ type decDataConfig struct {
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
 	if configPath == "" {
-		panic(fmt.Errorf("parse config file error"))
+		panic(errors.New("parse config file error"))
 	}
 
 	file, err := os.Open(configPath)

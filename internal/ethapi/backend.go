@@ -66,7 +66,7 @@ type Backend interface {
 	StateAndHeaderByNumberOrHash(ctx context.Context, blockNrOrHash rpc.BlockNumberOrHash) (*state.StateDB, *types.Header, error)
 	PendingBlockAndReceipts() (*types.Block, types.Receipts)
 	GetReceipts(ctx context.Context, blockHash common.Hash) (types.Receipts, error)
-	GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config) (*vm.EVM, func() error, error)
+	GetEVM(ctx context.Context, msg core.Message, state *state.StateDB, header *types.Header, vmConfig *vm.Config, blockCtx *vm.BlockContext) (*vm.EVM, func() error)
 	SubscribeChainEvent(ch chan<- core.ChainEvent) event.Subscription
 	SubscribeChainHeadEvent(ch chan<- core.ChainHeadEvent) event.Subscription
 	SubscribeChainSideEvent(ch chan<- core.ChainSideEvent) event.Subscription

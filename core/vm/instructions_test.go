@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"os"
 	"testing"
@@ -707,7 +708,7 @@ func TestRandom(t *testing.T) {
 
 func TestOpTstore(t *testing.T) {
 	var (
-		statedb, _     = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		statedb, _     = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		env            = NewEVM(BlockContext{}, TxContext{}, nil, statedb, params.TestChainConfig, Config{})
 		stack          = newstack()
 		rstack         = newReturnStack()

@@ -128,8 +128,12 @@ func TestGethClient(t *testing.T) {
 		}, {
 			"TestCallContract",
 			func(t *testing.T) { testCallContract(t, client) },
+		}, {
+			"TestCallContractWithBlockOverrides",
+			func(t *testing.T) { testCallContractWithBlockOverrides(t, client) },
 		},
 		// The testaccesslist is a bit time-sensitive: the newTestBackend imports
+
 		// one block. The `testAcessList` fails if the miner has not yet created a
 		// new pending-block after the import event.
 		// Hence: this test should be last, execute the tests serially.
@@ -412,5 +416,72 @@ func TestOverrideAccountMarshal(t *testing.T) {
 	if string(marshalled) != expected {
 		t.Error("wrong output:", string(marshalled))
 		t.Error("want:", expected)
+	}
+}
+
+func TestBlockOverridesMarshal(t *testing.T) {
+	for i, tt := range []struct {
+		bo   BlockOverrides
+		want string
+	}{
+		{
+			bo:   BlockOverrides{},
+			want: `{}`,
+		},
+		{
+			bo:   BlockOverrides{Number: big.NewInt(1)},
+			want: `{"number":"0x1"}`,
+		},
+		{
+			bo:   BlockOverrides{Difficulty: big.NewInt(2)},
+			want: `{"difficulty":"0x2"}`,
+		},
+		{
+			bo:   BlockOverrides{Time: 3},
+			want: `{"time":"0x3"}`,
+		},
+		{
+			bo:   BlockOverrides{GasLimit: 4},
+			want: `{"gasLimit":"0x4"}`,
+		},
+		{
+			bo:   BlockOverrides{Coinbase: common.Address{1}},
+			want: `{"coinbase":"lat1qyqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqdyd7z7"}`,
+		},
+		{
+			bo:   BlockOverrides{Random: common.Hash{1}},
+			want: `{"random":"0x0100000000000000000000000000000000000000000000000000000000000000"}`,
+		},
+		{
+			bo:   BlockOverrides{BaseFee: big.NewInt(5)},
+			want: `{"baseFee":"0x5"}`,
+		},
+	} {
+		marshalled, err := json.Marshal(tt.bo)
+		if err != nil {
+			t.Fatalf("test %d: unexpected error: %v", i, err)
+		}
+		if string(marshalled) != tt.want {
+			t.Errorf("test %d: wrong output: %s, want: %s", i, string(marshalled), tt.want)
+		}
+	}
+}
+
+func testCallContractWithBlockOverrides(t *testing.T, client *rpc.Client) {
+	ec := New(client)
+	msg := platon.CallMsg{
+		From:     testAddr,
+		To:       &common.Address{},
+		Gas:      21000,
+		GasPrice: big.NewInt(1000000000),
+		Value:    big.NewInt(1),
+	}
+	// CallContract with block override
+	blockOverrides := BlockOverrides{
+		Number: big.NewInt(11),
+	}
+	_, err := ec.CallContractWithBlockOverrides(context.Background(), msg, big.NewInt(0), nil, blockOverrides)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

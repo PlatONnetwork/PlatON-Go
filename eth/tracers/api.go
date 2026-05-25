@@ -102,34 +102,10 @@ func NewAPI(backend Backend) *API {
 	return &API{backend: backend}
 }
 
-type chainContext struct {
-	api *API
-	ctx context.Context
-}
-
-func (context *chainContext) Engine() consensus.Engine {
-	return context.api.backend.Engine()
-}
-
-func (context *chainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
-	header, err := context.api.backend.HeaderByNumber(context.ctx, rpc.BlockNumber(number))
-	if err != nil {
-		return nil
-	}
-	if header.Hash() == hash {
-		return header
-	}
-	header, err = context.api.backend.HeaderByHash(context.ctx, hash)
-	if err != nil {
-		return nil
-	}
-	return header
-}
-
 // chainContext constructs the context reader which is used by the evm for reading
 // the necessary chain context.
 func (api *API) chainContext(ctx context.Context) core.ChainContext {
-	return &chainContext{api: api, ctx: ctx}
+	return ethapi.NewChainContext(ctx, api.backend)
 }
 
 // blockByNumber is the wrapper of the chain access function offered by the backend.
@@ -292,7 +268,7 @@ func (api *API) traceChain(ctx context.Context, start, end *types.Block, config 
 			// Fetch and execute the block trace taskCh
 			for task := range taskCh {
 				var (
-					signer   = types.MakeSigner(api.backend.ChainConfig(), task.block.Number(), gov.NewGov(task.archiveDB).Gte150VersionState(task.statedb))
+					signer   = types.MakeSigner(api.backend.ChainConfig(), task.block.Number(), gov.NewGov(task.archiveDB).Gte160VersionState(task.statedb))
 					blockCtx = core.NewEVMBlockContext(task.block.Header(), api.chainContext(ctx))
 				)
 				// Trace all the transactions contained within
@@ -549,7 +525,7 @@ func (api *API) IntermediateRoots(ctx context.Context, hash common.Hash, config 
 
 	var (
 		roots              []common.Hash
-		signer             = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte150VersionState(statedb))
+		signer             = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte160VersionState(statedb))
 		chainConfig        = api.backend.ChainConfig()
 		vmctx              = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 		deleteEmptyObjects = true
@@ -627,7 +603,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 		txs       = block.Transactions()
 		blockHash = block.Hash()
 		blockCtx  = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
-		signer    = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte150VersionState(statedb))
+		signer    = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte160VersionState(statedb))
 		results   = make([]*txTraceResult, len(txs))
 	)
 	for i, tx := range txs {
@@ -657,7 +633,7 @@ func (api *API) traceBlock(ctx context.Context, block *types.Block, config *Trac
 func (api *API) traceBlockParallel(ctx context.Context, block *types.Block, statedb *state.StateDB, archiveDB snapshotdb.DB, config *TraceConfig) ([]*txTraceResult, error) {
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte150VersionState(statedb))
+		signer = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte160VersionState(statedb))
 
 		txs       = block.Transactions()
 		blockHash = block.Hash()
@@ -773,7 +749,7 @@ func (api *API) standardTraceBlockToFile(ctx context.Context, block *types.Block
 	// Execute transaction, either tracing all or just the requested one
 	var (
 		dumps       []string
-		signer      = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte150VersionState(statedb))
+		signer      = types.MakeSigner(api.backend.ChainConfig(), block.Number(), gov.NewGov(archiveDB).Gte160VersionState(statedb))
 		chainConfig = api.backend.ChainConfig()
 		vmctx       = core.NewEVMBlockContext(block.Header(), api.chainContext(ctx))
 		canon       = true

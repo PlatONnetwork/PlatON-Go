@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/logger"
 
@@ -949,7 +950,39 @@ func (diff *BlockOverrides) Apply(blockCtx *vm.BlockContext) {
 	}
 }
 
-func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, timeout time.Duration, globalGasCap uint64) (*core.ExecutionResult, error) {
+// ChainContextBackend provides methods required to implement ChainContext.
+type ChainContextBackend interface {
+	Engine() consensus.Engine
+	HeaderByNumber(context.Context, rpc.BlockNumber) (*types.Header, error)
+}
+
+// ChainContext is an implementation of core.ChainContext. It's main use-case
+// is instantiating a vm.BlockContext without having access to the BlockChain object.
+type ChainContext struct {
+	b   ChainContextBackend
+	ctx context.Context
+}
+
+// NewChainContext creates a new ChainContext object.
+func NewChainContext(ctx context.Context, backend ChainContextBackend) *ChainContext {
+	return &ChainContext{ctx: ctx, b: backend}
+}
+
+func (context *ChainContext) Engine() consensus.Engine {
+	return context.b.Engine()
+}
+
+func (context *ChainContext) GetHeader(hash common.Hash, number uint64) *types.Header {
+	// This method is called to get the hash for a block number when executing the BLOCKHASH
+	// opcode. Hence no need to search for non-canonical blocks.
+	header, err := context.b.HeaderByNumber(context.ctx, rpc.BlockNumber(number))
+	if err != nil || header.Hash() != hash {
+		return nil
+	}
+	return header
+}
+
+func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, blockOverrides *BlockOverrides, timeout time.Duration, globalGasCap uint64) (*core.ExecutionResult, error) {
 	defer func(start time.Time) { log.Debug("Executing VM call finished", "runtime", time.Since(start)) }(time.Now())
 
 	state, header, err := b.StateAndHeaderByNumberOrHash(ctx, blockNrOrHash)
@@ -977,10 +1010,12 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 	if err != nil {
 		return nil, err
 	}
-	evm, vmError, err := b.GetEVM(ctx, msg, state, header, &vm.Config{NoBaseFee: true})
-	if err != nil {
-		return nil, err
+	blockCtx := core.NewEVMBlockContext(header, NewChainContext(ctx, b))
+	if blockOverrides != nil {
+		blockOverrides.Apply(&blockCtx)
 	}
+	evm, vmError := b.GetEVM(ctx, msg, state, header, &vm.Config{NoBaseFee: true}, &blockCtx)
+
 	// Wait for the context to be done and cancel the evm. Even if the
 	// EVM has finished, cancelling may be done (repeatedly)
 	go func() {
@@ -1011,8 +1046,8 @@ func DoCall(ctx context.Context, b Backend, args TransactionArgs, blockNrOrHash 
 //
 // Note, this function doesn't make and changes in the state/blockchain and is
 // useful to execute and retrieve values.
-func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride) (hexutil.Bytes, error) {
-	result, err := DoCall(ctx, s.b, args, blockNrOrHash, overrides, s.b.RPCEVMTimeout(), s.b.RPCGasCap())
+func (s *BlockChainAPI) Call(ctx context.Context, args TransactionArgs, blockNrOrHash rpc.BlockNumberOrHash, overrides *StateOverride, blockOverrides *BlockOverrides) (hexutil.Bytes, error) {
+	result, err := DoCall(ctx, s.b, args, blockNrOrHash, overrides, blockOverrides, s.b.RPCEVMTimeout(), s.b.RPCGasCap())
 	if err != nil {
 		return nil, err
 	}
@@ -1097,7 +1132,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 	executable := func(gas uint64) (bool, *core.ExecutionResult, error) {
 		args.Gas = (*hexutil.Uint64)(&gas)
 
-		result, err := DoCall(ctx, b, args, blockNrOrHash, nil, 0, gasCap)
+		result, err := DoCall(ctx, b, args, blockNrOrHash, nil, nil, 0, gasCap)
 		if err != nil {
 			if errors.Is(err, core.ErrIntrinsicGas) {
 				return true, nil, nil // Special case, raise gas limit
@@ -1151,7 +1186,7 @@ func DoEstimateGas(ctx context.Context, b Backend, args TransactionArgs, blockNr
 // EstimateGas returns an estimate of the amount of gas needed to execute the
 // given transaction against the current pending block.
 func (s *BlockChainAPI) EstimateGas(ctx context.Context, args TransactionArgs, blockNrOrHash *rpc.BlockNumberOrHash) (hexutil.Uint64, error) {
-	bNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.PendingBlockNumber)
+	bNrOrHash := rpc.BlockNumberOrHashWithNumber(rpc.LatestBlockNumber)
 	if blockNrOrHash != nil {
 		bNrOrHash = *blockNrOrHash
 	}
@@ -1234,21 +1269,18 @@ func RPCMarshalBlock(block *types.Block, inclTx bool, fullTx bool, config *param
 	fields["size"] = hexutil.Uint64(block.Size())
 
 	if inclTx {
-		formatTx := func(tx *types.Transaction) (interface{}, error) {
-			return tx.Hash(), nil
+		formatTx := func(idx int, tx *types.Transaction) interface{} {
+			return tx.Hash()
 		}
 		if fullTx {
-			formatTx = func(tx *types.Transaction) (interface{}, error) {
-				return newRPCTransactionFromBlockHash(block, tx.Hash(), config), nil
+			formatTx = func(idx int, tx *types.Transaction) interface{} {
+				return newRPCTransactionFromBlockIndex(block, uint64(idx), config)
 			}
 		}
 		txs := block.Transactions()
 		transactions := make([]interface{}, len(txs))
-		var err error
 		for i, tx := range txs {
-			if transactions[i], err = formatTx(tx); err != nil {
-				return nil, err
-			}
+			transactions[i] = formatTx(i, tx)
 		}
 		fields["transactions"] = transactions
 
@@ -1422,16 +1454,6 @@ func newRPCRawTransactionFromBlockIndex(b *types.Block, index uint64) hexutil.By
 	return blob
 }
 
-// newRPCTransactionFromBlockHash returns a transaction that will serialize to the RPC representation.
-func newRPCTransactionFromBlockHash(b *types.Block, hash common.Hash, config *params.ChainConfig) *RPCTransaction {
-	for idx, tx := range b.Transactions() {
-		if tx.Hash() == hash {
-			return newRPCTransactionFromBlockIndex(b, uint64(idx), config)
-		}
-	}
-	return nil
-}
-
 // accessListResult returns an optional accesslist
 // Its the result of the `debug_createAccessList` RPC call.
 // It contains an error if the transaction itself failed.
@@ -1509,10 +1531,7 @@ func AccessList(ctx context.Context, b Backend, blockNrOrHash rpc.BlockNumberOrH
 		// Apply the transaction with the access list tracer
 		tracer := logger.NewAccessListTracer(accessList, args.from(), to, precompiles)
 		config := vm.Config{Tracer: tracer, NoBaseFee: true}
-		vmenv, _, err := b.GetEVM(ctx, msg, statedb, header, &config)
-		if err != nil {
-			return nil, 0, nil, err
-		}
+		vmenv, _ := b.GetEVM(ctx, msg, statedb, header, &config, nil)
 		res, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(msg.Gas()))
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to apply transaction: %v err: %v", args.toTransaction().Hash(), err)

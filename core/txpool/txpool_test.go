@@ -118,7 +118,7 @@ func setupTxPool() (*TxPool, *ecdsa.PrivateKey) {
 }
 
 func setupTxPoolWithConfig(config *params.ChainConfig) (*TxPool, *ecdsa.PrivateKey) {
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	statedb, _ := state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(10000000, statedb, new(event.Feed))
 
 	key, _ := crypto.GenerateKey()
@@ -245,7 +245,7 @@ func (c *testChain) State() (*state.StateDB, error) {
 	// a state change between those fetches.
 	stdb := c.statedb
 	if *c.trigger {
-		c.statedb, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+		c.statedb, _ = state.New(types.EmptyRootHash, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 		// simulate that the new head block included tx0 and tx1
 		c.statedb.SetNonce(c.address, 2)
 		c.statedb.SetBalance(c.address, new(big.Int).SetUint64(params.LAT))

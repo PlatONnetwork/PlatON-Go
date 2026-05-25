@@ -85,6 +85,7 @@ var (
 		NewtonBlock:     big.NewInt(28770011),
 		EinsteinBlock:   big.NewInt(45531841),
 		HubbleBlock:     big.NewInt(58421521),
+		PauliBlock:      big.NewInt(116427231),
 		Cbft: &CbftConfig{
 			InitialNodes:  ConvertNodeUrl(initialMainNetConsensusNodes),
 			Amount:        10,
@@ -269,6 +270,12 @@ func (c *ChainConfig) IsPauli(num *big.Int) bool {
 	return c.GenesisVersion >= FORKVERSION_1_5_0 || isForked(c.PauliBlock, num)
 }
 
+func (c *ChainConfig) IsDirac(num *big.Int) bool {
+	c.RWMutex.RLock()
+	defer c.RWMutex.RUnlock()
+	return c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.DiracBlock, num)
+}
+
 func (c *ChainConfig) GetPauliBlock() *big.Int {
 	c.RWMutex.RLock()
 	defer c.RWMutex.RUnlock()
@@ -285,7 +292,7 @@ func (c *ChainConfig) SetPauliBlock(block *big.Int) {
 func (c *ChainConfig) isDirac(num *big.Int) bool {
 	c.RWMutex.RLock()
 	defer c.RWMutex.RUnlock()
-	return isForked(c.DiracBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.DiracBlock, num)
 }
 
 func (c *ChainConfig) GetDiracBlock() *big.Int {

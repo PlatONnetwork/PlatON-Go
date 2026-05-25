@@ -64,7 +64,7 @@ func (suit *PrepareVoteTestSuite) createEvPool(paths []string) {
 }
 
 func (suit *PrepareVoteTestSuite) waitVote() {
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Millisecond * 2000)
 }
 
 // Construct prepareVote message
@@ -423,7 +423,11 @@ func TestPrepareVoteWithParentQCHasChild(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	suit.waitVote()
-	if block13.NumberU64() != suit.view.firstProposer().state.PendingPrepareVote().Votes[0].BlockNum() {
+	pendingVotes := suit.view.firstProposer().state.PendingPrepareVote()
+	if pendingVotes.Len() == 0 {
+		t.Fatal("pending prepare vote queue is empty, expected at least one vote")
+	}
+	if block13.NumberU64() != pendingVotes.Votes[0].BlockNum() {
 		t.Error("fail")
 	}
 	suit.view.firstProposer().insertQCBlock(block12, block12QC.BlockQC)

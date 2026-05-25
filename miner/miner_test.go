@@ -13,6 +13,8 @@ import (
 )
 
 func minerStart(t *testing.T) *Miner {
+	t.Helper()
+
 	cbft := consensus.NewFaker()
 
 	miner := &Miner{
@@ -22,7 +24,7 @@ func minerStart(t *testing.T) *Miner {
 		startCh: make(chan struct{}),
 		stopCh:  make(chan struct{}),
 		worker: &worker{
-			startCh:            make(chan struct{}),
+			startCh:            make(chan struct{}, 1),
 			exitCh:             make(chan struct{}),
 			resubmitIntervalCh: make(chan time.Duration),
 		},
@@ -31,24 +33,19 @@ func minerStart(t *testing.T) *Miner {
 	miner.wg.Add(1)
 	go miner.update()
 
-	go func() {
-		select {
-		case <-miner.worker.startCh:
-			t.Log("Start miner done")
-		case <-time.After(2 * time.Second):
-			t.Error("Start miner timeout")
-		}
-	}()
-
 	miner.Start()
 	return miner
 }
 
 func TestMiner_Start(t *testing.T) {
 	miner := minerStart(t)
+	defer miner.Close()
 
+	deadline := time.Now().Add(2 * time.Second)
+	for !miner.Mining() && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
 	assert.True(t, miner.Mining())
-	close(miner.worker.startCh)
 }
 
 func TestMiner_Stop(t *testing.T) {
@@ -60,7 +57,7 @@ func TestMiner_Stop(t *testing.T) {
 		exitCh:  make(chan struct{}),
 		startCh: make(chan struct{}),
 		stopCh:  make(chan struct{}),
-		worker: &worker{
+		worker:  &worker{
 			//startCh: make(chan struct{}),
 		},
 	}
@@ -74,6 +71,7 @@ func TestMiner_Stop(t *testing.T) {
 
 func TestMiner_Mining(t *testing.T) {
 	miner := minerStart(t)
+	defer miner.Close()
 	assert.True(t, miner.Mining(), "the miner is not running")
 }
 
@@ -95,6 +93,7 @@ func TestMiner_Close(t *testing.T) {
 
 func TestMiner_Pending(t *testing.T) {
 	miner := minerStart(t)
+	defer miner.Close()
 	b, st := miner.Pending()
 	assert.Nil(t, b, "the block must be nil")
 	assert.Nil(t, st, "the state must be nil")
@@ -102,12 +101,14 @@ func TestMiner_Pending(t *testing.T) {
 
 func TestMiner_PendingBlock(t *testing.T) {
 	miner := minerStart(t)
+	defer miner.Close()
 	b := miner.PendingBlock()
 	assert.Nil(t, b, "the block must be nil")
 }
 
 func TestMiner_SetRecommitInterval(t *testing.T) {
 	miner := minerStart(t)
+	defer miner.Close()
 	interval := 3 * time.Second
 
 	go func() {
