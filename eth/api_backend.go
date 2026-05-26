@@ -112,6 +112,9 @@ func (b *EthAPIBackend) BlockByNumber(ctx context.Context, number rpc.BlockNumbe
 	// Otherwise resolve and return the block
 	if number == rpc.LatestBlockNumber || number == rpc.FinalizedBlockNumber || number == rpc.SafeBlockNumber {
 		header := b.eth.blockchain.CurrentBlock()
+		if header == nil {
+			return nil, errors.New("finalized block not found")
+		}
 		return b.eth.blockchain.GetBlock(header.Hash(), header.Number.Uint64()), nil
 	}
 	return b.eth.blockchain.GetBlockByNumber(uint64(number)), nil
