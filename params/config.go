@@ -244,29 +244,29 @@ func (c *ChainConfig) IsEWASM(num *big.Int) bool {
 
 // version 1.1.0
 func (c *ChainConfig) IsCopernicus(num *big.Int) bool {
-	return isForked(c.CopernicusBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_1_0 || isForked(c.CopernicusBlock, num)
 }
 
 // version 1.2.0
 func (c *ChainConfig) IsNewton(num *big.Int) bool {
-	return isForked(c.NewtonBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_2_0 || isForked(c.NewtonBlock, num)
 }
 
 // version 1.3.0
 func (c *ChainConfig) IsEinstein(num *big.Int) bool {
-	return isForked(c.EinsteinBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_3_0 || isForked(c.EinsteinBlock, num)
 }
 
 // version 1.4.0
 func (c *ChainConfig) IsHubble(num *big.Int) bool {
-	return isForked(c.HubbleBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_4_0 || isForked(c.HubbleBlock, num)
 }
 
 // version 1.5.0
 func (c *ChainConfig) IsPauli(num *big.Int) bool {
 	c.RWMutex.RLock()
 	defer c.RWMutex.RUnlock()
-	return isForked(c.PauliBlock, num)
+	return c.GenesisVersion >= FORKVERSION_1_5_0 || isForked(c.PauliBlock, num)
 }
 
 func (c *ChainConfig) GetPauliBlock() *big.Int {
