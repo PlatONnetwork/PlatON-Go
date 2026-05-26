@@ -15,7 +15,6 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build go1.18
-// +build go1.18
 
 package event
 

@@ -15,7 +15,6 @@
 // along with the PlatON library. If not, see <http://www.gnu.org/licenses/>.
 
 //go:build !nacl && !js && !nocgo
-// +build !nacl,!js,!nocgo
 
 package vrf
 
