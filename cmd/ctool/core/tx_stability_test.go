@@ -32,6 +32,6 @@ func TestStressTest(t *testing.T) {
 	parseConfigJson(configPath)
 	err := StabilityTest(pkFilePath, 1, 10)
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 }
