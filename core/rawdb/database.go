@@ -376,7 +376,7 @@ func openKeyValueDatabase(o OpenOptions) (ethdb.Database, error) {
 	// on supported platforms and LevelDB on anything else.
 	if PebbleEnabled {
 		log.Info("Defaulting to pebble as the backing database")
-		return NewPebbleDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
+		return NewPebbleDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly, o.Ephemeral)
 	} else {
 		log.Info("Defaulting to leveldb as the backing database")
 		return NewLevelDBDatabase(o.Directory, o.Cache, o.Handles, o.Namespace, o.ReadOnly)
