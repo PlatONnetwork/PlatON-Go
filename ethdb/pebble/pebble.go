@@ -271,14 +271,17 @@ func (d *Database) Close() error {
 		return nil
 	}
 	d.closed = true
-	if d.quitChan != nil {
-		errc := make(chan error)
-		d.quitChan <- errc
-		if err := <-errc; err != nil {
-			d.log.Error("Metrics collection failed", "err", err)
-		}
-		d.quitChan = nil
+	// Allow double closing, simplifies things
+	if d.quitChan == nil {
+		return nil
 	}
+	errc := make(chan error)
+	d.quitChan <- errc
+	if err := <-errc; err != nil {
+		d.log.Error("Metrics collection failed", "err", err)
+	}
+	d.quitChan = nil
+
 	return d.db.Close()
 }
 

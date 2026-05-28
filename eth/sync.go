@@ -18,7 +18,6 @@ package eth
 
 import (
 	"math/big"
-	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -184,10 +183,10 @@ func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, uint64) {
 	ehead := cs.handler.engine.CurrentBlock()
 	if ehead.NumberU64() > 0 {
 		log.Info("Blockchain not empty, auto disabling snap sync")
-		atomic.StoreUint32(&cs.handler.snapSync, 0)
+		cs.handler.snapSync.Store(false)
 		return downloader.FullSync, ehead.NumberU64()
 	}
-	if atomic.LoadUint32(&cs.handler.snapSync) == 1 {
+	if cs.handler.snapSync.Load() {
 		return downloader.SnapSync, ehead.NumberU64()
 	}
 
@@ -230,8 +229,8 @@ func (h *handler) doSync(op *chainSyncOp) error {
 	}
 	//wn chain is syncing,keep the chain not receive txs
 	if op.diff.Cmp(big.NewInt(5)) > 0 {
-		atomic.StoreUint32(&h.acceptTxs, 0)
-		defer atomic.StoreUint32(&h.acceptTxs, 1) // Mark initial sync done
+		h.acceptTxs.Store(false)
+		defer h.acceptTxs.Store(true) // Mark initial sync done
 	}
 
 	// Run the sync cycle, and disable snap sync if we're past the pivot block
@@ -240,9 +239,9 @@ func (h *handler) doSync(op *chainSyncOp) error {
 		log.Debug("doSync synchronise fail", "err", err)
 		return err
 	}
-	if atomic.LoadUint32(&h.snapSync) == 1 {
+	if h.snapSync.Load() {
 		log.Info("Snap sync complete, auto disabling")
-		atomic.StoreUint32(&h.snapSync, 0)
+		h.snapSync.Store(false)
 	}
 	// If we've successfully finished a sync cycle and passed any required checkpoint,
 	// enable accepting transactions from the network.

@@ -33,7 +33,7 @@ func Send(params interface{}, action string) (string, error) {
 	}
 	resp, err := HttpPost(param)
 	if err != nil {
-		panic(fmt.Sprintf("send http post error .\n %s" + err.Error()))
+		panic(fmt.Sprintf("send http post error .\n %s", err.Error()))
 	}
 
 	return resp, err

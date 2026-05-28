@@ -564,7 +564,7 @@ func (t *Trie) Hash() common.Hash {
 func (t *Trie) Commit(collectLeaf bool) (common.Hash, *NodeSet, error) {
 	defer t.tracer.reset()
 
-	nodes := NewNodeSet(t.owner, t.tracer.accessList)
+	nodes := NewNodeSet(t.owner)
 	t.tracer.markDeletions(nodes)
 
 	// Trie is empty and can be classified into two types of situations:
@@ -614,7 +614,7 @@ func (t *Trie) Owner() common.Hash {
 }
 
 func (t *Trie) commitRoot(nodeset *NodeSet, collectLeaf bool) (node, node, error) {
-	c := newCommitter(nodeset, collectLeaf)
+	c := newCommitter(nodeset, t.tracer, collectLeaf)
 	hashed, cached, err := c.commit(nil, t.root, true)
 
 	//// Some nodes can be deleted from trie which can't be captured
