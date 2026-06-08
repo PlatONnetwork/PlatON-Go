@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/trie/trienode"
 )
 
 func hashData(input []byte) common.Hash {
@@ -145,7 +146,7 @@ type testHelper struct {
 	diskdb  ethdb.Database
 	triedb  *trie.Database
 	accTrie *trie.StateTrie
-	nodes   *trie.MergedNodeSet
+	nodes   *trienode.MergedNodeSet
 }
 
 func newHelper() *testHelper {
@@ -156,7 +157,7 @@ func newHelper() *testHelper {
 		diskdb:  diskdb,
 		triedb:  triedb,
 		accTrie: accTrie,
-		nodes:   trie.NewMergedNodeSet(),
+		nodes:   trienode.NewMergedNodeSet(),
 	}
 }
 
@@ -204,7 +205,7 @@ func (t *testHelper) Commit() common.Hash {
 	if nodes != nil {
 		t.nodes.Merge(nodes)
 	}
-	t.triedb.Update(t.nodes)
+	t.triedb.Update(root, types.EmptyRootHash, t.nodes)
 	t.triedb.Commit(root, false, true)
 	return root
 }

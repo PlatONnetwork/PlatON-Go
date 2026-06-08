@@ -124,6 +124,6 @@ func (t *tracer) markDeletions(set *NodeSet) {
 		if !ok {
 			continue
 		}
-		set.addNode([]byte(path), trienode.NewWithPrev(common.Hash{}, nil, prev))
+		set.AddNode([]byte(path), trienode.NewWithPrev(common.Hash{}, nil, prev))
 	}
 }

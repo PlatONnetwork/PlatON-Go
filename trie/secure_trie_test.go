@@ -1,4 +1,4 @@
-// Copyright 2015 The go-ethereum Authors
+﻿// Copyright 2015 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@ func makeTestStateTrie() (*Database, *StateTrie, map[string][]byte) {
 	if err != nil {
 		panic(fmt.Errorf("failed to commit trie %v", err))
 	}
-	if err := triedb.Update(NewWithNodeSet(nodes)); err != nil {
+	if err := triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes)); err != nil {
 		panic(fmt.Errorf("failed to commit db %v", err))
 	}
 	// Re-create the trie based on the new state
@@ -120,8 +120,8 @@ func TestStateTrieConcurrency(t *testing.T) {
 	threads := runtime.NumCPU()
 	tries := make([]*StateTrie, threads)
 	for i := 0; i < threads; i++ {
-		// 浅拷贝会导致并发 goroutine 实际上还在共享底层 Trie 的可变状态，最终触发 concurrent map writes
-		// 这个 panic 栈指向了共享 map：tracer.onRead（trie/tracer.go）里的 accessList 被并发写入
+		// 娴呮嫹璐濅細瀵艰嚧骞跺彂 goroutine 瀹為檯涓婅繕鍦ㄥ叡浜簳灞?Trie 鐨勫彲鍙樼姸鎬侊紝鏈€缁堣Е鍙?concurrent map writes
+		// 杩欎釜 panic 鏍堟寚鍚戜簡鍏变韩 map锛歵racer.onRead锛坱rie/tracer.go锛夐噷鐨?accessList 琚苟鍙戝啓鍏?
 		//tries[i] = trie.Copy()
 		tries[i] = trie.DeepCopy()
 	}
@@ -152,3 +152,4 @@ func TestStateTrieConcurrency(t *testing.T) {
 	// Wait for all threads to finish
 	pend.Wait()
 }
+

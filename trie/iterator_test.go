@@ -1,4 +1,4 @@
-// Copyright 2014 The go-ethereum Authors
+﻿// Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -67,7 +67,7 @@ func TestIterator(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to commit trie %v", err)
 	}
-	db.Update(NewWithNodeSet(nodes))
+	db.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
 
 	trie, _ = New(TrieID(root), db)
 	found := make(map[string]string)
@@ -139,14 +139,14 @@ func TestNodeIteratorCoverage(t *testing.T) {
 			t.Errorf("failed to retrieve reported node %x: %v", hash, err)
 		}
 	}
-	for hash, obj := range db.dirties {
+	for hash, obj := range db.Dirties() {
 		if obj != nil && hash != (common.Hash{}) {
 			if _, ok := hashes[hash]; !ok {
 				t.Errorf("state entry not reported %x", hash)
 			}
 		}
 	}
-	it := db.diskdb.NewIterator(nil, nil)
+	it := db.DiskDB().NewIterator(nil, nil)
 	for it.Next() {
 		key := it.Key()
 		if _, ok := hashes[common.BytesToHash(key)]; !ok {
@@ -229,7 +229,7 @@ func TestDifferenceIterator(t *testing.T) {
 		triea.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootA, nodesA, _ := triea.Commit(false)
-	dba.Update(NewWithNodeSet(nodesA))
+	dba.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodesA))
 	triea, _ = New(TrieID(rootA), dba)
 
 	dbb := NewDatabase(rawdb.NewMemoryDatabase())
@@ -238,7 +238,7 @@ func TestDifferenceIterator(t *testing.T) {
 		trieb.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootB, nodesB, _ := trieb.Commit(false)
-	dbb.Update(NewWithNodeSet(nodesB))
+	dbb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodesB))
 	trieb, _ = New(TrieID(rootB), dbb)
 
 	found := make(map[string]string)
@@ -271,7 +271,7 @@ func TestUnionIterator(t *testing.T) {
 		triea.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootA, nodesA, _ := triea.Commit(false)
-	dba.Update(NewWithNodeSet(nodesA))
+	dba.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodesA))
 	triea, _ = New(TrieID(rootA), dba)
 
 	dbb := NewDatabase(rawdb.NewMemoryDatabase())
@@ -280,7 +280,7 @@ func TestUnionIterator(t *testing.T) {
 		trieb.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	rootB, nodesB, _ := trieb.Commit(false)
-	dbb.Update(NewWithNodeSet(nodesB))
+	dbb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodesB))
 	trieb, _ = New(TrieID(rootB), dbb)
 
 	di, _ := NewUnionIterator([]NodeIterator{triea.NodeIterator(nil), trieb.NodeIterator(nil)})
@@ -338,7 +338,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		tr.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	_, nodes, _ := tr.Commit(false)
-	triedb.Update(NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
 	if !memonly {
 		triedb.Commit(tr.Hash(), false, true)
 	}
@@ -366,7 +366,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		var (
 			rkey common.Hash
 			rval []byte
-			robj *cachedNode
+			robj *CachedNode
 		)
 		for {
 			if memonly {
@@ -379,8 +379,8 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 			}
 		}
 		if memonly {
-			robj = triedb.dirties[rkey]
-			delete(triedb.dirties, rkey)
+			robj = triedb.GetDirty(rkey)
+			triedb.DeleteDirty(rkey)
 		} else {
 			rval, _ = diskdb.Get(rkey[:])
 			diskdb.Delete(rkey[:])
@@ -396,7 +396,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 
 		// Add the node back and continue iteration.
 		if memonly {
-			triedb.dirties[rkey] = robj
+			triedb.SetDirty(rkey, robj)
 		} else {
 			diskdb.Put(rkey[:], rval)
 		}
@@ -430,18 +430,18 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 		ctr.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	root, nodes, _ := ctr.Commit(false)
-	triedb.Update(NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
 	if !memonly {
 		triedb.Commit(root, false, true)
 	}
 	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (
 		barNodeBlob []byte
-		barNodeObj  *cachedNode
+		barNodeObj  *CachedNode
 	)
 	if memonly {
-		barNodeObj = triedb.dirties[barNodeHash]
-		delete(triedb.dirties, barNodeHash)
+		barNodeObj = triedb.GetDirty(barNodeHash)
+		triedb.DeleteDirty(barNodeHash)
 	} else {
 		barNodeBlob, _ = diskdb.Get(barNodeHash[:])
 		diskdb.Delete(barNodeHash[:])
@@ -458,7 +458,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	}
 	// Reinsert the missing node.
 	if memonly {
-		triedb.dirties[barNodeHash] = barNodeObj
+		triedb.SetDirty(barNodeHash, barNodeObj)
 	} else {
 		diskdb.Put(barNodeHash[:], barNodeBlob)
 	}
@@ -549,7 +549,7 @@ func makeLargeTestTrie() (*Database, *StateTrie, *loggingDb) {
 		trie.MustUpdate(key, val)
 	}
 	_, nodes, _ := trie.Commit(false)
-	triedb.Update(NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
 	// Return the generated trie
 	return triedb, trie, logDb
 }
@@ -590,7 +590,7 @@ func TestIteratorNodeBlob(t *testing.T) {
 		trie.MustUpdate([]byte(val.k), []byte(val.v))
 	}
 	_, nodes, _ := trie.Commit(false)
-	triedb.Update(NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
 	triedb.Cap(0)
 
 	found := make(map[common.Hash][]byte)
@@ -620,3 +620,4 @@ func TestIteratorNodeBlob(t *testing.T) {
 		t.Fatal("Find extra trie node via iterator")
 	}
 }
+

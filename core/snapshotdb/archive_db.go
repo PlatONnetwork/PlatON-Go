@@ -16,6 +16,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb/leveldb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -229,7 +230,7 @@ func (a *archiveDB) init(walk func(slice *util.Range, f func(num *big.Int, iter 
 			log.Info("walk total:", "total", total, "size", size)
 
 			nodes := trie.NewWithNodeSet(set)
-			a.triedb.Update(nodes)
+			a.triedb.Update(root, types.EmptyRootHash, nodes)
 			a.triedb.Commit(root, false, false)
 			a.SetCurrentBlock(num.Uint64())
 			batch := a.db.NewBatch()
@@ -290,7 +291,7 @@ func (a *archiveDB) CommitBlock(block *BlockData) error {
 	})
 	a.SetCurrentBlock(block.Number.Uint64())
 	nodes := trie.NewWithNodeSet(set)
-	a.triedb.Update(nodes)
+	a.triedb.Update(root, oldRoot, nodes)
 	a.triedb.Commit(root, false, true)
 	batch.Write()
 	a.triedb.IncrVersion()

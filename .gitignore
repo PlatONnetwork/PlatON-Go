@@ -68,3 +68,5 @@ crypto/bls/bls_linux_darwin/
 
 consensus/cbft/transactions.rlp
 consensus/cbft/transactions.rlp.new
+
+.geth-ref/

@@ -32,7 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/trie/trienode"
 )
 
 type Code []byte
@@ -400,7 +400,7 @@ func (s *stateObject) updateRoot(db Database) {
 
 // commitTrie submits the storage changes into the storage trie and re-computes
 // the root. Besides, all trie changes will be collected in a nodeset and returned.
-func (s *stateObject) commitTrie(db Database) (*trie.NodeSet, error) {
+func (s *stateObject) commitTrie(db Database) (*trienode.NodeSet, error) {
 	tr, err := s.updateTrie(db)
 	if err != nil {
 		return nil, err

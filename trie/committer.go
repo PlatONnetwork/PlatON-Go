@@ -27,12 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-// leaf represents a trie leaf node
-type leaf struct {
-	blob   []byte      // raw blob of leaf
-	parent common.Hash // the hash of parent node
-}
-
 // committer is the tool used for the trie Commit operation. The committer will
 // capture all dirty nodes during the commit process and keep them cached in
 // insertion order.
@@ -159,7 +153,7 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 		// deleted only if the node was existent in database before.
 		prev, ok := c.tracer.accessList[string(path)]
 		if ok {
-			c.nodes.addNode(path, trienode.NewWithPrev(common.Hash{}, nil, prev))
+			c.nodes.AddNode(path, trienode.NewWithPrev(common.Hash{}, nil, prev))
 		}
 		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
@@ -179,7 +173,7 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 			c.tracer.accessList[string(path)],
 		)
 	)
-	c.nodes.addNode(path, node)
+	c.nodes.AddNode(path, node)
 
 	// Collect the corresponding leaf node if it's required. We don't check
 	// full node since it's impossible to store value in fullNode. The key
@@ -188,12 +182,12 @@ func (c *committer) store(path []byte, n node, force bool) (node, error) {
 		switch n := n.(type) {
 		case *shortNode:
 			if val, ok := n.Val.(valueNode); ok {
-				c.nodes.addLeaf(&leaf{blob: val, parent: nhash})
+				c.nodes.AddLeaf(nhash, val)
 			}
 		case *fullNode:
 			for i := 0; i < 16; i++ {
 				if val, ok := n.Children[i].(valueNode); ok {
-					c.nodes.addLeaf(&leaf{blob: val, parent: nhash})
+					c.nodes.AddLeaf(nhash, val)
 				}
 			}
 		}

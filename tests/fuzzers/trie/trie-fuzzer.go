@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
@@ -165,7 +166,7 @@ func runRandTest(rt randTest) error {
 				return err
 			}
 			if nodes != nil {
-				if err := triedb.Update(trie.NewWithNodeSet(nodes)); err != nil {
+				if err := triedb.Update(types.EmptyRootHash, types.EmptyRootHash, trie.NewWithNodeSet(nodes)); err != nil {
 					return err
 				}
 			}

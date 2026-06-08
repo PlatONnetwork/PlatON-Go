@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-package trie
+package hashdb
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/trie/trienode"
 	"reflect"
-	"runtime"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/trie/trienode"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -64,10 +64,10 @@ var (
 	memcacheCommitSizeMeter  = metrics.NewRegisteredMeter("trie/memcache/commit/size", nil)
 )
 
-// childResolver defines the required method to decode the provided
+// ChildResolver defines the required method to decode the provided
 // trie node and iterate the children on top.
-type childResolver interface {
-	forEach(node []byte, onChild func(common.Hash))
+type ChildResolver interface {
+	ForEach(node []byte, onChild func(common.Hash))
 }
 
 // Database is an intermediate write layer between the trie data structures and
@@ -80,12 +80,12 @@ type childResolver interface {
 // servers even while the trie is executing expensive garbage collection.
 type Database struct {
 	diskdb   ethdb.Database // Persistent storage for matured trie nodes
-	resolver childResolver  // The handler to resolve children of nodes
+	resolver ChildResolver // The handler to resolve children of nodes
 
 	freshNodes map[common.Hash]struct{}
 
 	cleans  *fastcache.Cache            // GC friendly memory cache of clean node RLPs
-	dirties map[common.Hash]*cachedNode // Data and references relationships of dirty trie nodes
+	dirties map[common.Hash]*CachedNode // Data and references relationships of dirty trie nodes
 	oldest  common.Hash                 // Oldest tracked node, flush-list head
 	newest  common.Hash                 // Newest tracked node, flush-list tail
 
@@ -102,14 +102,13 @@ type Database struct {
 
 	dirtiesSize  common.StorageSize // Storage size of the dirty node cache (exc. metadata)
 	childrenSize common.StorageSize // Storage size of the external children tracking
-	preimages    *preimageStore     // The store for caching preimages
 
 	lock sync.RWMutex
 }
 
-// cachedNode is all the information we know about a single cached trie node
+// CachedNode is all the information we know about a single cached trie node
 // in the memory database write layer.
-type cachedNode struct {
+type CachedNode struct {
 	node      []byte                   // Encoded node blob
 	parents   uint32                   // Number of live nodes referencing this one
 	external  map[common.Hash]struct{} // The set of external children
@@ -122,56 +121,27 @@ type cachedNode struct {
 // cachedNodeSize is the raw size of a cachedNode data structure without any
 // node data included. It's an approximate size, but should be a lot better
 // than not counting them.
-var cachedNodeSize = int(reflect.TypeOf(cachedNode{}).Size())
+var cachedNodeSize = int(reflect.TypeOf(CachedNode{}).Size())
 
 // forChildren invokes the callback for all the tracked children of this node,
 // both the implicit ones from inside the node as well as the explicit ones
 // from outside the node.
-func (n *cachedNode) forChildren(resolver childResolver, onChild func(hash common.Hash)) {
+func (n *CachedNode) forChildren(resolver ChildResolver, onChild func(hash common.Hash)) {
 	for child := range n.external {
 		onChild(child)
 	}
-	resolver.forEach(n.node, onChild)
+	resolver.ForEach(n.node, onChild)
 }
 
-// Config defines all necessary options for database.
-type Config struct {
-	Cache     int    // Memory allowance (MB) to use for caching trie nodes in memory
-	Journal   string // Journal of clean cache to survive node restarts
-	Preimages bool   // Flag whether the preimage of trie key is recorded
-}
-
-// NewDatabase creates a new trie database to store ephemeral trie content before
-// its written out to disk or garbage collected. No read cache is created, so all
-// data retrievals will hit the underlying disk database.
-func NewDatabase(diskdb ethdb.Database) *Database {
-	return NewDatabaseWithConfig(diskdb, nil)
-}
-
-// NewDatabaseWithConfig creates a new trie database to store ephemeral trie content
-// before its written out to disk or garbage collected. It also acts as a read cache
-// for nodes loaded from disk.
-func NewDatabaseWithConfig(diskdb ethdb.Database, config *Config) *Database {
-	var cleans *fastcache.Cache
-	if config != nil && config.Cache > 0 {
-		if config.Journal == "" {
-			cleans = fastcache.New(config.Cache * 1024 * 1024)
-		} else {
-			cleans = fastcache.LoadFromFileOrNew(config.Journal, config.Cache*1024*1024)
-		}
-	}
-	var preimage *preimageStore
-	if config != nil && config.Preimages {
-		preimage = newPreimageStore(diskdb)
-	}
+// New initializes the hash-based node database.
+func New(diskdb ethdb.Database, cleans *fastcache.Cache, resolver ChildResolver) *Database {
 	return &Database{
 		diskdb:      diskdb,
-		resolver:    mptResolver{},
+		resolver:    resolver,
 		cleans:      cleans,
-		dirties:     make(map[common.Hash]*cachedNode),
+		dirties:     make(map[common.Hash]*CachedNode),
 		nodeVersion: 0,
 		freshNodes:  make(map[common.Hash]struct{}),
-		preimages:   preimage,
 	}
 }
 
@@ -202,7 +172,7 @@ func (db *Database) insert(hash common.Hash, node []byte) {
 	memcacheDirtyWriteMeter.Mark(int64(len(node)))
 
 	// Create the cached entry for this node
-	entry := &cachedNode{
+	entry := &CachedNode{
 		//node:      simplifyNode(node),
 		node:      node,
 		flushPrev: db.newest,
@@ -574,13 +544,6 @@ func (db *Database) Cap(limit common.StorageSize) error {
 	size := db.dirtiesSize + common.StorageSize(len(db.dirties)*cachedNodeSize)
 	size += db.childrenSize
 
-	// If the preimage cache got large enough, push to disk. If it's still small
-	// leave for later to deduplicate writes.
-	if db.preimages != nil {
-		if err := db.preimages.commit(false); err != nil {
-			return err
-		}
-	}
 	// Keep committing nodes from the flush-list until we're below allowance
 	oldest := db.oldest
 	for size > limit && oldest != (common.Hash{}) {
@@ -654,12 +617,6 @@ func (db *Database) Commit(node common.Hash, report bool, uncache bool) error {
 	start := time.Now()
 	batch := db.diskdb.NewBatch()
 
-	// Move all of the accumulated preimages into a write batch
-	if db.preimages != nil {
-		if err := db.preimages.commit(true); err != nil {
-			return err
-		}
-	}
 	// Move the trie itself into the batch, flushing if enough data is accumulated
 	nodes, storage := len(db.dirties), db.dirtiesSize
 
@@ -796,7 +753,13 @@ func (c *cleaner) Delete(key []byte) error {
 
 // Update inserts the dirty nodes in provided nodeset into database and
 // link the account trie with multiple storage tries if necessary.
-func (db *Database) Update(nodes *MergedNodeSet) error {
+func (db *Database) Update(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
+	// Ensure the parent state is present and signal a warning if not.
+	if parent != types.EmptyRootHash {
+		if blob, _ := db.Node(parent); len(blob) == 0 {
+			log.Error("parent state is not present")
+		}
+	}
 	db.lock.Lock()
 	defer db.lock.Unlock()
 
@@ -807,29 +770,18 @@ func (db *Database) Update(nodes *MergedNodeSet) error {
 	// Note, the storage tries must be flushed before the account trie to
 	// retain the invariant that children go into the dirty cache first.
 	var order []common.Hash
-	for owner := range nodes.sets {
+	for owner := range nodes.Sets {
 		if owner == (common.Hash{}) {
 			continue
 		}
 		order = append(order, owner)
 	}
-	if _, ok := nodes.sets[common.Hash{}]; ok {
+	if _, ok := nodes.Sets[common.Hash{}]; ok {
 		order = append(order, common.Hash{})
 	}
-	//for _, owner := range order {
-	//	subset := nodes.sets[owner]
-	//	for _, path := range subset.updates.order {
-	//		n, ok := subset.updates.nodes[path]
-	//		if !ok {
-	//			return fmt.Errorf("missing node %x %v", owner, path)
-	//		}
-	//		db.insert(n.hash, int(n.size), n.node)
-	//		db.insertFreshNode(n.hash)
-	//	}
-	//}
 	for _, owner := range order {
-		subset := nodes.sets[owner]
-		subset.forEachWithOrder(func(path string, n *trienode.Node) {
+		subset := nodes.Sets[owner]
+		subset.ForEachWithOrder(func(path string, n *trienode.Node) {
 			if n.IsDeleted() {
 				return // ignore deletion
 			}
@@ -839,15 +791,14 @@ func (db *Database) Update(nodes *MergedNodeSet) error {
 	}
 	// Link up the account trie and storage trie if the node points
 	// to an account trie leaf.
-	if set, present := nodes.sets[common.Hash{}]; present {
-		for _, n := range set.leaves {
+	if set, present := nodes.Sets[common.Hash{}]; present {
+		for _, n := range set.Leaves {
 			var account types.StateAccount
-			if err := rlp.DecodeBytes(n.blob, &account); err != nil {
+			if err := rlp.DecodeBytes(n.Blob, &account); err != nil {
 				return err
 			}
 			if account.Root != types.EmptyRootHash {
-				//db.Reference(account.Root, n.parent)
-				db.reference(account.Root, n.parent)
+				db.reference(account.Root, n.Parent)
 			}
 		}
 	}
@@ -856,7 +807,7 @@ func (db *Database) Update(nodes *MergedNodeSet) error {
 
 // Size returns the current storage size of the memory cache in front of the
 // persistent database layer.
-func (db *Database) Size() (common.StorageSize, common.StorageSize) {
+func (db *Database) Size() common.StorageSize {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -864,93 +815,69 @@ func (db *Database) Size() (common.StorageSize, common.StorageSize) {
 	// the total memory consumption, the maintenance metadata is also needed to be
 	// counted.
 	var metadataSize = common.StorageSize(len(db.dirties) * cachedNodeSize)
-	var preimageSize common.StorageSize
-	if db.preimages != nil {
-		preimageSize = db.preimages.size()
-	}
-	return db.dirtiesSize + db.childrenSize + metadataSize, preimageSize
+	return db.dirtiesSize + db.childrenSize + metadataSize
 }
 
-// GetReader retrieves a node reader belonging to the given state root.
-func (db *Database) GetReader(root common.Hash) Reader {
-	return newHashReader(db)
+// Initialized returns an indicator if state data is already initialized
+// in hash-based scheme by checking the presence of genesis state.
+func (db *Database) Initialized(genesisRoot common.Hash) bool {
+	return rawdb.HasLegacyTrieNode(db.diskdb, genesisRoot)
 }
 
-// hashReader is reader of hashDatabase which implements the Reader interface.
-type hashReader struct {
-	db *Database
-}
-
-// newHashReader initializes the hash reader.
-func newHashReader(db *Database) *hashReader {
-	return &hashReader{db: db}
-}
-
-// Node retrieves the RLP-encoded trie node blob with the given node hash.
-// No error will be returned if the node is not found.
-func (reader *hashReader) Node(_ common.Hash, _ []byte, hash common.Hash) ([]byte, error) {
-	blob, _ := reader.db.Node(hash)
-	return blob, nil
-}
-
-func (reader *hashReader) NodeExistsInMemory(_ common.Hash, _ []byte, hash common.Hash) bool {
-	return reader.db.NodeExistsInMemory(hash)
-}
-
-// saveCache saves clean state cache to given directory path
-// using specified CPU cores.
-func (db *Database) saveCache(dir string, threads int) error {
-	if db.cleans == nil {
-		return nil
-	}
-	log.Info("Writing clean trie cache to disk", "path", dir, "threads", threads)
-
-	start := time.Now()
-	err := db.cleans.SaveToFileConcurrent(dir, threads)
-	if err != nil {
-		log.Error("Failed to persist clean trie cache", "error", err)
-		return err
-	}
-	log.Info("Persisted the clean trie cache", "path", dir, "elapsed", common.PrettyDuration(time.Since(start)))
-	return nil
-}
-
-// SaveCache atomically saves fast cache data to the given dir using all
-// available CPU cores.
-func (db *Database) SaveCache(dir string) error {
-	return db.saveCache(dir, runtime.GOMAXPROCS(0))
-}
-
-// SaveCachePeriodically atomically saves fast cache data to the given dir with
-// the specified interval. All dump operation will only use a single CPU core.
-func (db *Database) SaveCachePeriodically(dir string, interval time.Duration, stopCh <-chan struct{}) {
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			db.saveCache(dir, 1)
-		case <-stopCh:
-			return
-		}
-	}
-}
-
-// CommitPreimages flushes the dangling preimages to disk. It is meant to be
-// called when closing the blockchain object, so that preimages are persisted
-// to the database.
-func (db *Database) CommitPreimages() error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	if db.preimages == nil {
-		return nil
-	}
-	return db.preimages.commit(true)
-}
+// Close closes the trie database and releases all held resources.
+func (db *Database) Close() error { return nil }
 
 // Scheme returns the node scheme used in the database.
 func (db *Database) Scheme() string {
 	return rawdb.HashScheme
+}
+
+// Reader retrieves a node reader belonging to the given state root.
+func (db *Database) Reader(root common.Hash) *reader {
+	return &reader{db: db}
+}
+
+// reader is a state reader of Database which implements the Reader interface.
+type reader struct {
+	db *Database
+}
+
+// Node retrieves the trie node with the given node hash.
+// No error will be returned if the node is not found.
+func (reader *reader) Node(owner common.Hash, path []byte, hash common.Hash) ([]byte, error) {
+	blob, _ := reader.db.Node(hash)
+	return blob, nil
+}
+
+// NodeExistsInMemory reports whether the node exists in memory.
+func (reader *reader) NodeExistsInMemory(owner common.Hash, path []byte, hash common.Hash) bool {
+	return reader.db.NodeExistsInMemory(hash)
+}
+
+// Dirties returns the dirty node map. For testing only.
+func (db *Database) Dirties() map[common.Hash]*CachedNode {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	return db.dirties
+}
+
+// GetDirty returns a dirty node entry. For testing only.
+func (db *Database) GetDirty(hash common.Hash) *CachedNode {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+	return db.dirties[hash]
+}
+
+// DeleteDirty removes a dirty node entry. For testing only.
+func (db *Database) DeleteDirty(hash common.Hash) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	delete(db.dirties, hash)
+}
+
+// SetDirty restores a dirty node entry. For testing only.
+func (db *Database) SetDirty(hash common.Hash, node *CachedNode) {
+	db.lock.Lock()
+	defer db.lock.Unlock()
+	db.dirties[hash] = node
 }
