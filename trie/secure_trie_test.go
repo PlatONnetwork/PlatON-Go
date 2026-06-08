@@ -19,10 +19,11 @@ package trie
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"runtime"
 	"sync"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -120,8 +121,8 @@ func TestStateTrieConcurrency(t *testing.T) {
 	threads := runtime.NumCPU()
 	tries := make([]*StateTrie, threads)
 	for i := 0; i < threads; i++ {
-		// 娴呮嫹璐濅細瀵艰嚧骞跺彂 goroutine 瀹為檯涓婅繕鍦ㄥ叡浜簳灞?Trie 鐨勫彲鍙樼姸鎬侊紝鏈€缁堣Е鍙?concurrent map writes
-		// 杩欎釜 panic 鏍堟寚鍚戜簡鍏变韩 map锛歵racer.onRead锛坱rie/tracer.go锛夐噷鐨?accessList 琚苟鍙戝啓鍏?
+		// 浅拷贝会导致并发 goroutine 实际上还在共享底层 Trie 的可变状态，最终触发 concurrent map writes
+		// 这个 panic 栈指向了共享 map：tracer.onRead（trie/tracer.go）里的 accessList 被并发写入
 		//tries[i] = trie.Copy()
 		tries[i] = trie.DeepCopy()
 	}
@@ -152,4 +153,3 @@ func TestStateTrieConcurrency(t *testing.T) {
 	// Wait for all threads to finish
 	pend.Wait()
 }
-
