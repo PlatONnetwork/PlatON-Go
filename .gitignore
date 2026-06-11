@@ -70,3 +70,4 @@ consensus/cbft/transactions.rlp
 consensus/cbft/transactions.rlp.new
 
 .geth-ref/
+.cursor/
