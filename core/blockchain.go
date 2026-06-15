@@ -625,7 +625,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 			// In theory we should update all in-memory markers in the
 			// last step, however the direction of SetHead is from high
 			// to low, so it's safe the update in-memory markers directly.
-			bc.currentBlock.Store(newHeadBlock)
+			bc.currentBlock.Store(newHeadBlock.Header())
 			headBlockGauge.Update(int64(newHeadBlock.NumberU64()))
 		}
 		// Rewind the fast block in a simpleton way to the target head
@@ -641,7 +641,7 @@ func (bc *BlockChain) SetHead(head uint64) error {
 			// In theory we should update all in-memory markers in the
 			// last step, however the direction of SetHead is from high
 			// to low, so it's safe the update in-memory markers directly.
-			bc.currentSnapBlock.Store(newHeadFastBlock)
+			bc.currentSnapBlock.Store(newHeadFastBlock.Header())
 			headFastBlockGauge.Update(int64(newHeadFastBlock.NumberU64()))
 		}
 		head := bc.CurrentBlock().NumberU64()
@@ -769,11 +769,11 @@ func (bc *BlockChain) SetValidator(validator Validator) {
 
 	bc.genesisBlock = genesis
 	bc.insert(bc.genesisBlock)
-	bc.currentBlock.Store(bc.genesisBlock)
+	bc.currentBlock.Store(bc.genesisBlock.Header())
 	headBlockGauge.Update(int64(bc.genesisBlock.NumberU64()))
 	bc.hc.SetGenesis(bc.genesisBlock.Header())
 	bc.hc.SetCurrentHeader(bc.genesisBlock.Header())
-	bc.currentSnapBlock.Store(bc.genesisBlock)
+	bc.currentSnapBlock.Store(bc.genesisBlock.Header())
 
 	return nil
 }*/

@@ -232,6 +232,13 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+func (h *Header) NumberU64() uint64 {
+	if h.Number == nil {
+		return 0
+	}
+	return h.Number.Uint64()
+}
+
 // SanityCheck checks a few basic things -- these checks are way beyond what
 // any 'sane' production values should hold, and can mainly be used to prevent
 // that the unbounded fields are stuffed with junk data to add processing
