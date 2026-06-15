@@ -353,7 +353,10 @@ func (w *ledgerDriver) ledgerSign(derivationPath []uint32, tx *types.Transaction
 	// Chunk size selection to mitigate an underlying RLP deserialization issue on the ledger app.
 	// https://github.com/LedgerHQ/app-ethereum/issues/409
 	chunk := 255
-	for ; len(payload)%chunk <= ledgerEip155Size; chunk-- {
+	if chainID != nil {
+		for chunk > 1 && len(payload)%chunk <= ledgerEip155Size {
+			chunk--
+		}
 	}
 
 	for len(payload) > 0 {
