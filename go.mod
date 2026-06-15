@@ -67,7 +67,7 @@ require (
 	github.com/crate-crypto/go-kzg-4844 v0.2.0
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/ethereum/c-kzg-4844/bindings/go v0.0.0-20230126171313-363c7d7593b4
+	github.com/ethereum/c-kzg-4844 v1.0.0
 	github.com/ethereum/go-ethereum v1.17.3
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/herumi/bls v1.37.0
@@ -93,11 +93,9 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/consensys/bavard v0.1.27 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
-	github.com/crate-crypto/go-eth-kzg v1.5.0 // indirect
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/edsrzf/mmap-go v1.0.1-0.20190108065903-904c4ced31cd // indirect
-	github.com/ethereum/c-kzg-4844/v2 v2.1.6 // indirect
 	github.com/garslo/gogen v0.0.0-20170306192744-1d203ffc1f61 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
