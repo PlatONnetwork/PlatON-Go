@@ -1473,7 +1473,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 		gas += ctx.gasTable.CreateBySuicide
 	}
 
-	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
+	if !ctx.evm.StateDB.HasSelfDestructed(ctx.contract.Address()) {
 		ctx.evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
 	checkGas(ctx, gas)
@@ -1482,7 +1482,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 
 	ctx.evm.StateDB.AddBalance(addr, balance)
 
-	ctx.evm.StateDB.Suicide(contractAddr)
+	ctx.evm.StateDB.SelfDestruct(contractAddr)
 
 	return 0
 }
@@ -1595,8 +1595,8 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	// migrate stateObject storage from old contract to new contract
 	ctx.evm.StateDB.MigrateStorage(oldContract, newContract)
 
-	// suicided the old contract
-	ctx.evm.StateDB.Suicide(oldContract)
+	// self-destructed the old contract
+	ctx.evm.StateDB.SelfDestruct(oldContract)
 
 	balance := new(big.Int).Add(bValue, oldBalance)
 

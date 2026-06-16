@@ -316,7 +316,7 @@ func (s *StateDB) SubRefund(gas uint64) {
 }
 
 // Exist reports whether the given account address exists in the state.
-// Notably this also returns true for suicided accounts.
+// Notably this also returns true for self-destructed accounts.
 func (s *StateDB) Exist(addr common.Address) bool {
 	return s.getStateObject(addr) != nil
 }
@@ -457,10 +457,10 @@ func (s *StateDB) StorageTrie(addr common.Address) (Trie, error) {
 	return cpy.getTrie(s.db)
 }
 
-func (s *StateDB) HasSuicided(addr common.Address) bool {
+func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.suicided
+		return stateObject.selfDestructed
 	}
 	return false
 }
@@ -532,43 +532,23 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	}
 }
 
-//func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
-//	var buffer bytes.Buffer
-//	//buffer.Write(address[:])
-//	buffer.Write(key)
-//	keyTrie := buffer.String()
-//
-//	//if value != nil && !bytes.Equal(value,[]byte{}){
-//	buffer.Reset()
-//	buffer.Write(value)
-//
-//	valueKey := common.Hash{}
-//	keccak := sha3.NewLegacyKeccak256()
-//	keccak.Write(buffer.Bytes())
-//	keccak.Sum(valueKey[:0])
-//
-//	return keyTrie, valueKey, value
-//}
-
-// Suicide marks the given account as suicided.
+// SelfDestruct marks the given account as selfdestructed.
 // This clears the account balance.
 //
 // The account's state object is still available until the state is committed,
-// getStateObject will return a non-nil account after Suicide.
-func (s *StateDB) Suicide(addr common.Address) bool {
+// getStateObject will return a non-nil account after SelfDestruct.
+func (s *StateDB) SelfDestruct(addr common.Address) {
 	stateObject := s.getStateObject(addr)
 	if stateObject == nil {
-		return false
+		return
 	}
-	s.journal.append(suicideChange{
+	s.journal.append(selfDestructChange{
 		account:     &addr,
-		prev:        stateObject.suicided,
+		prev:        stateObject.selfDestructed,
 		prevbalance: new(big.Int).Set(stateObject.Balance()),
 	})
-	stateObject.markSuicided()
+	stateObject.markSelfdestructed()
 	stateObject.data.Balance = new(big.Int)
-
-	return true
 }
 
 // SetTransientState sets transient storage for a given account. It
@@ -1146,7 +1126,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 			// Thus, we can safely ignore it here
 			continue
 		}
-		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
+		if obj.selfDestructed || (deleteEmptyObjects && obj.empty()) {
 			obj.deleted = true
 
 			// We need to maintain account deletions explicitly (will remain
@@ -1469,8 +1449,8 @@ func (s *StateDB) AddMinerEarnings(addr common.Address, amount *big.Int) {
 
 func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjects bool) {
 	if from.stateObject.address != to.stateObject.address {
-		if from.stateObject.suicided || (deleteEmptyObjects && from.stateObject.empty()) {
-			log.Warn("deleteStateObject", "from", from.stateObject.address.String(), "suicided", from.stateObject.suicided, "empty", from.stateObject.empty())
+		if from.stateObject.selfDestructed || (deleteEmptyObjects && from.stateObject.empty()) {
+			log.Warn("deleteStateObject", "from", from.stateObject.address.String(), "selfDestructed", from.stateObject.selfDestructed, "empty", from.stateObject.empty())
 			s.deleteStateObject(from.stateObject)
 		} else {
 			s.stateObjects[from.stateObject.address] = from.stateObject
@@ -1481,8 +1461,8 @@ func (s *StateDB) Merge(idx int, from, to *ParallelStateObject, deleteEmptyObjec
 			s.stateObjectsDirty[from.stateObject.address] = struct{}{}
 		}
 	}
-	if to.stateObject.suicided || (deleteEmptyObjects && to.stateObject.empty()) {
-		log.Warn("deleteStateObject", "to", to.stateObject.address.String(), "suicided", to.stateObject.suicided, "empty", to.stateObject.empty())
+	if to.stateObject.selfDestructed || (deleteEmptyObjects && to.stateObject.empty()) {
+		log.Warn("deleteStateObject", "to", to.stateObject.address.String(), "selfDestructed", to.stateObject.selfDestructed, "empty", to.stateObject.empty())
 		s.deleteStateObject(to.stateObject)
 	} else {
 		if to.createFlag {

@@ -79,11 +79,16 @@ type stateObject struct {
 	dirtyStorage   ValueStorage // Storage entries that have been modified in the current transaction execution
 
 	// Cache flags.
-	// When an object is marked suicided it will be deleted from the trie
-	// during the "update" phase of the state transition.
 	dirtyCode bool // true if the code was updated
-	suicided  bool
-	deleted   bool
+
+	// Flag whether the account was marked as self-destructed. The self-destructed account
+	// is still accessible in the scope of same transaction.
+	selfDestructed bool
+
+	// Flag whether the account was marked as deleted. A self-destructed account
+	// or an account that is considered as empty will be marked as deleted at
+	// the end of transaction and no longer accessible anymore.
+	deleted bool
 }
 
 // empty returns whether the account is considered empty.
@@ -121,8 +126,8 @@ func (s *stateObject) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &s.data)
 }
 
-func (s *stateObject) markSuicided() {
-	s.suicided = true
+func (s *stateObject) markSelfdestructed() {
+	s.selfDestructed = true
 }
 
 func (s *stateObject) touch() {
@@ -466,7 +471,7 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject.dirtyStorage = s.dirtyStorage.Copy()
 	stateObject.originStorage = s.originStorage.Copy()
 	stateObject.pendingStorage = s.pendingStorage.Copy()
-	stateObject.suicided = s.suicided
+	stateObject.selfDestructed = s.selfDestructed
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted
 	return stateObject
@@ -479,7 +484,7 @@ func (s *stateObject) copy(db *StateDB) *stateObject {
 		stateObject.trie = db.db.NewTrie(s.trie)
 	}
 	stateObject.code = s.code
-	stateObject.suicided = s.suicided
+	stateObject.selfDestructed = s.selfDestructed
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted
 	return stateObject
