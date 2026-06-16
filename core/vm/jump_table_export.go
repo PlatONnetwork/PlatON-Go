@@ -31,7 +31,7 @@ import (
 func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
 	switch {
 	case rules.IsDirac:
-		return newShanghaiInstructionSet(), nil
+		return newCancunInstructionSet(), nil
 	case rules.IsPauli:
 		return newLondonInstructionSet(), nil
 	default:

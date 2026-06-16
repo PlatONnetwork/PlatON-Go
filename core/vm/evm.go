@@ -172,6 +172,7 @@ type BlockContext struct {
 	Nonce       types.BlockNonce
 	BaseFee     *big.Int     // Provides information for BASEFEE
 	Random      *common.Hash // Provides information for PREVRANDAO
+	ExcessDataGas *uint64    // ExcessDataGas field in the header, needed to compute blob gas price
 
 	BlockHash  common.Hash // Only, the value will be available after the current block has been sealed.
 	ParentHash common.Hash
@@ -183,8 +184,9 @@ type BlockContext struct {
 // All fields can change between transactions.
 type TxContext struct {
 	// Message information
-	Origin   common.Address // Provides information for ORIGIN
-	GasPrice *big.Int       // Provides information for GASPRICE
+	Origin     common.Address // Provides information for ORIGIN
+	GasPrice   *big.Int       // Provides information for GASPRICE
+	BlobHashes []common.Hash  // Provides information for BLOBHASH
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides

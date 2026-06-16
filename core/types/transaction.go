@@ -618,6 +618,8 @@ type Message struct {
 	gasTipCap  *big.Int
 	data       []byte
 	accessList AccessList
+	blobGasFeeCap *big.Int
+	blobHashes    []common.Hash
 	isFake     bool
 }
 
@@ -649,6 +651,8 @@ func (tx *Transaction) AsMessage(s Signer, baseFee *big.Int) (Message, error) {
 		amount:     tx.Value(),
 		data:       tx.Data(),
 		accessList: tx.AccessList(),
+		blobGasFeeCap: tx.BlobGasFeeCap(),
+		blobHashes:    tx.BlobHashes(),
 		isFake:     false,
 	}
 	// If baseFee provided, set gasPrice to effectiveGasPrice.
@@ -671,6 +675,13 @@ func (m Message) Nonce() uint64          { return m.nonce }
 func (m Message) Data() []byte           { return m.data }
 func (m Message) AccessList() AccessList { return m.accessList }
 func (m Message) IsFake() bool           { return m.isFake }
+func (m Message) BlobGasFeeCap() *big.Int {
+	if m.blobGasFeeCap == nil {
+		return nil
+	}
+	return new(big.Int).Set(m.blobGasFeeCap)
+}
+func (m Message) BlobHashes() []common.Hash { return m.blobHashes }
 
 func (tx *Transaction) CacheFromAddr(signer Signer, addr common.Address) {
 	tx.from.Store(sigCache{signer: signer, from: addr})

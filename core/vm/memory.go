@@ -96,6 +96,14 @@ func (m *Memory) GetPtr(offset, size int64) []byte {
 	return nil
 }
 
+// Copy copies data from src to dst in the memory.
+func (m *Memory) Copy(dst, src, len uint64) {
+	if len == 0 {
+		return
+	}
+	copy(m.store[dst:], m.store[src:src+len])
+}
+
 // Len returns the length of the backing slice
 func (m *Memory) Len() int {
 	return len(m.store)
