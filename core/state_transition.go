@@ -229,7 +229,7 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas(isContractIvk bool) error {
-	dirac := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
 	mgval := new(big.Int).SetUint64(st.msg.Gas())
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	balanceCheck := mgval
@@ -247,7 +247,7 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 		// 所以这里对于普通转账类交易（走parallel的）check只能不验证value（实际上如果gasused+value如果不够交易也不会成功）
 		balanceCheck = mgval
 	}
-	if dirac {
+	if hawking {
 		if dataGas := st.dataGasUsed(); dataGas > 0 {
 			if st.evm.Context.ExcessDataGas == nil {
 				panic("missing field excess data gas")
@@ -274,7 +274,7 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 	// 所以这里也不扣mgval
 	if isContractIvk {
 		st.state.SubBalance(st.msg.From(), mgval)
-	} else if dirac && st.dataGasUsed() > 0 {
+	} else if hawking && st.dataGasUsed() > 0 {
 		blobFee := new(big.Int).SetUint64(st.dataGasUsed())
 		blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessDataGas))
 		st.state.SubBalance(st.msg.From(), blobFee)
@@ -343,8 +343,8 @@ func (st *StateTransition) preCheck(isContractIvk bool) error {
 		}
 	}
 
-	dirac := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
-	if dirac && st.dataGasUsed() > 0 {
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	if hawking && st.dataGasUsed() > 0 {
 		if st.evm.Context.ExcessDataGas == nil {
 			panic("missing field excess data gas")
 		}
@@ -411,10 +411,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 
 	// Check whether the init code size has been exceeded.
-	dirac := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, dirac)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, hawking)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +429,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	// Set up the initial access list.
-	if dirac && contractCreation && len(st.data) > params.MaxInitCodeSize {
+	if hawking && contractCreation && len(st.data) > params.MaxInitCodeSize {
 		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
 	}
 
@@ -455,7 +455,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// - reset transient storage(eip 1153)
 	rules := params.Rules{
 		IsPauli: pauli,
-		IsDirac: dirac,
+		IsHawking: hawking,
 	}
 	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
 

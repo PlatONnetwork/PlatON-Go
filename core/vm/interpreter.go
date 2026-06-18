@@ -91,7 +91,7 @@ func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	var table *JumpTable
 	if evm.StateDB == nil {
 		table = &cancunInstructionSet
-	} else if evm.chainRules.IsDirac || gov.NewGov(evm.SnapshotDB).Gte160VersionState(evm.StateDB) {
+	} else if evm.chainRules.IsHawking || gov.NewGov(evm.SnapshotDB).Gte160VersionState(evm.StateDB) {
 		table = &cancunInstructionSet
 	} else if evm.chainRules.IsPauli || gov.NewGov(evm.SnapshotDB).Gte150VersionState(evm.StateDB) {
 		table = &londonInstructionSet

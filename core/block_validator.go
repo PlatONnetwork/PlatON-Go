@@ -75,13 +75,13 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
 	if header.WithdrawalsHash != nil || block.Withdrawals() != nil {
-		if !v.isDiracEnabled(block) {
-			return fmt.Errorf("withdrawals before dirac")
+		if !v.isHawkingEnabled(block) {
+			return fmt.Errorf("withdrawals before hawking")
 		}
 	}
-	// Withdrawals are present after the Dirac fork.
+	// Withdrawals are present after the Hawking fork.
 	if header.WithdrawalsHash != nil {
-		// Withdrawals list must be present in body after Dirac.
+		// Withdrawals list must be present in body after Hawking.
 		if block.Withdrawals() == nil {
 			return fmt.Errorf("missing withdrawals in block body")
 		}
@@ -95,11 +95,11 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	return nil
 }
 
-// isDiracEnabled reports whether Dirac (FORKVERSION_1_6_0) rules apply to block.
+// isHawkingEnabled reports whether Hawking (FORKVERSION_1_6_0) rules apply to block.
 // It mirrors state_processor withdrawal checks: active version from parent state,
 // config fork height, or a version proposal activating on this block.
-func (v *BlockValidator) isDiracEnabled(block *types.Block) bool {
-	if v.config.IsDirac(block.Number()) {
+func (v *BlockValidator) isHawkingEnabled(block *types.Block) bool {
+	if v.config.IsHawking(block.Number()) {
 		return true
 	}
 	num := block.NumberU64()

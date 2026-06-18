@@ -287,7 +287,7 @@ type TxPool struct {
 
 	eip2718 atomic.Bool // Fork indicator whether we are using EIP-2718 type transactions.
 	eip1559 atomic.Bool // Fork indicator whether we are using EIP-1559 type transactions.
-	dirac   atomic.Bool // Fork indicator whether we are in the ETH's Shanghai stage.
+	hawking   atomic.Bool // Fork indicator whether we are in the Hawking (1.6.0) stage.
 
 	currentState  *state.StateDB // Current state in the blockchain head
 	pendingNonces *noncer        // Pending state tracking virtual nonces
@@ -365,10 +365,10 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, false)
 			}
 			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
-				pool.dirac.Store(true)
+				pool.hawking.Store(true)
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, true)
 			} else {
-				pool.dirac.Store(false)
+				pool.hawking.Store(false)
 			}
 		}
 	}
@@ -762,7 +762,7 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 		return ErrOversizedData
 	}
 	// Check whether the init code size has been exceeded.
-	if pool.dirac.Load() && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
+	if pool.hawking.Load() && tx.To() == nil && len(tx.Data()) > params.MaxInitCodeSize {
 		return fmt.Errorf("%w: code size %v limit %v", core.ErrMaxInitCodeSizeExceeded, len(tx.Data()), params.MaxInitCodeSize)
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -796,7 +796,7 @@ func (pool *TxPool) validateTxBasics(tx *types.Transaction, local bool) error {
 		return ErrUnderpriced
 	}
 	// Ensure the transaction has more gas than the basic tx fee.
-	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.dirac.Load())
+	intrGas, err := core.IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, pool.hawking.Load())
 	if err != nil {
 		return err
 	}
@@ -1604,9 +1604,9 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	}
 	gte160 := gov.NewGov(nil).Gte160VersionState(statedb)
 	if gte160 {
-		pool.dirac.Store(true)
+		pool.hawking.Store(true)
 	} else {
-		pool.dirac.Store(false)
+		pool.hawking.Store(false)
 	}
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte160)
 	pool.locals.signer = pool.signer

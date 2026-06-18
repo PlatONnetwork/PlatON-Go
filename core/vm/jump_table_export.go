@@ -30,7 +30,7 @@ import (
 // Istanbul/London/Shanghai is selected.
 func LookupInstructionSet(rules params.Rules) (JumpTable, error) {
 	switch {
-	case rules.IsDirac:
+	case rules.IsHawking:
 		return newCancunInstructionSet(), nil
 	case rules.IsPauli:
 		return newLondonInstructionSet(), nil

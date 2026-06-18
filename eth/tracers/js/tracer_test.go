@@ -246,7 +246,7 @@ func TestIsPrecompile(t *testing.T) {
 		EinsteinBlock:   big.NewInt(100),
 		HubbleBlock:     big.NewInt(200),
 		PauliBlock:      big.NewInt(300),
-		DiracBlock:      params.TestChainConfig.DiracBlock,
+		HawkingBlock:      params.TestChainConfig.HawkingBlock,
 		Cbft:            params.TestChainConfig.Cbft,
 	}
 

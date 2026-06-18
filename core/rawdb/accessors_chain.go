@@ -585,7 +585,7 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *para
 	}
 
 	var dataGasPrice *big.Int
-	if header != nil && header.ExcessDataGas != nil && config.IsDirac(new(big.Int).SetUint64(number)) {
+	if header != nil && header.ExcessDataGas != nil && config.IsHawking(new(big.Int).SetUint64(number)) {
 		dataGasPrice = misc.CalcBlobFee(header.ExcessDataGas.Uint64())
 	}
 

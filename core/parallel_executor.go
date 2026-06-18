@@ -100,8 +100,8 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					dirac := gov.NewGov(snapshotdb.Instance()).Gte160VersionState(ctx.state)
-					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, dirac)
+					hawking := gov.NewGov(snapshotdb.Instance()).Gte160VersionState(ctx.state)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), tx.To() == nil, hawking)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue

@@ -124,7 +124,7 @@ const (
 	JUMPDEST  OpCode = 0x5b
 	BEGINSUB  OpCode = 0x5c
 	RETURNSUB OpCode = 0x5d
-	JUMPSUB   OpCode = 0x5e // replaced by MCOPY after Cancun/Dirac
+	JUMPSUB   OpCode = 0x5e // replaced by MCOPY after Cancun/Hawking
 	MCOPY     OpCode = 0x5e
 	PUSH0     OpCode = 0x5f
 )

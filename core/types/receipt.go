@@ -411,15 +411,15 @@ func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, nu
 	if len(txs) != len(rs) {
 		return errors.New("transaction and receipt count mismatch")
 	}
-	dirac := config.IsDirac(new(big.Int).SetUint64(number))
+	hawking := config.IsHawking(new(big.Int).SetUint64(number))
 	for i := 0; i < len(rs); i++ {
 		// The transaction type and hash can be retrieved from the transaction itself
 		rs[i].Type = txs[i].Type()
 		rs[i].TxHash = txs[i].Hash()
 		rs[i].EffectiveGasPrice = txs[i].inner.effectiveGasPrice(new(big.Int), baseFee)
 
-		// EIP-4844 blob transaction fields (Dirac)
-		if dirac && txs[i].Type() == BlobTxType {
+		// EIP-4844 blob transaction fields (Hawking)
+		if hawking && txs[i].Type() == BlobTxType {
 			rs[i].DataGasUsed = txs[i].BlobGas()
 			rs[i].DataGasPrice = dataGasPrice
 		}
