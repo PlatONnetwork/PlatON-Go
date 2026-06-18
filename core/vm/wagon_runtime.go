@@ -1576,7 +1576,7 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
-	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
 		panic(ErrContractAddressCollision)
 	}
 
@@ -2214,7 +2214,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	newContract := crypto.CreateAddress(oldContract, nonce)
 	ctx.evm.StateDB.SetNonce(oldContract, nonce+1)
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
-	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
 		panic(ErrContractAddressCollision)
 	}
 
