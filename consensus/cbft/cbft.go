@@ -723,7 +723,10 @@ func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header
 		return err
 	}
 
-	hawking := chain.Config().IsHawking(header.Number)
+	hawking := consensus.IsHawkingEnabled(chain.Config(), header.Number, parent, consensus.StateAtFromChain(chain))
+	if !hawking && header.WithdrawalsHash != nil {
+		return fmt.Errorf("invalid withdrawalsHash before hawking")
+	}
 	if !hawking && header.ExcessBlobGas != nil {
 		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *header.ExcessBlobGas)
 	}
