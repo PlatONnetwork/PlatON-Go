@@ -130,11 +130,11 @@ type Header struct {
 	// WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.
 	WithdrawalsHash *common.Hash `json:"withdrawalsRoot" rlp:"optional"`
 
-	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
-	ExcessBlobGas *uint64 `json:"excessBlobGas" rlp:"optional"`
-
 	// BlobGasUsed was added by EIP-4844 and is ignored in legacy headers.
 	BlobGasUsed *uint64 `json:"blobGasUsed" rlp:"optional"`
+
+	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
+	ExcessBlobGas *uint64 `json:"excessBlobGas" rlp:"optional"`
 
 	// caches
 	sealHash  atomic.Value `json:"-" rlp:"-"`
@@ -226,9 +226,9 @@ type headerMarshaling struct {
 	Time     hexutil.Uint64
 	Extra    hexutil.Bytes
 	BaseFee  *hexutil.Big
-	Hash     common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
-	ExcessBlobGas *hexutil.Uint64
+	Hash          common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 	BlobGasUsed   *hexutil.Uint64
+	ExcessBlobGas *hexutil.Uint64
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
