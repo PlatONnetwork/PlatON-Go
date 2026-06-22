@@ -91,6 +91,18 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	} else if block.Withdrawals() != nil {
 		return fmt.Errorf("withdrawals present in block body")
 	}
+	// Blob transactions may be present after the Hawking fork.
+	var blobs int
+	for _, tx := range block.Transactions() {
+		blobs += len(tx.BlobHashes())
+	}
+	if header.BlobGasUsed != nil {
+		if want := *header.BlobGasUsed / params.BlobTxBlobGasPerBlob; uint64(blobs) != want {
+			return fmt.Errorf("blob gas used mismatch (header %v, calculated %v)", *header.BlobGasUsed, blobs*params.BlobTxBlobGasPerBlob)
+		}
+	} else if blobs > 0 {
+		return fmt.Errorf("blob txs present in block body")
+	}
 
 	return nil
 }

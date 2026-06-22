@@ -57,11 +57,7 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 
 	random = common.BytesToHash(vrf.ProofToHash(header.Nonce.Bytes()))
 
-	var excessBlobGas *uint64
-	if header.ExcessBlobGas != nil {
-		excess := header.ExcessBlobGas.Uint64()
-		excessBlobGas = &excess
-	}
+	excessBlobGas := header.ExcessBlobGas
 
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,

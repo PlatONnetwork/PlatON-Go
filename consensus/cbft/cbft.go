@@ -723,6 +723,19 @@ func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header
 		return err
 	}
 
+	hawking := chain.Config().IsHawking(header.Number)
+	if !hawking && header.ExcessBlobGas != nil {
+		return fmt.Errorf("invalid excessBlobGas: have %d, expected nil", *header.ExcessBlobGas)
+	}
+	if !hawking && header.BlobGasUsed != nil {
+		return fmt.Errorf("invalid blobGasUsed: have %d, expected nil", *header.BlobGasUsed)
+	}
+	if hawking {
+		if err := misc.VerifyEIP4844Header(parent, header); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

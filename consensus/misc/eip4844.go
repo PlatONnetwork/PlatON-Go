@@ -17,8 +17,11 @@
 package misc
 
 import (
+	"errors"
+	"fmt"
 	"math/big"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -26,6 +29,50 @@ var (
 	minBlobGasPrice            = big.NewInt(params.BlobTxMinBlobGasprice)
 	blobGaspriceUpdateFraction = big.NewInt(params.BlobTxBlobGaspriceUpdateFraction)
 )
+
+// VerifyEIP4844Header verifies the presence of the excessBlobGas field and that
+// if the current block contains no transactions, the excessBlobGas is updated
+// accordingly.
+func VerifyEIP4844Header(parent, header *types.Header) error {
+	if header.ExcessBlobGas == nil {
+		return errors.New("header is missing excessBlobGas")
+	}
+	if header.BlobGasUsed == nil {
+		return errors.New("header is missing blobGasUsed")
+	}
+	if *header.BlobGasUsed > params.BlobTxMaxBlobGasPerBlock {
+		return fmt.Errorf("blob gas used %d exceeds maximum allowance %d", *header.BlobGasUsed, params.BlobTxMaxBlobGasPerBlock)
+	}
+	if *header.BlobGasUsed%params.BlobTxBlobGasPerBlob != 0 {
+		return fmt.Errorf("blob gas used %d not a multiple of blob gas per blob %d", *header.BlobGasUsed, params.BlobTxBlobGasPerBlob)
+	}
+	var (
+		parentExcessBlobGas uint64
+		parentBlobGasUsed   uint64
+	)
+	if parent.ExcessBlobGas != nil {
+		parentExcessBlobGas = *parent.ExcessBlobGas
+	}
+	if parent.BlobGasUsed != nil {
+		parentBlobGasUsed = *parent.BlobGasUsed
+	}
+	expectedExcessBlobGas := CalcExcessBlobGas(parentExcessBlobGas, parentBlobGasUsed)
+	if *header.ExcessBlobGas != expectedExcessBlobGas {
+		return fmt.Errorf("invalid excessBlobGas: have %d, want %d, parent excessBlobGas %d, parent blobGasUsed %d",
+			*header.ExcessBlobGas, expectedExcessBlobGas, parentExcessBlobGas, parentBlobGasUsed)
+	}
+	return nil
+}
+
+// CalcExcessBlobGas calculates the excess blob gas after applying the set of
+// blobs on top of the excess blob gas.
+func CalcExcessBlobGas(parentExcessBlobGas uint64, parentBlobGasUsed uint64) uint64 {
+	excessBlobGas := parentExcessBlobGas + parentBlobGasUsed
+	if excessBlobGas < params.BlobTxTargetBlobGasPerBlock {
+		return 0
+	}
+	return excessBlobGas - params.BlobTxTargetBlobGasPerBlock
+}
 
 // CalcBlobFee calculates the blob fee from the header's excess blob gas field.
 func CalcBlobFee(excessBlobGas uint64) *big.Int {
