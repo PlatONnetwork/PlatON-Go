@@ -354,7 +354,7 @@ func (s *StateDB) TxIndex() int {
 func (s *StateDB) GetCode(addr common.Address) []byte {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.Code(s.db)
+		return stateObject.Code()
 	}
 	return nil
 }
@@ -362,7 +362,7 @@ func (s *StateDB) GetCode(addr common.Address) []byte {
 func (s *StateDB) GetCodeSize(addr common.Address) int {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.CodeSize(s.db)
+		return stateObject.CodeSize()
 	}
 	return 0
 }
@@ -381,7 +381,7 @@ func (s *StateDB) GetState(addr common.Address, key []byte) []byte {
 	defer s.lock.Unlock()
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.removePrefixValue(stateObject.GetState(s.db, key))
+		return stateObject.removePrefixValue(stateObject.GetState(key))
 	}
 	return []byte{}
 }
@@ -432,7 +432,7 @@ func (s *StateDB) GetStorageProof(a common.Address, key common.Hash) ([][]byte, 
 func (s *StateDB) GetCommittedState(addr common.Address, key []byte) []byte {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.removePrefixValue(stateObject.GetCommittedState(s.db, key))
+		return stateObject.removePrefixValue(stateObject.GetCommittedState(key))
 	}
 	return []byte{}
 }
@@ -451,10 +451,10 @@ func (s *StateDB) StorageTrie(addr common.Address) (Trie, error) {
 		return nil, nil
 	}
 	cpy := stateObject.deepCopy(s)
-	if _, err := cpy.updateTrie(s.db); err != nil {
+	if _, err := cpy.updateTrie(); err != nil {
 		return nil, err
 	}
-	return cpy.getTrie(s.db)
+	return cpy.getTrie()
 }
 
 func (s *StateDB) HasSelfDestructed(addr common.Address) bool {
@@ -512,7 +512,7 @@ func (s *StateDB) SetState(address common.Address, key, value []byte) {
 
 	if stateObject != nil {
 		//stateObject.SetState(self.db, key, stateObject.getPrefixValue(key, value))
-		stateObject.SetState(s.db, key, stateObject.getPrefixValue(s.originRoot.Bytes(), key, value))
+		stateObject.SetState(key, stateObject.getPrefixValue(s.originRoot.Bytes(), key, value))
 	}
 	s.lock.Unlock()
 }
@@ -528,7 +528,7 @@ func (s *StateDB) SetStorage(addr common.Address, storage map[common.Hash]common
 	s.stateObjectsDestruct[addr] = struct{}{}
 	stateObject := s.GetOrNewStateObject(addr)
 	for k, v := range storage {
-		stateObject.SetState(s.db, k[:], v[:])
+		stateObject.SetState(k[:], v[:])
 	}
 }
 
@@ -912,7 +912,7 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value []byte
 		return nil
 	}
 
-	tr, err := so.getTrie(db.db)
+	tr, err := so.getTrie()
 	if err != nil {
 		return err
 	}
@@ -1164,7 +1164,7 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 			s.deleteStateObject(obj)
 			s.AccountDeleted += 1
 		} else {
-			obj.updateRoot(s.db)
+			obj.updateRoot()
 			s.updateStateObject(obj)
 			s.AccountUpdated += 1
 		}
@@ -1302,7 +1302,10 @@ func (s *StateDB) UpdateSnaps() error {
 }
 
 // Commit writes the state to the underlying in-memory trie database.
-func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
+//
+// The associated block number of the state transition is also provided
+// for more chain context.
+func (s *StateDB) Commit(block uint64, deleteEmptyObjects bool) (common.Hash, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -1333,7 +1336,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 				obj.dirtyCode = false
 			}
 			// Write any storage changes in the state object to its storage trie
-			set, err := obj.commitTrie(s.db)
+			set, err := obj.commitTrie()
 			if err != nil {
 				return common.Hash{}, err
 			}
@@ -1424,7 +1427,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (common.Hash, error) {
 	}
 	if root != origin {
 		start := time.Now()
-		if err := s.db.TrieDB().Update(root, origin, nodes); err != nil {
+		if err := s.db.TrieDB().Update(root, origin, block, nodes); err != nil {
 			return common.Hash{}, err
 		}
 		s.originalRoot = root
@@ -1487,7 +1490,7 @@ func (s *StateDB) ListActiveVersion() ([]gov.ActiveVersionValue, error) {
 	var avListBytes []byte
 	stateObject := s.getStateObject(vm.GovContractAddr)
 	if stateObject != nil {
-		avListBytes = stateObject.removePrefixValue(stateObject.GetState(s.db, gov.KeyActiveVersions()))
+		avListBytes = stateObject.removePrefixValue(stateObject.GetState(gov.KeyActiveVersions()))
 	}
 
 	if len(avListBytes) == 0 {

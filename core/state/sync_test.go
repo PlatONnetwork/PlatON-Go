@@ -72,7 +72,7 @@ func makeTestState() (ethdb.Database, Database, common.Hash, []*testAccount) {
 		state.updateStateObject(obj)
 		accounts = append(accounts, acc)
 	}
-	root, _ := state.Commit(false)
+	root, _ := state.Commit(0, false)
 
 	// Return the generated state
 	return db, sdb, root, accounts

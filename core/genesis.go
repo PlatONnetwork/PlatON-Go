@@ -550,7 +550,7 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
 		}
 	}
-	if _, err := statedb.Commit(false); nil != err {
+	if _, err := statedb.Commit(0, false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
 	if err := statedb.Database().TrieDB().Commit(root, true, true); nil != err {

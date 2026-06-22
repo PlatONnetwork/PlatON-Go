@@ -366,7 +366,7 @@ func (dl *diskLayer) generateRange(ctx *generatorContext, trieId *trie.ID, prefi
 		}
 		root, nodes, _ := snapTrie.Commit(false)
 		if nodes != nil {
-			tdb.Update(root, types.EmptyRootHash, trienode.NewWithNodeSet(nodes))
+			tdb.Update(root, types.EmptyRootHash, 0, trienode.NewWithNodeSet(nodes))
 			tdb.Commit(root, false, false)
 		}
 		resolver = func(owner common.Hash, path []byte, hash common.Hash) []byte {
