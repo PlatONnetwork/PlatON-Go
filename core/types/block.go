@@ -130,8 +130,8 @@ type Header struct {
 	// WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.
 	WithdrawalsHash *common.Hash `json:"withdrawalsRoot" rlp:"optional"`
 
-	// ExcessDataGas was added by EIP-4844 and is ignored in legacy headers.
-	ExcessDataGas *big.Int `json:"excessDataGas" rlp:"optional"`
+	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
+	ExcessBlobGas *big.Int `json:"excessBlobGas" rlp:"optional"`
 
 	// caches
 	sealHash  atomic.Value `json:"-" rlp:"-"`
@@ -484,6 +484,9 @@ func CopyHeader(h *Header) *Header {
 	if h.WithdrawalsHash != nil {
 		cpy.WithdrawalsHash = new(common.Hash)
 		*cpy.WithdrawalsHash = *h.WithdrawalsHash
+	}
+	if h.ExcessBlobGas != nil {
+		cpy.ExcessBlobGas = new(big.Int).Set(h.ExcessBlobGas)
 	}
 	return &cpy
 }

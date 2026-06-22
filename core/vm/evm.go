@@ -168,7 +168,7 @@ type BlockContext struct {
 	Nonce         types.BlockNonce
 	BaseFee       *big.Int     // Provides information for BASEFEE
 	Random        *common.Hash // Provides information for PREVRANDAO
-	ExcessDataGas *uint64      // ExcessDataGas field in the header, needed to compute blob gas price
+	ExcessBlobGas *uint64      // ExcessBlobGas field in the header, needed to compute blob gas price
 
 	BlockHash  common.Hash // Only, the value will be available after the current block has been sealed.
 	ParentHash common.Hash

@@ -248,15 +248,15 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 		balanceCheck = mgval
 	}
 	if hawking {
-		if dataGas := st.dataGasUsed(); dataGas > 0 {
-			if st.evm.Context.ExcessDataGas == nil {
+		if blobGas := st.blobGasUsed(); blobGas > 0 {
+			if st.evm.Context.ExcessBlobGas == nil {
 				panic("missing field excess data gas")
 			}
-			blobBalanceCheck := new(big.Int).SetUint64(dataGas)
+			blobBalanceCheck := new(big.Int).SetUint64(blobGas)
 			blobBalanceCheck.Mul(blobBalanceCheck, st.msg.BlobGasFeeCap())
 			balanceCheck.Add(balanceCheck, blobBalanceCheck)
-			blobFee := new(big.Int).SetUint64(dataGas)
-			blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessDataGas))
+			blobFee := new(big.Int).SetUint64(blobGas)
+			blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas))
 			mgval.Add(mgval, blobFee)
 		}
 	}
@@ -274,9 +274,9 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 	// 所以这里也不扣mgval
 	if isContractIvk {
 		st.state.SubBalance(st.msg.From(), mgval)
-	} else if hawking && st.dataGasUsed() > 0 {
-		blobFee := new(big.Int).SetUint64(st.dataGasUsed())
-		blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessDataGas))
+	} else if hawking && st.blobGasUsed() > 0 {
+		blobFee := new(big.Int).SetUint64(st.blobGasUsed())
+		blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas))
 		st.state.SubBalance(st.msg.From(), blobFee)
 	}
 	return nil
@@ -344,11 +344,11 @@ func (st *StateTransition) preCheck(isContractIvk bool) error {
 	}
 
 	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
-	if hawking && st.dataGasUsed() > 0 {
-		if st.evm.Context.ExcessDataGas == nil {
+	if hawking && st.blobGasUsed() > 0 {
+		if st.evm.Context.ExcessBlobGas == nil {
 			panic("missing field excess data gas")
 		}
-		if have, want := st.msg.BlobGasFeeCap(), misc.CalcBlobFee(*st.evm.Context.ExcessDataGas); have.Cmp(want) < 0 {
+		if have, want := st.msg.BlobGasFeeCap(), misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas); have.Cmp(want) < 0 {
 			return fmt.Errorf("%w: address %v have %v want %v", ErrBlobFeeCapTooLow, st.msg.From().Hex(), have, want)
 		}
 	}
@@ -546,7 +546,7 @@ func (st *StateTransition) gasUsed() uint64 {
 	return st.initialGas - st.gas
 }
 
-// dataGasUsed returns the amount of data gas used by the message.
-func (st *StateTransition) dataGasUsed() uint64 {
-	return uint64(len(st.msg.BlobHashes()) * params.BlobTxDataGasPerBlob)
+// blobGasUsed returns the amount of blob gas used by the message.
+func (st *StateTransition) blobGasUsed() uint64 {
+	return uint64(len(st.msg.BlobHashes()) * params.BlobTxBlobGasPerBlob)
 }

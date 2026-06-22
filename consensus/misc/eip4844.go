@@ -23,13 +23,13 @@ import (
 )
 
 var (
-	minDataGasPrice            = big.NewInt(params.BlobTxMinDataGasprice)
-	dataGaspriceUpdateFraction = big.NewInt(params.BlobTxDataGaspriceUpdateFraction)
+	minBlobGasPrice            = big.NewInt(params.BlobTxMinBlobGasprice)
+	blobGaspriceUpdateFraction = big.NewInt(params.BlobTxBlobGaspriceUpdateFraction)
 )
 
-// CalcBlobFee calculates the blob fee from the header's excess data gas field.
-func CalcBlobFee(excessDataGas uint64) *big.Int {
-	return fakeExponential(minDataGasPrice, new(big.Int).SetUint64(excessDataGas), dataGaspriceUpdateFraction)
+// CalcBlobFee calculates the blob fee from the header's excess blob gas field.
+func CalcBlobFee(excessBlobGas uint64) *big.Int {
+	return fakeExponential(minBlobGasPrice, new(big.Int).SetUint64(excessBlobGas), blobGaspriceUpdateFraction)
 }
 
 // fakeExponential approximates factor * e ** (numerator / denominator) using
