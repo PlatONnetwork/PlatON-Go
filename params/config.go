@@ -273,7 +273,7 @@ func (c *ChainConfig) IsPauli(num *big.Int) bool {
 func (c *ChainConfig) IsHawking(num *big.Int) bool {
 	c.RWMutex.RLock()
 	defer c.RWMutex.RUnlock()
-	return c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.HawkingBlock, num)
+	return c.IsPauli(num) && (c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.HawkingBlock, num))
 }
 
 func (c *ChainConfig) GetPauliBlock() *big.Int {
@@ -292,7 +292,7 @@ func (c *ChainConfig) SetPauliBlock(block *big.Int) {
 func (c *ChainConfig) isHawking(num *big.Int) bool {
 	c.RWMutex.RLock()
 	defer c.RWMutex.RUnlock()
-	return c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.HawkingBlock, num)
+	return c.IsPauli(num) && (c.GenesisVersion >= FORKVERSION_1_6_0 || isForked(c.HawkingBlock, num))
 }
 
 func (c *ChainConfig) GetHawkingBlock() *big.Int {

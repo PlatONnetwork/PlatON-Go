@@ -364,7 +364,8 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 				pool.eip1559.Store(true)
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, false)
 			}
-			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
+			gte160 := gov.NewGov(nil).Gte160VersionState(stateDB)
+			if gte160 && chainconfig.IsPauli(currentBlock.Number) {
 				pool.hawking.Store(true)
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number, true)
 			} else {
@@ -1603,7 +1604,7 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 		pool.eip1559.Store(false)
 	}
 	gte160 := gov.NewGov(nil).Gte160VersionState(statedb)
-	if gte160 {
+	if gte160 && pool.chainconfig.IsPauli(blockNumber) {
 		pool.hawking.Store(true)
 	} else {
 		pool.hawking.Store(false)

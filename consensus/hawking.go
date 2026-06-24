@@ -33,6 +33,9 @@ func StateAtFromChain(chain interface{}) StateAtFunc {
 // state_processor checks: config fork height, active governance version from
 // parent state, or a version proposal activating on this block.
 func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types.Header, stateAt StateAtFunc) bool {
+	if !config.IsPauli(number) {
+		return false
+	}
 	if config.IsHawking(number) {
 		return true
 	}
