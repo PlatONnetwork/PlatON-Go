@@ -340,7 +340,7 @@ func TestInvalidTransactions(t *testing.T) {
 	}
 
 	tx = transaction(1, 100000, key, pool.chainconfig.PIP7ChainID)
-	pool.gasPrice = big.NewInt(1000)
+	pool.SetGasPrice(big.NewInt(1000))
 	if err, want := pool.AddRemote(tx), ErrUnderpriced; !errors.Is(err, want) {
 		t.Errorf("want %v have %v", want, err)
 	}
@@ -1332,13 +1332,13 @@ func TestTransactionPoolRepricing(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 	// Check that we can't add the old transactions back
-	if err := pool.AddRemote(pricedTransaction(1, 1000000, big.NewInt(1), keys[0], pool.chainconfig.PIP7ChainID)); err != ErrUnderpriced {
+	if err := pool.AddRemote(pricedTransaction(1, 1000000, big.NewInt(1), keys[0], pool.chainconfig.PIP7ChainID)); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
-	if err := pool.AddRemote(pricedTransaction(0, 1000000, big.NewInt(1), keys[1], pool.chainconfig.PIP7ChainID)); err != ErrUnderpriced {
+	if err := pool.AddRemote(pricedTransaction(0, 1000000, big.NewInt(1), keys[1], pool.chainconfig.PIP7ChainID)); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
-	if err := pool.AddRemote(pricedTransaction(2, 1000000, big.NewInt(1), keys[2], pool.chainconfig.PIP7ChainID)); err != ErrUnderpriced {
+	if err := pool.AddRemote(pricedTransaction(2, 1000000, big.NewInt(1), keys[2], pool.chainconfig.PIP7ChainID)); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced queued transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 	if err := validateEvents(events, 0); err != nil {
@@ -1454,15 +1454,15 @@ func TestTransactionPoolRepricingDynamicFee(t *testing.T) {
 	}
 	// Check that we can't add the old transactions back
 	tx := pricedTransaction(1, 100000, big.NewInt(1), keys[0], eip1559Config.PIP7ChainID)
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 	tx = dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[1])
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 	tx = dynamicFeeTx(2, 100000, big.NewInt(1), big.NewInt(1), keys[2])
-	if err := pool.AddRemote(tx); err != ErrUnderpriced {
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced queued transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 	if err := validateEvents(events, 0); err != nil {
@@ -1628,7 +1628,7 @@ func TestTransactionPoolUnderpricing(t *testing.T) {
 		t.Fatalf("pool internal state corrupted: %v", err)
 	}
 	// Ensure that adding an underpriced transaction on block limit fails
-	if err := pool.addRemoteSync(pricedTransaction(0, 100000, big.NewInt(1), keys[1], pool.chainconfig.PIP7ChainID)); err != ErrUnderpriced {
+	if err := pool.addRemoteSync(pricedTransaction(0, 100000, big.NewInt(1), keys[1], pool.chainconfig.PIP7ChainID)); !errors.Is(err, ErrUnderpriced) {
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 	// Replace a future transaction with a future transaction
@@ -1805,7 +1805,7 @@ func TestTransactionPoolUnderpricingDynamicFee(t *testing.T) {
 
 	// Ensure that adding an underpriced transaction fails
 	tx := dynamicFeeTx(0, 100000, big.NewInt(2), big.NewInt(1), keys[1])
-	if err := pool.AddRemote(tx); err != ErrUnderpriced { // Pend K0:0, K0:1, K2:0; Que K1:1
+	if err := pool.AddRemote(tx); !errors.Is(err, ErrUnderpriced) { // Pend K0:0, K0:1, K2:0; Que K1:1
 		t.Fatalf("adding underpriced pending transaction error mismatch: have %v, want %v", err, ErrUnderpriced)
 	}
 
