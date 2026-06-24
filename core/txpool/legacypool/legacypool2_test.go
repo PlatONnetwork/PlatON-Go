@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
-package txpool
+package legacypool
 
 import (
 	"crypto/ecdsa"
@@ -33,7 +33,7 @@ func pricedValuedTransaction(nonce uint64, value int64, gaslimit uint64, gaspric
 	return tx
 }
 
-func count(t *testing.T, pool *TxPool) (pending int, queued int) {
+func count(t *testing.T, pool *LegacyPool) (pending int, queued int) {
 	t.Helper()
 	pending, queued = pool.stats()
 	if err := validatePoolInternals(pool); err != nil {
@@ -42,7 +42,7 @@ func count(t *testing.T, pool *TxPool) (pending int, queued int) {
 	return pending, queued
 }
 
-func fillPool(t testing.TB, pool *TxPool) {
+func fillPool(t testing.TB, pool *LegacyPool) {
 	t.Helper()
 	// Create a number of test accounts, fund them and make transactions
 	executableTxs := types.Transactions{}
@@ -83,7 +83,7 @@ func TestTransactionFutureAttack(t *testing.T) {
 	config := testTxPoolConfig
 	config.GlobalQueue = 100
 	config.GlobalSlots = 100
-	pool := NewTxPool(config, eip1559Config, blockchain)
+	pool := New(config, eip1559Config, blockchain)
 	defer pool.Stop()
 	fillPool(t, pool)
 	pending, _ := pool.Stats()
@@ -116,7 +116,7 @@ func TestTransactionFuture1559(t *testing.T) {
 	// Create the pool to test the pricing enforcement with
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
 	blockchain := newTestBlockChain(1000000, statedb, new(event.Feed))
-	pool := NewTxPool(testTxPoolConfig, eip1559Config, blockchain)
+	pool := New(testTxPoolConfig, eip1559Config, blockchain)
 	defer pool.Stop()
 
 	// Create a number of test accounts, fund them and make transactions
@@ -152,7 +152,7 @@ func TestTransactionZAttack(t *testing.T) {
 	// Keep this test aligned with go-ethereum v1.11.4-style global pool sizing.
 	config.GlobalSlots = 4096 + 1024
 	config.GlobalQueue = 1024
-	pool := NewTxPool(config, eip1559Config, blockchain)
+	pool := New(config, eip1559Config, blockchain)
 	defer pool.Stop()
 	// Create a number of test accounts, fund them and make transactions
 	fillPool(t, pool)
@@ -222,7 +222,7 @@ func BenchmarkFutureAttack(b *testing.B) {
 	config := testTxPoolConfig
 	config.GlobalQueue = 100
 	config.GlobalSlots = 100
-	pool := NewTxPool(config, eip1559Config, blockchain)
+	pool := New(config, eip1559Config, blockchain)
 	defer pool.Stop()
 	fillPool(b, pool)
 

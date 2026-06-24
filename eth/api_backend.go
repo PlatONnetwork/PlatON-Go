@@ -285,11 +285,21 @@ func (b *EthAPIBackend) Stats() (pending int, queued int) {
 }
 
 func (b *EthAPIBackend) TxPoolContent() (map[common.Address]types.Transactions, map[common.Address]types.Transactions) {
-	return b.eth.TxPool().Content()
+	run, block := b.eth.TxPool().Content()
+	return toTxsMap(run), toTxsMap(block)
 }
 
 func (b *EthAPIBackend) TxPoolContentFrom(addr common.Address) (types.Transactions, types.Transactions) {
-	return b.eth.TxPool().ContentFrom(addr)
+	run, block := b.eth.TxPool().ContentFrom(addr)
+	return types.Transactions(run), types.Transactions(block)
+}
+
+func toTxsMap(in map[common.Address][]*types.Transaction) map[common.Address]types.Transactions {
+	out := make(map[common.Address]types.Transactions, len(in))
+	for addr, txs := range in {
+		out[addr] = txs
+	}
+	return out
 }
 
 func (b *EthAPIBackend) TxPool() *txpool.TxPool {
