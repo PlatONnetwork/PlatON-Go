@@ -566,17 +566,16 @@ func (s *MockStateDB) GetCommittedState(common.Address, []byte) []byte {
 //GetState(common.Address, common.Hash) common.Hash
 //SetState(common.Address, common.Hash, common.Hash)
 
-func (s *MockStateDB) Suicide(addr common.Address) bool {
-	s.Journal.append(suicideChange{
+func (s *MockStateDB) SelfDestruct(addr common.Address) {
+	s.Journal.append(selfDestructChange{
 		account:     &addr,
 		prevbalance: new(big.Int).Set(s.Balance[addr]),
 	})
 
 	s.Suicided[addr] = true
 	s.Balance[addr] = new(big.Int)
-	return true
 }
-func (s *MockStateDB) HasSuicided(addr common.Address) bool {
+func (s *MockStateDB) HasSelfDestructed(addr common.Address) bool {
 	suicided, ok := s.Suicided[addr]
 	if !ok {
 		return false
@@ -585,7 +584,7 @@ func (s *MockStateDB) HasSuicided(addr common.Address) bool {
 }
 
 // Exist reports whether the given account exists in state.
-// Notably this should also return true for suicided accounts.
+// Notably this should also return true for self-destructed accounts.
 func (s *MockStateDB) Exist(common.Address) bool {
 	return true
 }

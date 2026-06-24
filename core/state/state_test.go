@@ -57,7 +57,7 @@ func TestDump(t *testing.T) {
 	// write some of them to the trie
 	s.state.updateStateObject(obj1)
 	s.state.updateStateObject(obj2)
-	s.state.Commit(false)
+	s.state.Commit(0, false)
 
 	// check that dump contains the state objects that are in trie
 	opts := &DumpConfig{
@@ -115,7 +115,7 @@ func TestIterativeDump(t *testing.T) {
 	// write some of them to the trie
 	s.state.updateStateObject(obj1)
 	s.state.updateStateObject(obj2)
-	s.state.Commit(false)
+	s.state.Commit(0, false)
 
 	b := &bytes.Buffer{}
 	s.state.IterativeDump(nil, json.NewEncoder(b))
@@ -142,7 +142,7 @@ func TestNull(t *testing.T) {
 
 	//s.state.SetState(address, common.Hash{}, value)
 	s.state.SetState(address, key, value)
-	s.state.Commit(false)
+	s.state.Commit(0, false)
 
 	if value := s.state.GetState(address, key); !bytes.Equal(value, value) {
 		t.Error("expected empty current value")
@@ -207,11 +207,11 @@ func TestSnapshot2(t *testing.T) {
 	so0.SetBalance(big.NewInt(42))
 	so0.SetNonce(43)
 	so0.SetCode(crypto.Keccak256Hash([]byte{'c', 'a', 'f', 'e'}), []byte{'c', 'a', 'f', 'e'})
-	so0.suicided = false
+	so0.selfDestructed = false
 	so0.deleted = false
 	state.setStateObject(so0)
 
-	root, _ := state.Commit(false)
+	root, _ := state.Commit(0, false)
 	state.Reset(root)
 
 	// and one with deleted == true
@@ -219,7 +219,7 @@ func TestSnapshot2(t *testing.T) {
 	so1.SetBalance(big.NewInt(52))
 	so1.SetNonce(53)
 	so1.SetCode(crypto.Keccak256Hash([]byte{'c', 'a', 'f', 'e', '2'}), []byte{'c', 'a', 'f', 'e', '2'})
-	so1.suicided = true
+	so1.selfDestructed = true
 	so1.deleted = true
 	state.setStateObject(so1)
 
@@ -235,8 +235,8 @@ func TestSnapshot2(t *testing.T) {
 	// Update lazily-loaded values before comparing.
 	//key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
 	key := storageaddr.Bytes()
-	so0Restored.GetState(state.db, key)
-	so0Restored.Code(state.db)
+	so0Restored.GetState(key)
+	so0Restored.Code()
 	// non-deleted is equal (restored)
 	compareStateObjects(so0Restored, so0, t)
 

@@ -1,4 +1,4 @@
-﻿// Copyright 2014 The go-ethereum Authors
+// Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
@@ -88,7 +88,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
 	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, nodes, _ := trie.Commit(false)
-	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	if !memonly {
 		triedb.Commit(root, true, true)
 	}
@@ -199,7 +199,7 @@ func TestGet(t *testing.T) {
 			return
 		}
 		root, nodes, _ := trie.Commit(false)
-		db.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+		db.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 		trie, _ = New(TrieID(root), db)
 	}
 }
@@ -274,7 +274,7 @@ func TestReplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
 	}
-	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 
 	// create a new trie on top of the database and check that lookups work.
 	trie2, err := New(TrieID(exp), triedb)
@@ -296,7 +296,7 @@ func TestReplication(t *testing.T) {
 
 	// recreate the trie after commit
 	if nodes != nil {
-		triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+		triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	}
 	trie2, err = New(TrieID(hash), triedb)
 	if err != nil {
@@ -500,7 +500,7 @@ func runRandTest(rt randTest) bool {
 		case opCommit:
 			root, nodes, _ := tr.Commit(true)
 			if nodes != nil {
-				triedb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+				triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 			}
 			newtr, err := New(TrieID(root), triedb)
 			if err != nil {
@@ -732,7 +732,7 @@ func TestDeepCopy(t *testing.T) {
 
 		root, nodes, _ = tr.Commit(true)
 		mergedNodeSet := NewWithNodeSet(nodes)
-		triedb.Update(types.EmptyRootHash, types.EmptyRootHash, mergedNodeSet)
+		triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, mergedNodeSet)
 		if set, present := mergedNodeSet.Sets[common.Hash{}]; present {
 			for _, n := range set.Leaves {
 				leafCB(path, hexpath, n.Blob, n.Parent, parentPath)
@@ -797,7 +797,7 @@ func TestDeepCopy(t *testing.T) {
 	assert.Equal(t, len(kv), keys)
 	root, nodes, _ = tr2.Commit(true)
 	mergedNodeSet := NewWithNodeSet(nodes)
-	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, mergedNodeSet)
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, mergedNodeSet)
 	if set, present := mergedNodeSet.Sets[common.Hash{}]; present {
 		for _, n := range set.Leaves {
 			leafCB(path, hexpath, n.Blob, n.Parent, parentPath)
@@ -814,7 +814,7 @@ func TestDeepCopy(t *testing.T) {
 	triedb.DereferenceDB(parent)
 	cpyRoot, nodes, _ := cpy.Commit(true)
 	mergedNodeSet = NewWithNodeSet(nodes)
-	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, mergedNodeSet)
+	triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, mergedNodeSet)
 	if set, present := mergedNodeSet.Sets[common.Hash{}]; present {
 		for _, n := range set.Leaves {
 			leafCB(path, hexpath, n.Blob, n.Parent, parentPath)
@@ -865,7 +865,7 @@ func TestOneTrieCollision(t *testing.T) {
 		trie.Update(d.hash, d.value)
 	}
 	root, nodes, _ := trie.Commit(false)
-	memdb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	memdb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	memdb.Commit(root, false, false)
 
 	assert.Nil(t, checkTrie(trie))
@@ -875,18 +875,18 @@ func TestOneTrieCollision(t *testing.T) {
 	reopenTrie.Delete(trieData1[0].hash)
 
 	reopenRoot, nodes, _ := reopenTrie.Commit(false)
-	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenTrie.Update(trieData1[0].hash, trieData1[0].value)
 	reopenRoot, nodes, _ = reopenTrie.Commit(false)
-	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenMemdb.ReferenceVersion(root)
 
 	reopenTrie.Delete(trieData1[0].hash)
 	reopenRoot, nodes, _ = reopenTrie.Commit(false)
-	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	reopenMemdb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	reopenMemdb.IncrVersion()
 	reopenMemdb.Commit(reopenRoot, false, false)
 	reopenMemdb.ReferenceVersion(reopenRoot)
@@ -922,9 +922,9 @@ func TestTwoTrieCollision(t *testing.T) {
 	}
 
 	root1, nodes, _ := trie1.Commit(false)
-	memdb1.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	memdb1.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 	root2, nodes, _ := trie2.Commit(false)
-	memdb2.Update(types.EmptyRootHash, types.EmptyRootHash, NewWithNodeSet(nodes))
+	memdb2.Update(types.EmptyRootHash, types.EmptyRootHash, 0, NewWithNodeSet(nodes))
 
 	memdb1.Commit(root1, false, false)
 	memdb2.Commit(root2, false, false)

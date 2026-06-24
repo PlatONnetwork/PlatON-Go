@@ -28,6 +28,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool/legacypool"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -85,7 +86,7 @@ func newTestBackendWithGenerator(blocks int, shanghai bool, generator func(int, 
 		db:         db,
 		chain:      chain,
 		chainCache: cache,
-		txpool:     txpool.NewTxPool(txconfig, params.TestChainConfig, cache),
+		txpool:     legacypool.NewTxPool(txconfig, params.TestChainConfig, txpool.NewTxPoolBlockChain(cache)),
 	}
 }
 

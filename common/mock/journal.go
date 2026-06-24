@@ -87,7 +87,7 @@ type (
 		newOne   bool
 	}
 
-	suicideChange struct {
+	selfDestructChange struct {
 		account     *common.Address
 		prevbalance *big.Int
 	}
@@ -139,7 +139,7 @@ func (ch codeChange) revert(s *MockStateDB) {
 	}
 }
 
-func (ch suicideChange) revert(s *MockStateDB) {
+func (ch selfDestructChange) revert(s *MockStateDB) {
 	delete(s.Suicided, *ch.account)
 	s.Balance[*ch.account] = ch.prevbalance
 }

@@ -56,6 +56,7 @@ var (
 	//berlinInstructionSet   = newBerlinInstructionSet()
 	londonInstructionSet   = newLondonInstructionSet()
 	shanghaiInstructionSet = newShanghaiInstructionSet()
+	cancunInstructionSet   = newCancunInstructionSet()
 )
 
 // JumpTable contains the EVM opcodes supported at a given fork.
@@ -82,6 +83,13 @@ func newShanghaiInstructionSet() JumpTable {
 	instructionSet := newLondonInstructionSet()
 	enable3860(&instructionSet) // Limit and meter initcode
 	enable1153(&instructionSet)
+	return validate(instructionSet)
+}
+
+func newCancunInstructionSet() JumpTable {
+	instructionSet := newShanghaiInstructionSet()
+	enable4844(&instructionSet) // EIP-4844 (BLOBHASH opcode)
+	enable5656(&instructionSet) // EIP-5656 (MCOPY opcode)
 	return validate(instructionSet)
 }
 

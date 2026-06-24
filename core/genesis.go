@@ -67,6 +67,8 @@ type Genesis struct {
 	GasUsed    uint64      `json:"gasUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 	BaseFee    *big.Int    `json:"baseFeePerGas"`
+	ExcessBlobGas *uint64  `json:"excessBlobGas"` // EIP-4844
+	BlobGasUsed   *uint64  `json:"blobGasUsed"`   // EIP-4844
 }
 
 // GenesisAlloc specifies the initial state that is part of the genesis block.
@@ -90,6 +92,8 @@ type genesisSpecMarshaling struct {
 	GasUsed   math.HexOrDecimal64
 	Number    math.HexOrDecimal64
 	BaseFee   *math.HexOrDecimal256
+	ExcessBlobGas *math.HexOrDecimal64
+	BlobGasUsed   *math.HexOrDecimal64
 	Alloc     map[common.Address]GenesisAccount
 }
 
@@ -550,7 +554,17 @@ func (g *Genesis) ToBlock(db ethdb.Database, sdb snapshotdb.BaseDB) *types.Block
 			head.BaseFee = new(big.Int).SetUint64(params.InitialBaseFee)
 		}
 	}
-	if _, err := statedb.Commit(false); nil != err {
+	if g.Config != nil && g.Config.IsHawking(head.Number) {
+		head.ExcessBlobGas = g.ExcessBlobGas
+		head.BlobGasUsed = g.BlobGasUsed
+		if head.ExcessBlobGas == nil {
+			head.ExcessBlobGas = new(uint64)
+		}
+		if head.BlobGasUsed == nil {
+			head.BlobGasUsed = new(uint64)
+		}
+	}
+	if _, err := statedb.Commit(0, false); nil != err {
 		panic("Failed to commit genesis stateDB: " + err.Error())
 	}
 	if err := statedb.Database().TrieDB().Commit(root, true, true); nil != err {

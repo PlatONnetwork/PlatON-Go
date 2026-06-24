@@ -41,7 +41,7 @@ type backend interface {
 	Scheme() string
 	Initialized(genesisRoot common.Hash) bool
 	Size() common.StorageSize
-	Update(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error
+	Update(root common.Hash, parent common.Hash, block uint64, nodes *trienode.MergedNodeSet) error
 	Commit(root common.Hash, report bool, uncache bool) error
 	Close() error
 }
@@ -112,11 +112,11 @@ func (db *Database) GetReader(blockRoot common.Hash) Reader {
 
 // Update performs a state transition by committing dirty nodes contained in the
 // given set in order to update state from the specified parent to the specified root.
-func (db *Database) Update(root common.Hash, parent common.Hash, nodes *trienode.MergedNodeSet) error {
+func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, nodes *trienode.MergedNodeSet) error {
 	if db.preimages != nil {
 		db.preimages.commit(false)
 	}
-	return db.backend.Update(root, parent, nodes)
+	return db.backend.Update(root, parent, block, nodes)
 }
 
 // Commit iterates over all the children of a particular node, writes them out to disk.

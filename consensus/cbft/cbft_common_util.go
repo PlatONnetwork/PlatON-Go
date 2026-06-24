@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool/legacypool"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 
@@ -170,7 +171,7 @@ func CreateBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockChain, *co
 
 	chain, _ := core.NewBlockChain(db, nil, &gspec, nil, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
-	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, cache)
+	txpool := legacypool.NewTxPool(testTxPoolConfig, chainConfig, txpool.NewTxPoolBlockChain(cache))
 
 	return chain, cache, txpool, validator.NewStaticAgency(nodes)
 }
@@ -196,7 +197,7 @@ func CreateValidatorBackend(engine *Cbft, nodes []params.CbftNode) (*core.BlockC
 
 	chain, _ := core.NewBlockChain(db, nil, &gspec, nil, engine, vm.Config{}, nil, nil)
 	cache := core.NewBlockChainCache(chain)
-	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, cache)
+	txpool := legacypool.NewTxPool(testTxPoolConfig, chainConfig, txpool.NewTxPoolBlockChain(cache))
 
 	return chain, cache, txpool, validator.NewInnerAgency(nodes, chain, int(engine.config.Sys.Amount), int(engine.config.Sys.Amount)*2)
 }

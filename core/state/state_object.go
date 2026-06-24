@@ -79,11 +79,16 @@ type stateObject struct {
 	dirtyStorage   ValueStorage // Storage entries that have been modified in the current transaction execution
 
 	// Cache flags.
-	// When an object is marked suicided it will be deleted from the trie
-	// during the "update" phase of the state transition.
 	dirtyCode bool // true if the code was updated
-	suicided  bool
-	deleted   bool
+
+	// Flag whether the account was marked as self-destructed. The self-destructed account
+	// is still accessible in the scope of same transaction.
+	selfDestructed bool
+
+	// Flag whether the account was marked as deleted. A self-destructed account
+	// or an account that is considered as empty will be marked as deleted at
+	// the end of transaction and no longer accessible anymore.
+	deleted bool
 }
 
 // empty returns whether the account is considered empty.
@@ -121,8 +126,8 @@ func (s *stateObject) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &s.data)
 }
 
-func (s *stateObject) markSuicided() {
-	s.suicided = true
+func (s *stateObject) markSelfdestructed() {
+	s.selfDestructed = true
 }
 
 func (s *stateObject) touch() {
@@ -139,9 +144,9 @@ func (s *stateObject) touch() {
 // getTrie returns the associated storage trie. The trie will be opened
 // if it's not loaded previously. An error will be returned if trie can't
 // be loaded.
-func (s *stateObject) getTrie(db Database) (Trie, error) {
+func (s *stateObject) getTrie() (Trie, error) {
 	if s.trie == nil {
-		tr, err := db.OpenStorageTrie(s.db.originalRoot, s.addrHash, s.data.Root)
+		tr, err := s.db.db.OpenStorageTrie(s.db.originalRoot, s.addrHash, s.data.Root)
 		if err != nil {
 			return nil, err
 		}
@@ -151,14 +156,14 @@ func (s *stateObject) getTrie(db Database) (Trie, error) {
 }
 
 // GetState retrieves a value from the account storage trie.
-func (s *stateObject) GetState(db Database, key []byte) []byte {
+func (s *stateObject) GetState(key []byte) []byte {
 	// If we have a dirty value for this state entry, return it
 	value, dirty := s.dirtyStorage[string(key)]
 	if dirty {
 		return value
 	}
 	// Otherwise return the entry's original value
-	return s.GetCommittedState(db, key)
+	return s.GetCommittedState(key)
 }
 
 func (s *stateObject) getCommittedStateCache(key []byte) []byte {
@@ -197,7 +202,7 @@ func (s *stateObject) getCommittedStateCache(key []byte) []byte {
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
+func (s *stateObject) GetCommittedState(key []byte) []byte {
 	// If we have a pending write or clean cached, return that
 	if value, pending := s.pendingStorage[string(key)]; pending {
 		return value
@@ -233,7 +238,7 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 		if metrics.EnabledExpensive {
 			defer func(start time.Time) { s.db.StorageReads += time.Since(start) }(time.Now())
 		}
-		tr, err := s.getTrie(db)
+		tr, err := s.getTrie()
 		if err != nil {
 			s.db.setError(err)
 			return []byte{}
@@ -256,9 +261,9 @@ func (s *stateObject) GetCommittedState(db Database, key []byte) []byte {
 
 // SetState updates a value in account storage.
 // set [prefixKey,value] to storage
-func (s *stateObject) SetState(db Database, key, value []byte) {
+func (s *stateObject) SetState(key, value []byte) {
 	//if the new value is the same as old,don't set
-	preValue := s.GetState(db, key)
+	preValue := s.GetState(key)
 	if bytes.Equal(preValue, value) {
 		return
 	}
@@ -316,7 +321,7 @@ func (s *stateObject) finalise() {
 // updateTrie writes cached storage modifications into the object's storage trie.
 // It will return nil if the trie has not been loaded and no changes have been
 // made. An error will be returned if the trie can't be loaded/updated correctly.
-func (s *stateObject) updateTrie(db Database) (Trie, error) {
+func (s *stateObject) updateTrie() (Trie, error) {
 	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise()
 	if len(s.pendingStorage) == 0 {
@@ -337,7 +342,7 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 		}
 	}
 	// Insert all the pending updates into the trie
-	tr, err := s.getTrie(db)
+	tr, err := s.getTrie()
 	if err != nil {
 		s.db.setError(err)
 		return nil, err
@@ -382,8 +387,8 @@ func (s *stateObject) updateTrie(db Database) (Trie, error) {
 
 // UpdateRoot sets the trie root to the current root hash of. An error
 // will be returned if trie root hash is not computed correctly.
-func (s *stateObject) updateRoot(db Database) {
-	tr, err := s.updateTrie(db)
+func (s *stateObject) updateRoot() {
+	tr, err := s.updateTrie()
 	if err != nil {
 		return
 	}
@@ -400,8 +405,8 @@ func (s *stateObject) updateRoot(db Database) {
 
 // commitTrie submits the storage changes into the storage trie and re-computes
 // the root. Besides, all trie changes will be collected in a nodeset and returned.
-func (s *stateObject) commitTrie(db Database) (*trienode.NodeSet, error) {
-	tr, err := s.updateTrie(db)
+func (s *stateObject) commitTrie() (*trienode.NodeSet, error) {
+	tr, err := s.updateTrie()
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +471,7 @@ func (s *stateObject) deepCopy(db *StateDB) *stateObject {
 	stateObject.dirtyStorage = s.dirtyStorage.Copy()
 	stateObject.originStorage = s.originStorage.Copy()
 	stateObject.pendingStorage = s.pendingStorage.Copy()
-	stateObject.suicided = s.suicided
+	stateObject.selfDestructed = s.selfDestructed
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted
 	return stateObject
@@ -479,7 +484,7 @@ func (s *stateObject) copy(db *StateDB) *stateObject {
 		stateObject.trie = db.db.NewTrie(s.trie)
 	}
 	stateObject.code = s.code
-	stateObject.suicided = s.suicided
+	stateObject.selfDestructed = s.selfDestructed
 	stateObject.dirtyCode = s.dirtyCode
 	stateObject.deleted = s.deleted
 	return stateObject
@@ -495,14 +500,14 @@ func (s *stateObject) Address() common.Address {
 }
 
 // Code returns the contract code associated with this object, if any.
-func (s *stateObject) Code(db Database) []byte {
+func (s *stateObject) Code() []byte {
 	if s.code != nil {
 		return s.code
 	}
 	if bytes.Equal(s.CodeHash(), types.EmptyCodeHash.Bytes()) {
 		return nil
 	}
-	code, err := db.ContractCode(s.addrHash, common.BytesToHash(s.CodeHash()))
+	code, err := s.db.db.ContractCode(s.addrHash, common.BytesToHash(s.CodeHash()))
 	if err != nil {
 		s.db.setError(fmt.Errorf("can't load code hash %x: %v", s.CodeHash(), err))
 	}
@@ -513,14 +518,14 @@ func (s *stateObject) Code(db Database) []byte {
 // CodeSize returns the size of the contract code associated with this object,
 // or zero if none. This method is an almost mirror of Code, but uses a cache
 // inside the database to avoid loading codes seen recently.
-func (s *stateObject) CodeSize(db Database) int {
+func (s *stateObject) CodeSize() int {
 	if s.code != nil {
 		return len(s.code)
 	}
 	if bytes.Equal(s.CodeHash(), types.EmptyCodeHash.Bytes()) {
 		return 0
 	}
-	size, err := db.ContractCodeSize(s.addrHash, common.BytesToHash(s.CodeHash()))
+	size, err := s.db.db.ContractCodeSize(s.addrHash, common.BytesToHash(s.CodeHash()))
 	if err != nil {
 		s.db.setError(fmt.Errorf("can't load code size %x: %v", s.CodeHash(), err))
 	}
@@ -528,7 +533,7 @@ func (s *stateObject) CodeSize(db Database) int {
 }
 
 func (s *stateObject) SetCode(codeHash common.Hash, code []byte) {
-	prevcode := s.Code(s.db.db)
+	prevcode := s.Code()
 	s.db.journal.append(codeChange{
 		account:  &s.address,
 		prevhash: s.CodeHash(),

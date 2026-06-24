@@ -105,6 +105,7 @@ const (
 	CHAINID     OpCode = 0x46
 	SELFBALANCE OpCode = 0x47
 	BASEFEE     OpCode = 0x48
+	BLOBHASH    OpCode = 0x49
 )
 
 // 0x50 range - 'storage' and execution.
@@ -123,7 +124,8 @@ const (
 	JUMPDEST  OpCode = 0x5b
 	BEGINSUB  OpCode = 0x5c
 	RETURNSUB OpCode = 0x5d
-	JUMPSUB   OpCode = 0x5e
+	JUMPSUB   OpCode = 0x5e // replaced by MCOPY after Cancun/Hawking
+	MCOPY     OpCode = 0x5e
 	PUSH0     OpCode = 0x5f
 )
 
@@ -296,6 +298,7 @@ var opCodeToString = map[OpCode]string{
 	CHAINID:     "CHAINID",
 	SELFBALANCE: "SELFBALANCE",
 	BASEFEE:     "BASEFEE",
+	BLOBHASH:    "BLOBHASH",
 
 	// 0x50 range - 'storage' and execution.
 	POP:      "POP",
@@ -312,8 +315,8 @@ var opCodeToString = map[OpCode]string{
 	JUMPDEST: "JUMPDEST",
 
 	BEGINSUB:  "BEGINSUB",
-	JUMPSUB:   "JUMPSUB",
 	RETURNSUB: "RETURNSUB",
+	MCOPY:     "MCOPY",
 
 	PUSH0: "PUSH0",
 	// 0x60 range - pushes.
@@ -457,6 +460,7 @@ var stringToOp = map[string]OpCode{
 	"CALLDATACOPY":   CALLDATACOPY,
 	"CHAINID":        CHAINID,
 	"BASEFEE":        BASEFEE,
+	"BLOBHASH":       BLOBHASH,
 	"DELEGATECALL":   DELEGATECALL,
 	"STATICCALL":     STATICCALL,
 	"CODESIZE":       CODESIZE,
@@ -489,6 +493,7 @@ var stringToOp = map[string]OpCode{
 	"BEGINSUB":       BEGINSUB,
 	"RETURNSUB":      RETURNSUB,
 	"JUMPSUB":        JUMPSUB,
+	"MCOPY":          MCOPY,
 	"PUSH0":          PUSH0,
 	"PUSH1":          PUSH1,
 	"PUSH2":          PUSH2,

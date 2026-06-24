@@ -196,7 +196,14 @@ const (
 	WithdrawDelegateNodeGas   uint64 = 1000 // Gas needed for withdraw  delegate reward Node Count
 	WithdrawDelegateEpochGas  uint64 = 100  // Gas needed for withdraw  delegate reward epoch Count
 
-	BlobTxDataGasPerBlob = 1 << 17 // Gas consumption of a single data blob (== blob byte size)
+	BlobTxBytesPerFieldElement       = 32      // Size in bytes of a field element
+	BlobTxFieldElementsPerBlob       = 4096    // Number of field elements stored in a single data blob
+	BlobTxHashVersion                = 0x01    // Version byte of the commitment hash
+	BlobTxMaxBlobGasPerBlock         = 1 << 19 // Maximum consumable blob gas for data blobs per block
+	BlobTxTargetBlobGasPerBlock      = 1 << 18 // Target consumable blob gas for data blobs per block (for 1559-like pricing)
+	BlobTxBlobGasPerBlob             = 1 << 17 // Gas consumption of a single data blob (== blob byte size)
+	BlobTxMinBlobGasprice            = 1       // Minimum gas price for data blobs
+	BlobTxBlobGaspriceUpdateFraction = 2225652 // Controls the maximum rate of change for blob gas price
 )
 
 // Gas discount table for BLS12-381 G1 and G2 multi exponentiation operations

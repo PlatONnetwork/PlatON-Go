@@ -74,9 +74,14 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
-	// Withdrawals are present after the Shanghai fork.
+	if header.WithdrawalsHash != nil || block.Withdrawals() != nil {
+		if !v.isHawkingEnabled(block) {
+			return fmt.Errorf("withdrawals before hawking")
+		}
+	}
+	// Withdrawals are present after the Hawking fork.
 	if header.WithdrawalsHash != nil {
-		// Withdrawals list must be present in body after Shanghai.
+		// Withdrawals list must be present in body after Hawking.
 		if block.Withdrawals() == nil {
 			return fmt.Errorf("missing withdrawals in block body")
 		}
@@ -84,11 +89,35 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 			return fmt.Errorf("withdrawals root hash mismatch (header value %x, calculated %x)", *header.WithdrawalsHash, hash)
 		}
 	} else if block.Withdrawals() != nil {
-		// Withdrawals are not allowed prior to shanghai fork
 		return fmt.Errorf("withdrawals present in block body")
+	}
+	// Blob transactions may be present after the Hawking fork.
+	var blobs int
+	for _, tx := range block.Transactions() {
+		blobs += len(tx.BlobHashes())
+	}
+	if header.BlobGasUsed != nil {
+		if want := *header.BlobGasUsed / params.BlobTxBlobGasPerBlob; uint64(blobs) != want {
+			return fmt.Errorf("blob gas used mismatch (header %v, calculated %v)", *header.BlobGasUsed, blobs*params.BlobTxBlobGasPerBlob)
+		}
+	} else if blobs > 0 {
+		return fmt.Errorf("blob txs present in block body")
 	}
 
 	return nil
+}
+
+// isHawkingEnabled reports whether Hawking (FORKVERSION_1_6_0) rules apply to block.
+func (v *BlockValidator) isHawkingEnabled(block *types.Block) bool {
+	num := block.NumberU64()
+	if num == 0 {
+		return false
+	}
+	parent := v.bc.GetBlock(block.ParentHash(), num-1)
+	if parent == nil {
+		return false
+	}
+	return consensus.IsHawkingEnabled(v.config, block.Number(), parent.Header(), v.bc.StateAt)
 }
 
 // ValidateState validates the various changes that happen after a state transition,

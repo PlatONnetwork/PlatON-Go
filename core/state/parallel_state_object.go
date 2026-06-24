@@ -51,5 +51,5 @@ func (parallelObject *ParallelStateObject) GetCodeHash() common.Hash {
 }
 
 func (parallelObject *ParallelStateObject) UpdateRoot() {
-	parallelObject.stateObject.updateRoot(parallelObject.stateObject.db.db)
+	parallelObject.stateObject.updateRoot()
 }
