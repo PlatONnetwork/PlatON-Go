@@ -41,7 +41,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-
 // BlockChain provides the state of blockchain and current gas limit to do
 // some pre checks in tx pool and event subscribers.
 type BlockChain interface {
@@ -116,9 +115,9 @@ type LegacyPool struct {
 	config      txpool.Config
 	chainconfig *params.ChainConfig
 	chain       BlockChain
-	gasTip   atomic.Pointer[big.Int]
-	txFeed   event.Feed
-	scope    event.SubscriptionScope
+	gasTip      atomic.Pointer[big.Int]
+	txFeed      event.Feed
+	scope       event.SubscriptionScope
 
 	signer types.Signer
 	mu     sync.RWMutex
@@ -1273,10 +1272,15 @@ func (pool *LegacyPool) runReorg(done chan struct{}, reset *txpoolResetRequest, 
 	// because of another transaction (e.g. higher gas price).
 	if reset != nil {
 		pool.demoteUnexecutables()
-		if reset.newHead != nil && pool.chainconfig.IsPauli(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
-			pendingBaseFee := misc.CalcBaseFee(pool.chainconfig, reset.newHead)
-			pool.priced.SetBaseFee(pendingBaseFee)
+		if reset.newHead != nil {
+			if pool.chainconfig.IsPauli(new(big.Int).Add(reset.newHead.Number, big.NewInt(1))) {
+				pendingBaseFee := misc.CalcBaseFee(pool.chainconfig, reset.newHead)
+				pool.priced.SetBaseFee(pendingBaseFee)
+			} else {
+				pool.priced.Reheap()
+			}
 		}
+
 		// Update all accounts to the latest known pending nonce
 		nonces := make(map[common.Address]uint64, len(pool.pending))
 		for addr, list := range pool.pending {
