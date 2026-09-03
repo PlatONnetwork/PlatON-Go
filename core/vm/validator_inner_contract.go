@@ -47,10 +47,10 @@ const (
 )
 
 type ValidateNode struct {
-	Index     uint               `json:"index"`
-	NodeID    enode.IDv0         `json:"nodeID"`
-	Address   common.NodeAddress `json:"-"`
-	BlsPubKey bls.PublicKey      `json:"blsPubKey"`
+	Index     uint               "json:"index""
+	NodeID    enode.IDv0         "json:"nodeID""
+	Address   common.NodeAddress "json:"-""
+	BlsPubKey bls.PublicKey      "json:"blsPubKey""
 }
 
 type NodeList []*ValidateNode
@@ -64,8 +64,8 @@ func (nl *NodeList) String() string {
 }
 
 type Validators struct {
-	ValidateNodes    NodeList `json:"validateNodes"`
-	ValidBlockNumber uint64   `json:"-"`
+	ValidateNodes    NodeList "json:"validateNodes""
+	ValidBlockNumber uint64   "json:"-""
 }
 
 func (vds *Validators) String() string {
@@ -93,7 +93,7 @@ func (vic *validatorInnerContract) RequiredGas(input []byte) uint64 {
 func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 	var cmd = map[string]interface{}{
 		"UpdateValidators":  vic.UpdateValidators,
-		"CurrentValidatros": vic.CurrentValidators,
+		"CurrentValidators": vic.CurrentValidators,
 		"NextValidators":    vic.NextValidators,
 		"SwitchValidators":  vic.SwitchValidators,
 	}
@@ -202,9 +202,13 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 
 	txType := common.BytesToInt64(source[0])
 	switch txType {
-	case txTypeUpdate:
-		var vds Validators
-		err = json.Unmarshal(source[2], &vds)
+		case txTypeUpdate:
+			if len(source) < 3 {
+				log.Error("Params length not match")
+				return nil, errors.New("Params length not match")
+			}
+			var vds Validators
+			err = json.Unmarshal(source[2], &vds)
 		if err != nil {
 			log.Error("Parse params fail", "params", string(source[2]), "error", err)
 			return nil, err
@@ -231,10 +235,14 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		}
 		b, _ := json.Marshal(&vds)
 		return b, nil
-	case txTypeSwitch:
-		log.Debug("Switch validators", "source", len(source))
-		validBlockNumber := binary.BigEndian.Uint64(source[2])
-		return nil, vic.SwitchValidators(validBlockNumber)
+		case txTypeSwitch:
+			log.Debug("Switch validators", "source", len(source))
+			if len(source) < 3 {
+				log.Error("Params length not match")
+				return nil, errors.New("Params length not match")
+			}
+			validBlockNumber := binary.BigEndian.Uint64(source[2])
+			return nil, vic.SwitchValidators(validBlockNumber)
 	default:
 		log.Error("Unexpected transaction type", "txType", txType)
 		return nil, errors.New("unexpected transaction type")
