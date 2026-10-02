@@ -1892,8 +1892,14 @@ func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error 
 	}
 	// the threshold of validator on current epoch
 	threshold := cbft.threshold(maxLimit)
-	// check signature number
-	signsTotal := viewChangeQC.Len()
+	// check signature number.
+	// The number of DISTINCT validators that signed this viewChangeQC is used here,
+	// and not ViewChangeQC.Len(). Len() sums the signer count of every
+	// sub-certificate, and a ViewChangeQC holds one sub-certificate per candidate
+	// block hash, so a single validator signing maxLimit sub-certificates would
+	// reach the threshold on its own and have its forged view change accepted as a
+	// quorum. A view change has to be backed by a quorum of distinct validators.
+	signsTotal := countDistinctViewChangeSigners(viewChangeQC)
 	if signsTotal < threshold {
 		return fmt.Errorf("viewchange has small number of signature total:%d, threshold:%d", signsTotal, threshold)
 	}
@@ -1919,6 +1925,37 @@ func (cbft *Cbft) validateViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error 
 		existHash[vc.BlockHash] = struct{}{}
 	}
 	return err
+}
+
+// countDistinctViewChangeSigners returns the number of distinct validators that
+// appear in the ValidatorSet of any sub-certificate of the given ViewChangeQC,
+// that is how many validators actually backed the view change.
+//
+// ViewChangeQC.Len() cannot be used for this purpose: it sums the signer count of
+// every sub-certificate, and a validator that signs more than one candidate block
+// for the same view is then counted once per sub-certificate.
+//
+// BitArray.Or right-pads the smaller of the two bit arrays, so sub-certificates
+// whose ValidatorSet has a different size are handled without special casing. A
+// nil or empty ValidatorSet contributes no signer.
+func countDistinctViewChangeSigners(viewChangeQC *ctypes.ViewChangeQC) int {
+	var union *utils.BitArray
+	for _, vc := range viewChangeQC.QCs {
+		if vc == nil || vc.ValidatorSet == nil {
+			continue
+		}
+		union = union.Or(vc.ValidatorSet)
+	}
+	if union == nil {
+		return 0
+	}
+	count := 0
+	for i := uint32(0); i < union.Size(); i++ {
+		if union.GetIndex(i) {
+			count++
+		}
+	}
+	return count
 }
 
 func (cbft *Cbft) verifyViewChangeQC(viewChangeQC *ctypes.ViewChangeQC) error {
