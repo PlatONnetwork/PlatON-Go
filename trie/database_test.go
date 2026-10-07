@@ -17,8 +17,9 @@
 package trie
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )

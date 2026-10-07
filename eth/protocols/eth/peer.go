@@ -57,7 +57,6 @@ const (
 	maxQueuedBlockAnns = 4
 )
 
-
 // Peer is a collection of relevant information we have about a `eth` peer.
 type Peer struct {
 	id string // Unique ID for the peer, cached

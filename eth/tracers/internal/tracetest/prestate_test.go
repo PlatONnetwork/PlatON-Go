@@ -18,12 +18,13 @@ package tracetest
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"

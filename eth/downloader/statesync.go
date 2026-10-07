@@ -17,9 +17,10 @@
 package downloader
 
 import (
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"sync"
 )
 
 // syncState starts downloading state with the given root hash.
