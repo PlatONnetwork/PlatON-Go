@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -160,6 +161,107 @@ func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCErrNodeNum() {
 		suit.T().Fatal("fail")
 	} else {
 		fmt.Println(err.Error())
+	}
+}
+
+// mockViewQCSignedByOne builds a ViewChangeQC in which every sub-certificate is
+// signed by one and the same validator, each over a different candidate block
+// hash. It emulates a maliciously crafted certificate.
+func mockViewQCSignedByOne(cbft *Cbft, epoch, viewNumber uint64, entries int) *ctypes.ViewChangeQC {
+	index, err := cbft.validatorPool.GetIndexByNodeID(epoch, cbft.Node().ID())
+	if err != nil {
+		panic(err.Error())
+	}
+	total := uint32(cbft.validatorPool.Len(epoch))
+
+	qc := &ctypes.ViewChangeQC{QCs: make([]*ctypes.ViewChangeQuorumCert, 0, entries)}
+	for i := 0; i < entries; i++ {
+		vc := mockViewChange(cbft.config.Option.BlsPriKey, epoch, viewNumber,
+			common.BytesToHash([]byte(fmt.Sprintf("viewchange-forged-block-%d", i))),
+			uint64(i+1), index, nil)
+
+		var aggSig bls.Sign
+		if err := aggSig.Deserialize(vc.Sign()); err != nil {
+			panic(err.Error())
+		}
+		cert := &ctypes.ViewChangeQuorumCert{
+			Epoch:        vc.Epoch,
+			ViewNumber:   vc.ViewNumber,
+			BlockHash:    vc.BlockHash,
+			BlockNumber:  vc.BlockNumber,
+			ValidatorSet: utils.NewBitArray(total),
+		}
+		cert.Signature.SetBytes(aggSig.Serialize())
+		cert.ValidatorSet.SetIndex(index, true)
+		qc.QCs = append(qc.QCs, cert)
+	}
+	return qc
+}
+
+// A ViewChangeQC whose sub-certificates are all signed by a single validator, one
+// per candidate block hash. The summed signature count reaches the quorum
+// threshold on its own, but only one distinct validator ever signed, so the
+// certificate must not pass verification.
+func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCSignedByOneValidator() {
+	attacker := suit.view.secondProposer()
+	entries := attacker.validatorPool.Len(suit.epoch)
+	threshold := attacker.threshold(entries)
+
+	qc := mockViewQCSignedByOne(attacker, suit.epoch, suit.oldViewNumber, entries)
+
+	// The summed count clears the threshold, only the distinct count must not.
+	if got := qc.Len(); got < threshold {
+		suit.T().Fatalf("precondition failed, expect summed signature count >= %d, got %d", threshold, got)
+	}
+	if got := countDistinctViewChangeSigners(qc); got != 1 {
+		suit.T().Fatalf("precondition failed, expect 1 distinct validator, got %d", got)
+	}
+
+	if err := suit.view.firstProposer().verifyViewChangeQC(qc); err == nil {
+		suit.T().Fatal("fail")
+	} else {
+		fmt.Println(err.Error())
+	}
+}
+
+// A genuine ViewChangeQC in which the signers are spread over two candidate block
+// hashes. Three distinct validators out of four reach the threshold, so this has
+// to keep passing: a view change may legitimately be backed by validators that
+// voted for different blocks.
+func (suit *VerifyQCTestSuite) TestVerifyViewChangeQCDistinctSignersAcrossBlocks() {
+	suit.insertOneBlock()
+
+	nodes := suit.view.allNode[0:3]
+	total := nodes[0].engine.validatorPool.Len(suit.epoch)
+
+	// the second candidate block, voted for by the middle node only
+	altBlock := NewBlock(suit.blockOne.ParentHash(), suit.blockOne.NumberU64()+1)
+
+	viewChanges := make(map[uint32]*protocols.ViewChange)
+	for i, node := range nodes {
+		block := suit.blockOne
+		if i == 1 {
+			block = altBlock
+		}
+		index, err := node.engine.validatorPool.GetIndexByNodeID(suit.epoch, node.engine.Node().ID())
+		if err != nil {
+			panic(err.Error())
+		}
+		viewChanges[index] = mockViewChange(node.engine.config.Option.BlsPriKey, suit.epoch,
+			suit.oldViewNumber, block.Hash(), block.NumberU64(), index, suit.blockOneQC.BlockQC)
+	}
+
+	qc := genViewChangeQC(uint32(total), viewChanges)
+
+	if len(qc.QCs) != 2 {
+		suit.T().Fatalf("precondition failed, expect 2 sub-certificates, got %d", len(qc.QCs))
+	}
+	if got := countDistinctViewChangeSigners(qc); got != 3 {
+		suit.T().Fatalf("precondition failed, expect 3 distinct validators, got %d", got)
+	}
+
+	if err := suit.view.firstProposer().verifyViewChangeQC(qc); err != nil {
+		suit.T().Fatal(err.Error())
 	}
 }
 

@@ -128,19 +128,40 @@ func ChangeView(t *testing.T, nodes []*TestCBFT, prepareQC *ctypes.QuorumCert) *
 	return nodes[0].engine.state.LastViewChangeQC()
 }
 
-func FakeViewChangeQC(t *testing.T, node *TestCBFT, epoch, viewNumber uint64, nodeIndex uint32, prepareQC *ctypes.QuorumCert) *ctypes.ViewChangeQC {
+// FakeViewChangeQC builds a ViewChangeQC that is backed by a quorum of DISTINCT
+// validators and then repeats one of its sub-certificates, so that verification
+// fails on the duplicated blockHash check.
+//
+// The distinct-signer count matters here: validateViewChangeQC rejects a
+// viewChangeQC whose quorum is reached by counting the same validator once per
+// sub-certificate, and it does so before the duplicated blockHash check runs. A
+// single-signer fixture would therefore be rejected as "small number of
+// signature" and the caller would never reach the check it is testing.
+func FakeViewChangeQC(t *testing.T, nodes []*TestCBFT, epoch, viewNumber uint64, prepareQC *ctypes.QuorumCert) *ctypes.ViewChangeQC {
+	engine := nodes[0].engine
+	need := engine.threshold(engine.validatorPool.Len(epoch))
+
 	viewChanges := make(map[uint32]*protocols.ViewChange)
-	v := &protocols.ViewChange{
-		Epoch:          epoch,
-		ViewNumber:     viewNumber,
-		BlockHash:      prepareQC.BlockHash,
-		BlockNumber:    prepareQC.BlockNumber,
-		ValidatorIndex: nodeIndex,
-		PrepareQC:      prepareQC,
+	for i := 0; len(viewChanges) < need && i < len(nodes); i++ {
+		index, err := nodes[i].engine.validatorPool.GetIndexByNodeID(epoch, nodes[i].engine.Node().ID())
+		assert.Nil(t, err)
+		if _, ok := viewChanges[index]; ok {
+			continue
+		}
+		v := &protocols.ViewChange{
+			Epoch:          epoch,
+			ViewNumber:     viewNumber,
+			BlockHash:      prepareQC.BlockHash,
+			BlockNumber:    prepareQC.BlockNumber,
+			ValidatorIndex: index,
+			PrepareQC:      prepareQC,
+		}
+		assert.Nil(t, nodes[i].engine.signMsgByBls(v))
+		viewChanges[index] = v
 	}
-	assert.Nil(t, node.engine.signMsgByBls(v))
-	viewChanges[nodeIndex] = v
-	viewChangeQC := node.engine.generateViewChangeQC(viewChanges)
+	assert.Equal(t, need, len(viewChanges), "not enough validators to reach the viewChangeQC quorum")
+
+	viewChangeQC := engine.generateViewChangeQC(viewChanges)
 	viewChangeQC.QCs = append(viewChangeQC.QCs, viewChangeQC.QCs[0])
 	return viewChangeQC
 }
@@ -374,7 +395,7 @@ func TestPB08(t *testing.T) {
 	// base qc block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	viewChangeQC := FakeViewChangeQC(t, nodes[1], nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, proposalIndex, qc)
+	viewChangeQC := FakeViewChangeQC(t, nodes, nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qc)
 
 	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)
