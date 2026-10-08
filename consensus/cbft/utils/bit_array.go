@@ -137,7 +137,12 @@ func (bA *BitArray) Or(o *BitArray) *BitArray {
 	bA.mtx.Lock()
 	o.mtx.Lock()
 	c := bA.copyBits(MaxUInt(bA.Bits, o.Bits))
-	smaller := MinInt(len(bA.Elems), len(o.Elems))
+	// c already holds bA right-padded with zeroes to the longer of the two sizes,
+	// so every word of o that falls within that size has to be OR-ed in. Bounding
+	// the loop by len(bA.Elems) instead of len(c.Elems) silently dropped o's
+	// trailing words whenever o was the longer operand, which made Or
+	// non-commutative and lost set bits of a larger bitmap.
+	smaller := MinInt(len(c.Elems), len(o.Elems))
 	for i := 0; i < smaller; i++ {
 		c.Elems[i] |= o.Elems[i]
 	}
