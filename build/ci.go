@@ -25,7 +25,7 @@ Usage: go run build/ci.go <command> <command flags/arguments>
 Available commands are:
 
 		install    [ -arch architecture ] [ -cc compiler ] [ packages... ]                          -- builds packages and executables
-		test       [ -coverage ] [ packages... ]                                                    -- runs the tests
+		test       [ -coverage ] [ -coverprofile=file ] [ -timeout=30m ] [ -p=1 ] [ packages... ]   -- runs the tests
 		lint                                                                                        -- runs certain pre-selected linters
 	   	archive    [ -arch architecture ] [ -type zip|tar ] [ -signer key-envvar ] [ -signify key-envvar ] [ -upload dest ] -- archives build artifacts
 		importkeys                                                                                  -- imports signing keys from env
@@ -272,12 +272,15 @@ func buildFlags(env build.Environment, staticLinking bool, buildTags []string) (
 
 func doTest(cmdline []string) {
 	var (
-		dlgo     = flag.Bool("dlgo", false, "Download Go and build with it")
-		arch     = flag.String("arch", "", "Run tests for given architecture")
-		cc       = flag.String("cc", "", "Sets C compiler binary")
-		coverage = flag.Bool("coverage", false, "Whether to record code coverage")
-		verbose  = flag.Bool("v", false, "Whether to log verbosely")
-		race     = flag.Bool("race", false, "Execute the race detector")
+		dlgo         = flag.Bool("dlgo", false, "Download Go and build with it")
+		arch         = flag.String("arch", "", "Run tests for given architecture")
+		cc           = flag.String("cc", "", "Sets C compiler binary")
+		coverage     = flag.Bool("coverage", false, "Whether to record code coverage")
+		coverprofile = flag.String("coverprofile", "", "Write a coverage profile to the given file")
+		verbose      = flag.Bool("v", false, "Whether to log verbosely")
+		race         = flag.Bool("race", false, "Execute the race detector")
+		timeout      = flag.Duration("timeout", 30*time.Minute, "Timeout for each test binary (default 30m; go default 10m is too short on CI)")
+		threads      = flag.Int("p", 1, "Number of packages to test in parallel")
 	)
 	flag.CommandLine.Parse(cmdline)
 
@@ -289,10 +292,15 @@ func doTest(cmdline []string) {
 	}
 	gotest := tc.Go("test")
 
-	// Test a single package at a time. CI builders are slow
-	// and some tests run into timeouts under load.
-	gotest.Args = append(gotest.Args, "-p", "1")
-	if *coverage {
+	// CI builders are slow; raise the per-binary timeout and keep package
+	// parallelism modest so tests do not starve and hit the deadline.
+	gotest.Args = append(gotest.Args, "-timeout", timeout.String())
+	gotest.Args = append(gotest.Args, "-p", strconv.Itoa(*threads))
+	if *coverprofile != "" {
+		// Pass path as a separate argv so shells cannot mangle filenames
+		// that contain '-' / '.' (e.g. PowerShell treating a-b.txt as subtraction).
+		gotest.Args = append(gotest.Args, "-covermode=atomic", "-coverprofile", *coverprofile)
+	} else if *coverage {
 		gotest.Args = append(gotest.Args, "-covermode=atomic", "-cover")
 	}
 	if *verbose {

@@ -75,6 +75,27 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			if e := cbft.checkViewChangeQC(msg); e != nil {
 				return e
 			}
+			// Validate the new-view prepare before switching local view: changeView
+			// is not rolled back if later checks fail.
+			if e := cbft.VerifyHeader(cbft.blockChain, msg.Block.Header(), false); e != nil {
+				cbft.log.Error("Verify header fail before view change", "number", msg.Block.Number(), "hash", msg.Block.Hash(), "err", e)
+				return e
+			}
+			if e := cbft.checkPrepareQC(msg); e != nil {
+				return e
+			}
+			if !cbft.isProposer(msg.Epoch, msg.ViewNumber, msg.ProposalIndex) {
+				return fmt.Errorf("current proposer index mismatch for new view, epoch:%d, view:%d, proposalIndex:%d", msg.Epoch, msg.ViewNumber, msg.ProposalIndex)
+			}
+			if msg.PrepareQC != nil {
+				_, localQC := cbft.blockTree.FindBlockAndQC(msg.Block.ParentHash(), msg.Block.NumberU64()-1)
+				if localQC == nil {
+					return fmt.Errorf("parentBlock and parentQC not exists,number:%d,hash:%s", msg.Block.NumberU64()-1, msg.Block.ParentHash())
+				}
+				if e := cbft.verifyPrepareQC(localQC.BlockNumber, localQC.BlockHash, msg.PrepareQC); e != nil {
+					return e
+				}
+			}
 			if msg.ViewChangeQC != nil {
 				_, _, _, _, hash, number := msg.ViewChangeQC.MaxBlock()
 				block, qc = cbft.blockTree.FindBlockAndQC(hash, number)
@@ -150,6 +171,11 @@ func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	cbft.log.Debug("Receive ViewChange", "id", id, "msg", msg.String())
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
+			// Verify the ViewChange signature before trusting its PrepareQC to fetch.
+			if e := cbft.verifyConsensusSign(msg); e != nil {
+				signatureCheckFailureMeter.Mark(1)
+				return e
+			}
 			if msg.PrepareQC != nil {
 				cbft.log.Info("Epoch or viewNumber higher than local, try to fetch block", "fetchHash", msg.BlockHash, "fetchNumber", msg.BlockNumber)
 				cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber, msg.PrepareQC)

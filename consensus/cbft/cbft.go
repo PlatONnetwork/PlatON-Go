@@ -1567,6 +1567,22 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 		_, _, _, _, hash, number := pb.ViewChangeQC.MaxBlock()
 		return pb.Block.NumberU64() == number+1 && pb.Block.ParentHash() == hash
 	}
+	// ViewChangeQC must certify the view that led into this prepareBlock:
+	// same-epoch new view -> previous viewNumber; new epoch (view 0) -> previous epoch.
+	boundViewChangeQC := func(pb *protocols.PrepareBlock) error {
+		if pb.ViewNumber == 0 {
+			if pb.Epoch == 0 {
+				return fmt.Errorf("viewChangeQC unexpected on genesis epoch")
+			}
+			for _, vc := range pb.ViewChangeQC.QCs {
+				if vc.Epoch != pb.Epoch-1 {
+					return fmt.Errorf("viewChangeQC epoch mismatch for new epoch, qcEpoch:%d, prepareEpoch:%d", vc.Epoch, pb.Epoch)
+				}
+			}
+			return nil
+		}
+		return pb.ViewChangeQC.EqualAll(pb.Epoch, pb.ViewNumber-1)
+	}
 
 	if needViewChangeQC(pb) && pb.ViewChangeQC == nil {
 		return authFailedError{err: fmt.Errorf("prepareBlock need ViewChangeQC")}
@@ -1574,6 +1590,9 @@ func (cbft *Cbft) checkViewChangeQC(pb *protocols.PrepareBlock) error {
 	if pb.ViewChangeQC != nil {
 		if !baseViewChangeQC(pb) {
 			return authFailedError{err: fmt.Errorf("prepareBlock is not based on viewChangeQC maxBlock, viewchangeQC:%s, PrepareBlock:%s", pb.ViewChangeQC.String(), pb.String())}
+		}
+		if err := boundViewChangeQC(pb); err != nil {
+			return authFailedError{err: fmt.Errorf("viewChangeQC not bound to previous view: %v", err)}
 		}
 		if err := cbft.verifyViewChangeQC(pb.ViewChangeQC); err != nil {
 			return err
