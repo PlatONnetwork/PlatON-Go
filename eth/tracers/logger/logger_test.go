@@ -59,9 +59,17 @@ func (*dummyStatedb) GetTransientState(_ common.Address, _ []byte) []byte    { r
 func (*dummyStatedb) SetTransientState(_ common.Address, _ []byte, _ []byte) {}
 
 func TestStoreCapture(t *testing.T) {
+	// TestChainConfig enables Pauli from genesis (GenesisVersion tracks CodeVersion
+	// and PauliBlock=0), which selects EIP-2929 SSTORE and touches the access list.
+	// This test only exercises storage capture under the pre-Pauli gas schedule.
+	cfg := *params.TestChainConfig
+	cfg.GenesisVersion = params.FORKVERSION_1_4_0
+	cfg.PauliBlock = nil
+	cfg.DiracBlock = nil
+
 	var (
 		logger   = NewStructLogger(nil)
-		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, params.TestChainConfig, vm.Config{Debug: true, Tracer: logger})
+		env      = vm.NewEVM(vm.BlockContext{}, vm.TxContext{}, nil, &dummyStatedb{}, &cfg, vm.Config{Debug: true, Tracer: logger})
 		contract = vm.NewContract(&dummyContractRef{}, &dummyContractRef{}, new(big.Int), 100000)
 	)
 	contract.Code = []byte{byte(vm.PUSH1), 0x1, byte(vm.PUSH1), 0x0, byte(vm.SSTORE)}

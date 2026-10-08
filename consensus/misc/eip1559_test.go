@@ -45,6 +45,10 @@ func copyConfig(original *params.ChainConfig) *params.ChainConfig {
 
 func config() *params.ChainConfig {
 	config := copyConfig(params.TestChainConfig)
+	// TestChainConfig.GenesisVersion tracks CodeVersion() (>= 1.5.0), which
+	// makes IsPauli always true. Pin below Pauli so PauliBlock alone drives the
+	// non-london → london gas-limit doubling cases in TestBlockGasLimits.
+	config.GenesisVersion = params.FORKVERSION_1_4_0
 	config.PauliBlock = big.NewInt(5)
 	return config
 }

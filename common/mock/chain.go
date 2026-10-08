@@ -261,6 +261,7 @@ func NewMockStateDB() *MockStateDB {
 	db.Balance = make(map[common.Address]*big.Int)
 	db.Logs = make(map[common.Hash][]*types.Log)
 	db.Journal = NewJournal()
+	db.accessList = newAccessList()
 	return db
 }
 
@@ -639,17 +640,31 @@ func (s *MockStateDB) Prepare(rules params.Rules, sender, coinbase common.Addres
 }
 
 func (s *MockStateDB) AddressInAccessList(addr common.Address) bool {
+	if s.accessList == nil {
+		return false
+	}
 	return s.accessList.ContainsAddress(addr)
 }
 
-func (s *MockStateDB) AddSlotToAccessList(common.Address, common.Hash) {
+func (s *MockStateDB) AddSlotToAccessList(addr common.Address, slot common.Hash) {
+	if s.accessList == nil {
+		s.accessList = newAccessList()
+	}
+	s.accessList.AddSlot(addr, slot)
 }
 
 func (s *MockStateDB) SlotInAccessList(addr common.Address, slot common.Hash) (addressPresent bool, slotPresent bool) {
+	if s.accessList == nil {
+		return false, false
+	}
 	return s.accessList.Contains(addr, slot)
 }
 
-func (s *MockStateDB) AddAddressToAccessList(common.Address) {
+func (s *MockStateDB) AddAddressToAccessList(addr common.Address) {
+	if s.accessList == nil {
+		s.accessList = newAccessList()
+	}
+	s.accessList.AddAddress(addr)
 }
 
 func generateHeader(num *big.Int, parentHash common.Hash, htime uint64, coninbase common.Address) *types.Header {
