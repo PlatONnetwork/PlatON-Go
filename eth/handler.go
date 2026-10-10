@@ -191,7 +191,12 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		return h.chain.Engine().VerifyHeader(h.chain, header, true)
 	}
 	heighter := func() uint64 {
-		return h.chain.Engine().CurrentBlock().NumberU64() + 1
+		// Engine().CurrentBlock() can be nil before consensus has started
+		// (e.g. during node/UT startup while BlockFetcher.loop already runs).
+		if block := h.chain.Engine().CurrentBlock(); block != nil {
+			return block.NumberU64() + 1
+		}
+		return h.chain.CurrentBlock().NumberU64() + 1
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If snap sync is running, deny importing weird blocks. This is a problematic
