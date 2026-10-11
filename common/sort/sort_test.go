@@ -327,7 +327,6 @@ func (d *testingData) Swap(i, j int) {
 	d.data[i], d.data[j] = d.data[j], d.data[i]
 }
 
-
 func lg(n int) int {
 	i := 0
 	for 1<<uint(i) < n {
