@@ -75,7 +75,7 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
 	if header.WithdrawalsHash != nil || block.Withdrawals() != nil {
-		if !v.isHawkingEnabled(block) {
+		if hawking, certain := v.isHawkingEnabled(block); certain && !hawking {
 			return fmt.Errorf("withdrawals before hawking")
 		}
 	}
@@ -108,14 +108,15 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 }
 
 // isHawkingEnabled reports whether Hawking (FORKVERSION_1_6_0) rules apply to block.
-func (v *BlockValidator) isHawkingEnabled(block *types.Block) bool {
+// certain is false when parent block or parent state cannot be loaded.
+func (v *BlockValidator) isHawkingEnabled(block *types.Block) (enabled, certain bool) {
 	num := block.NumberU64()
 	if num == 0 {
-		return false
+		return false, true
 	}
 	parent := v.bc.GetBlock(block.ParentHash(), num-1)
 	if parent == nil {
-		return false
+		return false, false
 	}
 	return consensus.IsHawkingEnabled(v.config, block.Number(), parent.Header(), v.bc.StateAt)
 }

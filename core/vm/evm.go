@@ -72,6 +72,21 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		}
 
 		if p := platONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			hawking := evm.chainRules.IsHawking || gov.Gte160VersionState(evm.StateDB)
+			// After Hawking (1.6.0): stateful PlatON system contracts authorize
+			// mutations via Contract.CallerAddress. Reject DELEGATECALL/CALLCODE
+			// deputy frames (Address != CodeAddr) and any STATICCALL (readOnly),
+			// so outer-caller confused-deputy theft and read-only writes are closed.
+			// Pre-Hawking execution is unchanged for historical replay.
+			if hawking {
+				switch p.(type) {
+				case *StakingContract, *RestrictingContract, *SlashingContract, *GovContract, *DelegateRewardContract:
+					if readOnly || *contract.CodeAddr != contract.Address() {
+						return nil, ErrWriteProtection
+					}
+				}
+			}
+
 			switch p.(type) {
 			case *vrf:
 				return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)

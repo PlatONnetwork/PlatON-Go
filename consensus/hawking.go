@@ -32,39 +32,44 @@ func StateAtFromChain(chain interface{}) StateAtFunc {
 // block identified by number and parent header. It mirrors block_validator and
 // state_processor checks: config fork height, active governance version from
 // parent state, or a version proposal activating on this block.
-func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types.Header, stateAt StateAtFunc) bool {
+//
+// certain is false when the caller cannot load parent state (e.g. HeaderChain
+// during snap header sync). Callers must not treat uncertain results as a
+// definitive "before Hawking" when rejecting post-fork header fields.
+func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types.Header, stateAt StateAtFunc) (enabled, certain bool) {
 	if !config.IsPauli(number) {
-		return false
+		return false, true
 	}
 	if config.IsHawking(number) {
-		return true
+		return true, true
 	}
 	if number == nil || number.Sign() == 0 {
-		return false
+		return false, true
 	}
+	// Without parent state we cannot evaluate governance activation.
 	if parent == nil || stateAt == nil {
-		return false
+		return false, false
 	}
 	statedb, err := stateAt(parent.Root)
 	if err != nil {
-		return false
+		return false, false
 	}
 	govInst := gov.NewGov(snapshotdb.Instance())
 	if govInst.Gte160VersionState(statedb) {
-		return true
+		return true, true
 	}
 	gdb := gov.NewGovDB(snapshotdb.Instance())
 	if gdb.GetPreActiveVersion(parent.Hash()) < params.FORKVERSION_1_6_0 {
-		return false
+		return false, true
 	}
 	preActiveID, err := gdb.GetPreActiveProposalID(parent.Hash())
 	if err != nil || preActiveID == common.ZeroHash {
-		return false
+		return false, true
 	}
 	prop, err := gdb.GetExistProposal(preActiveID, statedb)
 	if err != nil {
-		return false
+		return false, true
 	}
 	vp, ok := prop.(*gov.VersionProposal)
-	return ok && vp.NewVersion >= params.FORKVERSION_1_6_0 && vp.GetActiveBlock() == number.Uint64()
+	return ok && vp.NewVersion >= params.FORKVERSION_1_6_0 && vp.GetActiveBlock() == number.Uint64(), true
 }
