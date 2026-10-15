@@ -26,6 +26,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -583,7 +584,12 @@ func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64, config *para
 		baseFee = header.BaseFee
 	}
 
-	if err := receipts.DeriveFields(config, hash, number, baseFee, body.Transactions); err != nil {
+	var blobGasPrice *big.Int
+	if header != nil && header.ExcessBlobGas != nil && config.IsHawking(new(big.Int).SetUint64(number)) {
+		blobGasPrice = misc.CalcBlobFee(*header.ExcessBlobGas)
+	}
+
+	if err := receipts.DeriveFields(config, hash, number, baseFee, blobGasPrice, body.Transactions); err != nil {
 		log.Error("Failed to derive block receipts fields", "hash", hash, "number", number, "err", err)
 		return nil
 	}

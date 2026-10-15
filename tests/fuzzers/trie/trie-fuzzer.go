@@ -166,7 +166,7 @@ func runRandTest(rt randTest) error {
 				return err
 			}
 			if nodes != nil {
-				if err := triedb.Update(types.EmptyRootHash, types.EmptyRootHash, trie.NewWithNodeSet(nodes)); err != nil {
+				if err := triedb.Update(types.EmptyRootHash, types.EmptyRootHash, 0, trie.NewWithNodeSet(nodes)); err != nil {
 					return err
 				}
 			}

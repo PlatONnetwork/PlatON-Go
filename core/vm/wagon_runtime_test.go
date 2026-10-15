@@ -496,8 +496,8 @@ var testCase = []*Case{
 		check: func(self *Case, err error) bool {
 			to := addr1
 			flag := self.ctx.evm.StateDB.GetBalance(addr3).Cmp(big.NewInt(2000)) == 0
-			suicided := self.ctx.evm.StateDB.HasSuicided(to)
-			return flag && suicided
+			selfDestructed := self.ctx.evm.StateDB.HasSelfDestructed(to)
+			return flag && selfDestructed
 		},
 	},
 

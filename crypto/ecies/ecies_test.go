@@ -412,6 +412,52 @@ func TestSharedKeyStatic(t *testing.T) {
 	}
 }
 
+// TestDecryptTooShortNoPanic ensures a ciphertext whose symmetric part is
+// shorter than BlockSize returns an error instead of panicking in symDecrypt
+// (makeslice: len out of range). This is reachable from the RLPx handshake.
+func TestDecryptTooShortNoPanic(t *testing.T) {
+	prv, err := GenerateKey(rand.Reader, DefaultCurve, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	params, err := pubkeyParams(&prv.PublicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	R, err := GenerateKey(rand.Reader, prv.Curve, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	z, err := R.GenerateShared(&prv.PublicKey, params.KeyLen, params.KeyLen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, Km := deriveKeys(params.Hash(), z, nil, params.KeyLen)
+
+	// Symmetric payload shorter than one IV block, but long enough that the
+	// pre-fix Decrypt check (rLen+hLen+1) would have accepted it.
+	em := []byte{0x42}
+	if len(em) >= params.BlockSize {
+		t.Fatal("test setup error: em must be shorter than BlockSize")
+	}
+	tag := messageTag(params.Hash, Km, em, nil)
+	Rb := elliptic.Marshal(prv.Curve, R.PublicKey.X, R.PublicKey.Y)
+	ct := make([]byte, 0, len(Rb)+len(em)+len(tag))
+	ct = append(ct, Rb...)
+	ct = append(ct, em...)
+	ct = append(ct, tag...)
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Decrypt panicked on short ciphertext: %v", r)
+		}
+	}()
+	if _, err := prv.Decrypt(ct, nil, nil); err != ErrInvalidMessage {
+		t.Fatalf("Decrypt error = %v, want ErrInvalidMessage", err)
+	}
+}
+
 func hexKey(prv string) *PrivateKey {
 	key, err := crypto.HexToECDSA(prv)
 	if err != nil {

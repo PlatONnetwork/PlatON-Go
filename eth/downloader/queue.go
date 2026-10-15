@@ -31,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -809,6 +810,19 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			if withdrawalListHashes[index] != *header.WithdrawalsHash {
 				return errInvalidBody
 			}
+		}
+		// Blocks must have a number of blobs corresponding to the header gas usage,
+		// and zero before the Hawking hardfork.
+		var blobs int
+		for _, tx := range txLists[index] {
+			blobs += len(tx.BlobHashes())
+		}
+		if header.BlobGasUsed != nil {
+			if want := *header.BlobGasUsed / params.BlobTxBlobGasPerBlob; uint64(blobs) != want {
+				return errInvalidBody
+			}
+		} else if blobs != 0 {
+			return errInvalidBody
 		}
 		return nil
 	}

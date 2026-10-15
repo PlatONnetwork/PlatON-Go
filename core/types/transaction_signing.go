@@ -39,7 +39,7 @@ type sigCache struct {
 // MakeSigner returns a Signer based on the given chain config and block number.
 func MakeSigner(config *params.ChainConfig, blockNumber *big.Int, gte160 bool) Signer {
 	var signer Signer
-	if gte160 || config.IsDirac(blockNumber) {
+	if config.IsPauli(blockNumber) && (gte160 || config.IsHawking(blockNumber)) {
 		signer = NewCancunSigner(config.PIP7ChainID)
 	} else if config.IsPauli(blockNumber) {
 		signer = NewLondonSigner(config.PIP7ChainID)

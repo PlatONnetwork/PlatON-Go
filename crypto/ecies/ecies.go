@@ -212,6 +212,9 @@ func symEncrypt(rand io.Reader, params *ECIESParams, key, m []byte) (ct []byte, 
 // symDecrypt carries out CTR decryption using the block cipher specified in
 // the parameters
 func symDecrypt(params *ECIESParams, key, ct []byte) (m []byte, err error) {
+	if len(ct) < params.BlockSize {
+		return nil, ErrInvalidMessage
+	}
 	c, err := params.Cipher(key)
 	if err != nil {
 		return
@@ -285,7 +288,8 @@ func (prv *PrivateKey) Decrypt(c, s1, s2 []byte) (m []byte, err error) {
 	switch c[0] {
 	case 2, 3, 4:
 		rLen = (prv.PublicKey.Curve.Params().BitSize + 7) / 4
-		if len(c) < (rLen + hLen + 1) {
+		// Ciphertext is Rb || em || d. em must hold at least one IV block for CTR.
+		if len(c) < (rLen + hLen + params.BlockSize) {
 			return nil, ErrInvalidMessage
 		}
 	default:

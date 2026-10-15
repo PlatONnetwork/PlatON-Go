@@ -230,7 +230,7 @@ func (a *archiveDB) init(walk func(slice *util.Range, f func(num *big.Int, iter 
 			log.Info("walk total:", "total", total, "size", size)
 
 			nodes := trie.NewWithNodeSet(set)
-			a.triedb.Update(root, types.EmptyRootHash, nodes)
+			a.triedb.Update(root, types.EmptyRootHash, 0, nodes)
 			a.triedb.Commit(root, false, false)
 			a.SetCurrentBlock(num.Uint64())
 			batch := a.db.NewBatch()
@@ -291,7 +291,7 @@ func (a *archiveDB) CommitBlock(block *BlockData) error {
 	})
 	a.SetCurrentBlock(block.Number.Uint64())
 	nodes := trie.NewWithNodeSet(set)
-	a.triedb.Update(root, oldRoot, nodes)
+	a.triedb.Update(root, oldRoot, 0, nodes)
 	a.triedb.Commit(root, false, true)
 	batch.Write()
 	a.triedb.IncrVersion()

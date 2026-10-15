@@ -18,6 +18,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -31,6 +32,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cmath "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -89,6 +91,8 @@ type Message interface {
 	IsFake() bool
 	Data() []byte
 	AccessList() types.AccessList
+	BlobGasFeeCap() *big.Int
+	BlobHashes() []common.Hash
 }
 
 // ExecutionResult includes all output after executing given evm
@@ -225,6 +229,7 @@ func (st *StateTransition) to() common.Address {
 }
 
 func (st *StateTransition) buyGas(isContractIvk bool) error {
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
 	mgval := new(big.Int).SetUint64(st.msg.Gas())
 	mgval = mgval.Mul(mgval, st.gasPrice)
 	balanceCheck := mgval
@@ -242,6 +247,19 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 		// 所以这里对于普通转账类交易（走parallel的）check只能不验证value（实际上如果gasused+value如果不够交易也不会成功）
 		balanceCheck = mgval
 	}
+	if hawking {
+		if blobGas := st.blobGasUsed(); blobGas > 0 {
+			if st.evm.Context.ExcessBlobGas == nil {
+				panic("missing field excess data gas")
+			}
+			blobBalanceCheck := new(big.Int).SetUint64(blobGas)
+			blobBalanceCheck.Mul(blobBalanceCheck, st.msg.BlobGasFeeCap())
+			balanceCheck.Add(balanceCheck, blobBalanceCheck)
+			blobFee := new(big.Int).SetUint64(blobGas)
+			blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas))
+			mgval.Add(mgval, blobFee)
+		}
+	}
 	if have, want := st.state.GetBalance(st.msg.From()), balanceCheck; have.Cmp(want) < 0 {
 		return fmt.Errorf("%w: address %v have %v want %v", ErrInsufficientFunds, st.msg.From().Hex(), have, want)
 	}
@@ -256,6 +274,10 @@ func (st *StateTransition) buyGas(isContractIvk bool) error {
 	// 所以这里也不扣mgval
 	if isContractIvk {
 		st.state.SubBalance(st.msg.From(), mgval)
+	} else if hawking && st.blobGasUsed() > 0 {
+		blobFee := new(big.Int).SetUint64(st.blobGasUsed())
+		blobFee.Mul(blobFee, misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas))
+		st.state.SubBalance(st.msg.From(), blobFee)
 	}
 	return nil
 }
@@ -307,6 +329,30 @@ func (st *StateTransition) preCheck(isContractIvk bool) error {
 			}
 		}
 	}
+
+	// Check the blob version validity
+	if blobHashes := st.msg.BlobHashes(); blobHashes != nil {
+		if len(blobHashes) == 0 {
+			return errors.New("blob transaction missing blob hashes")
+		}
+		for i, hash := range blobHashes {
+			if hash[0] != params.BlobTxHashVersion {
+				return fmt.Errorf("blob %d hash version mismatch (have %d, supported %d)",
+					i, hash[0], params.BlobTxHashVersion)
+			}
+		}
+	}
+
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	if hawking && st.blobGasUsed() > 0 {
+		if st.evm.Context.ExcessBlobGas == nil {
+			panic("missing field excess data gas")
+		}
+		if have, want := st.msg.BlobGasFeeCap(), misc.CalcBlobFee(*st.evm.Context.ExcessBlobGas); have.Cmp(want) < 0 {
+			return fmt.Errorf("%w: address %v have %v want %v", ErrBlobFeeCapTooLow, st.msg.From().Hex(), have, want)
+		}
+	}
+
 	return st.buyGas(isContractIvk)
 }
 func (st *StateTransition) isContractIvk() bool {
@@ -365,10 +411,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	)
 
 	// Check whether the init code size has been exceeded.
-	dirac := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
-	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, dirac)
+	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, hawking)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +429,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	}
 
 	// Set up the initial access list.
-	if dirac && contractCreation && len(st.data) > params.MaxInitCodeSize {
+	if hawking && contractCreation && len(st.data) > params.MaxInitCodeSize {
 		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
 	}
 
@@ -409,7 +455,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// - reset transient storage(eip 1153)
 	rules := params.Rules{
 		IsPauli: pauli,
-		IsDirac: dirac,
+		IsHawking: hawking,
 	}
 	st.state.Prepare(rules, msg.From(), st.evm.Context.Coinbase, msg.To(), vm.ActivePrecompiles(st.state), msg.AccessList())
 
@@ -498,4 +544,9 @@ func (st *StateTransition) refundGas(refundQuotient uint64, isContractIvk bool) 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
 	return st.initialGas - st.gas
+}
+
+// blobGasUsed returns the amount of blob gas used by the message.
+func (st *StateTransition) blobGasUsed() uint64 {
+	return uint64(len(st.msg.BlobHashes()) * params.BlobTxBlobGasPerBlob)
 }

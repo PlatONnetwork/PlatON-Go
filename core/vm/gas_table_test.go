@@ -30,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-// istanbulGasTableChainConfig keeps Rules below Pauli/Dirac and genesis below 1.5.0 so
+// istanbulGasTableChainConfig keeps Rules below Pauli/Hawking and genesis below 1.5.0 so
 // NewEVMInterpreter picks istanbulInstructionSet (EIP-2200 SSTORE without EIP-2929),
 // matching the expected gas/refund vectors in eip2200Tests.
 var istanbulGasTableChainConfig = &params.ChainConfig{
@@ -44,7 +44,7 @@ var istanbulGasTableChainConfig = &params.ChainConfig{
 	EinsteinBlock:   big.NewInt(0),
 	HubbleBlock:     big.NewInt(0),
 	PauliBlock:      nil,
-	DiracBlock:      nil,
+	HawkingBlock:      nil,
 	Cbft:            &params.CbftConfig{Period: 3},
 	GenesisVersion:  params.FORKVERSION_1_4_0,
 }

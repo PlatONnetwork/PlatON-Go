@@ -36,6 +36,14 @@ func memoryExtCodeCopy(stack *Stack) (uint64, bool) {
 	return calcMemSize64(stack.Back(1), stack.Back(3))
 }
 
+func memoryMcopy(stack *Stack) (uint64, bool) {
+	mStart := stack.Back(0)
+	if stack.Back(1).Gt(mStart) {
+		mStart = stack.Back(1)
+	}
+	return calcMemSize64(mStart, stack.Back(2))
+}
+
 func memoryMLoad(stack *Stack) (uint64, bool) {
 	return calcMemSize64WithUint(stack.Back(0), 32)
 }
