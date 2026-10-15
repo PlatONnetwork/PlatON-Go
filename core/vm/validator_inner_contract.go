@@ -93,6 +93,8 @@ func (vic *validatorInnerContract) RequiredGas(input []byte) uint64 {
 func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 	var cmd = map[string]interface{}{
 		"UpdateValidators":  vic.UpdateValidators,
+		"CurrentValidators": vic.CurrentValidators,
+		// Keep the historical misspelling as an alias for compatibility.
 		"CurrentValidatros": vic.CurrentValidators,
 		"NextValidators":    vic.NextValidators,
 		"SwitchValidators":  vic.SwitchValidators,
@@ -203,6 +205,10 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 	txType := common.BytesToInt64(source[0])
 	switch txType {
 	case txTypeUpdate:
+		if len(source) < 3 {
+			log.Error("Params length not match for UpdateValidators", "len", len(source))
+			return nil, errors.New("Params length not match")
+		}
 		var vds Validators
 		err = json.Unmarshal(source[2], &vds)
 		if err != nil {
@@ -232,6 +238,14 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		b, _ := json.Marshal(&vds)
 		return b, nil
 	case txTypeSwitch:
+		if len(source) < 3 {
+			log.Error("Params length not match for SwitchValidators", "len", len(source))
+			return nil, errors.New("Params length not match")
+		}
+		if len(source[2]) < 8 {
+			log.Error("Invalid validBlockNumber length", "len", len(source[2]))
+			return nil, errors.New("invalid validBlockNumber")
+		}
 		log.Debug("Switch validators", "source", len(source))
 		validBlockNumber := binary.BigEndian.Uint64(source[2])
 		return nil, vic.SwitchValidators(validBlockNumber)
