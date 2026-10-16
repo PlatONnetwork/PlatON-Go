@@ -76,6 +76,16 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		}
 
 		if p := platONPrecompiledContracts[*contract.CodeAddr]; p != nil {
+			// The PlatON system precompiles act on behalf of the account that
+			// invokes them and read it from Contract.CallerAddress. Under
+			// DELEGATECALL or CALLCODE the EVM keeps this code address but inherits
+			// CallerAddress from the outer frame, so a contract could otherwise make
+			// a system precompile spend or mutate another account's state. Only a
+			// direct call, where the contract address and the code address agree,
+			// may reach these precompiles.
+			if *contract.CodeAddr != contract.Address() {
+				return nil, ErrSystemPrecompileCall
+			}
 			switch p.(type) {
 			case *vrf:
 				return RunPrecompiledContract(&vrf{Evm: evm}, input, contract)
