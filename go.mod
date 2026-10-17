@@ -65,7 +65,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/ethereum/go-ethereum v1.14.0
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/herumi/bls v1.37.0
 	github.com/holiman/big v0.0.0-20221017200358-a027dc42d04e
 	github.com/influxdata/influxdb-client-go/v2 v2.12.3
