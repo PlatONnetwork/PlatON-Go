@@ -249,14 +249,27 @@ func (rmp *RewardMgrPlugin) ReturnDelegateReward(address common.Address, amount 
 
 func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, blockNumber uint64, list []*staking.Candidate, state xcom.StateDB) error {
 	currentEpoch := xutil.CalculateEpoch(blockNumber)
+	// Clearing the zero-delegate balance changes snapshot state. Gate it the
+	// same way as the Hawking precompile guards so pre-1.6.0 blocks replay.
+	hawking := rmp.hawkingDelegateSettlement(new(big.Int).SetUint64(blockNumber), state)
 	for _, verifier := range list {
 		if verifier.CurrentEpochDelegateReward.Cmp(common.Big0) == 0 {
 			continue
 		}
 		if verifier.DelegateTotal.Cmp(common.Big0) == 0 {
+			// No delegators left to share this epoch's reward, so pay the
+			// benefit address. After Hawking, clear and persist so the same
+			// amount is not paid again next epoch.
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			if err := rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state); err != nil {
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
+				if hawking {
+					return err
+				}
+				continue
+			}
+			if !hawking {
+				continue
 			}
 		} else {
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
@@ -265,25 +278,46 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 					"nodeId", verifier.NodeId.TerminalString(), "err", err, "CurrentEpochDelegateReward", verifier.CurrentEpochDelegateReward, "delegateTotal", verifier.DelegateTotal)
 				return err
 			}
-			currentEpochDelegateReward := new(big.Int).Set(verifier.CurrentEpochDelegateReward)
-
-			verifier.PrepareNextEpoch()
-			canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
-			if nil != err {
-				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: nodeId parse addr failed",
-					"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
-				return err
-			}
-			if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
-				log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: setCanMutableStore  failed",
-					"blockNumber", blockNumber, "blockHash", blockHash, "err", err, "mutable", verifier.CandidateMutable)
-				return err
-			}
 			log.Debug("handleDelegatePerReward add newDelegateRewardPer", "blockNum", blockNumber, "node_id", verifier.NodeId.TerminalString(), "stakingNum", verifier.StakingBlockNum,
-				"cu_epoch_delegate_reward", currentEpochDelegateReward, "total_delegate_reward", verifier.DelegateRewardTotal, "total_delegate", verifier.DelegateTotal,
+				"cu_epoch_delegate_reward", verifier.CurrentEpochDelegateReward, "total_delegate", verifier.DelegateTotal,
 				"epoch", currentEpoch)
 		}
+		if err := rmp.persistEpochDelegateSettlement(blockHash, blockNumber, verifier); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+// hawkingDelegateSettlement reports whether the zero-delegate settlement fix is active.
+// Matches the precompile guard: chain-config Hawking or governance active version >= 1.6.0.
+func (rmp *RewardMgrPlugin) hawkingDelegateSettlement(number *big.Int, state xcom.StateDB) bool {
+	if rmp.stakingPlugin != nil && rmp.stakingPlugin.chainConfig != nil && rmp.stakingPlugin.chainConfig.IsHawking(number) {
+		return true
+	}
+	if rmp.db == nil || state == nil {
+		return false
+	}
+	return gov.NewGov(rmp.db).Gte160VersionState(state)
+}
+
+// persistEpochDelegateSettlement zeroes CurrentEpochDelegateReward (rolling it
+// into DelegateRewardTotal) and writes the mutable candidate back to snapshotDB.
+func (rmp *RewardMgrPlugin) persistEpochDelegateSettlement(blockHash common.Hash, blockNumber uint64, verifier *staking.Candidate) error {
+	verifier.PrepareNextEpoch()
+	canAddr, err := xutil.NodeId2Addr(verifier.NodeId)
+	if nil != err {
+		log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: nodeId parse addr failed",
+			"blockNumber", blockNumber, "blockHash", blockHash, "nodeID", verifier.NodeId.String(), "err", err)
+		return err
+	}
+	if err := rmp.stakingPlugin.db.SetCanMutableStore(blockHash, canAddr, verifier.CandidateMutable); err != nil {
+		log.Error("Failed to handleDelegatePerReward on rewardMgrPlugin: setCanMutableStore  failed",
+			"blockNumber", blockNumber, "blockHash", blockHash, "err", err, "mutable", verifier.CandidateMutable)
+		return err
+	}
+	log.Debug("handleDelegatePerReward settled epoch delegate reward", "blockNum", blockNumber,
+		"node_id", verifier.NodeId.TerminalString(), "total_delegate_reward", verifier.DelegateRewardTotal)
 	return nil
 }
 

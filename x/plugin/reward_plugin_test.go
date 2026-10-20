@@ -841,3 +841,217 @@ func TestDelegateRewardPerUpdateAndAppend(t *testing.T) {
 		return
 	}
 }
+
+func newZeroDelegateCandidate(reward *big.Int) (*staking.Candidate, common.NodeAddress) {
+	key, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	nodeID := enode.PublicKeyToIDv0(&key.PublicKey)
+	addr := crypto.PubkeyToNodeAddress(key.PublicKey)
+	return &staking.Candidate{
+		CandidateBase: &staking.CandidateBase{
+			NodeId:          nodeID,
+			BenefitAddress:  crypto.PubkeyToAddress(key.PublicKey),
+			StakingBlockNum: 1,
+		},
+		CandidateMutable: &staking.CandidateMutable{
+			Shares:                     new(big.Int),
+			Released:                   new(big.Int),
+			ReleasedHes:                new(big.Int),
+			RestrictingPlan:            new(big.Int),
+			RestrictingPlanHes:         new(big.Int),
+			DelegateTotal:              new(big.Int),
+			DelegateTotalHes:           new(big.Int),
+			DelegateRewardTotal:        new(big.Int),
+			CurrentEpochDelegateReward: new(big.Int).Set(reward),
+			RewardPer:                  1000,
+			NextRewardPer:              1000,
+		},
+	}, addr
+}
+
+func TestHandleDelegatePerReward_ZeroDelegateClearsStoredReward(t *testing.T) {
+	params.GetEc(params.DefaultTestNet)
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	rewardAmt := new(big.Int).Mul(big.NewInt(7), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	can, addr := newZeroDelegateCandidate(rewardAmt)
+	chain.StateDB.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Set(rewardAmt))
+	if err := gov.NewGovDB(chain.SnapDB).AddActiveVersion(params.FORKVERSION_1_6_0, 0, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: stkDB,
+		},
+	}
+
+	hash := common.HexToHash("0x01")
+	if err := chain.SnapDB.NewBlock(big.NewInt(1), chain.CurrentHeader().ParentHash, hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanBaseStore(hash, addr, can.CandidateBase); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanMutableStore(hash, addr, can.CandidateMutable); err != nil {
+		t.Fatal(err)
+	}
+
+	before := new(big.Int).Set(chain.StateDB.GetBalance(can.BenefitAddress))
+	if err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+	paid := new(big.Int).Sub(chain.StateDB.GetBalance(can.BenefitAddress), before)
+	if paid.Cmp(rewardAmt) != 0 {
+		t.Fatalf("first payout = %s, want %s", paid, rewardAmt)
+	}
+
+	stored, err := stkDB.GetCanMutableStore(hash, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.CurrentEpochDelegateReward.Cmp(big.NewInt(0)) != 0 {
+		t.Fatalf("stored CurrentEpochDelegateReward = %s, want 0", stored.CurrentEpochDelegateReward)
+	}
+	if stored.DelegateRewardTotal.Cmp(rewardAmt) != 0 {
+		t.Fatalf("DelegateRewardTotal = %s, want %s", stored.DelegateRewardTotal, rewardAmt)
+	}
+
+	reloaded, err := stkDB.GetCandidateStore(hash, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	poolBefore := new(big.Int).Set(chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr))
+	if err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{reloaded}, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+	if chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr).Cmp(poolBefore) != 0 {
+		t.Fatalf("second settlement paid again, pool %s -> %s", poolBefore, chain.StateDB.GetBalance(vm.DelegateRewardPoolAddr))
+	}
+}
+
+func TestHandleDelegatePerReward_ZeroDelegatePoolShortDoesNotClear(t *testing.T) {
+	params.GetEc(params.DefaultTestNet)
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	rewardAmt := big.NewInt(1000)
+	can, addr := newZeroDelegateCandidate(rewardAmt)
+	if err := gov.NewGovDB(chain.SnapDB).AddActiveVersion(params.FORKVERSION_1_6_0, 0, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: stkDB,
+		},
+	}
+
+	hash := common.HexToHash("0x02")
+	if err := chain.SnapDB.NewBlock(big.NewInt(1), chain.CurrentHeader().ParentHash, hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanMutableStore(hash, addr, can.CandidateMutable); err != nil {
+		t.Fatal(err)
+	}
+	err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB)
+	if err == nil {
+		t.Fatal("expected pool shortfall error")
+	}
+	stored, gerr := stkDB.GetCanMutableStore(hash, addr)
+	if gerr != nil {
+		t.Fatal(gerr)
+	}
+	if stored.CurrentEpochDelegateReward.Cmp(rewardAmt) != 0 {
+		t.Fatalf("reward cleared on failed payout: %s", stored.CurrentEpochDelegateReward)
+	}
+}
+
+func TestHandleDelegatePerReward_ZeroDelegatePreHawkingKeepsStoredReward(t *testing.T) {
+	params.GetEc(params.DefaultTestNet)
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	rewardAmt := big.NewInt(1000)
+	can, addr := newZeroDelegateCandidate(rewardAmt)
+	chain.StateDB.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Set(rewardAmt))
+
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: stkDB,
+		},
+	}
+
+	hash := common.HexToHash("0x03")
+	if err := chain.SnapDB.NewBlock(big.NewInt(1), chain.CurrentHeader().ParentHash, hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanMutableStore(hash, addr, can.CandidateMutable); err != nil {
+		t.Fatal(err)
+	}
+	if err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := stkDB.GetCanMutableStore(hash, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.CurrentEpochDelegateReward.Cmp(rewardAmt) != 0 {
+		t.Fatalf("pre-Hawking must keep CurrentEpochDelegateReward, got %s", stored.CurrentEpochDelegateReward)
+	}
+	if chain.StateDB.GetBalance(can.BenefitAddress).Cmp(rewardAmt) != 0 {
+		t.Fatalf("pre-Hawking still pays benefit, got %s", chain.StateDB.GetBalance(can.BenefitAddress))
+	}
+}
+
+func TestHandleDelegatePerReward_ZeroDelegateClearsWhenChainConfigHawking(t *testing.T) {
+	params.GetEc(params.DefaultTestNet)
+	chain := mock.NewChain()
+	defer chain.SnapDB.Clear()
+
+	stkDB := staking.NewStakingDBWithDB(chain.SnapDB)
+	rewardAmt := big.NewInt(1000)
+	can, addr := newZeroDelegateCandidate(rewardAmt)
+	chain.StateDB.AddBalance(vm.DelegateRewardPoolAddr, new(big.Int).Set(rewardAmt))
+
+	rm := &RewardMgrPlugin{
+		db: chain.SnapDB,
+		stakingPlugin: &StakingPlugin{
+			db: stkDB,
+			chainConfig: &params.ChainConfig{
+				PauliBlock:   big.NewInt(0),
+				HawkingBlock: big.NewInt(0),
+			},
+		},
+	}
+
+	hash := common.HexToHash("0x04")
+	if err := chain.SnapDB.NewBlock(big.NewInt(1), chain.CurrentHeader().ParentHash, hash); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanBaseStore(hash, addr, can.CandidateBase); err != nil {
+		t.Fatal(err)
+	}
+	if err := stkDB.SetCanMutableStore(hash, addr, can.CandidateMutable); err != nil {
+		t.Fatal(err)
+	}
+	if err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := stkDB.GetCanMutableStore(hash, addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.CurrentEpochDelegateReward.Cmp(big.NewInt(0)) != 0 {
+		t.Fatalf("chain-config Hawking must clear reward, got %s", stored.CurrentEpochDelegateReward)
+	}
+}
