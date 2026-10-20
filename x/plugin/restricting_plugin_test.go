@@ -32,6 +32,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
@@ -706,4 +707,112 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 		t.Error(err)
 	}
 	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6e18))
+}
+
+func setupRestrictingDebt(t *testing.T, hawking bool) (*RestrictingPlugin, xcom.StateDB, common.Address, common.Address) {
+	t.Helper()
+	params.GetEc(params.DefaultTestNet)
+	sdb := snapshotdb.Instance()
+	t.Cleanup(func() { sdb.Clear() })
+	key := gov.KeyParamValue(gov.ModuleRestricting, gov.KeyRestrictingMinimumAmount)
+	value := common.MustRlpEncode(&gov.ParamValue{Value: new(big.Int).SetInt64(0).String()})
+	if err := sdb.PutBaseDB(key, value); err != nil {
+		t.Fatal(err)
+	}
+	mockDB := buildStateDB(t)
+	if hawking {
+		if err := gov.NewGovDB(sdb).AddActiveVersion(params.FORKVERSION_1_6_0, 0, mockDB); err != nil {
+			t.Fatal(err)
+		}
+	}
+	plugin := &RestrictingPlugin{log: log.Root(), db: sdb}
+	from, to := addrArr[0], addrArr[1]
+	mockDB.AddBalance(from, big.NewInt(9e18))
+	plans := []restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(2e18)}}
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, common.ZeroHash, plans, mockDB, RestrictingTxHash); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.AdvanceLockedFunds(to, big.NewInt(2e18), mockDB); err != nil {
+		t.Fatal(err)
+	}
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
+		t.Fatal(err)
+	}
+	return plugin, mockDB, from, to
+}
+
+func TestAddRestrictingRecord_HawkingOmitsSettledDebtFromSchedule(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t, true)
+
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
+		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1e18)}}, mockDB, RestrictingTxHash); err != nil {
+		t.Fatal(err)
+	}
+	_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.NeedRelease.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("NeedRelease = %s, want 1e18", info.NeedRelease)
+	}
+	if info.CachePlanAmount.Cmp(big.NewInt(2e18)) != 0 {
+		t.Fatalf("Cache = %s, want 2e18", info.CachePlanAmount)
+	}
+	if len(info.ReleaseList) != 0 {
+		t.Fatalf("fully settled deposit must not be scheduled, list %v", info.ReleaseList)
+	}
+	if err := plugin.releaseRestricting(2, mockDB); err != nil {
+		t.Fatal(err)
+	}
+	_, info, err = plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.NeedRelease.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("later release inflated debt to %s", info.NeedRelease)
+	}
+}
+
+func TestAddRestrictingRecord_HawkingSchedulesOnlyRemainder(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t, true)
+	mockDB.AddBalance(from, big.NewInt(3e18))
+
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
+		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(3e18)}}, mockDB, RestrictingTxHash); err != nil {
+		t.Fatal(err)
+	}
+	_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.NeedRelease.Sign() != 0 {
+		t.Fatalf("NeedRelease = %s, want 0", info.NeedRelease)
+	}
+	if info.CachePlanAmount.Cmp(big.NewInt(3e18)) != 0 {
+		t.Fatalf("Cache = %s, want 3e18", info.CachePlanAmount)
+	}
+	_, amount := plugin.getReleaseAmount(mockDB, 2, to)
+	if amount.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("scheduled remainder = %s, want 1e18", amount)
+	}
+}
+
+func TestAddRestrictingRecord_ChainConfigHawkingOmitsSettledDebt(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t, false)
+	sk := StakingInstance()
+	old := sk.chainConfig
+	sk.chainConfig = &params.ChainConfig{PauliBlock: big.NewInt(0), HawkingBlock: big.NewInt(0)}
+	t.Cleanup(func() { sk.chainConfig = old })
+
+	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
+		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1e18)}}, mockDB, RestrictingTxHash); err != nil {
+		t.Fatal(err)
+	}
+	_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(info.ReleaseList) != 0 {
+		t.Fatalf("chain-config Hawking must omit settled plan, list %v", info.ReleaseList)
+	}
 }
