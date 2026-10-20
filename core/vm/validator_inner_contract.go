@@ -17,23 +17,21 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"bytes"
-
-	"encoding/json"
-
-	"encoding/binary"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 const (
@@ -45,6 +43,8 @@ const (
 	txTypeNext    = 2002
 	txTypeSwitch  = 2003
 )
+
+var errUnauthorizedValidatorInner = errors.New("unauthorized validator inner caller")
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
@@ -102,7 +102,39 @@ func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 	return vic.execute(input, cmd)
 }
 
+// hawkingACL reports whether Hawking (1.6.0) admin ACL for mutators is active.
+// Pre-Hawking behaviour is unchanged so historical inner-mode chains replay.
+func (vic *validatorInnerContract) hawkingACL() bool {
+	if vic.Evm == nil {
+		return false
+	}
+	if vic.Evm.chainRules.IsHawking {
+		return true
+	}
+	if vic.Evm.SnapshotDB == nil || vic.Evm.StateDB == nil {
+		return false
+	}
+	return gov.NewGov(vic.Evm.SnapshotDB).Gte160VersionState(vic.Evm.StateDB)
+}
+
+// requireAdmin enforces CallerAddress == ValidatorInnerAdminAddr after Hawking.
+func (vic *validatorInnerContract) requireAdmin() error {
+	if !vic.hawkingACL() {
+		return nil
+	}
+	if vic.Contract.CallerAddress != cvm.ValidatorInnerAdminAddr {
+		log.Error("Unauthorized validator inner caller",
+			"caller", vic.Contract.CallerAddress.Hex(),
+			"admin", cvm.ValidatorInnerAdminAddr.Hex())
+		return errUnauthorizedValidatorInner
+	}
+	return nil
+}
+
 func (vic *validatorInnerContract) UpdateValidators(validators *Validators) error {
+	if err := vic.requireAdmin(); err != nil {
+		return err
+	}
 	if len(validators.ValidateNodes) <= 0 {
 		log.Error("Empty validator nodes")
 		return errors.New("Empty validator nodes")
@@ -148,6 +180,9 @@ func (vic *validatorInnerContract) NextValidators() (*Validators, error) {
 }
 
 func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) error {
+	if err := vic.requireAdmin(); err != nil {
+		return err
+	}
 	state := vic.Evm.StateDB
 	b := state.GetState(vic.Contract.Address(), []byte(NextValidatorKey))
 	var nvs Validators

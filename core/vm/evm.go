@@ -80,7 +80,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			// Pre-Hawking execution is unchanged for historical replay.
 			if hawking {
 				switch p.(type) {
-				case *StakingContract, *RestrictingContract, *SlashingContract, *GovContract, *DelegateRewardContract:
+				case *StakingContract, *RestrictingContract, *SlashingContract, *GovContract, *DelegateRewardContract, *validatorInnerContract:
 					if readOnly || *contract.CodeAddr != contract.Address() {
 						return nil, ErrWriteProtection
 					}

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	innerAccountAddr       = "0x795Ed7D9811BddbccC728c301aC3BbC0c58d1EA2"
+	// Must match common/vm.ValidatorInnerAdminAddr (Hawking ACL).
 	innerAccountPrivateKey = "394602483ea4d76f380ae4022f22b76519d884654a27ce52df0ceb77f3989d2c"
 )
 
@@ -46,7 +46,7 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 
 	offset := uint64(w.chainConfig.Cbft.Amount) * 2
 	validBlockNumber := env.header.Number.Uint64() + offset + 1
-	address := common.HexToAddress(innerAccountAddr)
+	address := vm.ValidatorInnerAdminAddr
 	nonce := env.state.GetNonce(address)
 	param := [][]byte{
 		common.Int64ToBytes(2003),

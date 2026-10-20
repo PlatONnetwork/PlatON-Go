@@ -29,6 +29,10 @@ var (
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000") // The PlatON Precompiled contract addr for cbft inner
 	VrfInnerContractAddr       = common.HexToAddress("0x3000000000000000000000000000000000000001") // The PlatON Precompiled contract addr for vrf inner
 	BlsVerifyContractAddr      = common.HexToAddress("0x3000000000000000000000000000000000000002") // The PlatON Precompiled contract addr for bls verify
+
+	// ValidatorInnerAdminAddr is the only caller allowed to mutate the inner
+	// validator set after Hawking (1.6.0). Matches miner/worker_inner signing key.
+	ValidatorInnerAdminAddr = common.HexToAddress("0x795Ed7D9811BddbccC728c301aC3BbC0c58d1EA2")
 )
 
 type PrecompiledContractCheck interface {
