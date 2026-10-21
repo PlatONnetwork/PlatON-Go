@@ -110,11 +110,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 	}
-	isDirac := gov.NewGov(snapshotdb.Instance()).Gte160VersionState(statedb)
-	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
+	isHawking := p.config.IsPauli(block.Number()) && gov.NewGov(snapshotdb.Instance()).Gte160VersionState(statedb)
+	// Fail if Hawking not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
-	if len(withdrawals) > 0 && !isDirac {
-		return nil, nil, 0, fmt.Errorf("withdrawals before dirac")
+	if len(withdrawals) > 0 && !isHawking {
+		return nil, nil, 0, fmt.Errorf("withdrawals before hawking")
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts, withdrawals)

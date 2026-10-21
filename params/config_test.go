@@ -68,3 +68,32 @@ func TestCheckCompatible(t *testing.T) {
 		}
 	}
 }
+
+func TestHawkingRequiresPauli(t *testing.T) {
+	c := &ChainConfig{
+		PauliBlock:   big.NewInt(10),
+		HawkingBlock: big.NewInt(20),
+	}
+	if c.IsHawking(big.NewInt(5)) {
+		t.Errorf("expected block 5 to not be hawking before pauli")
+	}
+	if c.IsHawking(big.NewInt(15)) {
+		t.Errorf("expected block 15 to not be hawking before hawking fork")
+	}
+	if !c.IsHawking(big.NewInt(20)) {
+		t.Errorf("expected block 20 to be hawking after pauli and hawking forks")
+	}
+	c2 := &ChainConfig{
+		PauliBlock:   big.NewInt(10),
+		HawkingBlock: big.NewInt(5),
+	}
+	if c2.IsHawking(big.NewInt(7)) {
+		t.Errorf("expected hawking false when pauli has not passed")
+	}
+	if r := c.Rules(big.NewInt(5)); r.IsHawking {
+		t.Errorf("expected rules at block 5 to not be hawking before pauli")
+	}
+	if r := c.Rules(big.NewInt(20)); !r.IsHawking {
+		t.Errorf("expected rules at block 20 to be hawking")
+	}
+}

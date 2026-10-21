@@ -2039,7 +2039,7 @@ func TestEIP3651(t *testing.T) {
 	)
 
 	gspec.Config.PauliBlock = common.Big0
-	gspec.Config.DiracBlock = common.Big0
+	gspec.Config.HawkingBlock = common.Big0
 	//gspec.Config.ShanghaiTime = u64(0)
 	genesis := gspec.MustCommit(db)
 	engine := consensus.NewFakerWithDataBase(db, genesis)

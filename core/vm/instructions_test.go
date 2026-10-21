@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 	"os"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 
 	"github.com/holiman/uint256"
 
@@ -682,7 +683,7 @@ func TestRandom(t *testing.T) {
 	for _, tt := range []testcase{
 		{name: "empty hash", random: common.Hash{}},
 		{name: "1", random: common.Hash{0}},
-		{name: "emptyCodeHash", random: emptyCodeHash},
+		{name: "emptyCodeHash", random: types.EmptyCodeHash},
 		{name: "hash(0x010203)", random: crypto.Keccak256Hash([]byte{0x01, 0x02, 0x03})},
 	} {
 		var (

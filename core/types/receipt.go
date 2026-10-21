@@ -65,6 +65,8 @@ type Receipt struct {
 	ContractAddress   common.Address `json:"contractAddress"`
 	GasUsed           uint64         `json:"gasUsed" gencodec:"required"`
 	EffectiveGasPrice *big.Int       `json:"effectiveGasPrice"` // required, but tag omitted for backwards compatibility
+	BlobGasUsed       uint64         `json:"blobGasUsed,omitempty"`
+	BlobGasPrice      *big.Int       `json:"blobGasPrice,omitempty"`
 
 	// Inclusion information: These fields provide information about the inclusion of the
 	// transaction corresponding to this receipt.
@@ -80,6 +82,8 @@ type receiptMarshaling struct {
 	CumulativeGasUsed hexutil.Uint64
 	GasUsed           hexutil.Uint64
 	EffectiveGasPrice *hexutil.Big
+	BlobGasUsed       hexutil.Uint64
+	BlobGasPrice      *hexutil.Big
 	BlockNumber       *hexutil.Big
 	TransactionIndex  hexutil.Uint
 }
@@ -217,7 +221,7 @@ func (r *Receipt) decodeTyped(b []byte) error {
 		return errShortTypedReceipt
 	}
 	switch b[0] {
-	case DynamicFeeTxType, AccessListTxType:
+	case DynamicFeeTxType, AccessListTxType, BlobTxType:
 		var data receiptRLP
 		err := rlp.DecodeBytes(b[1:], &data)
 		if err != nil {
@@ -390,6 +394,9 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 	case DynamicFeeTxType:
 		w.WriteByte(DynamicFeeTxType)
 		rlp.Encode(w, data)
+	case BlobTxType:
+		w.WriteByte(BlobTxType)
+		rlp.Encode(w, data)
 	default:
 		// For unsupported types, write nothing. Since this is for
 		// DeriveSha, the error will be caught matching the derived hash
@@ -399,16 +406,23 @@ func (rs Receipts) EncodeIndex(i int, w *bytes.Buffer) {
 
 // DeriveFields fills the receipts with their computed fields based on consensus
 // data and contextual infos like containing block and transactions.
-func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, baseFee *big.Int, txs Transactions) error {
+func (rs Receipts) DeriveFields(config *params.ChainConfig, hash common.Hash, number uint64, baseFee *big.Int, blobGasPrice *big.Int, txs Transactions) error {
 	logIndex := uint(0)
 	if len(txs) != len(rs) {
 		return errors.New("transaction and receipt count mismatch")
 	}
+	hawking := config.IsHawking(new(big.Int).SetUint64(number))
 	for i := 0; i < len(rs); i++ {
 		// The transaction type and hash can be retrieved from the transaction itself
 		rs[i].Type = txs[i].Type()
 		rs[i].TxHash = txs[i].Hash()
 		rs[i].EffectiveGasPrice = txs[i].inner.effectiveGasPrice(new(big.Int), baseFee)
+
+		// EIP-4844 blob transaction fields (Hawking)
+		if hawking && txs[i].Type() == BlobTxType {
+			rs[i].BlobGasUsed = txs[i].BlobGas()
+			rs[i].BlobGasPrice = blobGasPrice
+		}
 
 		// block location fields
 		rs[i].BlockHash = hash

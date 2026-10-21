@@ -17,6 +17,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 type VMContext struct {
@@ -819,6 +820,47 @@ func checkGas(ctx *VMContext, gas uint64) {
 		panic(ErrOutOfGas)
 	}
 }
+
+// wasmHawking reports whether 1.6.0 rules apply to this WASM frame.
+func wasmHawking(ctx *VMContext) bool {
+	if ctx == nil || ctx.evm == nil {
+		return false
+	}
+	if ctx.evm.chainRules.IsHawking {
+		return true
+	}
+	if ctx.evm.SnapshotDB == nil || ctx.evm.StateDB == nil {
+		return false
+	}
+	return gov.NewGov(ctx.evm.SnapshotDB).Gte160VersionState(ctx.evm.StateDB)
+}
+
+// rejectWasmWriteInReadOnly closes platon_call / platon_delegate_call during STATICCALL after Hawking.
+func rejectWasmWriteInReadOnly(ctx *VMContext) {
+	if ctx.readOnly && wasmHawking(ctx) {
+		panic(ErrWASMWriteProtection)
+	}
+}
+
+// limitWasmBuffer rejects a host-function allocation that remaining gas cannot pay for.
+// Pre-Hawking allocation order is unchanged.
+func limitWasmBuffer(ctx *VMContext, n uint32) {
+	if !wasmHawking(ctx) {
+		return
+	}
+	if ctx.contract == nil || uint64(n) > ctx.contract.Gas {
+		panic(ErrOutOfGas)
+	}
+}
+
+// wasmDeployPayer is the account charged for platon_deploy value.
+// After Hawking that is the WASM contract itself; before Hawking it stays the caller.
+func wasmDeployPayer(ctx *VMContext) common.Address {
+	if wasmHawking(ctx) {
+		return ctx.contract.Address()
+	}
+	return ctx.contract.caller.Address()
+}
 func GasPrice(proc *exec.Process, gasPrice uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, GasQuickStep)
@@ -1054,6 +1096,8 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 	if ctx.readOnly {
 		panic(ErrWASMWriteProtection)
 	}
+	limitWasmBuffer(ctx, keyLen)
+	limitWasmBuffer(ctx, valLen)
 
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
@@ -1227,6 +1271,10 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 
 func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
+	rejectWasmWriteInReadOnly(ctx)
+	limitWasmBuffer(ctx, argsLen)
+	limitWasmBuffer(ctx, valLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	address := make([]byte, common.AddressLength)
 	_, err := proc.ReadAt(address, int64(addrPtr))
@@ -1319,6 +1367,9 @@ func CallContract(proc *exec.Process, addrPtr, args, argsLen, val, valLen, callC
 
 func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
+	rejectWasmWriteInReadOnly(ctx)
+	limitWasmBuffer(ctx, paramsLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	address := make([]byte, common.AddressLength)
 	_, err := proc.ReadAt(address, int64(addrPtr))
@@ -1473,7 +1524,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 		gas += ctx.gasTable.CreateBySuicide
 	}
 
-	if !ctx.evm.StateDB.HasSuicided(ctx.contract.Address()) {
+	if !ctx.evm.StateDB.HasSelfDestructed(ctx.contract.Address()) {
 		ctx.evm.StateDB.AddRefund(params.SuicideRefundGas)
 	}
 	checkGas(ctx, gas)
@@ -1482,7 +1533,7 @@ func DestroyContract(proc *exec.Process, addrPtr uint32) int32 {
 
 	ctx.evm.StateDB.AddBalance(addr, balance)
 
-	ctx.evm.StateDB.Suicide(contractAddr)
+	ctx.evm.StateDB.SelfDestruct(contractAddr)
 
 	return 0
 }
@@ -1491,6 +1542,9 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)
+	limitWasmBuffer(ctx, argsLen)
+	limitWasmBuffer(ctx, valLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	// get input
 	input := make([]byte, argsLen)
@@ -1508,6 +1562,8 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	if ctx.readOnly {
 		panic(ErrWASMWriteProtection)
 	}
+	limitWasmBuffer(ctx, valLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	// check call depth
 	if ctx.evm.depth > int(params.CallCreateDepth) {
@@ -1576,7 +1632,7 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 
 	// Ensure there's no existing contract already at the designated address
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
-	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
 		panic(ErrContractAddressCollision)
 	}
 
@@ -1595,8 +1651,8 @@ func MigrateInnerContract(proc *exec.Process, newAddr, val, valLen, callCost, ca
 	// migrate stateObject storage from old contract to new contract
 	ctx.evm.StateDB.MigrateStorage(oldContract, newContract)
 
-	// suicided the old contract
-	ctx.evm.StateDB.Suicide(oldContract)
+	// self-destructed the old contract
+	ctx.evm.StateDB.SelfDestruct(oldContract)
 
 	balance := new(big.Int).Add(bValue, oldBalance)
 
@@ -2146,6 +2202,7 @@ func PlatonDeploy(proc *exec.Process, newAddr, args, argsLen, val, valLen, callC
 	// Cost of gas
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)
+	limitWasmBuffer(ctx, argsLen)
 
 	// get input
 	input := make([]byte, argsLen)
@@ -2163,6 +2220,8 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	if ctx.readOnly {
 		panic(ErrWASMWriteProtection)
 	}
+	limitWasmBuffer(ctx, valLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	// check call depth
 	if ctx.evm.depth > int(params.CallCreateDepth) {
@@ -2177,8 +2236,8 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	bigValue := new(big.Int)
 	bigValue.SetBytes(valueBytes)
 
-	// check balance of sender
-	sender := ctx.contract.caller.Address()
+	// check balance of the account that pays the deploy value
+	sender := wasmDeployPayer(ctx)
 	if !ctx.evm.Context.CanTransfer(ctx.evm.StateDB, sender, bigValue) {
 		return -1
 	}
@@ -2214,7 +2273,7 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	newContract := crypto.CreateAddress(oldContract, nonce)
 	ctx.evm.StateDB.SetNonce(oldContract, nonce+1)
 	contractHash := ctx.evm.StateDB.GetCodeHash(newContract)
-	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != emptyCodeHash) {
+	if ctx.evm.StateDB.GetNonce(newContract) != 0 || (contractHash != (common.Hash{}) && contractHash != types.EmptyCodeHash) {
 		panic(ErrContractAddressCollision)
 	}
 

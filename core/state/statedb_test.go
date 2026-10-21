@@ -156,10 +156,10 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		}
 	}
 
-	if _, err := s1.Commit(false); err != nil {
+	if _, err := s1.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit s1 state: %v", err)
 	}
-	if _, err := s1c.Commit(false); err != nil {
+	if _, err := s1c.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit s1c state: %v", err)
 	}
 	assert.Nil(t, s1.db.TrieDB().Commit(s1.Root(), false, true))
@@ -229,10 +229,10 @@ func TestNewStateDBAndCopy(t *testing.T) {
 		modify(s3, s1cc, common.Address{byte(i)}, i)
 	}
 
-	if _, err := s3.Commit(false); err != nil {
+	if _, err := s3.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit s1 state: %v", err)
 	}
-	if _, err := s1cc.Commit(false); err != nil {
+	if _, err := s1cc.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit s1c state: %v", err)
 	}
 
@@ -291,7 +291,7 @@ func TestStateStorageValueCommit(t *testing.T) {
 		modify(s1, common.Address{byte(i)}, i)
 	}
 
-	root, err := s1.Commit(true)
+	root, err := s1.Commit(0, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -325,7 +325,7 @@ func TestStateStorageValueDelete(t *testing.T) {
 
 	s1.SetState(addr, key2[:], []byte{})
 
-	root, err := s1.Commit(true)
+	root, err := s1.Commit(0, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +368,7 @@ func TestStateStorageRevert(t *testing.T) {
 	s1.RevertToSnapshot(storage)
 	assert.Equal(t, value1, s1.GetState(addr, key1))
 
-	root, err := s1.Commit(true)
+	root, err := s1.Commit(0, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -427,10 +427,10 @@ func TestIntermediateLeaks(t *testing.T) {
 	}
 
 	// Commit and cross check the databases.
-	if _, err := transState.Commit(false); err != nil {
+	if _, err := transState.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit transition state: %v", err)
 	}
-	if _, err := finalState.Commit(false); err != nil {
+	if _, err := finalState.Commit(0, false); err != nil {
 		t.Fatalf("failed to commit final state: %v", err)
 	}
 	it := finalDb.NewIterator(nil, nil)
@@ -588,9 +588,9 @@ func newTestAction(addr common.Address, r *rand.Rand) testAction {
 			},
 		},
 		{
-			name: "Suicide",
+			name: "SelfDestruct",
 			fn: func(a testAction, s *StateDB) {
-				s.Suicide(addr)
+				s.SelfDestruct(addr)
 			},
 		},
 		{
@@ -740,7 +740,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		}
 		// Check basic accessor methods.
 		checkeq("Exist", state.Exist(addr), checkstate.Exist(addr))
-		checkeq("HasSuicided", state.HasSuicided(addr), checkstate.HasSuicided(addr))
+		checkeq("HasSelfdestructed", state.HasSelfDestructed(addr), checkstate.HasSelfDestructed(addr))
 		checkeq("GetBalance", state.GetBalance(addr), checkstate.GetBalance(addr))
 		checkeq("GetNonce", state.GetNonce(addr), checkstate.GetNonce(addr))
 		checkeq("GetCode", state.GetCode(addr), checkstate.GetCode(addr))
@@ -750,11 +750,11 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 		if obj := state.getStateObject(addr); obj != nil {
 			state.ForEachStorage(addr, func(key []byte, value []byte) bool {
 				cobj := checkstate.getStateObject(addr)
-				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(key), value)
 			})
 			checkstate.ForEachStorage(addr, func(key []byte, value []byte) bool {
 				cobj := checkstate.getStateObject(addr)
-				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(checkstate.db, key), value)
+				return checkeq("GetState("+hex.EncodeToString(key)+")", cobj.GetState(key), value)
 			})
 		}
 		if err != nil {
@@ -776,7 +776,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 func TestTouchDelete(t *testing.T) {
 	s := newStateTest()
 	s.state.GetOrNewStateObject(common.Address{})
-	root, _ := s.state.Commit(false)
+	root, _ := s.state.Commit(0, false)
 	s.state.Reset(root)
 
 	snapshot := s.state.Snapshot()
@@ -849,7 +849,7 @@ func TestCopyCommitCopy(t *testing.T) {
 		t.Fatalf("first copy pre-commit committed storage slot mismatch: have %x, want %x", val, common.Hash{})
 	}
 
-	copyOne.Commit(false)
+	copyOne.Commit(0, false)
 	if balance := copyOne.GetBalance(addr); balance.Cmp(big.NewInt(42)) != 0 {
 		t.Fatalf("first copy post-commit balance mismatch: have %v, want %v", balance, 42)
 	}
@@ -934,7 +934,7 @@ func TestCopyCopyCommitCopy(t *testing.T) {
 	if val := copyTwo.GetCommittedState(addr, skey); !bytes.Equal(val, []byte{}) {
 		t.Fatalf("second copy pre-commit committed storage slot mismatch: have %x, want %x", val, common.Hash{})
 	}
-	copyTwo.Commit(false)
+	copyTwo.Commit(0, false)
 	if balance := copyTwo.GetBalance(addr); balance.Cmp(big.NewInt(42)) != 0 {
 		t.Fatalf("second copy post-commit balance mismatch: have %v, want %v", balance, 42)
 	}
@@ -971,23 +971,23 @@ func TestGetAfterDelete(t *testing.T) {
 	s1, _ := New(common.Hash{}, NewDatabase(db), nil)
 	s1.SetNonce(addr, 1)
 	s1.SetState(addr, []byte("test"), []byte("value"))
-	_, err := s1.Commit(true)
+	_, err := s1.Commit(0, true)
 	assert.Nil(t, err)
 
 	s2 := s1.NewStateDB()
 	s2.SetState(addr, []byte("test"), []byte{})
-	_, err = s2.Commit(true)
+	_, err = s2.Commit(0, true)
 	assert.Nil(t, err)
 
 	s3 := s2.NewStateDB()
 	buf := s3.GetState(addr, []byte("test"))
-	s3.Commit(true)
+	s3.Commit(0, true)
 	assert.True(t, len(buf) == 0, "Expect value is not nil")
 
 	s4 := s3.NewStateDB()
 	s4.SetState(addr, []byte("test"), []byte("value"))
 	s4.SetState(addr, []byte("test1"), []byte("value1"))
-	s4.Commit(true)
+	s4.Commit(0, true)
 
 	s5 := s4.NewStateDB()
 	buf = s5.GetState(addr, []byte("test"))
@@ -1011,11 +1011,11 @@ func TestDeleteCreateRevert(t *testing.T) {
 	addr := common.BytesToAddress([]byte("so"))
 	state.SetBalance(addr, big.NewInt(1))
 
-	root, _ := state.Commit(false)
+	root, _ := state.Commit(0, false)
 	state.Reset(root)
 
 	// Simulate self-destructing in one transaction, then create-reverting in another
-	state.Suicide(addr)
+	state.SelfDestruct(addr)
 	state.Finalise(true)
 
 	id := state.Snapshot()
@@ -1023,7 +1023,7 @@ func TestDeleteCreateRevert(t *testing.T) {
 	state.RevertToSnapshot(id)
 
 	// Commit the entire state and make sure we don't crash and have the correct state
-	root, _ = state.Commit(true)
+	root, _ = state.Commit(0, true)
 	state.Reset(root)
 
 	if state.getStateObject(addr) != nil {

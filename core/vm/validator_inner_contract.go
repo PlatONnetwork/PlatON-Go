@@ -17,23 +17,21 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
-
-	"bytes"
-
-	"encoding/json"
-
-	"encoding/binary"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 const (
@@ -45,6 +43,8 @@ const (
 	txTypeNext    = 2002
 	txTypeSwitch  = 2003
 )
+
+var errUnauthorizedValidatorInner = errors.New("unauthorized validator inner caller")
 
 type ValidateNode struct {
 	Index     uint               `json:"index"`
@@ -93,6 +93,8 @@ func (vic *validatorInnerContract) RequiredGas(input []byte) uint64 {
 func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 	var cmd = map[string]interface{}{
 		"UpdateValidators":  vic.UpdateValidators,
+		"CurrentValidators": vic.CurrentValidators,
+		// Keep the historical misspelling as an alias for compatibility.
 		"CurrentValidatros": vic.CurrentValidators,
 		"NextValidators":    vic.NextValidators,
 		"SwitchValidators":  vic.SwitchValidators,
@@ -100,7 +102,39 @@ func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 	return vic.execute(input, cmd)
 }
 
+// hawkingACL reports whether Hawking (1.6.0) admin ACL for mutators is active.
+// Pre-Hawking behaviour is unchanged so historical inner-mode chains replay.
+func (vic *validatorInnerContract) hawkingACL() bool {
+	if vic.Evm == nil {
+		return false
+	}
+	if vic.Evm.chainRules.IsHawking {
+		return true
+	}
+	if vic.Evm.SnapshotDB == nil || vic.Evm.StateDB == nil {
+		return false
+	}
+	return gov.NewGov(vic.Evm.SnapshotDB).Gte160VersionState(vic.Evm.StateDB)
+}
+
+// requireAdmin enforces CallerAddress == ValidatorInnerAdminAddr after Hawking.
+func (vic *validatorInnerContract) requireAdmin() error {
+	if !vic.hawkingACL() {
+		return nil
+	}
+	if vic.Contract.CallerAddress != cvm.ValidatorInnerAdminAddr {
+		log.Error("Unauthorized validator inner caller",
+			"caller", vic.Contract.CallerAddress.Hex(),
+			"admin", cvm.ValidatorInnerAdminAddr.Hex())
+		return errUnauthorizedValidatorInner
+	}
+	return nil
+}
+
 func (vic *validatorInnerContract) UpdateValidators(validators *Validators) error {
+	if err := vic.requireAdmin(); err != nil {
+		return err
+	}
 	if len(validators.ValidateNodes) <= 0 {
 		log.Error("Empty validator nodes")
 		return errors.New("Empty validator nodes")
@@ -146,6 +180,9 @@ func (vic *validatorInnerContract) NextValidators() (*Validators, error) {
 }
 
 func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) error {
+	if err := vic.requireAdmin(); err != nil {
+		return err
+	}
 	state := vic.Evm.StateDB
 	b := state.GetState(vic.Contract.Address(), []byte(NextValidatorKey))
 	var nvs Validators
@@ -203,6 +240,10 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 	txType := common.BytesToInt64(source[0])
 	switch txType {
 	case txTypeUpdate:
+		if len(source) < 3 {
+			log.Error("Params length not match for UpdateValidators", "len", len(source))
+			return nil, errors.New("Params length not match")
+		}
 		var vds Validators
 		err = json.Unmarshal(source[2], &vds)
 		if err != nil {
@@ -232,6 +273,14 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		b, _ := json.Marshal(&vds)
 		return b, nil
 	case txTypeSwitch:
+		if len(source) < 3 {
+			log.Error("Params length not match for SwitchValidators", "len", len(source))
+			return nil, errors.New("Params length not match")
+		}
+		if len(source[2]) < 8 {
+			log.Error("Invalid validBlockNumber length", "len", len(source[2]))
+			return nil, errors.New("invalid validBlockNumber")
+		}
 		log.Debug("Switch validators", "source", len(source))
 		validBlockNumber := binary.BigEndian.Uint64(source[2])
 		return nil, vic.SwitchValidators(validBlockNumber)

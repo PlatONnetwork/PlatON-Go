@@ -25,6 +25,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/txpool"
+	"github.com/PlatONnetwork/PlatON-Go/core/txpool/legacypool"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -135,7 +136,7 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 
 	blockChainCache.WriteStateDB(genesis.Header().SealHash(), stateDB, 0)
 
-	txpool := txpool.NewTxPool(testTxPoolConfig, chainConfig, blockChainCache)
+	txpool := legacypool.NewTxPool(testTxPoolConfig, chainConfig, txpool.NewTxPoolBlockChain(blockChainCache))
 
 	// Generate a small n-block chain and an uncle block for it
 	if n > 0 {

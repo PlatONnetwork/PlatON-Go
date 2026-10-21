@@ -57,6 +57,8 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 
 	random = common.BytesToHash(vrf.ProofToHash(header.Nonce.Bytes()))
 
+	excessBlobGas := header.ExcessBlobGas
+
 	return vm.BlockContext{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
@@ -72,14 +74,16 @@ func NewEVMBlockContext(header *types.Header, chain ChainContext) vm.BlockContex
 		Random:      &random,
 		Nonce:       header.Nonce,
 		ParentHash:  header.ParentHash,
+		ExcessBlobGas: excessBlobGas,
 	}
 }
 
 // NewEVMTxContext creates a new transaction context for a single transaction.
 func NewEVMTxContext(msg Message) vm.TxContext {
 	return vm.TxContext{
-		Origin:   msg.From(),
-		GasPrice: new(big.Int).Set(msg.GasPrice()),
+		Origin:     msg.From(),
+		GasPrice:   new(big.Int).Set(msg.GasPrice()),
+		BlobHashes: msg.BlobHashes(),
 	}
 }
 

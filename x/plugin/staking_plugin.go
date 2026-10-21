@@ -66,6 +66,8 @@ type StakingPlugin struct {
 var (
 	stakePlnOnce sync.Once
 	stk          *StakingPlugin
+
+	errCandidateSharesNotEnough = errors.New("the candidate shares is no enough")
 )
 
 const (
@@ -1261,7 +1263,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 				log.Error("Failed to WithdrewDelegation on stakingPlugin: the candidate shares is no enough", "blockNumber",
 					blockNumber, "blockHash", blockHash.Hex(), "delAddr", delAddr, "nodeId", nodeId.String(), "stakingBlockNum",
 					stakingBlockNum, "can shares", can.Shares, "real withdrew delegate amount", realSub)
-				panic("the candidate shares is no enough")
+				return nil, nil, nil, nil, nil, errCandidateSharesNotEnough
 			}
 
 			if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -2471,7 +2473,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 				log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashItem.SlashType,
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "candidate shares",
 					can.Shares, "slash amount", slashItem.Amount)
-				panic("the candidate shares is no enough")
+				return needRemove, errCandidateSharesNotEnough
 			}
 		}
 	}

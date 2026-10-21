@@ -128,6 +128,46 @@ func (rp *RestrictingPlugin) mergeAmount(state xcom.StateDB, blockNum uint64, bl
 	return totalAmount, planMap, nil
 }
 
+// hawkingRestrictingSettlement reports whether already-settled restricting debt
+// must be omitted from the release schedule. Same gate as the other Hawking fixes:
+// chain-config Hawking or governance active version >= 1.6.0.
+func (rp *RestrictingPlugin) hawkingRestrictingSettlement(number *big.Int, state xcom.StateDB) bool {
+	if sk := StakingInstance(); sk != nil && sk.chainConfig != nil && sk.chainConfig.IsHawking(number) {
+		return true
+	}
+	if rp.db == nil || state == nil {
+		return false
+	}
+	return gov.NewGov(rp.db).Gte160VersionState(state)
+}
+
+// plansAfterDebt removes debt from the earliest epochs. Amounts fully used to
+// repay NeedRelease are omitted so a later release cannot book them again.
+func plansAfterDebt(plans map[uint64]*big.Int, debt *big.Int) map[uint64]*big.Int {
+	epochs := make([]uint64, 0, len(plans))
+	for epoch := range plans {
+		epochs = append(epochs, epoch)
+	}
+	sort.Slice(epochs, func(i, j int) bool { return epochs[i] < epochs[j] })
+
+	left := new(big.Int).Set(debt)
+	out := make(map[uint64]*big.Int, len(plans))
+	for _, epoch := range epochs {
+		amount := plans[epoch]
+		if left.Sign() <= 0 {
+			out[epoch] = new(big.Int).Set(amount)
+			continue
+		}
+		if amount.Cmp(left) <= 0 {
+			left.Sub(left, amount)
+			continue
+		}
+		out[epoch] = new(big.Int).Sub(amount, left)
+		left.SetInt64(0)
+	}
+	return out
+}
+
 func (rp *RestrictingPlugin) initEpochInfo(state xcom.StateDB, epoch uint64, account common.Address, amount *big.Int) {
 	// step1: get account numbers at target epoch
 	releaseEpochKey, lastEpochAccountIndex := rp.getReleaseEpochNumber(state, epoch)
@@ -268,11 +308,17 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 			rp.log.Error("failed to rlp decode the restricting account", "err", err.Error())
 			return common.InternalError.Wrap(err.Error())
 		}
+		// Debt settled by this deposit. After Hawking only the unsettled
+		// remainder is written into the release schedule. Pre-Hawking still
+		// records the full plan so historical state replay stays unchanged.
+		debtSettled := new(big.Int)
 		if restrictInfo.NeedRelease.Cmp(common.Big0) > 0 {
 			if restrictInfo.NeedRelease.Cmp(totalAmount) >= 0 {
+				debtSettled.Set(totalAmount)
 				restrictInfo.NeedRelease.Sub(restrictInfo.NeedRelease, totalAmount)
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, totalAmount)
 			} else {
+				debtSettled.Set(restrictInfo.NeedRelease)
 				rp.transferAmount(state, vm.RestrictingContractAddr, account, restrictInfo.NeedRelease)
 				totalAmount.Sub(totalAmount, restrictInfo.NeedRelease)
 				restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, totalAmount)
@@ -281,7 +327,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(from, account common.Address, 
 		} else {
 			restrictInfo.CachePlanAmount.Add(restrictInfo.CachePlanAmount, totalAmount)
 		}
-		for epoch, releaseAmount := range totalPlans {
+		plansToStore := totalPlans
+		if debtSettled.Sign() > 0 && rp.hawkingRestrictingSettlement(new(big.Int).SetUint64(blockNum), state) {
+			plansToStore = plansAfterDebt(totalPlans, debtSettled)
+		}
+		for epoch, releaseAmount := range plansToStore {
 			// step1: get restricting amount at target epoch
 			_, currentAmount := rp.getReleaseAmount(state, epoch, account)
 			if currentAmount.Cmp(common.Big0) == 0 {
