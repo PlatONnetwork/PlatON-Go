@@ -53,6 +53,10 @@ logs/
 .vscode/
 
 coverage.txt
+/coverage-common
+
+# local graphql test chaindata
+/graphql/base/
 
 *.exe
 *.test
