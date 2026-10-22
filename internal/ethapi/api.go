@@ -120,13 +120,17 @@ func (s *EthereumAPI) FeeHistory(ctx context.Context, blockCount rpc.DecimalOrHe
 	return results, nil
 }
 
-// Syncing returns false in case the node is currently not syncing with the network. It can be up to date or has not
-// yet received the latest block headers from its pears. In case it is synchronizing:
+// Syncing returns false when the node is not syncing with the network. It can be up to date or have not
+// yet received the latest block headers from its peers. While synchronizing, it returns:
 // - startingBlock: block number this node started to synchronise from
 // - currentBlock:  block number this node is currently importing
 // - highestBlock:  block number of the highest block header this node has received from peers
-// - pulledStates:  number of state entries processed until now
-// - knownStates:   number of known state entries that still need to be pulled
+// - syncedAccounts and syncedAccountBytes: accounts downloaded and account trie bytes persisted
+// - syncedBytecodes and syncedBytecodeBytes: bytecodes downloaded and bytecode bytes downloaded
+// - syncedStorage and syncedStorageBytes: storage slots downloaded and storage trie bytes persisted
+// - healedTrienodes and healedTrienodeBytes: state trie nodes downloaded and their bytes persisted
+// - healedBytecodes and healedBytecodeBytes: bytecodes downloaded and their bytes persisted
+// - healingTrienodes and healingBytecode: state trie nodes and bytecodes still pending
 func (s *EthereumAPI) Syncing() (interface{}, error) {
 	progress := s.b.SyncProgress()
 
