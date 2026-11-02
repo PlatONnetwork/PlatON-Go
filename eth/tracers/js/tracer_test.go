@@ -231,10 +231,17 @@ func TestNoStepExec(t *testing.T) {
 }
 
 func TestIsPrecompile(t *testing.T) {
-	chaincfg := params.TestChainConfig
+	// Do not mutate the global TestChainConfig. Also pin GenesisVersion below
+	// Hubble/Pauli: CodeVersion()-backed GenesisVersion would make IsHubble/IsPauli
+	// always true and ignore the fork-block schedule below.
+	chaincfg := *params.TestChainConfig
+	chaincfg.GenesisVersion = params.FORKVERSION_1_3_0
 	chaincfg.EinsteinBlock = big.NewInt(100)
 	chaincfg.HubbleBlock = big.NewInt(200)
 	chaincfg.PauliBlock = big.NewInt(300)
+	// Leave DiracBlock at 0 so NewEVMInterpreter short-circuits on IsDirac and
+	// does not call gov against the nil embedded StateDB in dummyStatedb.
+	// ActivePrecompilesByRules only keys off Pauli/Hubble/Einstein.
 	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
 	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	if err != nil {
@@ -242,7 +249,7 @@ func TestIsPrecompile(t *testing.T) {
 	}
 
 	blockCtx := vm.BlockContext{BlockNumber: big.NewInt(150)}
-	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
+	res, err := runTrace(tracer, &vmContext{blockCtx, txCtx}, &chaincfg, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -252,9 +259,7 @@ func TestIsPrecompile(t *testing.T) {
 
 	tracer, _ = newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)
 	blockCtx = vm.BlockContext{BlockNumber: big.NewInt(250)}
-	chaincfg = params.TestChainConfig
-	chaincfg.HubbleBlock = big.NewInt(200)
-	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, chaincfg, nil)
+	res, err = runTrace(tracer, &vmContext{blockCtx, txCtx}, &chaincfg, nil)
 	if err != nil {
 		t.Error(err)
 	}

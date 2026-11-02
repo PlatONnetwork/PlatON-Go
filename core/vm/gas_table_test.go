@@ -79,6 +79,13 @@ var eip2200Tests = []struct {
 }
 
 func TestEIP2200(t *testing.T) {
+	// EIP-2200 gas schedule is pre-Pauli / pre-EIP-2929. AllEthashProtocolChanges
+	// now boots at GenesisVersion >= 1.5.0 (Pauli), which selects the London
+	// jump table and panics without an access list. Pin the config to 1.4.0 so
+	// this test still exercises the original EIP-2200 costs.
+	cfg := *params.AllEthashProtocolChanges
+	cfg.GenesisVersion = params.FORKVERSION_1_4_0
+
 	for i, tt := range eip2200Tests {
 		address := common.BytesToAddress([]byte("contract"))
 
@@ -93,7 +100,7 @@ func TestEIP2200(t *testing.T) {
 			Transfer:    func(StateDB, common.Address, common.Address, *big.Int) {},
 			Ctx:         context.Background(),
 		}
-		vmenv := NewEVM(vmctx, TxContext{}, nil, statedb, params.AllEthashProtocolChanges, Config{})
+		vmenv := NewEVM(vmctx, TxContext{}, nil, statedb, &cfg, Config{})
 
 		_, gas, err := vmenv.Call(AccountRef(common.Address{}), address, nil, tt.gaspool, new(big.Int))
 		if err != tt.failure {

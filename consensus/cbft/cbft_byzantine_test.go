@@ -395,7 +395,8 @@ func TestPB08(t *testing.T) {
 	// base qc block seal first index prepare
 	proposalIndex := uint32(1)
 	blockIndex := uint32(0)
-	viewChangeQC := FakeViewChangeQC(t, nodes, nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qc)
+	// VCQC must certify the previous view (ViewNumber), while PrepareBlock is for ViewNumber+1.
+	viewChangeQC := FakeViewChangeQC(t, nodes, nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber(), qc)
 
 	p := newPrepareBlock(nodes[0].engine.state.Epoch(), nodes[0].engine.state.ViewNumber()+1, qcBlock.Hash(), qcBlock.NumberU64()+1, blockIndex, proposalIndex, qc, viewChangeQC, nodes[proposalIndex].engine.config.Option.BlsPriKey, false, nodes[0], t)
 	err := nodes[0].engine.OnPrepareBlock("id", p)

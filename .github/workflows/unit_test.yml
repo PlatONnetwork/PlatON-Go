@@ -2,44 +2,104 @@ name: unittest
 
 on:
   pull_request:
-    branches: '**'
+    branches: ['**']
+
+concurrency:
+  group: unittest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   GO111MODULE: on
+
 jobs:
   test:
-    name: Build
+    name: Test (${{ matrix.name }})
     runs-on: ubuntu-latest
+    # GitHub-hosted runners are 2-core; keep headroom above the go test -timeout.
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Shard by area so a slow package cannot burn the whole job's budget,
+          # and so shards run in parallel on free GitHub runners.
+          - name: consensus
+            packages: ./consensus/...
+          - name: core
+            packages: ./core/...
+          - name: eth
+            packages: ./eth/... ./ethclient/... ./ethdb/... ./ethstats/... ./miner/... ./trie/...
+          - name: crypto-accounts
+            packages: ./crypto/... ./accounts/...
+          - name: net
+            packages: ./p2p/... ./rpc/... ./node/... ./light/...
+          - name: misc
+            packages: ./common/... ./params/... ./rlp/... ./metrics/... ./log/... ./graphql/... ./internal/... ./signer/... ./cmd/... ./console/... ./event/... ./tests/... ./x/...
+
     steps:
-
-      - name: Check out code into the Go module directory
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v4
         with:
-          go-version: ^1.18
-        id: go
+          # BLS native deps live in git submodules; tests/link need them.
+          submodules: recursive
 
-
-      - uses: actions/cache@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          go-version: '1.22.x'
+          cache: true
 
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-
-
-      - name: Build
-        run: make platon
+      - name: Build native deps
+        run: bash ./build/build_deps.sh
 
       - name: Test
-        run: go test -tags=test -covermode=atomic -coverprofile=coverage.txt  `go list ./...`
+        # Default go test timeout is 10m per package binary — too tight under
+        # coverage on 2-core runners. ci.go raises it to 30m and keeps -p modest.
+        run: |
+          go run build/ci.go test \
+            -timeout=30m \
+            -p=2 \
+            -coverprofile=coverage.txt \
+            ${{ matrix.packages }}
+
+      - name: Upload coverage shard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.name }}
+          path: coverage.txt
+          if-no-files-found: ignore
+          retention-days: 5
+
+  merge-coverage:
+    name: Merge coverage
+    needs: test
+    if: ${{ always() && needs.test.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download coverage shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverages
+
+      - name: Merge coverage profiles
+        run: |
+          set -euo pipefail
+          echo "mode: atomic" > coverage.txt
+          found=0
+          while IFS= read -r -d '' f; do
+            # Strip the mode line from each shard and append data lines.
+            tail -n +2 "$f" >> coverage.txt
+            found=1
+          done < <(find coverages -type f -name 'coverage.txt' -print0 2>/dev/null || true)
+          if [ "$found" -eq 0 ]; then
+            echo "No coverage shards found"
+            ls -laR coverages || true
+            exit 1
+          fi
+          echo "Merged coverage lines: $(wc -l < coverage.txt)"
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
@@ -47,28 +107,34 @@ jobs:
           file: ./coverage.txt
           flags: unittests
           name: codecov-umbrella
+          fail_ci_if_error: false
 
-      - name: Archive code coverage results
+      - name: Archive merged coverage
         if: github.event.pull_request.head.repo.fork == false
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: coverage.txt
-
+          retention-days: 5
 
   sonarCloudTrigger:
     name: SonarCloud Trigger
     if: github.event.pull_request.head.repo.fork == false
-    needs: test
+    needs: [test, merge-coverage]
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Clone Repository
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download code coverage results
-        uses: actions/download-artifact@v4.1.7
+        uses: actions/download-artifact@v4
         with:
           name: code-coverage-report
-          path: coverage.txt
+          path: .
+
       - name: Analyze with SonarCloud
         uses: sonarsource/sonarcloud-github-action@master
         with:
