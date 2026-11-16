@@ -50,6 +50,12 @@ var (
 	ErrAbort                   = errors.New("vm exec abort")
 	ErrExecBadContract         = errors.New("exec bad contract")
 	ErrUnderPrice              = errors.New("gas price is lower than minimum")
+	// ErrSystemPrecompileCall is returned when a PlatON system precompile is
+	// reached through DELEGATECALL or CALLCODE instead of a direct call. Those
+	// precompiles act on behalf of the account in CallerAddress, which a
+	// delegatecall inherits from the outer frame, so they must only be reachable
+	// by a call whose code address equals the contract address.
+	ErrSystemPrecompileCall = errors.New("system precompile must be called directly")
 )
 
 // ErrStackUnderflow wraps an evm error when the items on the stack less
