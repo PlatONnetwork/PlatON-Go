@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hawkingaudit"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -37,7 +36,6 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		allLogs  []*types.Log
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
-	hawkingaudit.SetBlock(header.Number.Uint64(), block.Hash())
 
 	if bcr != nil {
 		// BeginBlocker()

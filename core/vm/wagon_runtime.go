@@ -8,7 +8,6 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hawkingaudit"
 	imath "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -1080,18 +1079,6 @@ func Transfer(proc *exec.Process, dst uint32, amount uint32, len uint32) int32 {
 	}
 
 	_, returnGas, err := ctx.evm.Call(ctx.contract, addr, nil, gas, bValue)
-
-	if ctx.readOnly && !wasmHawking(ctx) && err == nil && bValue.Sign() > 0 {
-		var blockNumber uint64
-		var txHash common.Hash
-		if ctx.evm.Context.BlockNumber != nil {
-			blockNumber = ctx.evm.Context.BlockNumber.Uint64()
-		}
-		if ctx.evm.StateDB != nil {
-			txHash = ctx.evm.StateDB.TxHash()
-		}
-		hawkingaudit.RecordStaticTransfer(blockNumber, common.Hash{}, txHash, ctx.contract.Address(), addr, bValue)
-	}
 
 	var status int32
 

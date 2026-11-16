@@ -288,10 +288,10 @@ func TestRestrictingPlugin_Compose3(t *testing.T) {
 	if err := plugin.AdvanceLockedFunds(plugin.to, big.NewInt(1e18), plugin.mockDB); err != nil {
 		t.Error()
 	}
-	if err := plugin.releaseRestricting(1, 0, plugin.mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, plugin.mockDB); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.ReturnLockFunds(plugin.to, big.NewInt(1e18), 0, plugin.mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(plugin.to, big.NewInt(1e18), plugin.mockDB); err != nil {
 		t.Error(err)
 	}
 	assert.Equal(t, plugin.mockDB.GetBalance(plugin.to), big.NewInt(1e18))
@@ -331,7 +331,7 @@ func TestRestrictingPlugin_Compose2(t *testing.T) {
 	if err := plugin.AdvanceLockedFunds(to, big.NewInt(2e18), mockDB); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.releaseRestricting(1, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
 
@@ -405,7 +405,7 @@ func TestRestrictingPlugin_Compose(t *testing.T) {
 	assert.Equal(t, mockDB.GetBalance(vm.StakingContractAddr), big.NewInt(2e18))
 	infoAssertF(big.NewInt(2e18), []uint64{1}, big.NewInt(2e18), big.NewInt(0))
 
-	if err := plugin.releaseRestricting(1, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
 	assert.Equal(t, mockDB.GetBalance(to).Uint64(), uint64(0))
@@ -516,18 +516,18 @@ func TestRestrictingInstance(t *testing.T) {
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()-10, common.ZeroHash, plans, mockDB, RestrictingTxHash); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.releaseRestricting(1, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
 	//	SetLatestEpoch(mockDB, 1)
 	if err := plugin.AdvanceLockedFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.releaseRestricting(2, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
 	//	SetLatestEpoch(mockDB, 2)
-	if err := plugin.releaseRestricting(3, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
 	//	SetLatestEpoch(mockDB, 3)
@@ -536,13 +536,13 @@ func TestRestrictingInstance(t *testing.T) {
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()*3+10, common.ZeroHash, plans2, mockDB, RestrictingTxHash); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.ReturnLockFunds(to, big.NewInt(5e18), 0, mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(to, big.NewInt(5e18), mockDB); err != nil {
 		t.Error(err)
 	}
 	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
 	assert.Equal(t, big.NewInt(1e18), mockDB.GetBalance(vm.RestrictingContractAddr))
 
-	if err := plugin.releaseRestricting(4, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
 	//	SetLatestEpoch(mockDB, 4)
@@ -629,7 +629,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := plugin.releaseRestricting(1, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Error(err)
 	}
 
@@ -637,11 +637,11 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := plugin.releaseRestricting(2, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(2, mockDB); err != nil {
 		t.Error(err)
 	}
 
-	if err := plugin.releaseRestricting(3, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(3, mockDB); err != nil {
 		t.Error(err)
 	}
 
@@ -655,13 +655,13 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()*3+10, common.ZeroHash, plans2, mockDB, RestrictingTxHash); err != nil {
 		t.Error(err)
 	}
-	if err := plugin.ReturnLockFunds(to, big.NewInt(4e18), 0, mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(to, big.NewInt(4e18), mockDB); err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, big.NewInt(9e18), mockDB.GetBalance(to))
 
-	if err := plugin.releaseRestricting(4, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(4, mockDB); err != nil {
 		t.Error(err)
 	}
 
@@ -672,7 +672,7 @@ func TestRestrictingInstanceWithSlashing(t *testing.T) {
 	if mockDB.GetBalance(vm.StakingContractAddr).Cmp(big.NewInt(0)) != 0 {
 		t.Error("StakingContractAddr should compare", vm.StakingContractAddr)
 	}
-	if err := plugin.releaseRestricting(5, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(5, mockDB); err != nil {
 		t.Error(err)
 	}
 }
@@ -709,7 +709,9 @@ func TestRestrictingGetRestrictingInfo(t *testing.T) {
 	assert.Equal(t, res.Balance.ToInt(), big.NewInt(6e18))
 }
 
-func setupRestrictingDebt(t *testing.T, hawking bool) (*RestrictingPlugin, xcom.StateDB, common.Address, common.Address) {
+// setupRestrictingDebt leaves 2 LAT fully staked with epoch 1 matured:
+// Cache 2, Advance 2, NeedRelease 2, no future plan.
+func setupRestrictingDebt(t *testing.T) (*RestrictingPlugin, xcom.StateDB, common.Address, common.Address) {
 	t.Helper()
 	params.GetEc(params.DefaultTestNet)
 	sdb := snapshotdb.Instance()
@@ -720,11 +722,6 @@ func setupRestrictingDebt(t *testing.T, hawking bool) (*RestrictingPlugin, xcom.
 		t.Fatal(err)
 	}
 	mockDB := buildStateDB(t)
-	if hawking {
-		if err := gov.NewGovDB(sdb).AddActiveVersion(params.FORKVERSION_1_6_0, 0, mockDB); err != nil {
-			t.Fatal(err)
-		}
-	}
 	plugin := &RestrictingPlugin{log: log.Root(), db: sdb}
 	from, to := addrArr[0], addrArr[1]
 	mockDB.AddBalance(from, big.NewInt(9e18))
@@ -735,14 +732,14 @@ func setupRestrictingDebt(t *testing.T, hawking bool) (*RestrictingPlugin, xcom.
 	if err := plugin.AdvanceLockedFunds(to, big.NewInt(2e18), mockDB); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.releaseRestricting(1, 0, mockDB); err != nil {
+	if err := plugin.releaseRestricting(1, mockDB); err != nil {
 		t.Fatal(err)
 	}
 	return plugin, mockDB, from, to
 }
 
-func TestAddRestrictingRecord_HawkingOmitsSettledDebtFromSchedule(t *testing.T) {
-	plugin, mockDB, from, to := setupRestrictingDebt(t, true)
+func TestAddRestrictingRecord_KeepsPlanAfterDebtPayment(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t)
 
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
 		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1e18)}}, mockDB, RestrictingTxHash); err != nil {
@@ -758,45 +755,50 @@ func TestAddRestrictingRecord_HawkingOmitsSettledDebtFromSchedule(t *testing.T) 
 	if info.CachePlanAmount.Cmp(big.NewInt(2e18)) != 0 {
 		t.Fatalf("Cache = %s, want 2e18", info.CachePlanAmount)
 	}
-	if len(info.ReleaseList) != 0 {
-		t.Fatalf("fully settled deposit must not be scheduled, list %v", info.ReleaseList)
+	if len(info.ReleaseList) != 1 {
+		t.Fatalf("new plan must stay on the schedule, list %v", info.ReleaseList)
 	}
-	if err := plugin.releaseRestricting(2, 0, mockDB); err != nil {
-		t.Fatal(err)
+	_, amount := plugin.getReleaseAmount(mockDB, info.ReleaseList[0], to)
+	if amount.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("scheduled amount = %s, want 1e18", amount)
 	}
-	_, info, err = plugin.mustGetRestrictingInfoByDecode(mockDB, to)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if info.NeedRelease.Cmp(big.NewInt(1e18)) != 0 {
-		t.Fatalf("later release inflated debt to %s", info.NeedRelease)
+	scheduled := new(big.Int).Set(amount)
+	if got := new(big.Int).Add(info.NeedRelease, scheduled); got.Cmp(info.CachePlanAmount) != 0 {
+		t.Fatalf("NeedRelease+plans = %s, cache = %s", got, info.CachePlanAmount)
 	}
 }
 
-func TestReturnLockFunds_HawkingPaysUnscheduledPrincipal(t *testing.T) {
-	plugin, mockDB, from, to := setupRestrictingDebt(t, true)
+func TestReturnLockFunds_KeepsNewPlanMaturity(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t)
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
 		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1e18)}}, mockDB, RestrictingTxHash); err != nil {
 		t.Fatal(err)
 	}
 	before := new(big.Int).Set(mockDB.GetBalance(to))
-	if err := plugin.ReturnLockFunds(to, big.NewInt(2e18), xutil.CalcBlocksEachEpoch()+10, mockDB); err != nil {
+	if err := plugin.ReturnLockFunds(to, big.NewInt(2e18), mockDB); err != nil {
 		t.Fatal(err)
 	}
 	got := new(big.Int).Sub(mockDB.GetBalance(to), before)
-	if got.Cmp(big.NewInt(2e18)) != 0 {
-		t.Fatalf("unstake paid %s, want 2e18", got)
+	if got.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("unstake paid %s, want the remaining 1e18 debt only", got)
 	}
-	if _, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to); err == nil && info.CachePlanAmount.Sign() != 0 {
-		t.Fatalf("principal left in cache: %s", info.CachePlanAmount)
+	_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if bal := mockDB.GetBalance(vm.RestrictingContractAddr); bal.Sign() != 0 {
-		t.Fatalf("restricting contract still holds %s", bal)
+	if info.CachePlanAmount.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("cache = %s, want 1e18 still locked", info.CachePlanAmount)
+	}
+	if len(info.ReleaseList) != 1 {
+		t.Fatalf("new maturity was dropped, list %v", info.ReleaseList)
+	}
+	if bal := mockDB.GetBalance(vm.RestrictingContractAddr); bal.Cmp(big.NewInt(1e18)) != 0 {
+		t.Fatalf("restricting contract holds %s, want 1e18", bal)
 	}
 }
 
-func TestAddRestrictingRecord_HawkingSchedulesOnlyRemainder(t *testing.T) {
-	plugin, mockDB, from, to := setupRestrictingDebt(t, true)
+func TestAddRestrictingRecord_SchedulesFullDeposit(t *testing.T) {
+	plugin, mockDB, from, to := setupRestrictingDebt(t)
 	mockDB.AddBalance(from, big.NewInt(3e18))
 
 	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
@@ -813,28 +815,11 @@ func TestAddRestrictingRecord_HawkingSchedulesOnlyRemainder(t *testing.T) {
 	if info.CachePlanAmount.Cmp(big.NewInt(3e18)) != 0 {
 		t.Fatalf("Cache = %s, want 3e18", info.CachePlanAmount)
 	}
-	_, amount := plugin.getReleaseAmount(mockDB, 2, to)
-	if amount.Cmp(big.NewInt(1e18)) != 0 {
-		t.Fatalf("scheduled remainder = %s, want 1e18", amount)
+	if len(info.ReleaseList) != 1 {
+		t.Fatalf("full deposit must be scheduled, list %v", info.ReleaseList)
 	}
-}
-
-func TestAddRestrictingRecord_ChainConfigHawkingOmitsSettledDebt(t *testing.T) {
-	plugin, mockDB, from, to := setupRestrictingDebt(t, false)
-	sk := StakingInstance()
-	old := sk.chainConfig
-	sk.chainConfig = &params.ChainConfig{PauliBlock: big.NewInt(0), HawkingBlock: big.NewInt(0)}
-	t.Cleanup(func() { sk.chainConfig = old })
-
-	if err := plugin.AddRestrictingRecord(from, to, xutil.CalcBlocksEachEpoch()+10, common.ZeroHash,
-		[]restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1e18)}}, mockDB, RestrictingTxHash); err != nil {
-		t.Fatal(err)
-	}
-	_, info, err := plugin.mustGetRestrictingInfoByDecode(mockDB, to)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(info.ReleaseList) != 0 {
-		t.Fatalf("chain-config Hawking must omit settled plan, list %v", info.ReleaseList)
+	_, amount := plugin.getReleaseAmount(mockDB, info.ReleaseList[0], to)
+	if amount.Cmp(big.NewInt(3e18)) != 0 {
+		t.Fatalf("scheduled amount = %s, want 3e18", amount)
 	}
 }

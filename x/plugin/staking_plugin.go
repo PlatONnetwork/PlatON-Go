@@ -537,7 +537,7 @@ func (sk *StakingPlugin) RollBackStaking(state xcom.StateDB, blockHash common.Ha
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
 	} else if typ == RestrictVon {
-		err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, blockNumber.Uint64(), state)
+		err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to RollBackStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
@@ -694,7 +694,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 	}
 
 	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
-		err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, blockNumber, state)
+		err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
@@ -869,7 +869,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockNumber uint64, b
 
 	refundRestrictFn := func(title string, balance *big.Int) (*big.Int, error) {
 		if balance.Cmp(common.Big0) > 0 {
-			err := sk.rt.ReturnLockFunds(can.StakingAddress, balance, blockNumber, state)
+			err := sk.rt.ReturnLockFunds(can.StakingAddress, balance, state)
 			if nil != err {
 				log.Error("Failed to HandleUnCandidateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 					title, balance, "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", can.NodeId.String(),
@@ -1125,7 +1125,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 
 		// handle delegate on Hesitate period
 		if refundAmount.Cmp(common.Big0) > 0 {
-			rm, rbalance, lbalance, err := sk.rufundDelegateFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes, delAddr, blockNumber.Uint64(), state)
+			rm, rbalance, lbalance, err := sk.rufundDelegateFn(refundAmount, del.ReleasedHes, del.RestrictingPlanHes, delAddr, state)
 			if nil != err {
 				log.Error("Failed  to WithdrewDelegation, refund the hesitate balance is failed", "blockNumber", blockNumber,
 					"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
@@ -1196,7 +1196,7 @@ func (sk *StakingPlugin) WithdrewDelegation(state xcom.StateDB, blockHash common
 		} else {
 			// handle delegate on Effective period
 			if refundAmount.Cmp(common.Big0) > 0 {
-				rm, rbalance, lbalance, err := sk.rufundDelegateFn(refundAmount, del.Released, del.RestrictingPlan, delAddr, blockNumber.Uint64(), state)
+				rm, rbalance, lbalance, err := sk.rufundDelegateFn(refundAmount, del.Released, del.RestrictingPlan, delAddr, state)
 				if nil != err {
 					log.Error("Failed  to WithdrewDelegation, refund the no hesitate balance is failed", "blockNumber", blockNumber,
 						"blockHash", blockHash.Hex(), "delAddr", delAddr.String(), "nodeId", nodeId.String(), "StakingNum", stakingBlockNum,
@@ -1310,7 +1310,7 @@ func (sk *StakingPlugin) RedeemDelegation(state xcom.StateDB, blockHash common.H
 	}
 
 	if delegationLock.RestrictingPlan.Cmp(common.Big0) > 0 {
-		if err := sk.rt.ReturnLockFunds(delAddr, delegationLock.RestrictingPlan, blockNumber.Uint64(), state); err != nil {
+		if err := sk.rt.ReturnLockFunds(delAddr, delegationLock.RestrictingPlan, state); err != nil {
 			return nil, nil, err
 		}
 		restrictingPlan.Set(delegationLock.RestrictingPlan)
@@ -1329,7 +1329,7 @@ func (sk *StakingPlugin) RedeemDelegation(state xcom.StateDB, blockHash common.H
 	return released, restrictingPlan, nil
 }
 
-func (sk *StakingPlugin) rufundDelegateFn(refundBalance, aboutRelease, aboutRestrictingPlan *big.Int, delAddr common.Address, blockNumber uint64, state xcom.StateDB) (*big.Int, *big.Int, *big.Int, error) {
+func (sk *StakingPlugin) rufundDelegateFn(refundBalance, aboutRelease, aboutRestrictingPlan *big.Int, delAddr common.Address, state xcom.StateDB) (*big.Int, *big.Int, *big.Int, error) {
 	refundTmp := refundBalance
 	releaseTmp := aboutRelease
 	restrictingPlanTmp := aboutRestrictingPlan
@@ -1353,7 +1353,7 @@ func (sk *StakingPlugin) rufundDelegateFn(refundBalance, aboutRelease, aboutRest
 	if refundTmp.Cmp(common.Big0) > 0 {
 		// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 		if refundTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
-			err := sk.rt.ReturnLockFunds(delAddr, restrictingPlanTmp, blockNumber, state)
+			err := sk.rt.ReturnLockFunds(delAddr, restrictingPlanTmp, state)
 			if nil != err {
 				return refundTmp, releaseTmp, restrictingPlanTmp, err
 			}
@@ -1361,7 +1361,7 @@ func (sk *StakingPlugin) rufundDelegateFn(refundBalance, aboutRelease, aboutRest
 			restrictingPlanTmp = new(big.Int).SetInt64(0)
 		} else if refundTmp.Cmp(restrictingPlanTmp) < 0 {
 			// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-			err := sk.rt.ReturnLockFunds(delAddr, refundTmp, blockNumber, state)
+			err := sk.rt.ReturnLockFunds(delAddr, refundTmp, state)
 			if nil != err {
 				return refundTmp, releaseTmp, restrictingPlanTmp, err
 			}
@@ -2502,7 +2502,7 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			can.ReleasedHes = new(big.Int).SetInt64(0)
 		}
 		if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
-			err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, blockNumber, state)
+			err := sk.rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 			if nil != err {
 				log.Error("Failed to SlashCandidates on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 					"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "stakingAddr", can.StakingAddress,
