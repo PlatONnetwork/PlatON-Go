@@ -24,7 +24,6 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -91,13 +90,16 @@ func (vic *validatorInnerContract) RequiredGas(input []byte) uint64 {
 }
 
 func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
-	var cmd = map[string]interface{}{
-		"UpdateValidators":  vic.UpdateValidators,
-		"CurrentValidators": vic.CurrentValidators,
-		// Keep the historical misspelling as an alias for compatibility.
+	cmd := map[string]interface{}{
+		"UpdateValidators": vic.UpdateValidators,
+		// Keep the historical misspelling. The corrected name is Hawking-only
+		// so pre-1.6.0 inputs that used it stay Function undefined.
 		"CurrentValidatros": vic.CurrentValidators,
 		"NextValidators":    vic.NextValidators,
 		"SwitchValidators":  vic.SwitchValidators,
+	}
+	if vic.hawkingACL() {
+		cmd["CurrentValidators"] = vic.CurrentValidators
 	}
 	return vic.execute(input, cmd)
 }
@@ -117,15 +119,25 @@ func (vic *validatorInnerContract) hawkingACL() bool {
 	return gov.NewGov(vic.Evm.SnapshotDB).Gte160VersionState(vic.Evm.StateDB)
 }
 
-// requireAdmin enforces CallerAddress == ValidatorInnerAdminAddr after Hawking.
+// innerAdmin is the chain-configured caller allowed to mutate the inner set.
+// A zero address rejects every caller. The signing key is not in this binary.
+func (vic *validatorInnerContract) innerAdmin() common.Address {
+	if vic.Evm == nil || vic.Evm.chainConfig == nil || vic.Evm.chainConfig.Cbft == nil {
+		return common.Address{}
+	}
+	return vic.Evm.chainConfig.Cbft.InnerAdmin
+}
+
+// requireAdmin enforces CallerAddress == Cbft.InnerAdmin after Hawking.
 func (vic *validatorInnerContract) requireAdmin() error {
 	if !vic.hawkingACL() {
 		return nil
 	}
-	if vic.Contract.CallerAddress != cvm.ValidatorInnerAdminAddr {
+	admin := vic.innerAdmin()
+	if admin == (common.Address{}) || vic.Contract.CallerAddress != admin {
 		log.Error("Unauthorized validator inner caller",
 			"caller", vic.Contract.CallerAddress.Hex(),
-			"admin", cvm.ValidatorInnerAdminAddr.Hex())
+			"admin", admin.Hex())
 		return errUnauthorizedValidatorInner
 	}
 	return nil

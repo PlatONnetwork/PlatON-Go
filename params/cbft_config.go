@@ -3,6 +3,7 @@ package params
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/bls"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 )
@@ -22,6 +23,10 @@ type CbftConfig struct {
 	Amount        uint32     `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
 	InitialNodes  []CbftNode `json:"initialNodes,omitempty"`  //Genesis consensus node
 	ValidatorMode string     `json:"validatorMode,omitempty"` //Validator mode for easy testing
+	// InnerAdmin is the only address allowed to update or switch the inner
+	// validator set after Hawking. The matching key is a local miner secret,
+	// not a value compiled into the binary. Empty means mutations are rejected.
+	InnerAdmin common.Address `json:"innerAdmin,omitempty"`
 }
 
 func ConvertNodeUrl(initialNodes []initNode) []CbftNode {

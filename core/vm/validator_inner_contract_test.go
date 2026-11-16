@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -38,25 +37,52 @@ func newValidatorInnerForTest(t *testing.T, caller common.Address, activeVersion
 	}
 }
 
+func setInnerAdmin(evm *EVM, admin common.Address) {
+	if evm.chainConfig == nil {
+		evm.chainConfig = &params.ChainConfig{}
+	}
+	if evm.chainConfig.Cbft == nil {
+		evm.chainConfig.Cbft = &params.CbftConfig{}
+	}
+	evm.chainConfig.Cbft.InnerAdmin = admin
+}
+
 func TestValidatorInnerCurrentValidatorsDispatchSpelling(t *testing.T) {
 	vic := newValidatorInnerForTest(t, sender, 0)
 
-	assertNotUndefined := func(t *testing.T, name string, input []byte) {
+	assertNotUndefined := func(t *testing.T, contract *validatorInnerContract, name string, input []byte) {
 		t.Helper()
-		_, err := vic.Run(input)
+		_, err := contract.Run(input)
 		if err != nil && err.Error() == "Function undefined" {
 			t.Fatalf("%s rejected as undefined: %v", name, err)
 		}
 	}
 
-	// Correct spelling must be accepted (issue #2359).
-	assertNotUndefined(t, "CurrentValidators", encodeValidatorInnerInput(t,
+	// Correct spelling is Hawking-only. Before 1.6.0 it stays undefined.
+	_, err := vic.Run(encodeValidatorInnerInput(t,
+		common.Int64ToBytes(txTypeCurrent),
+		[]byte("CurrentValidators"),
+	))
+	if err == nil || err.Error() != "Function undefined" {
+		t.Fatalf("pre-Hawking CurrentValidators = %v, want Function undefined", err)
+	}
+	_, err = vic.Run(encodeValidatorInnerInput(t,
+		common.Int64ToBytes(txTypeSwitch),
+		[]byte("CurrentValidators"),
+		[]byte{0, 0, 0, 0, 0, 0, 0, 1},
+	))
+	if err == nil || err.Error() != "Function undefined" {
+		t.Fatalf("pre-Hawking switch via new alias = %v, want Function undefined", err)
+	}
+
+	hawking := newValidatorInnerForTest(t, sender, params.FORKVERSION_1_6_0)
+	assertNotUndefined(t, hawking, "CurrentValidators", encodeValidatorInnerInput(t,
 		common.Int64ToBytes(txTypeCurrent),
 		[]byte("CurrentValidators"),
 	))
 
 	// Historical misspelling remains accepted as an alias.
-	assertNotUndefined(t, "CurrentValidatros", encodeValidatorInnerInput(t,
+	assertNotUndefined(t, vic, "CurrentValidatros", encodeValidatorInnerInput(t,
 		common.Int64ToBytes(txTypeCurrent),
 		[]byte("CurrentValidatros"),
 	))
@@ -144,6 +170,7 @@ func TestValidatorInnerHawkingACL(t *testing.T) {
 
 	t.Run("unauthorized rejected after Hawking", func(t *testing.T) {
 		vic := newValidatorInnerForTest(t, sender, params.FORKVERSION_1_6_0)
+		setInnerAdmin(vic.Evm, common.HexToAddress("0x0101010101010101010101010101010101010101"))
 		_, err := vic.Run(switchInput)
 		if !errors.Is(err, errUnauthorizedValidatorInner) {
 			t.Fatalf("SwitchValidators: want unauthorized, got %v", err)
@@ -155,7 +182,9 @@ func TestValidatorInnerHawkingACL(t *testing.T) {
 	})
 
 	t.Run("admin accepted after Hawking", func(t *testing.T) {
-		vic := newValidatorInnerForTest(t, cvm.ValidatorInnerAdminAddr, params.FORKVERSION_1_6_0)
+		admin := common.HexToAddress("0x0101010101010101010101010101010101010101")
+		vic := newValidatorInnerForTest(t, admin, params.FORKVERSION_1_6_0)
+		setInnerAdmin(vic.Evm, admin)
 		_, err := vic.Run(switchInput)
 		if errors.Is(err, errUnauthorizedValidatorInner) {
 			t.Fatalf("admin SwitchValidators must not be unauthorized: %v", err)
