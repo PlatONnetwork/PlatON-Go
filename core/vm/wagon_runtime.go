@@ -32,6 +32,11 @@ type VMContext struct {
 	readOnly bool // Whether to throw on stateful modifications
 	Revert   bool
 	Log      *WasmLogger
+
+	// Cached by wasmHawking. The governance version only changes in
+	// BeginBlock, so it is fixed for the lifetime of a frame.
+	hawking    bool
+	hawkingSet bool
 }
 
 // DO NOT DELETE  used by cdt test
@@ -822,17 +827,17 @@ func checkGas(ctx *VMContext, gas uint64) {
 }
 
 // wasmHawking reports whether 1.6.0 rules apply to this WASM frame.
+// Host functions call it on every buffer, so the state lookup runs once per frame.
 func wasmHawking(ctx *VMContext) bool {
 	if ctx == nil || ctx.evm == nil {
 		return false
 	}
-	if ctx.evm.chainRules.IsHawking {
-		return true
+	if !ctx.hawkingSet {
+		ctx.hawking = ctx.evm.chainRules.IsHawking ||
+			(ctx.evm.SnapshotDB != nil && ctx.evm.StateDB != nil && gov.NewGov(ctx.evm.SnapshotDB).Gte160VersionState(ctx.evm.StateDB))
+		ctx.hawkingSet = true
 	}
-	if ctx.evm.SnapshotDB == nil || ctx.evm.StateDB == nil {
-		return false
-	}
-	return gov.NewGov(ctx.evm.SnapshotDB).Gte160VersionState(ctx.evm.StateDB)
+	return ctx.hawking
 }
 
 // rejectWasmWriteInReadOnly closes platon_call / platon_delegate_call during STATICCALL after Hawking.
@@ -842,13 +847,14 @@ func rejectWasmWriteInReadOnly(ctx *VMContext) {
 	}
 }
 
-// limitWasmBuffer rejects a host-function allocation that remaining gas cannot pay for.
-// Pre-Hawking allocation order is unchanged.
+// limitWasmBuffer rejects a host-function allocation before the buffer is created.
+// After Hawking the length must fit in the WASM linear memory and is charged
+// one gas per byte. Pre-Hawking allocation order is unchanged.
 func limitWasmBuffer(ctx *VMContext, n uint32) {
 	if !wasmHawking(ctx) {
 		return
 	}
-	if ctx.contract == nil || uint64(n) > ctx.contract.Gas {
+	if uint64(n) > uint64(memoryLimit) || ctx.contract == nil || !ctx.contract.UseGas(uint64(n)) {
 		panic(ErrOutOfGas)
 	}
 }
@@ -1010,6 +1016,7 @@ func Sha3(proc *exec.Process, src uint32, srcLen uint32, dst uint32, dstLen uint
 	}
 
 	checkGas(ctx, gas)
+	limitWasmBuffer(ctx, srcLen)
 
 	data := make([]byte, srcLen)
 	_, err := proc.ReadAt(data, int64(src))
@@ -1152,6 +1159,7 @@ func SetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen 
 
 func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 	ctx := proc.HostCtx().(*VMContext)
+	limitWasmBuffer(ctx, keyLen)
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
 	if nil != err {
@@ -1167,6 +1175,7 @@ func GetStateLength(proc *exec.Process, key uint32, keyLen uint32) uint32 {
 func GetState(proc *exec.Process, key uint32, keyLen uint32, val uint32, valLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)
+	limitWasmBuffer(ctx, keyLen)
 
 	keyBuf := make([]byte, keyLen)
 	_, err := proc.ReadAt(keyBuf, int64(key))
@@ -1230,6 +1239,7 @@ func ReturnContract(proc *exec.Process, dst uint32, len uint32) {
 	}
 
 	checkGas(ctx, gas)
+	limitWasmBuffer(ctx, len)
 	ctx.Output = make([]byte, len)
 	_, err := proc.ReadAt(ctx.Output, int64(dst))
 	if err != nil {
@@ -1261,6 +1271,7 @@ func Debug(proc *exec.Process, dst uint32, len uint32) {
 		panic(errGasUintOverflow)
 	}
 	checkGas(ctx, gas)
+	limitWasmBuffer(ctx, len)
 
 	buf := make([]byte, len)
 	_, err := proc.ReadAt(buf, int64(dst))
@@ -1439,6 +1450,8 @@ func DelegateCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCo
 
 func StaticCallContract(proc *exec.Process, addrPtr, params, paramsLen, callCost, callCostLen uint32) int32 {
 	ctx := proc.HostCtx().(*VMContext)
+	limitWasmBuffer(ctx, paramsLen)
+	limitWasmBuffer(ctx, callCostLen)
 
 	address := make([]byte, common.AddressLength)
 	_, err := proc.ReadAt(address, int64(addrPtr))
@@ -1726,6 +1739,7 @@ func MigrateCloneContract(proc *exec.Process, oldAddr, newAddr, args, argsLen, v
 	}
 
 	// get init args
+	limitWasmBuffer(ctx, argsLen)
 	initArgs := make([]byte, argsLen)
 	if _, err := proc.ReadAt(initArgs, int64(args)); nil != err {
 		panic(err)
@@ -1762,6 +1776,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 	topics := make([]common.Hash, 0)
 
 	if indexesLen != 0 {
+		limitWasmBuffer(ctx, indexesLen)
 		indexes := make([]byte, indexesLen)
 		_, err := proc.ReadAt(indexes, int64(indexesPtr))
 		if nil != err {
@@ -1804,6 +1819,7 @@ func EmitEvent(proc *exec.Process, indexesPtr, indexesLen, args, argsLen uint32)
 		}
 	}
 
+	limitWasmBuffer(ctx, argsLen)
 	input := make([]byte, argsLen)
 	_, err := proc.ReadAt(input, int64(args))
 	if nil != err {
@@ -1825,6 +1841,7 @@ func Ecrecover(proc *exec.Process, hashPtr, sigPtr, sigLen, addrPtr uint32) int3
 	ctx := proc.HostCtx().(*VMContext)
 
 	checkGas(ctx, params.EcrecoverGas)
+	limitWasmBuffer(ctx, sigLen)
 	hash := make([]byte, 32)
 	_, err := proc.ReadAt(hash, int64(hashPtr))
 	if err != nil {
@@ -1861,6 +1878,7 @@ func Ripemd160(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) 
 		panic(errGasUintOverflow)
 	}
 	checkGas(ctx, gas)
+	limitWasmBuffer(ctx, inputLen)
 
 	input := make([]byte, inputLen)
 	_, err := proc.ReadAt(input, int64(inputPtr))
@@ -1887,6 +1905,7 @@ func Sha256(proc *exec.Process, inputPtr, inputLen uint32, outputPtr uint32) {
 		panic(errGasUintOverflow)
 	}
 	checkGas(ctx, gas)
+	limitWasmBuffer(ctx, inputLen)
 
 	input := make([]byte, inputLen)
 	_, err := proc.ReadAt(input, int64(inputPtr))
@@ -2046,6 +2065,7 @@ func RlpBytes(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	)
 
 	// read data
+	limitWasmBuffer(ctx, length)
 	data := make([]byte, length)
 	_, err := proc.ReadAt(data, int64(src))
 	if nil != err {
@@ -2111,6 +2131,7 @@ func RlpList(proc *exec.Process, src uint32, length uint32, dest uint32) {
 	)
 
 	// read data
+	limitWasmBuffer(ctx, length)
 	data := make([]byte, length)
 	_, err := proc.ReadAt(data, int64(src))
 	if nil != err {
@@ -2287,8 +2308,14 @@ func CreateContract(proc *exec.Process, newAddr, val, valLen, callCost, callCost
 	// transfer value to new account
 	ctx.evm.Context.Transfer(ctx.evm.StateDB, sender, newContract, bigValue)
 
-	// init new contract context
-	contract := NewContract(AccountRef(sender), AccountRef(newContract), ctx.evm.StateDB.GetBalance(sender), gas)
+	// init new contract context. CALLVALUE is the value of this create.
+	// Pre-Hawking kept the historical (wrong) reading of the payer's remaining
+	// balance so old WASM deploys replay unchanged.
+	callValue := bigValue
+	if !wasmHawking(ctx) {
+		callValue = ctx.evm.StateDB.GetBalance(sender)
+	}
+	contract := NewContract(AccountRef(sender), AccountRef(newContract), callValue, gas)
 	contract.SetCallCode(&newContract, crypto.Keccak256Hash(input), input)
 	contract.DeployContract = true
 
@@ -2356,6 +2383,7 @@ func PlatonClone(proc *exec.Process, oldAddr, newAddr, args, argsLen, val, valLe
 	}
 
 	// get init args
+	limitWasmBuffer(ctx, argsLen)
 	initArgs := make([]byte, argsLen)
 	if _, err := proc.ReadAt(initArgs, int64(args)); nil != err {
 		panic(err)
