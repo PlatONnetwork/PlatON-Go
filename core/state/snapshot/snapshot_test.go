@@ -185,6 +185,13 @@ func TestDiskLayerExternalInvalidationPartialFlatten(t *testing.T) {
 // be returned with junk data. This version of the test retains the bottom diff
 // layer to check the usual mode of operation where the accumulator is retained.
 func TestDiffLayerExternalInvalidationPartialFlatten(t *testing.T) {
+	// With these offsets both reads below miss the bloom filter and take the
+	// disk-layer shortcut, which must still report the stale diff layer.
+	defer func(d, a, s int) {
+		bloomDestructHasherOffset, bloomAccountHasherOffset, bloomStorageHasherOffset = d, a, s
+	}(bloomDestructHasherOffset, bloomAccountHasherOffset, bloomStorageHasherOffset)
+	bloomDestructHasherOffset, bloomAccountHasherOffset, bloomStorageHasherOffset = 14, 24, 5
+
 	// Create an empty base layer and a snapshot tree out of it
 	base := &diskLayer{
 		diskdb: rawdb.NewMemoryDatabase(),
