@@ -110,6 +110,44 @@ func (g *Gov) Gte160VersionState(state xcom.StateDB) bool {
 	return Gte160Version(g.GetCurrentActiveVersion(state))
 }
 
+// HawkingActive reports whether 1.6.0 rules apply at number.
+// A chain-config HawkingBlock (or 1.6.0 genesis) and a governance version
+// already stored in state are both sufficient. Callers that only read the
+// governance version miss the config-fork window.
+func HawkingActive(config *params.ChainConfig, number *big.Int, state xcom.StateDB) bool {
+	if config != nil && config.IsHawking(number) {
+		return true
+	}
+	if state == nil {
+		return false
+	}
+	return NewGov(nil).Gte160VersionState(state)
+}
+
+// VersionActivates reports whether a pre-active version proposal turns on
+// 1.6.0 at number. Header validation runs before BeginBlock activates the
+// version, so it needs this to treat the activation block as Hawking.
+// blockHash is the parent hash snapshotdb keys the pre-active proposal by.
+func VersionActivates(db snapshotdb.DB, blockHash common.Hash, number *big.Int, state xcom.StateDB) bool {
+	if db == nil || number == nil || state == nil || blockHash == (common.Hash{}) {
+		return false
+	}
+	gdb := NewGovDB(db)
+	if gdb.GetPreActiveVersion(blockHash) < params.FORKVERSION_1_6_0 {
+		return false
+	}
+	id, err := gdb.GetPreActiveProposalID(blockHash)
+	if err != nil || id == common.ZeroHash {
+		return false
+	}
+	prop, err := gdb.GetExistProposal(id, state)
+	if err != nil {
+		return false
+	}
+	vp, ok := prop.(*VersionProposal)
+	return ok && vp.NewVersion >= params.FORKVERSION_1_6_0 && vp.GetActiveBlock() == number.Uint64()
+}
+
 func Gte160Version(version uint32) bool {
 	return version >= params.FORKVERSION_1_6_0
 }

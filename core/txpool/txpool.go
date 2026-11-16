@@ -355,11 +355,11 @@ func NewTxPool(config Config, chainconfig *params.ChainConfig, chain txPoolBlock
 				pool.eip2718, pool.eip1559 = true, true
 				pool.signer = types.MakeSigner(chainconfig, currentBlock.Number(), gte150)
 			}
-			if gte160 := gov.NewGov(nil).Gte160VersionState(stateDB); gte160 {
-				pool.hawking = true
-			} else {
-				pool.hawking = false
-			}
+			pool.hawking = gov.HawkingActive(chainconfig, currentBlock.Number(), stateDB)
+		} else {
+			// Untyped nil: a nil *state.StateDB in the interface would pass the
+			// nil check in HawkingActive and be dereferenced.
+			pool.hawking = gov.HawkingActive(chainconfig, currentBlock.Number(), nil)
 		}
 	}
 
@@ -1513,12 +1513,7 @@ func (pool *TxPool) resetSigner(blockNumber *big.Int, statedb *state.StateDB) {
 	pool.signer = types.MakeSigner(pool.chainconfig, blockNumber, gte150)
 	pool.locals.signer = pool.signer
 	pool.cacheAccountNeedPromoted.signer = pool.signer
-	gte160 := gov.NewGov(nil).Gte160VersionState(statedb)
-	if gte160 {
-		pool.hawking = true
-	} else {
-		pool.hawking = false
-	}
+	pool.hawking = gov.HawkingActive(pool.chainconfig, blockNumber, statedb)
 }
 
 // promoteExecutables moves transactions that have become processable from the
