@@ -17,14 +17,63 @@
 package vm
 
 import (
+	"bytes"
 	"reflect"
 	"strconv"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
+
+// isPlatONQuery reports whether input selects a method of system contract p
+// that neither writes state nor emits logs. Decoding mirrors the dispatchers
+// (plugin.VerifyTxData and validatorInnerContract.execute) so the method
+// checked here is the one that runs. Undecodable input is not a query.
+func isPlatONQuery(p PrecompiledContract, input []byte) bool {
+	var args [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &args); err != nil || len(args) == 0 {
+		return false
+	}
+	if _, ok := p.(*validatorInnerContract); ok {
+		if len(args) < 2 {
+			return false
+		}
+		switch common.BytesToInt64(args[0]) {
+		case txTypeCurrent, txTypeNext:
+			return true
+		}
+		return false
+	}
+	var fn uint16
+	if err := rlp.DecodeBytes(args[0], &fn); err != nil {
+		return false
+	}
+	switch p.(type) {
+	case *StakingContract:
+		switch fn {
+		case QueryVerifierList, QueryValidatorList, QueryCandidateList, QueryRelateList,
+			QueryDelegateInfo, QueryCandidateInfo, QueryDelegationLock,
+			GetPackageReward, GetStakingReward, GetAvgPackTime:
+			return true
+		}
+	case *GovContract:
+		switch fn {
+		case GetProposal, GetResult, ListProposal, GetActiveVersion,
+			GetGovernParamValue, GetAccuVerifiersCount, ListGovernParam:
+			return true
+		}
+	case *SlashingContract:
+		return fn == CheckDuplicateSign
+	case *RestrictingContract:
+		return fn == QueryRestrictingInfo
+	case *DelegateRewardContract:
+		return fn == QueryDelegateReward
+	}
+	return false
+}
 
 func execPlatonContract(input []byte, command map[uint16]interface{}) (ret []byte, err error) {
 	// verify the tx data by contracts method
