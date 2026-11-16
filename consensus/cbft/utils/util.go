@@ -36,7 +36,7 @@ func RandomOffset(n int) int {
 	return int(rand.Uint32() % uint32(n))
 }
 
-// BuildHash converts byte array to hash. Use sha256 to
+// BuildHash converts byte array to hash. Use sha3 (SHA3-256) to
 // generate a unique message hash.
 func BuildHash(msgType byte, bytes []byte) common.Hash {
 	bytes[0] = msgType
