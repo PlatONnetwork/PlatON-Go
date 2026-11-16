@@ -8,7 +8,11 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
 func wasmTestContext(caller, self common.Address, gas uint64, hawking bool) *VMContext {
@@ -16,6 +20,29 @@ func wasmTestContext(caller, self common.Address, gas uint64, hawking bool) *VMC
 	return &VMContext{
 		evm:      &EVM{chainRules: params.Rules{IsHawking: hawking}},
 		contract: contract,
+	}
+}
+
+func TestWasmHawkingFromStateOncePerFrame(t *testing.T) {
+	db, _ := state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()), nil)
+	gdb := gov.NewGovDB(snapshotdb.Instance())
+	if err := gdb.AddActiveVersion(params.FORKVERSION_1_5_0, 0, db); err != nil {
+		t.Fatal(err)
+	}
+	evm := &EVM{StateDB: db, SnapshotDB: snapshotdb.Instance()}
+
+	ctx := &VMContext{evm: evm}
+	if wasmHawking(ctx) {
+		t.Fatal("Hawking reported at 1.5.0")
+	}
+	if err := gdb.AddActiveVersion(params.FORKVERSION_1_6_0, 1, db); err != nil {
+		t.Fatal(err)
+	}
+	if wasmHawking(ctx) {
+		t.Fatal("frame result changed after its first lookup")
+	}
+	if !wasmHawking(&VMContext{evm: evm}) {
+		t.Fatal("new frame did not see 1.6.0")
 	}
 }
 
@@ -67,4 +94,15 @@ func TestLimitWasmBuffer(t *testing.T) {
 func TestLimitWasmBufferPreHawking(t *testing.T) {
 	ctx := wasmTestContext(common.HexToAddress("0x11"), common.HexToAddress("0x22"), 100, false)
 	limitWasmBuffer(ctx, 1<<31)
+}
+
+func TestLimitWasmBufferCapsLinearMemory(t *testing.T) {
+	ctx := wasmTestContext(common.HexToAddress("0x11"), common.HexToAddress("0x22"), uint64(memoryLimit)+10, true)
+	defer func() {
+		if recover() != ErrOutOfGas {
+			t.Fatal("expected ErrOutOfGas")
+		}
+	}()
+	limitWasmBuffer(ctx, uint32(memoryLimit)+1)
+	t.Fatal("expected panic")
 }

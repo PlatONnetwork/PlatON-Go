@@ -97,6 +97,31 @@ func (bc *testBlockChain) GetState(header *types.Header) (*state.StateDB, error)
 	return bc.statedb, nil
 }
 
+// stateUnavailableChain fails GetState, like a head whose state is missing.
+type stateUnavailableChain struct {
+	*testBlockChain
+}
+
+func (bc *stateUnavailableChain) GetState(*types.Header) (*state.StateDB, error) {
+	return nil, errors.New("state unavailable")
+}
+
+func TestNewTxPoolStateUnavailable(t *testing.T) {
+	// Pauli without a Hawking fork block, so HawkingActive has to consult state.
+	config := &params.ChainConfig{
+		ChainID:     params.TestChainConfig.ChainID,
+		PIP7ChainID: params.TestChainConfig.PIP7ChainID,
+		PauliBlock:  big.NewInt(0),
+	}
+	chain := &stateUnavailableChain{&testBlockChain{10000000, nil, new(event.Feed)}}
+	pool := NewTxPool(testTxPoolConfig, config, chain)
+	defer pool.Stop()
+	<-pool.initDoneCh
+	if pool.hawking {
+		t.Fatal("hawking enabled without a fork block or readable state")
+	}
+}
+
 func transaction(nonce uint64, gaslimit uint64, key *ecdsa.PrivateKey, chainId *big.Int) *types.Transaction {
 	return pricedTransaction(nonce, gaslimit, big.NewInt(1), key, chainId)
 }

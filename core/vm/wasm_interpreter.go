@@ -24,6 +24,7 @@ type WASMInterpreter struct {
 	evm      *EVM
 	cfg      Config
 	gasTable params.GasTable
+	readOnly bool
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
@@ -42,6 +43,10 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // considered a revert-and-consume-all-gas operations except for
 // ErrExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
+	if readOnly && !in.readOnly {
+		in.readOnly = true
+		defer func() { in.readOnly = false }()
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			switch e := r.(type) {

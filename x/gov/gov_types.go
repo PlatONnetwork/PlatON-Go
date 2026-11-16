@@ -46,6 +46,19 @@ type ActiveVersionValue struct {
 	ActiveVersion uint32 `json:"ActiveVersion"`
 	ActiveBlock   uint64 `json:"ActiveBlock"`
 }
+
+// ActiveBlockOf returns the block at which version was activated. The list is
+// newest first, so a fork version is no longer at index 0 once a later version
+// activates.
+func ActiveBlockOf(avList []ActiveVersionValue, version uint32) (uint64, bool) {
+	for _, av := range avList {
+		if av.ActiveVersion == version {
+			return av.ActiveBlock, true
+		}
+	}
+	return 0, false
+}
+
 type ParamItem struct {
 	Module string `json:"Module"`
 	Name   string `json:"Name"`

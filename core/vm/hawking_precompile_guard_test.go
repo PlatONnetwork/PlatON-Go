@@ -99,6 +99,35 @@ func staticcallRestrictingCode(t *testing.T, target common.Address, calldata []b
 	return append(code, calldata...)
 }
 
+// callRestrictingCode CALLs (0xF1) target with value 0. Header is 42 bytes.
+func callRestrictingCode(t *testing.T, target common.Address, calldata []byte) []byte {
+	t.Helper()
+	L := len(calldata)
+	code := []byte{
+		0x60, byte(L),
+		0x60, 42,
+		0x60, 0x00,
+		0x39,
+		0x60, 0x00,
+		0x60, 0x00,
+		0x60, byte(L),
+		0x60, 0x00,
+		0x60, 0x00, // value
+		0x73,
+	}
+	code = append(code, target.Bytes()...)
+	code = append(code,
+		0x5A, // GAS
+		0xF1, // CALL
+		0x50, // POP
+		0x00, // STOP
+	)
+	if len(code) != 42 {
+		t.Fatalf("call header must be 42 bytes, got %d", len(code))
+	}
+	return append(code, calldata...)
+}
+
 func restrictingGuardEVM(t *testing.T, origin common.Address, activeVersion uint32, sdb snapshotdb.DB, state StateDB) *EVM {
 	t.Helper()
 	gov.InitGenesisGovernParam(common.ZeroHash, sdb, 2048)
@@ -208,6 +237,183 @@ func TestHawkingStaticcallRestrictingRejected(t *testing.T) {
 	}
 	if _, bizErr := plugin.RestrictingInstance().GetRestrictingInfo(attackerEOA, chain.StateDB); bizErr == nil {
 		t.Fatal("hawking must not record a restricting plan via staticcall")
+	}
+}
+
+func TestRunInheritsWasmReadOnly(t *testing.T) {
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+	origin := common.HexToAddress("0x1212121212121212121212121212121212121212")
+	evm := restrictingGuardEVM(t, origin, params.FORKVERSION_1_6_0, chain.SnapDB, chain.StateDB)
+	evm.interpreter = &WASMInterpreter{readOnly: true}
+	contract := NewContract(AccountRef(origin), AccountRef(cvm.RestrictingContractAddr), big.NewInt(0), 100000)
+	contract.SetCallCode(&cvm.RestrictingContractAddr, common.Hash{}, nil)
+	_, err := run(evm, contract, nil, false)
+	if err != ErrWriteProtection {
+		t.Fatalf("wasm readOnly call = %v, want ErrWriteProtection", err)
+	}
+}
+
+// encodePlatONInput builds PPOS calldata: RLP list of RLP-encoded fn code and params.
+func encodePlatONInput(t *testing.T, fn uint16, args ...[]byte) []byte {
+	t.Helper()
+	p0, err := rlp.EncodeToBytes(common.Uint16ToBytes(fn))
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := [][]byte{p0}
+	for _, a := range args {
+		enc, err := rlp.EncodeToBytes(a)
+		if err != nil {
+			t.Fatal(err)
+		}
+		parts = append(parts, enc)
+	}
+	in, err := rlp.EncodeToBytes(parts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return in
+}
+
+func TestIsPlatONQuery(t *testing.T) {
+	inner := func(txType int64, name string) []byte {
+		return encodeValidatorInnerInput(t, common.Int64ToBytes(txType), []byte(name))
+	}
+	cases := []struct {
+		name string
+		p    PrecompiledContract
+		in   []byte
+		want bool
+	}{
+		{"staking query", &StakingContract{}, encodePlatONInput(t, QueryCandidateInfo), true},
+		{"staking reward query", &StakingContract{}, encodePlatONInput(t, GetAvgPackTime), true},
+		{"staking delegate", &StakingContract{}, encodePlatONInput(t, TxDelegate), false},
+		{"staking with gov query code", &StakingContract{}, encodePlatONInput(t, GetProposal), false},
+		{"gov query", &GovContract{}, encodePlatONInput(t, ListProposal), true},
+		{"gov vote", &GovContract{}, encodePlatONInput(t, Vote), false},
+		{"slashing check", &SlashingContract{}, encodePlatONInput(t, CheckDuplicateSign), true},
+		{"slashing report", &SlashingContract{}, encodePlatONInput(t, TxReportDuplicateSign), false},
+		{"restricting query", &RestrictingContract{}, encodePlatONInput(t, QueryRestrictingInfo), true},
+		{"restricting create", &RestrictingContract{}, encodePlatONInput(t, TxCreateRestrictingPlan), false},
+		{"reward query", &DelegateRewardContract{}, encodePlatONInput(t, QueryDelegateReward), true},
+		{"reward withdraw", &DelegateRewardContract{}, encodePlatONInput(t, TxWithdrawDelegateReward), false},
+		{"inner current", &validatorInnerContract{}, inner(txTypeCurrent, "CurrentValidatros"), true},
+		{"inner next", &validatorInnerContract{}, inner(txTypeNext, "NextValidators"), true},
+		{"inner switch under query name", &validatorInnerContract{}, inner(txTypeSwitch, "CurrentValidatros"), false},
+		{"inner update", &validatorInnerContract{}, inner(txTypeUpdate, "UpdateValidators"), false},
+		{"empty", &StakingContract{}, nil, false},
+		{"not a list", &StakingContract{}, []byte{0x01, 0x02}, false},
+	}
+	for _, c := range cases {
+		if got := isPlatONQuery(c.p, c.in); got != c.want {
+			t.Errorf("%s: isPlatONQuery = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+func TestHawkingStaticcallRestrictingQueryAllowed(t *testing.T) {
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
+	caller := common.HexToAddress("0x1313131313131313131313131313131313131313")
+	evm := restrictingGuardEVM(t, caller, params.FORKVERSION_1_6_0, chain.SnapDB, chain.StateDB)
+
+	query := encodePlatONInput(t, QueryRestrictingInfo, caller.Bytes())
+	ret, _, err := evm.StaticCall(AccountRef(caller), cvm.RestrictingContractAddr, query, 1000000)
+	if err != nil {
+		t.Fatalf("static query = %v, want success", err)
+	}
+	if len(ret) == 0 {
+		t.Fatal("static query returned no result")
+	}
+
+	plans := []restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1)}}
+	write := encodeRestrictingCreate(t, caller, plans)
+	if _, _, err := evm.StaticCall(AccountRef(caller), cvm.RestrictingContractAddr, write, 1000000); err != ErrWriteProtection {
+		t.Fatalf("static write = %v, want ErrWriteProtection", err)
+	}
+}
+
+func TestHawkingNestedReadOnlyQueryAllowed(t *testing.T) {
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
+	origin := common.HexToAddress("0x1515151515151515151515151515151515151515")
+	evm := restrictingGuardEVM(t, origin, params.FORKVERSION_1_6_0, chain.SnapDB, chain.StateDB)
+	evm.interpreter = &WASMInterpreter{readOnly: true}
+	contract := NewContract(AccountRef(origin), AccountRef(cvm.RestrictingContractAddr), big.NewInt(0), 1000000)
+	contract.SetCallCode(&cvm.RestrictingContractAddr, common.Hash{}, nil)
+
+	if _, err := run(evm, contract, encodePlatONInput(t, QueryRestrictingInfo, origin.Bytes()), false); err != nil {
+		t.Fatalf("nested read-only query = %v, want success", err)
+	}
+	plans := []restricting.RestrictingPlan{{Epoch: 1, Amount: big.NewInt(1)}}
+	if _, err := run(evm, contract, encodeRestrictingCreate(t, origin, plans), false); err != ErrWriteProtection {
+		t.Fatalf("nested read-only write = %v, want ErrWriteProtection", err)
+	}
+}
+
+// TestRunReadOnlyInheritanceIsHawkingOnly: before Hawking a CALL out of a
+// static frame into new code stays writable, so historical blocks replay.
+func TestRunReadOnlyInheritanceIsHawkingOnly(t *testing.T) {
+	sstore := []byte{0x60, 0x01, 0x60, 0x00, 0x55, 0x00} // PUSH1 1 PUSH1 0 SSTORE STOP
+	cases := []struct {
+		name    string
+		version uint32
+		want    error
+	}{
+		{"pre-hawking", params.FORKVERSION_1_5_0, nil},
+		{"hawking", params.FORKVERSION_1_6_0, ErrWriteProtection},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			chain := newMockChain()
+			defer chain.SnapDB.Clear()
+
+			origin := common.HexToAddress("0x1616161616161616161616161616161616161616")
+			target := common.HexToAddress("0x1717171717171717171717171717171717171717")
+			evm := restrictingGuardEVM(t, origin, c.version, chain.SnapDB, chain.StateDB)
+			chain.StateDB.SetCode(target, sstore)
+			chain.StateDB.AddAddressToAccessList(target)
+			evm.interpreter = &WASMInterpreter{readOnly: true}
+
+			contract := NewContract(AccountRef(origin), AccountRef(target), big.NewInt(0), 100000)
+			contract.SetCallCode(&target, chain.StateDB.GetCodeHash(target), sstore)
+			if _, err := run(evm, contract, nil, false); err != c.want {
+				t.Fatalf("run = %v, want %v", err, c.want)
+			}
+		})
+	}
+}
+
+func TestHawkingNestedStaticCallRestrictingRejected(t *testing.T) {
+	chain := newMockChain()
+	defer chain.SnapDB.Clear()
+
+	victim := common.HexToAddress("0xabcabcabcabcabcabcabcabcabcabcabcabcabca")
+	attackerEOA := common.HexToAddress("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	bridge := common.HexToAddress("0xcccccccccccccccccccccccccccccccccccccccc")
+
+	drain := new(big.Int).Mul(big.NewInt(1000), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	chain.StateDB.AddBalance(bridge, new(big.Int).Set(drain))
+	chain.StateDB.SetTxContext(common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000e51"), 0)
+
+	evm := restrictingGuardEVM(t, victim, params.FORKVERSION_1_6_0, chain.SnapDB, chain.StateDB)
+	plans := []restricting.RestrictingPlan{{Epoch: 1, Amount: new(big.Int).Set(drain)}}
+	calldata := encodeRestrictingCreate(t, attackerEOA, plans)
+	chain.StateDB.SetCode(bridge, callRestrictingCode(t, cvm.RestrictingContractAddr, calldata))
+
+	before := new(big.Int).Set(chain.StateDB.GetBalance(bridge))
+	if _, _, err := evm.StaticCall(AccountRef(victim), bridge, nil, 8000000); err != nil {
+		t.Fatalf("outer STATICCALL failed: %v", err)
+	}
+	after := chain.StateDB.GetBalance(bridge)
+	if after.Cmp(before) != 0 {
+		t.Fatalf("nested static call mutated bridge: before=%s after=%s", before, after)
+	}
+	if _, bizErr := plugin.RestrictingInstance().GetRestrictingInfo(attackerEOA, chain.StateDB); bizErr == nil {
+		t.Fatal("nested static call must not record a restricting plan")
 	}
 }
 

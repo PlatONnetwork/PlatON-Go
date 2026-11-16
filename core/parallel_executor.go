@@ -75,6 +75,9 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 
 		start = time.Now()
 		batchNo := 0
+		// Transfers are never creates, so the Hawking initcode surcharge does not
+		// apply. Pass the real fork flag so this preCheck cannot drift from StateTransition.
+		hawking := gov.HawkingActive(exe.chainConfig, ctx.header.Number, ctx.state)
 		for !ctx.IsTimeout() && txDag.HasNext() {
 			parallelTxIdxs := txDag.Next()
 
@@ -100,7 +103,7 @@ func (exe *Executor) ExecuteTransactions(ctx *ParallelContext) error {
 						}
 					}
 
-					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false, false)
+					intrinsicGas, err := IntrinsicGas(tx.Data(), tx.AccessList(), false, hawking)
 					if err != nil {
 						ctx.buildTransferFailedResult(originIdx, err, false)
 						continue

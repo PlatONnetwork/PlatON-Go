@@ -58,18 +58,7 @@ func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types
 	if govInst.Gte160VersionState(statedb) {
 		return true, true
 	}
-	gdb := gov.NewGovDB(snapshotdb.Instance())
-	if gdb.GetPreActiveVersion(parent.Hash()) < params.FORKVERSION_1_6_0 {
-		return false, true
-	}
-	preActiveID, err := gdb.GetPreActiveProposalID(parent.Hash())
-	if err != nil || preActiveID == common.ZeroHash {
-		return false, true
-	}
-	prop, err := gdb.GetExistProposal(preActiveID, statedb)
-	if err != nil {
-		return false, true
-	}
-	vp, ok := prop.(*gov.VersionProposal)
-	return ok && vp.NewVersion >= params.FORKVERSION_1_6_0 && vp.GetActiveBlock() == number.Uint64(), true
+	// Same proposal rule as execution. A lookup miss is "not this block",
+	// which is certain: the parent state itself loaded.
+	return gov.VersionActivates(snapshotdb.Instance(), parent.Hash(), number, statedb), true
 }

@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
 	"math/big"
@@ -15,10 +16,26 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-const (
-	// Must match common/vm.ValidatorInnerAdminAddr (Hawking ACL).
-	innerAccountPrivateKey = "394602483ea4d76f380ae4022f22b76519d884654a27ce52df0ceb77f3989d2c"
-)
+// innerAdminKey returns the locally configured key for the inner-mode switch
+// transaction. The key is not part of the source tree; the address it must
+// match is chainConfig.Cbft.InnerAdmin.
+func (w *worker) innerAdminKey() (*ecdsa.PrivateKey, common.Address, error) {
+	if w.chainConfig == nil || w.chainConfig.Cbft == nil || w.chainConfig.Cbft.InnerAdmin == (common.Address{}) {
+		return nil, common.Address{}, errors.New("inner admin address is not configured")
+	}
+	if w.config == nil || len(w.config.InnerAdminKey) == 0 {
+		return nil, common.Address{}, errors.New("inner admin key is not configured")
+	}
+	key, err := crypto.ToECDSA(w.config.InnerAdminKey)
+	if err != nil {
+		return nil, common.Address{}, err
+	}
+	addr := crypto.PubkeyToAddress(key.PublicKey)
+	if addr != w.chainConfig.Cbft.InnerAdmin {
+		return nil, common.Address{}, errors.New("inner admin key does not match Cbft.InnerAdmin")
+	}
+	return key, addr, nil
+}
 
 func (w *worker) shouldSwitch(env *environment) bool {
 	blocksPerNode := int(w.chainConfig.Cbft.Amount)
@@ -46,7 +63,11 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 
 	offset := uint64(w.chainConfig.Cbft.Amount) * 2
 	validBlockNumber := env.header.Number.Uint64() + offset + 1
-	address := vm.ValidatorInnerAdminAddr
+	privateKy, address, err := w.innerAdminKey()
+	if err != nil {
+		log.Error("Inner admin is not available", "error", err)
+		return err
+	}
 	nonce := env.state.GetNonce(address)
 	param := [][]byte{
 		common.Int64ToBytes(2003),
@@ -59,7 +80,6 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 		return err
 	}
 
-	privateKy, _ := crypto.HexToECDSA(innerAccountPrivateKey)
 	tx := types.NewTransaction(
 		nonce,
 		vm.ValidatorInnerContractAddr,
@@ -70,7 +90,7 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 	signedTx, err := types.SignTx(tx, env.signer, privateKy)
 	if err != nil {
 		log.Error("Sign transaction fail", "error", err)
-		return nil
+		return err
 	}
 
 	signedTxs := map[common.Address]types.Transactions{
@@ -81,10 +101,24 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 	txs := types.NewTransactionsByPriceAndNonce(env.signer, signedTxs, nil)
 
 	tempContractCache := make(map[common.Address]struct{})
-	if ok, _ := w.committer.CommitTransactions(env, txs, nil, timestamp, blockDeadline, tempContractCache); ok {
-		log.Error("Commit inner contract transaction fail")
-		return errors.New("commit transaction fail")
+	includedFrom := len(env.txs)
+	if interrupted, _ := w.committer.CommitTransactions(env, txs, nil, timestamp, blockDeadline, tempContractCache); interrupted {
+		log.Error("Commit inner contract transaction interrupted")
+		return errors.New("commit transaction interrupted")
+	}
+	if !innerTxIncluded(env.txs[includedFrom:], signedTx.Hash()) {
+		log.Error("Inner switch transaction was not included", "hash", signedTx.Hash(), "number", env.header.Number)
+		return errors.New("inner switch transaction was not included")
 	}
 	log.Debug("Commit inner contract transaction success", "number", env.header.Number, "validBlockNumber", validBlockNumber)
 	return nil
+}
+
+func innerTxIncluded(txs []*types.Transaction, hash common.Hash) bool {
+	for _, tx := range txs {
+		if tx.Hash() == hash {
+			return true
+		}
+	}
+	return false
 }

@@ -55,6 +55,19 @@ type (
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+	// CALL from a STATICCALL frame passes readOnly=false into Call. The parent
+	// interpreter still has the static flag; after Hawking child precompiles and
+	// WASM must see it. Before Hawking a nested WASM frame stays writable.
+	if !readOnly {
+		var inherited bool
+		switch in := evm.interpreter.(type) {
+		case *EVMInterpreter:
+			inherited = in.readOnly
+		case *WASMInterpreter:
+			inherited = in.readOnly
+		}
+		readOnly = inherited && (evm.chainRules.IsHawking || gov.NewGov(evm.SnapshotDB).Gte160VersionState(evm.StateDB))
+	}
 	if contract.CodeAddr != nil {
 		gov := gov.NewGov(evm.SnapshotDB)
 		precompiles := PrecompiledContractsByzantium
@@ -79,13 +92,14 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			hawking := evm.chainRules.IsHawking || gov.Gte160VersionState(evm.StateDB)
 			// After Hawking (1.6.0): stateful PlatON system contracts authorize
 			// mutations via Contract.CallerAddress. Reject DELEGATECALL/CALLCODE
-			// deputy frames (Address != CodeAddr) and any STATICCALL (readOnly),
-			// so outer-caller confused-deputy theft and read-only writes are closed.
+			// deputy frames (Address != CodeAddr), and in read-only frames allow
+			// only query methods, so confused-deputy theft and read-only writes
+			// are closed while view wrappers keep working.
 			// Pre-Hawking execution is unchanged for historical replay.
 			if hawking {
 				switch p.(type) {
 				case *StakingContract, *RestrictingContract, *SlashingContract, *GovContract, *DelegateRewardContract, *validatorInnerContract:
-					if readOnly || *contract.CodeAddr != contract.Address() {
+					if *contract.CodeAddr != contract.Address() || (readOnly && !isPlatONQuery(p, input)) {
 						return nil, ErrWriteProtection
 					}
 				}

@@ -53,6 +53,13 @@ type dummyStatedb struct {
 func (*dummyStatedb) GetRefund() uint64                       { return 1337 }
 func (*dummyStatedb) GetBalance(addr common.Address) *big.Int { return new(big.Int) }
 
+// Override the embedded zero StateDB so NewEVMInterpreter's governance version
+// lookup (and any tracer db.* access) does not dereference a nil trie.
+func (*dummyStatedb) GetState(common.Address, []byte) []byte           { return nil }
+func (*dummyStatedb) SetState(common.Address, []byte, []byte)          {}
+func (*dummyStatedb) GetTransientState(common.Address, []byte) []byte  { return nil }
+func (*dummyStatedb) SetTransientState(common.Address, []byte, []byte) {}
+
 type vmContext struct {
 	blockCtx vm.BlockContext
 	txCtx    vm.TxContext
@@ -239,8 +246,7 @@ func TestIsPrecompile(t *testing.T) {
 	chaincfg.EinsteinBlock = big.NewInt(100)
 	chaincfg.HubbleBlock = big.NewInt(200)
 	chaincfg.PauliBlock = big.NewInt(300)
-	// Leave DiracBlock at 0 so NewEVMInterpreter short-circuits on IsDirac and
-	// does not call gov against the nil embedded StateDB in dummyStatedb.
+	chaincfg.HawkingBlock = nil
 	// ActivePrecompilesByRules only keys off Pauli/Hubble/Einstein.
 	txCtx := vm.TxContext{GasPrice: big.NewInt(100000)}
 	tracer, err := newJsTracer("{addr: toAddress('0000000000000000000000000000000000000009'), res: null, step: function() { this.res = isPrecompiled(this.addr); }, fault: function() {}, result: function() { return this.res; }}", nil, nil)

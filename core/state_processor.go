@@ -109,7 +109,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 	}
-	isHawking := gov.NewGov(snapshotdb.Instance()).Gte160VersionState(statedb)
+	isHawking := gov.HawkingActive(p.config, block.Number(), statedb)
 	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
 	if len(withdrawals) > 0 && !isHawking {

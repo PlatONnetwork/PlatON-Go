@@ -344,6 +344,19 @@ func Open(path string, cache int, handles int, baseOnly bool, archive bool) (DB,
 }
 
 func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) (*snapshotDB, error) {
+	db, err := openWithStorage(st, cache, handles, baseOnly)
+	if err != nil {
+		return nil, err
+	}
+	if !baseOnly {
+		if err := db.Start(); err != nil {
+			return nil, err
+		}
+	}
+	return db, nil
+}
+
+func openWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) (*snapshotDB, error) {
 	logger.Info("open snapshot db Allocated cache and file handles", "cache", cache, "handles", handles, "baseDB", baseOnly)
 
 	baseDB, err := leveldb.Open(st, &opt.Options{
@@ -372,6 +385,7 @@ func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) 
 		committed:     make([]*BlockData, 0),
 		baseDB:        baseDB,
 		snapshotLockC: snapshotUnLock,
+		walCh:         make(chan *BlockData, 2),
 	}
 	if baseOnly {
 		return db, nil
@@ -396,12 +410,6 @@ func OpenWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) 
 	} else {
 		return nil, getCurrentError
 	}
-
-	if !baseOnly {
-		if err := db.Start(); err != nil {
-			return nil, err
-		}
-	}
 	return db, nil
 }
 
@@ -423,7 +431,7 @@ func copyDB(from, to *snapshotDB) {
 func initDB(path string, sdb *snapshotDB) error {
 	if path == "" {
 		// only for test
-		dbInterface, err := OpenWithStorage(storage.NewMemStorage(), baseDBcache, baseDBhandles, false)
+		dbInterface, err := openWithStorage(storage.NewMemStorage(), baseDBcache, baseDBhandles, false)
 		if err != nil {
 			return err
 		}

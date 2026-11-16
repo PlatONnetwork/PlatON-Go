@@ -65,7 +65,7 @@ func TestStoreCapture(t *testing.T) {
 	cfg := *params.TestChainConfig
 	cfg.GenesisVersion = params.FORKVERSION_1_4_0
 	cfg.PauliBlock = nil
-	cfg.DiracBlock = nil
+	cfg.HawkingBlock = nil
 
 	var (
 		logger   = NewStructLogger(nil)

@@ -48,6 +48,9 @@ type Config struct {
 	GasPrice  *big.Int      // Minimum gas price for mining a transaction
 	Recommit  time.Duration // The time interval for miner to re-create mining work.
 	Noverify  bool          // Disable remote mining solution verification(only useful in ethash).
+	// InnerAdminKey signs the inner-mode validator switch transaction.
+	// It must match chainConfig.Cbft.InnerAdmin and must not be a key shipped in source.
+	InnerAdminKey hexutil.Bytes `toml:",omitempty"`
 }
 
 // Miner creates blocks and searches for proof-of-work values.

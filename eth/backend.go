@@ -317,11 +317,9 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		if err != nil {
 			return nil, err
 		}
-		if len(ActiveVersionList) > 0 {
-			if ActiveVersionList[0].ActiveVersion == params.FORKVERSION_1_5_0 {
-				eth.blockchain.Config().SetPauliBlock(new(big.Int).SetUint64(ActiveVersionList[0].ActiveBlock))
-				log.Info("Initialised chain configuration for 1.5.0", "config", eth.blockchain.Config())
-			}
+		if block, ok := gov.ActiveBlockOf(ActiveVersionList, params.FORKVERSION_1_5_0); ok {
+			eth.blockchain.Config().SetPauliBlock(new(big.Int).SetUint64(block))
+			log.Info("Initialised chain configuration for 1.5.0", "config", eth.blockchain.Config())
 		}
 	}
 

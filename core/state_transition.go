@@ -216,6 +216,12 @@ func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) (*ExecutionResult, erro
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
+// hawkingActive is the execution-side Hawking check. On the activation block
+// governance BeginBlock has already written 1.6.0 into state before any tx runs.
+func (st *StateTransition) hawkingActive() bool {
+	return gov.HawkingActive(st.evm.ChainConfig(), st.evm.Context.BlockNumber, st.state)
+}
+
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
 	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
@@ -332,6 +338,12 @@ func (st *StateTransition) isContractIvk() bool {
 // However if any consensus issue encountered, return the error directly with
 // nil evm execution result.
 func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
+	// Reject oversized init code before buyGas. A later return would leave
+	// the gas pool and the sender's prepaid balance deducted.
+	if st.msg.To() == nil && len(st.data) > params.MaxInitCodeSize && st.hawkingActive() {
+		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
+	}
+
 	// because of the inconsistent logics of serial and parallel,
 	// tx added a check to determine whether it is a contract invoking.
 	isContractIvk := st.isContractIvk()
@@ -364,8 +376,7 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		contractCreation = msg.To() == nil
 	)
 
-	// Check whether the init code size has been exceeded.
-	hawking := gov.NewGov(st.evm.SnapshotDB).Gte160VersionState(st.state)
+	hawking := st.hawkingActive()
 
 	// Check clauses 4-5, subtract intrinsic gas if everything is correct
 	gas, err := IntrinsicGas(st.data, st.msg.AccessList(), contractCreation, hawking)
@@ -380,11 +391,6 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 	// Check clause 6
 	if msg.Value().Sign() > 0 && !st.evm.Context.CanTransfer(st.state, msg.From(), msg.Value()) {
 		return nil, fmt.Errorf("%w: address %v", ErrInsufficientFundsForTransfer, msg.From().Hex())
-	}
-
-	// Set up the initial access list.
-	if hawking && contractCreation && len(st.data) > params.MaxInitCodeSize {
-		return nil, fmt.Errorf("%w: code size %v limit %v", ErrMaxInitCodeSizeExceeded, len(st.data), params.MaxInitCodeSize)
 	}
 
 	// Limit the time it takes for a virtual machine to execute the smart contract,
