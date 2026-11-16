@@ -39,6 +39,8 @@ set -e
 
 # Build and test bls lib
 MAKE="make"
+# Only the mcl libraries PlatON links; mcl's default target also builds the unused SHE library.
+$MAKE -C $BLS_ROOT/bls_linux_darwin/src/mcl -j 4 lib/libmcl.a lib/libmclbn384.a
 cd $BLS_ROOT/bls_linux_darwin/src/bls
 $MAKE -j 4
 
