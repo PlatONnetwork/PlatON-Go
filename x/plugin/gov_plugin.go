@@ -254,8 +254,8 @@ func (govPlugin *GovPlugin) setForkBlock(blockHash common.Hash, state xcom.State
 	if err != nil {
 		return err
 	}
-	if len(versionList) > 0 && versionList[0].ActiveVersion == version {
-		setBlock(new(big.Int).SetUint64(versionList[0].ActiveBlock))
+	if block, ok := gov.ActiveBlockOf(versionList, version); ok {
+		setBlock(new(big.Int).SetUint64(block))
 		return nil
 	}
 
