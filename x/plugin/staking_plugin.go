@@ -2410,6 +2410,19 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 		return needRemove, staking.ErrSlashVonOverflow
 	}
 
+	// After Hawking, reject a shortfall before deleting power or moving
+	// balances. A later error would otherwise leave SnapshotDB and StateDB
+	// half-updated. Before Hawking the check stays after the balance slash.
+	hawking := gov.HawkingActive(sk.chainConfig, new(big.Int).SetUint64(blockNumber), state)
+	willSlashBalance := !(can.IsLowRatio() && slashItem.SlashType.IsLowRatio())
+	sharesHaveBeenClean := can.IsInvalidLowRatioNotEnough() || can.IsInvalidLowRatioDel() || can.IsInvalidDuplicateSign() || can.IsInvalidWithdrew()
+	if hawking && willSlashBalance && !sharesHaveBeenClean && slashItem.Amount != nil && can.Shares.Cmp(slashItem.Amount) < 0 {
+		log.Error("Failed to SlashCandidates: the candidate shares is no enough", "slashType", slashItem.SlashType,
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", slashItem.NodeId.String(), "candidate shares",
+			can.Shares, "slash amount", slashItem.Amount)
+		return needRemove, errCandidateSharesNotEnough
+	}
+
 	// clean the candidate power, first
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 		log.Error("Failed to SlashCandidates: Delete candidate old power is failed", "blockNumber", blockNumber,
@@ -2456,15 +2469,8 @@ func (sk *StakingPlugin) toSlash(state xcom.StateDB, blockNumber uint64, blockHa
 			return needRemove, staking.ErrWrongSlashVonCalc
 		}
 
-		sharesHaveBeenClean := func() bool {
-			return (can.IsInvalidLowRatioNotEnough() ||
-				can.IsInvalidLowRatioDel() ||
-				can.IsInvalidDuplicateSign() ||
-				can.IsInvalidWithdrew())
-		}
-
 		// If the shares is zero, don't need to sub shares
-		if !sharesHaveBeenClean() {
+		if !sharesHaveBeenClean {
 			// first slash and no withdrew
 			// sub Shares to effect power
 			if can.Shares.Cmp(slashItem.Amount) >= 0 {
