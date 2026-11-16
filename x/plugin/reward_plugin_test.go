@@ -918,8 +918,8 @@ func TestHandleDelegatePerReward_ZeroDelegateClearsStoredReward(t *testing.T) {
 	if stored.CurrentEpochDelegateReward.Cmp(big.NewInt(0)) != 0 {
 		t.Fatalf("stored CurrentEpochDelegateReward = %s, want 0", stored.CurrentEpochDelegateReward)
 	}
-	if stored.DelegateRewardTotal.Cmp(rewardAmt) != 0 {
-		t.Fatalf("DelegateRewardTotal = %s, want %s", stored.DelegateRewardTotal, rewardAmt)
+	if stored.DelegateRewardTotal.Sign() != 0 {
+		t.Fatalf("DelegateRewardTotal = %s, want 0: the payout went to the benefit address", stored.DelegateRewardTotal)
 	}
 
 	reloaded, err := stkDB.GetCandidateStore(hash, addr)
@@ -961,9 +961,8 @@ func TestHandleDelegatePerReward_ZeroDelegatePoolShortDoesNotClear(t *testing.T)
 	if err := stkDB.SetCanMutableStore(hash, addr, can.CandidateMutable); err != nil {
 		t.Fatal(err)
 	}
-	err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB)
-	if err == nil {
-		t.Fatal("expected pool shortfall error")
+	if err := rm.HandleDelegatePerReward(hash, 1, []*staking.Candidate{can}, chain.StateDB); err != nil {
+		t.Fatalf("pool shortfall must not fail the block: %v", err)
 	}
 	stored, gerr := stkDB.GetCanMutableStore(hash, addr)
 	if gerr != nil {

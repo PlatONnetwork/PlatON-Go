@@ -263,17 +263,16 @@ func (rmp *RewardMgrPlugin) HandleDelegatePerReward(blockHash common.Hash, block
 			log.Debug("handleDelegatePerReward return delegateReward", "epoch", currentEpoch, "reward", verifier.CurrentEpochDelegateReward, "add", verifier.BenefitAddress)
 			if err := rmp.ReturnDelegateReward(verifier.BenefitAddress, verifier.CurrentEpochDelegateReward, state); err != nil {
 				log.Error("HandleDelegatePerReward ReturnDelegateReward fail", "err", err, "blockNumber", blockNumber)
-				if hawking {
-					return err
-				}
+				// Keep producing the block, as before Hawking. StakingPlugin.BeginBlock
+				// of the next epoch drops the unpaid amount.
 				continue
 			}
 			if !hawking {
-				// The payment above is the one legitimate payout. BeginBlock of
-				// the next epoch clears CurrentEpochDelegateReward without paying
-				// again, so this is not a shortfall.
+				// StakingPlugin.BeginBlock of the next epoch clears it.
 				continue
 			}
+			// No delegator received it, so keep it out of DelegateRewardTotal.
+			verifier.CleanCurrentEpochDelegateReward()
 		} else {
 			per := reward.NewDelegateRewardPer(currentEpoch, verifier.CurrentEpochDelegateReward, verifier.DelegateTotal)
 			if err := AppendDelegateRewardPer(blockHash, verifier.NodeId, verifier.StakingBlockNum, per, rmp.db); err != nil {
