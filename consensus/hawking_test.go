@@ -48,9 +48,17 @@ func TestIsHawkingEnabledCertainWithConfigFork(t *testing.T) {
 func TestIsHawkingEnabledCertainBeforePauli(t *testing.T) {
 	cfg := &params.ChainConfig{
 		GenesisVersion: params.FORKVERSION_1_4_0,
+		PauliBlock:     big.NewInt(2),
 	}
 	enabled, certain := IsHawkingEnabled(cfg, big.NewInt(1), nil, nil)
 	if enabled || !certain {
 		t.Fatalf("before Pauli should be disabled&certain, got enabled=%v certain=%v", enabled, certain)
+	}
+}
+
+func TestIsHawkingEnabledWithoutKnownPauliHeight(t *testing.T) {
+	cfg := &params.ChainConfig{GenesisVersion: params.FORKVERSION_1_4_0}
+	if enabled, certain := IsHawkingEnabled(cfg, big.NewInt(100), nil, nil); enabled || certain {
+		t.Fatal("header-only sync cannot infer the governance version from an unset height")
 	}
 }

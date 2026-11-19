@@ -222,16 +222,29 @@ func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux
 }
 
 // Start starts consensus engine.
-func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) (err error) {
 	cbft.log.Info("~ Start cbft consensus")
 	cbft.blockChain = chain
 	cbft.txPool = txPool
 	cbft.blockCacheWriter = blockCacheWriter
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
+	checker, checkValidator := agency.(consensus.LocalValidatorChecker)
+	if checkValidator {
+		defer func() {
+			if err != nil {
+				cbft.asyncExecutor.Stop()
+				if cbft.wal != nil {
+					cbft.wal.Close()
+				}
+				cbft.evPool.Close()
+			}
+		}()
+	}
 
 	//Initialize block tree
-	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
-	//block := chain.CurrentBlock()
+	// Header sync may be ahead of execution. Consensus and WAL recovery
+	// resume from the same committed block.
+	block := chain.CurrentBlock()
 	isGenesis := func() bool {
 		return block.NumberU64() == 0
 	}
@@ -259,8 +272,9 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	// init handler and router to process message.
 	// cbft -> handler -> router.
 	cbft.network = network.NewEngineManger(cbft) // init engineManager as handler.
-	// Start the handler to process the message.
-	go cbft.network.Start()
+	if !checkValidator {
+		cbft.network.Start()
+	}
 
 	if cbft.config.Option.Node == nil {
 		cbft.config.Option.Node = enode.NewV4(&cbft.nodeServiceContext.Config().NodeKey().PublicKey, nil, 0, 0)
@@ -293,6 +307,14 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	if err := cbft.LoadWal(); err != nil {
 		cbft.log.Error("Load wal failed", "err", err)
 		return err
+	}
+	if checkValidator {
+		if cbft.IsConsensusNode() {
+			if err := checker.CheckLocalValidator(); err != nil {
+				return err
+			}
+		}
+		cbft.network.Start()
 	}
 	utils.SetFalse(&cbft.loading)
 
@@ -723,12 +745,8 @@ func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header
 		return err
 	}
 
-	hawking, certain := consensus.IsHawkingEnabled(chain.Config(), header.Number, parent, consensus.StateAtFromChain(chain))
-	// Only reject post-fork fields when we are certain Hawking is not active.
-	// During snap header sync, chain is a HeaderChain without StateAt; treating
-	// that as "before hawking" would falsely reject governance-activated headers.
-	if certain && !hawking {
-		if header.WithdrawalsHash != nil {
+	if header.WithdrawalsHash != nil {
+		if hawking, certain := consensus.IsHawkingEnabled(chain.Config(), header.Number, parent, consensus.StateAtFromChain(chain)); certain && !hawking {
 			return fmt.Errorf("invalid withdrawalsHash before hawking")
 		}
 	}

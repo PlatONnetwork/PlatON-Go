@@ -154,6 +154,24 @@ at block: 26 (Wed, 15 Dec 51802 20:22:44 CST)
 
 For more information, please visit our [Docs](https://devdocs.platon.network/docs/en/).
 
+## Upgrading an inner-validator chain to Hawking
+
+Before upgrading an `inner` block producer, provision a funded signing account for its automatic validator-switch transactions. Store its private key as a 64-character hexadecimal ECDSA key in a file readable only by the node operator. Set `InnerAdminKeyFile` in the JSON file passed to `platon --config`.
+
+```json
+{
+  "Eth": {
+    "Miner": {
+      "InnerAdminKeyFile": "/secure/platon/inner-admin.key"
+    }
+  }
+}
+```
+
+Before Hawking, an existing inner chain can use this signer while its admin address is unset. Set `config.cbft.innerAdmin` in the genesis JSON on every node and give every prospective producer the matching key. If a node has synced headers ahead of its executed blocks, it keeps its stored configuration and logs that the change was deferred. Restart it after execution catches up to apply the change. A producer with an existing admin must use that admin's key while the change is deferred.
+
+Confirm that every node has applied the address before scheduling Hawking. Once Hawking is active, editing the configuration cannot change the admin. PPoS nodes and inner nodes that only follow the chain do not need a key file.
+
 ## Contributing to PlatON-Go
 
 All of codes for PlatON-Go are open source and contributing are very welcome! Before beginning, please take a look at our contributing [guidelines](https://github.com/PlatONnetwork/PlatON-Go/blob/develop/.github/CONTRIBUTING.md). You can also open an issue by clicking [here](https://github.com/PlatONnetwork/PlatON-Go/issues/new/choose).

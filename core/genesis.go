@@ -184,6 +184,21 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 		return genesis.Config, block.Hash(), nil
 	}
 
+	storedcfg := rawdb.ReadChainConfig(db, stored)
+	var deferAdminChange bool
+	if storedcfg != nil && (genesis != nil || stored == params.MainnetGenesisHash) {
+		next := genesis.configOrDefault(stored)
+		if storedcfg.InnerAdminAddress() != next.InnerAdminAddress() {
+			effective, err := ResolveInnerAdminConfig(db, storedcfg, next)
+			if err != nil {
+				return nil, stored, err
+			}
+			deferAdminChange = effective == storedcfg
+			if deferAdminChange {
+				log.Warn("Deferring inner admin change until execution catches up; restart to apply", "storedAdmin", storedcfg.InnerAdminAddress(), "requestedAdmin", next.InnerAdminAddress())
+			}
+		}
+	}
 	// We have the genesis block in database(perhaps in ancient database)
 	// but the corresponding state is missing.
 	header := rawdb.ReadHeader(db, stored, 0)
@@ -201,19 +216,21 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 			return nil, common.Hash{}, err
 		}
 		// Ensure the stored genesis matches with the given one.
-		hash := genesis.ToBlock(nil, snapshotBaseDB).Hash()
+		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
-		block, err := genesis.Commit(db, snapshotBaseDB)
-		if err != nil {
-			return genesis.Config, hash, err
+		if !deferAdminChange {
+			block, err := genesis.Commit(db, snapshotBaseDB)
+			if err != nil {
+				return genesis.Config, hash, err
+			}
+			return genesis.Config, block.Hash(), nil
 		}
-		return genesis.Config, block.Hash(), nil
-	}
-
-	// Check whether the genesis block is already written.
-	if genesis != nil {
+		// Restore the genesis trie without resetting the download heads, the
+		// snapshot database, or the stored configuration to genesis.
+		genesis.ToBlock(db, nil)
+	} else if genesis != nil {
 		hash := genesis.ToBlock(nil, nil).Hash()
 		if hash != stored {
 			log.Error("Failed to compare the genesisHash and stored", "genesisHash", hash, "stored", stored)
@@ -227,8 +244,12 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
+	if deferAdminChange {
+		// The operator may have supplied a fork schedule alongside the new
+		// admin. Keep the stored settings together until the change is safe.
+		newcfg = storedcfg
+	}
 
-	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 
@@ -271,7 +292,7 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	// Special case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
-	if genesis == nil && stored != params.MainnetGenesisHash {
+	if deferAdminChange || (genesis == nil && stored != params.MainnetGenesisHash) {
 		return storedcfg, stored, nil
 	}
 
@@ -289,6 +310,44 @@ func SetupGenesisBlock(db ethdb.Database, snapshotBaseDB snapshotdb.BaseDB, gene
 	}
 	rawdb.WriteChainConfig(db, stored, newcfg)
 	return newcfg, stored, nil
+}
+
+// ResolveInnerAdminConfig selects the config used by both genesis setup and
+// local signer loading. A header-only head cannot attest to governance state.
+func ResolveInnerAdminConfig(db ethdb.Database, stored, next *params.ChainConfig) (*params.ChainConfig, error) {
+	if stored.InnerAdminAddress() == next.InnerAdminAddress() {
+		return next, nil
+	}
+	block := rawdb.ReadHeadBlock(db)
+	header := rawdb.ReadHeadHeader(db)
+	if block == nil || header == nil {
+		return nil, errors.New("cannot verify inner admin change without the executed block and head header")
+	}
+	active := stored.IsHawking(block.Number()) || next.IsHawking(block.Number())
+	if !active {
+		headState, err := state.New(block.Root(), state.NewDatabase(db), nil)
+		if err != nil {
+			return nil, fmt.Errorf("cannot verify inner admin change at executed block %v: %w", block.Number(), err)
+		}
+		versions, err := gov.NewGov(nil).GetCurrentActiveVersionList(headState)
+		if err != nil {
+			return nil, err
+		}
+		if err := headState.Error(); err != nil {
+			return nil, err
+		}
+		active = len(versions) > 0 && gov.Gte160Version(versions[0].ActiveVersion)
+	}
+	if active {
+		return nil, fmt.Errorf("cannot change active Cbft.InnerAdmin from %s to %s", stored.InnerAdminAddress().Hex(), next.InnerAdminAddress().Hex())
+	}
+	if header.Number.Cmp(block.Number()) > 0 {
+		return stored, nil
+	}
+	if header.Hash() != block.Hash() {
+		return nil, errors.New("cannot verify inner admin change with inconsistent chain heads")
+	}
+	return next, nil
 }
 
 func (g *Genesis) UnmarshalAddressHRP(r io.Reader) (string, error) {

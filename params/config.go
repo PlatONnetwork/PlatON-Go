@@ -17,6 +17,7 @@
 package params
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -208,6 +209,34 @@ func (c *ChainConfig) Test() bool {
 	return c.test
 }
 
+// UnmarshalJSON also accepts the historical name of the Hawking height.
+func (c *ChainConfig) UnmarshalJSON(data []byte) error {
+	type chainConfigJSON ChainConfig
+	fields := struct {
+		*chainConfigJSON
+		HawkingBlock json.RawMessage `json:"hawkingBlock"`
+		DiracBlock   json.RawMessage `json:"diracBlock"`
+	}{chainConfigJSON: (*chainConfigJSON)(c)}
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	height := fields.HawkingBlock
+	if height == nil {
+		height = fields.DiracBlock
+	}
+	if height != nil {
+		return json.Unmarshal(height, &c.HawkingBlock)
+	}
+	return nil
+}
+
+func (c *ChainConfig) InnerAdminAddress() common.Address {
+	if c == nil || c.Cbft == nil {
+		return common.Address{}
+	}
+	return c.Cbft.InnerAdmin
+}
+
 // String implements the fmt.Stringer interface.
 func (c *ChainConfig) String() string {
 	var engine interface{}
@@ -357,6 +386,9 @@ func (c *ChainConfig) CheckCompatible(newcfg *ChainConfig, height uint64) *Confi
 }
 
 func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *ConfigCompatError {
+	if c.InnerAdminAddress() != newcfg.InnerAdminAddress() && (c.IsHawking(head) || newcfg.IsHawking(head)) {
+		return newCompatError("inner validator admin", c.HawkingBlock, newcfg.HawkingBlock)
+	}
 	if isForkIncompatible(c.EIP155Block, newcfg.EIP155Block, head) {
 		return newCompatError("EIP155 fork block", c.EIP155Block, newcfg.EIP155Block)
 	}

@@ -1,7 +1,6 @@
 package miner
 
 import (
-	"crypto/ecdsa"
 	"encoding/binary"
 	"errors"
 	"math/big"
@@ -13,28 +12,36 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 )
 
-// innerAdminKey returns the locally configured key for the inner-mode switch
-// transaction. The key is not part of the source tree; the address it must
-// match is chainConfig.Cbft.InnerAdmin.
-func (w *worker) innerAdminKey() (*ecdsa.PrivateKey, common.Address, error) {
-	if w.chainConfig == nil || w.chainConfig.Cbft == nil || w.chainConfig.Cbft.InnerAdmin == (common.Address{}) {
-		return nil, common.Address{}, errors.New("inner admin address is not configured")
-	}
-	if w.config == nil || len(w.config.InnerAdminKey) == 0 {
-		return nil, common.Address{}, errors.New("inner admin key is not configured")
-	}
-	key, err := crypto.ToECDSA(w.config.InnerAdminKey)
+func (config *Config) LoadInnerSigner(path string, chain *params.ChainConfig) error {
+	key, err := crypto.LoadECDSA(path)
 	if err != nil {
-		return nil, common.Address{}, err
+		return err
 	}
-	addr := crypto.PubkeyToAddress(key.PublicKey)
-	if addr != w.chainConfig.Cbft.InnerAdmin {
-		return nil, common.Address{}, errors.New("inner admin key does not match Cbft.InnerAdmin")
+	if admin := chain.InnerAdminAddress(); admin != (common.Address{}) && admin != crypto.PubkeyToAddress(key.PublicKey) {
+		return errors.New("inner admin key does not match Cbft.InnerAdmin")
 	}
-	return key, addr, nil
+	config.innerSigner = key
+	return nil
+}
+
+func (config *Config) ValidateInnerSigner(chain *params.ChainConfig, hawking bool) error {
+	if config == nil || config.innerSigner == nil {
+		return errors.New("configure Miner.InnerAdminKeyFile for inner validator switches")
+	}
+	admin := chain.InnerAdminAddress()
+	if admin == (common.Address{}) {
+		if hawking {
+			return errors.New("configure Cbft.InnerAdmin before activating Hawking")
+		}
+	} else if admin != crypto.PubkeyToAddress(config.innerSigner.PublicKey) {
+		return errors.New("inner admin key does not match Cbft.InnerAdmin")
+	}
+	return nil
 }
 
 func (w *worker) shouldSwitch(env *environment) bool {
@@ -63,11 +70,12 @@ func (w *worker) commitInnerTransaction(env *environment, timestamp int64, block
 
 	offset := uint64(w.chainConfig.Cbft.Amount) * 2
 	validBlockNumber := env.header.Number.Uint64() + offset + 1
-	privateKy, address, err := w.innerAdminKey()
-	if err != nil {
+	if err := w.config.ValidateInnerSigner(w.chainConfig, gov.HawkingActive(w.chainConfig, env.header.Number, env.state)); err != nil {
 		log.Error("Inner admin is not available", "error", err)
 		return err
 	}
+	privateKy := w.config.innerSigner
+	address := crypto.PubkeyToAddress(privateKy.PublicKey)
 	nonce := env.state.GetNonce(address)
 	param := [][]byte{
 		common.Int64ToBytes(2003),

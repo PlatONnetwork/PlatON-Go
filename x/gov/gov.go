@@ -30,6 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -129,23 +130,44 @@ func HawkingActive(config *params.ChainConfig, number *big.Int, state xcom.State
 // version, so it needs this to treat the activation block as Hawking.
 // blockHash is the parent hash snapshotdb keys the pre-active proposal by.
 func VersionActivates(db snapshotdb.DB, blockHash common.Hash, number *big.Int, state xcom.StateDB) bool {
-	if db == nil || number == nil || state == nil || blockHash == (common.Hash{}) {
-		return false
+	active, _ := VersionActivationAt(db, blockHash, number, state)
+	return active
+}
+
+// VersionActivationAt checks the pre-active records in the parent snapshot.
+// An unavailable snapshot or inconsistent governance records defer the
+// decision to block execution.
+func VersionActivationAt(db snapshotdb.DB, blockHash common.Hash, number *big.Int, state xcom.StateDB) (active, certain bool) {
+	reader, ok := db.(interface {
+		GetAtBlock(common.Hash, []byte) ([]byte, error)
+	})
+	if !ok || number == nil || !number.IsUint64() || state == nil || blockHash == common.ZeroHash {
+		return false, false
+	}
+	data, idErr := reader.GetAtBlock(blockHash, KeyPreActiveProposal())
+	versionData, versionErr := reader.GetAtBlock(blockHash, KeyPreActiveVersion())
+	if errors.Is(idErr, snapshotdb.ErrNotFound) && errors.Is(versionErr, snapshotdb.ErrNotFound) {
+		return false, true
+	}
+	var id common.Hash
+	var pending uint32
+	if idErr != nil || versionErr != nil || rlp.DecodeBytes(data, &id) != nil || id == common.ZeroHash || rlp.DecodeBytes(versionData, &pending) != nil {
+		return false, false
 	}
 	gdb := NewGovDB(db)
-	if gdb.GetPreActiveVersion(blockHash) < params.FORKVERSION_1_6_0 {
-		return false
+	proposal, err := gdb.GetExistProposal(id, state)
+	version, ok := proposal.(*VersionProposal)
+	if err != nil || !ok || version.GetProposalID() != id || version.NewVersion != pending {
+		return false, false
 	}
-	id, err := gdb.GetPreActiveProposalID(blockHash)
-	if err != nil || id == common.ZeroHash {
-		return false
+	if !Gte160Version(pending) || version.GetActiveBlock() != number.Uint64() {
+		return false, true
 	}
-	prop, err := gdb.GetExistProposal(id, state)
-	if err != nil {
-		return false
+	tally, err := gdb.GetTallyResult(id, state)
+	if err != nil || tally == nil || tally.Status != PreActive || tally.ProposalID != id {
+		return false, false
 	}
-	vp, ok := prop.(*VersionProposal)
-	return ok && vp.NewVersion >= params.FORKVERSION_1_6_0 && vp.GetActiveBlock() == number.Uint64()
+	return true, true
 }
 
 func Gte160Version(version uint32) bool {

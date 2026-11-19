@@ -114,6 +114,7 @@ func NewEngineManger(engine Cbft) *EngineManager {
 // Start the loop to send message.
 func (h *EngineManager) Start() {
 	// Launch goroutine loop release separately.
+	go h.peers.printPeers()
 	go h.sendLoop()
 	go h.synchronize()
 }

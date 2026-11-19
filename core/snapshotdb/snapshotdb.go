@@ -414,6 +414,8 @@ func openWithStorage(st storage.Storage, cache int, handles int, baseOnly bool) 
 }
 
 func copyDB(from, to *snapshotDB) {
+	to.commitLock.Lock()
+	defer to.commitLock.Unlock()
 	to.path = from.path
 	to.enableArchive = from.enableArchive
 	to.archiveDB = from.archiveDB
@@ -490,6 +492,8 @@ func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
 }
 
 func (s *snapshotDB) WriteBaseDBWithBlock(current *types.Header, blocks []BlockData) error {
+	s.commitLock.Lock()
+	defer s.commitLock.Unlock()
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].Number.Uint64() < blocks[j].Number.Uint64()
 	})
@@ -511,13 +515,19 @@ func (s *snapshotDB) WriteBaseDBWithBlock(current *types.Header, blocks []BlockD
 	if err := s.baseDB.Write(batch, nil); err != nil {
 		return fmt.Errorf("write to baseDB fail,%v", err)
 	}
-	if err := s.SetCurrent(current.Hash(), *current.Number, *current.Number); err != nil {
+	if err := s.setCurrentLocked(current.Hash(), *current.Number, *current.Number); err != nil {
 		return fmt.Errorf("SetCurrent fail, %v", err)
 	}
 	return nil
 }
 
 func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) error {
+	s.commitLock.Lock()
+	defer s.commitLock.Unlock()
+	return s.setCurrentLocked(highestHash, base, height)
+}
+
+func (s *snapshotDB) setCurrentLocked(highestHash common.Hash, base, height big.Int) error {
 	current := newCurrent(&height, &base, highestHash)
 	if err := current.saveCurrentToBaseDB(CurrentAll, s.baseDB, true); err != nil {
 		return err
@@ -787,6 +797,10 @@ func (s *snapshotDB) getFromUnCommit(hash common.Hash, key []byte) ([]byte, erro
 func (s *snapshotDB) getFromCommit(key []byte) ([]byte, error) {
 	s.commitLock.RLock()
 	defer s.commitLock.RUnlock()
+	return s.getFromCommitLocked(key)
+}
+
+func (s *snapshotDB) getFromCommitLocked(key []byte) ([]byte, error) {
 	if len(s.committed) > 0 {
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			v, err := s.committed[i].data.Get(key)
@@ -800,6 +814,56 @@ func (s *snapshotDB) getFromCommit(key []byte) ([]byte, error) {
 		}
 	}
 	return nil, ErrNotFound
+}
+
+// GetAtBlock reads from a known branch. Only a missing key in that view
+// returns ErrNotFound; an unavailable block cannot establish absence.
+func (s *snapshotDB) GetAtBlock(hash common.Hash, key []byte) ([]byte, error) {
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
+	if hash == common.ZeroHash || s.current == nil || s.unCommit == nil {
+		return nil, errors.New("snapshot block unavailable")
+	}
+	s.unCommit.RLock()
+	defer s.unCommit.RUnlock()
+	highest := s.current.GetHighest(false)
+	if highest.Hash == common.ZeroHash {
+		return nil, errors.New("committed snapshot hash unavailable")
+	}
+	var value []byte
+	found := false
+	for hash != highest.Hash {
+		block := s.unCommit.blocks[hash]
+		if hash == common.ZeroHash || block == nil || block.Number.Cmp(highest.Num) <= 0 {
+			return nil, errors.New("snapshot block unavailable")
+		}
+		if !found {
+			var err error
+			value, err = block.data.Get(key)
+			if err != nil && err != memdb.ErrNotFound {
+				return nil, err
+			}
+			found = err == nil
+		}
+		if parent := s.unCommit.blocks[block.ParentHash]; parent != nil && parent.Number.Cmp(block.Number) >= 0 {
+			return nil, errors.New("invalid snapshot ancestry")
+		}
+		hash = block.ParentHash
+	}
+	if found {
+		if len(value) == 0 {
+			return nil, ErrNotFound
+		}
+		return value, nil
+	}
+	value, err := s.getFromCommitLocked(key)
+	if err == ErrNotFound {
+		return s.GetBaseDB(key)
+	}
+	if err == nil && len(value) == 0 {
+		return nil, ErrNotFound
+	}
+	return value, err
 }
 
 // Get get key,val from  snapshotDB
@@ -1103,6 +1167,8 @@ func (s *snapshotDB) Close() error {
 
 	s.jobWait.Wait()
 
+	s.commitLock.Lock()
+	defer s.commitLock.Unlock()
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {
 			return fmt.Errorf("[snapshotdb]close base db fail:%v", err)

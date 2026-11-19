@@ -232,6 +232,22 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	signerConfig := genesisChainConfig
+	if config.Genesis != nil && config.Genesis.Config != nil {
+		signerConfig, err = core.ResolveInnerAdminConfig(chainDb, genesisChainConfig, config.Genesis.Config)
+		if err != nil {
+			snapshotBaseDB.Close()
+			chainDb.Close()
+			return nil, err
+		}
+	}
+	if signerConfig.Cbft != nil && signerConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE && config.Miner.InnerAdminKeyFile != "" {
+		if err := config.Miner.LoadInnerSigner(stack.ResolvePath(config.Miner.InnerAdminKeyFile), signerConfig); err != nil {
+			snapshotBaseDB.Close()
+			chainDb.Close()
+			return nil, fmt.Errorf("load inner validator signer: %w", err)
+		}
+	}
 	if genesisChainConfig.Cbft.Period == 0 || genesisChainConfig.Cbft.Amount == 0 {
 		genesisChainConfig.Cbft.Period = config.CbftConfig.Period
 		genesisChainConfig.Cbft.Amount = config.CbftConfig.Amount
@@ -373,7 +389,10 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 			blocksPerNode := int(eth.blockchain.Config().Cbft.Amount)
 			offset := blocksPerNode * 2
-			agency = validator.NewInnerAgency(eth.blockchain.Config().Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			agency = &innerValidatorAgency{
+				Agency:  validator.NewInnerAgency(eth.blockchain.Config().Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset),
+				backend: eth,
+			}
 			reactor.Start(common.INNER_VALIDATOR_MODE)
 		} else if eth.blockchain.Config().Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 			reactor.Start(common.PPOS_VALIDATOR_MODE)
@@ -394,7 +413,17 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
 			log.Error("Init cbft consensus engine fail", "error", err)
-			return nil, errors.New("Failed to init cbft consensus engine")
+			if _, ok := agency.(*innerValidatorAgency); ok {
+				blockChainCache.Stop()
+				eth.bloomIndexer.Close()
+				eth.txPool.Stop()
+				eth.miner.Close()
+				eth.blockchain.Stop()
+				reactor.Close()
+				snapshotdb.Close()
+				chainDb.Close()
+			}
+			return nil, fmt.Errorf("failed to init cbft consensus engine: %w", err)
 		}
 	} else {
 		log.Crit("engin not good")
@@ -453,13 +482,47 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 	return eth, nil
 }
 
+type innerValidatorAgency struct {
+	consensus.Agency
+	backend *Ethereum
+}
+
+func (a *innerValidatorAgency) CheckLocalValidator() error {
+	chain := a.backend.blockchain
+	cfg := chain.Config()
+	signer := &a.backend.config.Miner
+	// A matching explicit admin works on either side of activation.
+	if err := signer.ValidateInnerSigner(cfg, false); err != nil || cfg.InnerAdminAddress() != (common.Address{}) {
+		return err
+	}
+	head := chain.CurrentBlock()
+	if cfg.HawkingBlock != nil || cfg.IsHawking(head.Number()) {
+		return signer.ValidateInnerSigner(cfg, true)
+	}
+	st, err := chain.StateAt(head.Root())
+	if err != nil {
+		return err
+	}
+	versions, err := gov.NewGov(nil).GetCurrentActiveVersionList(st)
+	if err != nil {
+		return err
+	}
+	if err := st.Error(); err != nil {
+		return err
+	}
+	return signer.ValidateInnerSigner(cfg, len(versions) != 0 && gov.Gte160Version(versions[0].ActiveVersion))
+}
+
 func recoverSnapshotDB(blockChainCache *core.BlockChainCache) error {
 	sdb := snapshotdb.Instance()
 	ch := sdb.GetCurrent().GetHighest(false).Num.Uint64()
-	blockChanHegiht := blockChainCache.CurrentHeader().Number.Uint64()
-	if ch < blockChanHegiht {
-		for i := ch + 1; i <= blockChanHegiht; i++ {
+	executedHeight := blockChainCache.BlockChain.CurrentBlock().NumberU64()
+	if ch < executedHeight {
+		for i := ch + 1; i <= executedHeight; i++ {
 			block, parentBlock := blockChainCache.GetBlockByNumber(i), blockChainCache.GetBlockByNumber(i-1)
+			if block == nil || parentBlock == nil {
+				return fmt.Errorf("missing block or parent while recovering snapshot at block %d", i)
+			}
 			log.Debug("snapshotdb recover block from blockchain", "num", block.Number(), "hash", block.Hash())
 			if err := blockChainCache.Execute(block, parentBlock); err != nil {
 				log.Error("snapshotdb recover block from blockchain  execute fail", "error", err)

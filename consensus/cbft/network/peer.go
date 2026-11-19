@@ -412,12 +412,9 @@ type PeerSet struct {
 
 // NewPeerSet creates a new PeerSet to track the active participants.
 func NewPeerSet() *PeerSet {
-	ps := &PeerSet{
+	return &PeerSet{
 		peers: make(map[string]*peer),
 	}
-	// start a goroutine timing output A connection status information
-	go ps.printPeers()
-	return ps
 }
 
 // Register injects a new peer into the working set, or
