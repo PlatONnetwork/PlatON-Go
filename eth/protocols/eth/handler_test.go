@@ -34,6 +34,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -120,6 +123,64 @@ func (b *testBackend) RunTxGenFun() func() bool {
 
 func (b *testBackend) Handle(*Peer, Packet) error {
 	panic("data processing tests should be done in the handler package")
+}
+
+type newBlockBackend struct {
+	*testBackend
+	received *types.Block
+}
+
+func (b *newBlockBackend) Handle(_ *Peer, packet Packet) error {
+	b.received = packet.(*NewBlockPacket).Block
+	return nil
+}
+
+func TestNewBlockWithdrawals(t *testing.T) {
+	// Encode the incoming header fields directly: the local generated encoder
+	// omits WithdrawalsHash, but a remote peer can send the optional field.
+	type wireHeader types.Header
+	entries := types.Withdrawals{{Amount: 1}}
+	root := types.DeriveSha(entries, trie.NewStackTrie(nil))
+	for _, tc := range []struct {
+		name      string
+		root      *common.Hash
+		body      types.Withdrawals
+		forwarded bool
+	}{
+		{"ordinary block", nil, nil, true},
+		{"legacy empty list", nil, types.Withdrawals{}, true},
+		{"empty root and list", &types.EmptyRootHash, types.Withdrawals{}, true},
+		{"empty root and omitted list", &types.EmptyRootHash, nil, false},
+		{"non-empty root and empty list", &root, types.Withdrawals{}, false},
+		{"without root", nil, entries, false},
+		{"matching root", &root, entries, false},
+		{"mismatched root", &root, types.Withdrawals{{Amount: 2}}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			header := &types.Header{Number: big.NewInt(1), BaseFee: big.NewInt(1), TxHash: types.EmptyRootHash, WithdrawalsHash: tc.root}
+			fields := []interface{}{(*wireHeader)(header), types.Transactions{}, []byte(nil)}
+			if tc.body != nil {
+				fields = append(fields, tc.body)
+			}
+			size, payload, err := rlp.EncodeToReader([]interface{}{fields})
+			require.NoError(t, err)
+			msg := p2p.Msg{Code: NewBlockMsg, Size: uint32(size), Payload: payload}
+			peer := &Peer{knownBlocks: newKnownCache(maxKnownBlocks)}
+			backend := new(newBlockBackend)
+
+			err = handleNewBlock(backend, msg, peer)
+			require.Equal(t, tc.forwarded, peer.KnownBlock(header.Hash()))
+			if tc.forwarded {
+				require.NoError(t, err)
+				require.NotNil(t, backend.received)
+				require.Equal(t, tc.root, backend.received.Header().WithdrawalsHash)
+				require.Equal(t, tc.body, backend.received.Withdrawals())
+			} else {
+				require.Error(t, err)
+				require.Nil(t, backend.received)
+			}
+		})
+	}
 }
 
 // Tests that block headers can be retrieved from a remote chain based on user queries.

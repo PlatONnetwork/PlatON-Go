@@ -1019,6 +1019,9 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 	)
 	// Do a sanity check that the provided chain is actually ordered and linked
 	for i := 0; i < len(blockChain); i++ {
+		if err := blockChain[i].ValidateWithdrawals(); err != nil {
+			return i, err
+		}
 		if i != 0 {
 			if blockChain[i].NumberU64() != blockChain[i-1].NumberU64()+1 || blockChain[i].ParentHash() != blockChain[i-1].Hash() {
 				log.Error("Non contiguous receipt insert", "number", blockChain[i].Number(), "hash", blockChain[i].Hash(), "parent", blockChain[i].ParentHash(),
@@ -1285,6 +1288,9 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block) (err error) {
 	if bc.insertStopped() {
 		return errInsertionInterrupted
 	}
+	if err := block.ValidateWithdrawals(); err != nil {
+		return err
+	}
 
 	rawdb.WriteBlock(bc.db, block)
 
@@ -1306,6 +1312,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.Receipt, logs []*types.Log, state *state.StateDB, emitHeadEvent bool, cbftBridgeUpdateChainState func()) (status WriteStatus, err error) {
 	if bc.insertStopped() {
 		return NonStatTy, errInsertionInterrupted
+	}
+	// The miner can supply cached execution results directly.
+	if err := block.ValidateWithdrawals(); err != nil {
+		return NonStatTy, err
+	}
+	if block.Withdrawals() != nil {
+		if err := validateWithdrawalFork(block.Header(), block.Withdrawals(), bc.chainConfig, state); err != nil {
+			return NonStatTy, err
+		}
 	}
 
 	// Update consensus state to wal

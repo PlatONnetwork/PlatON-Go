@@ -64,10 +64,13 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
 func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+	header := block.Header()
+	if err := header.ValidateWithdrawals(block.Withdrawals()); err != nil {
+		return nil, nil, 0, err
+	}
 	var (
 		receipts    types.Receipts
 		usedGas     = new(uint64)
-		header      = block.Header()
 		blockHash   = block.Hash()
 		blockNumber = block.Number()
 		allLogs     []*types.Log

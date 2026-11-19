@@ -57,6 +57,10 @@ func NewBlockValidator(config *params.ChainConfig, blockchain *BlockChain, engin
 // header's transaction. The headers are assumed to be already
 // validated at this point.
 func (v *BlockValidator) ValidateBody(block *types.Block) error {
+	header := block.Header()
+	if err := header.ValidateWithdrawals(block.Withdrawals()); err != nil {
+		return err
+	}
 	// Check whether the block's known, and if not, that it's linkable
 	if v.bc.HasBlockAndState(block.Hash(), block.NumberU64()) {
 		return ErrKnownBlock
@@ -68,19 +72,12 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	//	return consensus.ErrPrunedAncestor
 	//}
 	// Header validity is known at this point, check the transactions
-	header := block.Header()
 	if hash := types.DeriveSha(block.Transactions(), trie.NewStackTrie(nil)); hash != header.TxHash {
 		return fmt.Errorf("transaction root hash mismatch (header value %x, calculated %x)", header.TxHash, hash)
 	}
 	if header.WithdrawalsHash != nil || block.Withdrawals() != nil {
 		if hawking, certain := v.isHawkingEnabled(block); certain && !hawking {
 			return fmt.Errorf("withdrawals before hawking")
-		}
-	}
-	// Withdrawals are present after the Hawking fork.
-	if header.WithdrawalsHash != nil {
-		if hash := types.DeriveSha(block.Withdrawals(), trie.NewStackTrie(nil)); hash != *header.WithdrawalsHash {
-			return fmt.Errorf("withdrawals root hash mismatch (header value %x, calculated %x)", *header.WithdrawalsHash, hash)
 		}
 	}
 	return nil

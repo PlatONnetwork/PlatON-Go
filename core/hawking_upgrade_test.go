@@ -22,6 +22,95 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHawkingWithdrawalBody(t *testing.T) {
+	engine := consensus.NewFaker()
+	_, _, chain, err := newCanonical(engine, 0, false)
+	require.NoError(t, err)
+	defer chain.Stop()
+	cfg := &params.ChainConfig{GenesisVersion: params.FORKVERSION_1_6_0}
+	validator := NewBlockValidator(cfg, chain, engine)
+	header := &types.Header{ParentHash: chain.Genesis().Hash(), Number: big.NewInt(1), TxHash: types.EmptyRootHash}
+	entries := types.Withdrawals{{Index: 1, Amount: 10}}
+	root := types.DeriveSha(entries, trie.NewStackTrie(nil))
+	for _, tc := range []struct {
+		name string
+		root *common.Hash
+		body types.Withdrawals
+		err  string
+	}{
+		{"absent", nil, nil, ""},
+		{"legacy empty list", nil, types.Withdrawals{}, ""},
+		{"missing root", nil, entries, "non-empty withdrawals"},
+		{"empty root and list", &types.EmptyRootHash, types.Withdrawals{}, ""},
+		{"empty root and omitted list", &types.EmptyRootHash, nil, "missing withdrawals"},
+		{"non-empty root and omitted list", &root, nil, "missing withdrawals"},
+		{"non-empty root and empty list", &root, types.Withdrawals{}, "invalid withdrawalsRoot"},
+		{"matching non-empty list", &root, entries, "non-empty withdrawals"},
+		{"wrong root", &types.EmptyRootHash, entries, "non-empty withdrawals"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			header.WithdrawalsHash = tc.root
+			block := types.NewBlockWithHeader(header).WithWithdrawals(tc.body)
+			err := validator.ValidateBody(block)
+			cache := BlockChainCache{BlockChain: &BlockChain{chainConfig: cfg}}
+			cache.AddSealBlock(header.SealHash(), block.NumberU64())
+			cacheErr := cache.executeBlock(block, chain.Genesis())
+			if tc.err == "" {
+				require.NoError(t, err)
+				require.NoError(t, cacheErr)
+			} else {
+				require.ErrorContains(t, err, tc.err)
+				require.ErrorContains(t, cacheErr, tc.err)
+			}
+		})
+	}
+	// Cached execution and receipt-only sync can write without running Process.
+	// Neither may persist the body or update the consensus WAL on rejection.
+	header.WithdrawalsHash = &root
+	bad := types.NewBlockWithHeader(header).WithWithdrawals(entries)
+	err = chain.WriteBlockWithState(bad, nil, nil, nil, false, func() { t.Fatal("updated consensus state") })
+	require.ErrorContains(t, err, "non-empty withdrawals")
+	require.ErrorContains(t, chain.WriteBlockWithoutState(bad), "non-empty withdrawals")
+	_, err = chain.InsertReceiptChain(types.Blocks{bad}, []types.Receipts{nil}, 0)
+	require.ErrorContains(t, err, "non-empty withdrawals")
+	require.False(t, chain.HasBlock(bad.Hash(), bad.NumberU64()))
+	cpy := types.CopyHeader(header)
+	*cpy.WithdrawalsHash = types.EmptyRootHash
+	require.Equal(t, root, *header.WithdrawalsHash)
+	require.Equal(t, header.SealHash(), cpy.SealHash())
+}
+
+func TestHawkingWithdrawalCacheRoundTrip(t *testing.T) {
+	db := rawdb.NewMemoryDatabase()
+	defer db.Close()
+	st, err := state.New(common.Hash{}, state.NewDatabase(db), nil)
+	require.NoError(t, err)
+	cfg := &params.ChainConfig{GenesisVersion: params.FORKVERSION_1_6_0}
+	cache := &BlockChainCache{BlockChain: &BlockChain{chainConfig: cfg},
+		stateDBCache: make(map[common.Hash]*stateDBCache), receiptsCache: make(map[common.Hash]*receiptsCache)}
+	txs := types.Transactions{types.NewTransaction(0, common.Address{1}, big.NewInt(0), 21000, big.NewInt(1), nil)}
+	receipts := types.Receipts{{Status: types.ReceiptStatusSuccessful, CumulativeGasUsed: 21000}}
+	block := types.NewBlockWithWithdrawals(&types.Header{Number: big.NewInt(1), BaseFee: big.NewInt(1)},
+		txs, receipts, types.Withdrawals{}, trie.NewStackTrie(nil))
+	key := block.Header().SealHash()
+	cache.WriteStateDB(key, st, block.NumberU64())
+	cache.WriteReceipts(key, receipts, block.NumberU64())
+	cache.AddSealBlock(key, block.NumberU64())
+
+	rawdb.WriteBlock(db, block)
+	stored := rawdb.ReadBlock(db, block.Hash(), block.NumberU64())
+	require.NotNil(t, stored)
+	require.Equal(t, types.Withdrawals{}, stored.Withdrawals())
+	for _, b := range []*types.Block{block, stored} {
+		require.NoError(t, cache.executeBlock(b, nil))
+		view, err := cache.MakeStateDB(b)
+		require.NoError(t, err)
+		require.True(t, view.HadParent())
+		view.ClearParentReference()
+		require.Equal(t, receipts, types.Receipts(cache.ReadReceipts(b.Header().SealHash())))
+	}
+}
+
 func TestHawkingGovernanceActivationBlock(t *testing.T) {
 	// The reactor, VRF handler, snapshot DB and parallel executor are node
 	// singletons. Give this replay its own node lifetime.
@@ -71,6 +160,42 @@ func TestHawkingGovernanceActivationBlock(t *testing.T) {
 	for _, p := range processors {
 		_, _, _, err := p.Process(early, parentState.Copy(), vm.Config{})
 		require.ErrorContains(t, err, "withdrawals before hawking")
+	}
+	// Direct execution after activation accepts the legacy empty list.
+	activeState := parentState.Copy()
+	require.NoError(t, gdb.AddActiveVersion(params.FORKVERSION_1_6_0, 0, activeState))
+	withEntries := types.NewBlockWithHeader(header).WithWithdrawals(types.Withdrawals{{Amount: 1}})
+	require.ErrorContains(t, withEntries.SanityCheck(), "non-empty withdrawals")
+	committed := types.NewBlockWithWithdrawals(header, nil, nil, withEntries.Withdrawals(), trie.NewStackTrie(nil))
+	wrongBody := types.NewBlockWithHeader(committed.Header()).WithWithdrawals(types.Withdrawals{{Amount: 2}})
+	for _, p := range processors {
+		_, _, _, err := p.Process(early, activeState.Copy(), vm.Config{})
+		require.NoError(t, err)
+		for _, block := range []*types.Block{withEntries, committed, wrongBody} {
+			_, _, _, err = p.Process(block, activeState.Copy(), vm.Config{})
+			require.ErrorContains(t, err, "non-empty withdrawals")
+		}
+	}
+	// Both forms of the explicit empty list share the ordinary block's cache
+	// entry, but can only use it once governance has activated Hawking.
+	withEmptyRoot := types.CopyHeader(header)
+	withEmptyRoot.WithdrawalsHash = &types.EmptyRootHash
+	empty := types.NewBlockWithHeader(withEmptyRoot).WithWithdrawals(types.Withdrawals{})
+	for _, st := range []*state.StateDB{parentState, activeState} {
+		cache := BlockChainCache{BlockChain: &BlockChain{chainConfig: cfg}, stateDBCache: make(map[common.Hash]*stateDBCache)}
+		key := header.SealHash()
+		cache.WriteStateDB(key, st, 1)
+		cache.AddSealBlock(key, 1)
+		for _, b := range []*types.Block{early, empty} {
+			err := cache.executeBlock(b, types.NewBlockWithHeader(parent))
+			if st == activeState {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, "withdrawals before hawking")
+				_, err = cache.writeBlockWithState(b, nil, nil, st, false, func() { t.Fatal("updated consensus state before Hawking") })
+				require.ErrorContains(t, err, "withdrawals before hawking")
+			}
+		}
 	}
 
 	vrf := handler.NewVrfHandler(parent.Nonce.Bytes())

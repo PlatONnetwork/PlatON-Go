@@ -475,7 +475,8 @@ func CopyHeader(h *Header) *Header {
 		copy(cpy.Extra, h.Extra)
 	}
 	if h.WithdrawalsHash != nil {
-		*cpy.WithdrawalsHash = *h.WithdrawalsHash
+		root := *h.WithdrawalsHash
+		cpy.WithdrawalsHash = &root
 	}
 	return &cpy
 }
@@ -540,6 +541,34 @@ func (b *Block) Withdrawals() Withdrawals {
 	return b.withdrawals
 }
 
+// ValidateWithdrawals checks the block's withdrawals without copying its header.
+func (b *Block) ValidateWithdrawals() error {
+	return b.header.ValidateWithdrawals(b.withdrawals)
+}
+
+// ValidateWithdrawals checks a complete body. PlatON supports the optional
+// Ethereum fields, but has no withdrawals. Fork activation is checked separately.
+func (h *Header) ValidateWithdrawals(withdrawals Withdrawals) error {
+	if len(withdrawals) > 0 {
+		return fmt.Errorf("non-empty withdrawals are not supported")
+	}
+	if h.WithdrawalsHash == nil {
+		return nil // Ordinary blocks omit the list; Hawking genesis uses [].
+	}
+	if withdrawals == nil {
+		return fmt.Errorf("missing withdrawals in block body")
+	}
+	return h.ValidateWithdrawalsRoot()
+}
+
+// ValidateWithdrawalsRoot also applies when only a header is available.
+func (h *Header) ValidateWithdrawalsRoot() error {
+	if h.WithdrawalsHash != nil && *h.WithdrawalsHash != EmptyRootHash {
+		return fmt.Errorf("invalid withdrawalsRoot: have %s, want empty trie root", h.WithdrawalsHash)
+	}
+	return nil
+}
+
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
 // Body returns the non-header content of the block.
@@ -560,7 +589,10 @@ func (b *Block) Size() uint64 {
 // SanityCheck can be used to prevent that unbounded fields are
 // stuffed with junk data to add processing overhead
 func (b *Block) SanityCheck() error {
-	return b.header.SanityCheck()
+	if err := b.header.SanityCheck(); err != nil {
+		return err
+	}
+	return b.ValidateWithdrawals()
 }
 
 type writeCounter uint64

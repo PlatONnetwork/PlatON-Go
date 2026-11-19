@@ -33,6 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -97,6 +98,53 @@ func dummyPeer(id string) *peerConnection {
 		lacking: make(map[common.Hash]time.Time),
 	}
 	return p
+}
+
+func TestDeliverBodiesWithdrawals(t *testing.T) {
+	block := chain.blocks[0]
+	entries := types.Withdrawals{{Index: 1, Amount: 10}}
+	root := types.DeriveSha(entries, trie.NewStackTrie(nil))
+	for _, tc := range []struct {
+		name string
+		root *common.Hash
+		body types.Withdrawals
+		want types.Withdrawals
+		bad  bool
+	}{
+		{"absent", nil, nil, nil, false},
+		{"legacy empty list", nil, types.Withdrawals{}, nil, false},
+		{"missing root", nil, entries, nil, true},
+		{"empty root", &types.EmptyRootHash, nil, types.Withdrawals{}, false},
+		{"empty root and list", &types.EmptyRootHash, types.Withdrawals{}, types.Withdrawals{}, false},
+		{"missing list", &root, nil, nil, true},
+		{"non-empty root and empty list", &root, types.Withdrawals{}, nil, true},
+		{"matching non-empty list", &root, entries, nil, true},
+		{"wrong root", &types.EmptyRootHash, entries, nil, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			header := block.Header()
+			header.WithdrawalsHash = tc.root
+			q := newQueue(10, 10, nil)
+			q.Prepare(header.Number.Uint64(), FullSync)
+			q.Schedule([]*types.Header{header}, []common.Hash{header.Hash()}, header.Number.Uint64())
+			peer := dummyPeer("peer")
+			req, _, _ := q.ReserveBodies(peer, 1)
+			require.NotNil(t, req)
+			n, err := q.DeliverBodies(peer.id, [][]*types.Transaction{block.Transactions()}, []common.Hash{header.TxHash},
+				[][]byte{block.ExtraData()}, [][]*types.Withdrawal{tc.body})
+			if tc.bad {
+				require.ErrorIs(t, err, errInvalidBody)
+				require.Zero(t, n)
+				require.Equal(t, 1, q.PendingBodies())
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, 1, n)
+			results := q.Results(false)
+			require.Len(t, results, 1)
+			require.Equal(t, tc.want, types.Withdrawals(results[0].Withdrawals))
+		})
+	}
 }
 
 func TestBasics(t *testing.T) {
@@ -324,7 +372,7 @@ func XTestDelivery(t *testing.T) {
 					txsHashes[i] = types.DeriveSha(types.Transactions(txs), hasher)
 				}
 				time.Sleep(100 * time.Millisecond)
-				_, err := q.DeliverBodies(peer.id, txset, txsHashes, extraset, nil, nil)
+				_, err := q.DeliverBodies(peer.id, txset, txsHashes, extraset, make([][]*types.Withdrawal, len(txset)))
 				if err != nil {
 					fmt.Printf("delivered %d bodies %v\n", len(txset), err)
 				}
