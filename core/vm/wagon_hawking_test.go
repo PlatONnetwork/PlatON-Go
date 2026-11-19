@@ -13,7 +13,27 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/wagon/exec"
 )
+
+func TestWasmMigrationBufferGas(t *testing.T) {
+	for _, active := range []bool{false, true} {
+		ctx := wasmTestContext(common.Address{1}, common.Address{2}, 100, active)
+		ctx.evm.depth = int(params.CallCreateDepth) + 1
+		machine := newTestVM(ctx.evm)
+		machine.SetHostCtx(ctx)
+		if status := MigrateContract(exec.NewProcess(machine), 0, 0, 3, 0, 5, 0, 7); status != -1 {
+			t.Fatalf("unexpected migration status %d", status)
+		}
+		want := uint64(100) - ctx.gasTable.SLoad
+		if active {
+			want -= 3 + 5 + 7
+		}
+		if ctx.contract.Gas != want {
+			t.Fatalf("Hawking=%t: remaining gas %d, want %d", active, ctx.contract.Gas, want)
+		}
+	}
+}
 
 func wasmTestContext(caller, self common.Address, gas uint64, hawking bool) *VMContext {
 	contract := NewContract(AccountRef(caller), AccountRef(self), big.NewInt(0), gas)

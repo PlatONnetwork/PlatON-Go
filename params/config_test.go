@@ -17,10 +17,45 @@
 package params
 
 import (
+	"bytes"
+	"encoding/json"
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
+
+func TestLegacyHawkingHeight(t *testing.T) {
+	for _, tc := range []struct {
+		input string
+		want  *big.Int
+	}{
+		{`{}`, nil},
+		{`{"diracBlock":0}`, big.NewInt(0)},
+		{`{"diracBlock":123}`, big.NewInt(123)},
+		{`{"diracBlock":1,"hawkingBlock":20}`, big.NewInt(20)},
+		{`{"diracBlock":"obsolete","hawkingBlock":20}`, big.NewInt(20)},
+		{`{"hawkingBlock":null,"diracBlock":1}`, nil},
+	} {
+		var cfg ChainConfig
+		if err := json.Unmarshal([]byte(tc.input), &cfg); err != nil || !configNumEqual(cfg.HawkingBlock, tc.want) {
+			t.Fatalf("%s: height %v, error %v", tc.input, cfg.HawkingBlock, err)
+		}
+		out, err := json.Marshal(&cfg)
+		if err != nil || bytes.Contains(out, []byte("diracBlock")) || bytes.Contains(out, []byte("hawkingBlock")) != (tc.want != nil) {
+			t.Fatalf("unexpected config: %s, %v", out, err)
+		}
+	}
+}
+
+func TestInnerAdminCompatibilityAtActivation(t *testing.T) {
+	stored := &ChainConfig{PauliBlock: big.NewInt(0), HawkingBlock: big.NewInt(10)}
+	next := &ChainConfig{PauliBlock: big.NewInt(0), HawkingBlock: big.NewInt(10), Cbft: &CbftConfig{InnerAdmin: common.Address{1}}}
+	if stored.CheckCompatible(next, 9) != nil || stored.CheckCompatible(next, 10) == nil {
+		t.Fatal("admin migration must be allowed only before activation")
+	}
+}
 
 func TestCheckCompatible(t *testing.T) {
 	type test struct {

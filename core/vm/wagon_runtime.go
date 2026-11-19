@@ -1558,8 +1558,6 @@ func MigrateContract(proc *exec.Process, newAddr, args, argsLen, val, valLen, ca
 	ctx := proc.HostCtx().(*VMContext)
 	checkGas(ctx, ctx.gasTable.SLoad)
 	limitWasmBuffer(ctx, argsLen)
-	limitWasmBuffer(ctx, valLen)
-	limitWasmBuffer(ctx, callCostLen)
 
 	// get input
 	input := make([]byte, argsLen)

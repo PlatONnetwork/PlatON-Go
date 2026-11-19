@@ -18,6 +18,7 @@
 package miner
 
 import (
+	"crypto/ecdsa"
 	"math/big"
 	"sync"
 	"time"
@@ -43,14 +44,13 @@ type Backend interface {
 
 // Config is the configuration parameters of mining.
 type Config struct {
-	ExtraData hexutil.Bytes `toml:",omitempty"` // Block extra data set by the miner
-	GasFloor  uint64        // Target gas floor for mined blocks.
-	GasPrice  *big.Int      // Minimum gas price for mining a transaction
-	Recommit  time.Duration // The time interval for miner to re-create mining work.
-	Noverify  bool          // Disable remote mining solution verification(only useful in ethash).
-	// InnerAdminKey signs the inner-mode validator switch transaction.
-	// It must match chainConfig.Cbft.InnerAdmin and must not be a key shipped in source.
-	InnerAdminKey hexutil.Bytes `toml:",omitempty"`
+	ExtraData         hexutil.Bytes `toml:",omitempty"` // Block extra data set by the miner
+	GasFloor          uint64        // Target gas floor for mined blocks.
+	GasPrice          *big.Int      // Minimum gas price for mining a transaction
+	Recommit          time.Duration // The time interval for miner to re-create mining work.
+	Noverify          bool          // Disable remote mining solution verification(only useful in ethash).
+	InnerAdminKeyFile string        `toml:",omitempty"`
+	innerSigner       *ecdsa.PrivateKey
 }
 
 // Miner creates blocks and searches for proof-of-work values.

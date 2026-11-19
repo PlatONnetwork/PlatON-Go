@@ -122,10 +122,10 @@ func (vic *validatorInnerContract) hawkingACL() bool {
 // innerAdmin is the chain-configured caller allowed to mutate the inner set.
 // A zero address rejects every caller. The signing key is not in this binary.
 func (vic *validatorInnerContract) innerAdmin() common.Address {
-	if vic.Evm == nil || vic.Evm.chainConfig == nil || vic.Evm.chainConfig.Cbft == nil {
+	if vic.Evm == nil {
 		return common.Address{}
 	}
-	return vic.Evm.chainConfig.Cbft.InnerAdmin
+	return vic.Evm.chainConfig.InnerAdminAddress()
 }
 
 // requireAdmin enforces CallerAddress == Cbft.InnerAdmin after Hawking.

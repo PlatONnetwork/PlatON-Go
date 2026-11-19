@@ -34,6 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -81,8 +82,20 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 				"blockHash", block.Hash(), "err", err)
 			return nil, nil, 0, err
 		}
+		// Keep the historical interpreter for earlier upgrades. Only a new
+		// governance activation can change this block's Hawking instruction set.
+		if len(block.Transactions()) > 0 && bcr.validatorMode == common.PPOS_VALIDATOR_MODE &&
+			!p.config.IsHawking(blockNumber) && xutil.IsBeginOfConsensus(blockNumber.Uint64()) {
+			versions, err := gov.NewGov(nil).GetCurrentActiveVersionList(statedb)
+			if err == nil && len(versions) != 0 && versions[0].ActiveBlock == blockNumber.Uint64() && gov.Gte160Version(versions[0].ActiveVersion) {
+				vmenv = vm.NewEVM(blockContext, vm.TxContext{}, snapshotdb.Instance(), statedb, p.config, cfg)
+			}
+		}
 	}
 
+	if err := validateWithdrawalFork(header, block.Withdrawals(), p.config, statedb); err != nil {
+		return nil, nil, 0, err
+	}
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		msg, err := tx.AsMessage(types.MakeSigner(p.config, header.Number, gov.NewGov(snapshotdb.Instance()).Gte150VersionState(statedb)), header.BaseFee)
@@ -109,16 +122,18 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			return nil, nil, 0, err
 		}
 	}
-	isHawking := gov.HawkingActive(p.config, block.Number(), statedb)
-	// Fail if Shanghai not enabled and len(withdrawals) is non-zero.
 	withdrawals := block.Withdrawals()
-	if len(withdrawals) > 0 && !isHawking {
-		return nil, nil, 0, fmt.Errorf("withdrawals before hawking")
-	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts, withdrawals)
 
 	return receipts, allLogs, *usedGas, nil
+}
+
+func validateWithdrawalFork(header *types.Header, withdrawals types.Withdrawals, config *params.ChainConfig, statedb *state.StateDB) error {
+	if (withdrawals != nil || header.WithdrawalsHash != nil) && !gov.HawkingActive(config, header.Number, statedb) {
+		return fmt.Errorf("withdrawals before hawking")
+	}
+	return nil
 }
 
 func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM) (*types.Receipt, error) {

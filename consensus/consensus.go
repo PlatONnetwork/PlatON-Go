@@ -170,6 +170,12 @@ type Agency interface {
 	OnCommit(block *types.Block) error
 }
 
+// LocalValidatorChecker checks local signing prerequisites after the engine
+// has restored the validator set from its WAL.
+type LocalValidatorChecker interface {
+	CheckLocalValidator() error
+}
+
 // Bft defines the functions that BFT consensus
 // must implement.
 type Bft interface {

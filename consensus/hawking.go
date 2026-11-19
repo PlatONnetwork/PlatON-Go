@@ -33,11 +33,10 @@ func StateAtFromChain(chain interface{}) StateAtFunc {
 // state_processor checks: config fork height, active governance version from
 // parent state, or a version proposal activating on this block.
 //
-// certain is false when the caller cannot load parent state (e.g. HeaderChain
-// during snap header sync). Callers must not treat uncertain results as a
-// definitive "before Hawking" when rejecting post-fork header fields.
+// certain is false when parent state or its governance snapshot is unavailable.
+// Callers defer rejection of post-fork fields to full execution in that case.
 func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types.Header, stateAt StateAtFunc) (enabled, certain bool) {
-	if !config.IsPauli(number) {
+	if !config.IsPauli(number) && config.GetPauliBlock() != nil {
 		return false, true
 	}
 	if config.IsHawking(number) {
@@ -51,14 +50,15 @@ func IsHawkingEnabled(config *params.ChainConfig, number *big.Int, parent *types
 		return false, false
 	}
 	statedb, err := stateAt(parent.Root)
-	if err != nil {
+	if err != nil || statedb == nil {
 		return false, false
 	}
-	govInst := gov.NewGov(snapshotdb.Instance())
-	if govInst.Gte160VersionState(statedb) {
+	versions, err := gov.NewGov(nil).GetCurrentActiveVersionList(statedb)
+	if err != nil || statedb.Error() != nil {
+		return false, false
+	}
+	if len(versions) > 0 && gov.Gte160Version(versions[0].ActiveVersion) {
 		return true, true
 	}
-	// Same proposal rule as execution. A lookup miss is "not this block",
-	// which is certain: the parent state itself loaded.
-	return gov.VersionActivates(snapshotdb.Instance(), parent.Hash(), number, statedb), true
+	return gov.VersionActivationAt(snapshotdb.Instance(), parent.Hash(), number, statedb)
 }

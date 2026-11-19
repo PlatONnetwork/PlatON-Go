@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -47,6 +46,9 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		}
 	}
 
+	if err := validateWithdrawalFork(header, block.Withdrawals(), p.config, statedb); err != nil {
+		return nil, nil, 0, err
+	}
 	// Iterate over and process the individual transactions
 	if len(block.Transactions()) > 0 {
 		start := time.Now()
@@ -92,9 +94,6 @@ func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.Stat
 		log.Debug("Process end blocker cost time", "blockNumber", block.Number(), "blockHash", block.Hash())
 	}
 
-	if len(block.Withdrawals()) > 0 && !gov.HawkingActive(p.config, block.Number(), statedb) {
-		return nil, nil, 0, fmt.Errorf("withdrawals before hawking")
-	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	//p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
 	statedb.IntermediateRoot(true)
