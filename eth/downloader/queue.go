@@ -29,6 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
@@ -771,7 +772,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []comm
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
 func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListHashes []common.Hash,
-	extraData [][]byte, withdrawalLists [][]*types.Withdrawal, withdrawalListHashes []common.Hash) (int, error) {
+	extraData [][]byte, withdrawalLists [][]*types.Withdrawal) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -792,16 +793,11 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, txListH
 			//log.Debug("DeliverBodies validate", "deriveSha", deriveSha, "header.TxHash", header.TxHash, "number", header.Number)
 			return errInvalidBody
 		}
-		if header.WithdrawalsHash == nil {
-			// discard any withdrawals if we don't have a withdrawal hash set
-			withdrawalLists[index] = nil
-		} else if *header.WithdrawalsHash == types.EmptyRootHash && withdrawalLists[index] == nil {
-			// if the withdrawal hash is the emptyRootHash,
-			// we expect withdrawals to be [] instead of nil
-			withdrawalLists[index] = make([]*types.Withdrawal, 0)
-		} else if withdrawalListHashes[index] != *header.WithdrawalsHash {
+		withdrawals, ok := eth.MatchBodyWithdrawals(header, withdrawalLists[index])
+		if !ok {
 			return errInvalidBody
 		}
+		withdrawalLists[index] = withdrawals
 		return nil
 	}
 

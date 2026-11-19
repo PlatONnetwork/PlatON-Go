@@ -121,6 +121,8 @@ type headerFilterTask struct {
 // bodyFilterTask represents a batch of block bodies (transactions)
 // needing fetcher filtering.
 type bodyFilterTask struct {
+	requested    map[common.Hash]*blockAnnounce // nil for filtering outside a specific request
+	withdrawals  [][]*types.Withdrawal
 	peer         string                 // The source peer of block bodies
 	transactions [][]*types.Transaction // Collection of transactions per block bodies
 	time         time.Time              // Arrival time of the blocks' contents
@@ -160,7 +162,7 @@ type BlockFetcher struct {
 	inject chan *blockOrHeaderInject
 
 	headerFilter chan chan *headerFilterTask
-	bodyFilter   chan chan *bodyFilterTask
+	bodyFilter   chan *bodyFilterTask
 
 	done chan common.Hash
 	quit chan struct{}
@@ -200,7 +202,7 @@ func NewBlockFetcher(getBlock blockRetrievalFn, verifyHeader headerVerifierFn, b
 		notify:         make(chan *blockAnnounce),
 		inject:         make(chan *blockOrHeaderInject),
 		headerFilter:   make(chan chan *headerFilterTask),
-		bodyFilter:     make(chan chan *bodyFilterTask),
+		bodyFilter:     make(chan *bodyFilterTask),
 		done:           make(chan common.Hash),
 		quit:           make(chan struct{}),
 		announces:      make(map[string]int),
@@ -300,30 +302,49 @@ func (f *BlockFetcher) FilterHeaders(peer string, headers []*types.Header, t tim
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
 func (f *BlockFetcher) FilterBodies(peer string, transactions [][]*types.Transaction, extraData [][]byte, t time.Time) ([][]*types.Transaction, [][]byte) {
-	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions))
+	return f.filterBodies(&bodyFilterTask{
+		peer: peer, transactions: transactions, extraData: extraData,
+		withdrawals: make([][]*types.Withdrawal, len(transactions)), time: t,
+	})
+}
 
-	// Send the filter channel to the fetcher
-	filter := make(chan *bodyFilterTask)
-	result := make(chan *bodyFilterTask, 1)
-
+func (f *BlockFetcher) filterBodies(task *bodyFilterTask) ([][]*types.Transaction, [][]byte) {
+	task.result = make(chan *bodyFilterTask, 1)
 	select {
-	case f.bodyFilter <- filter:
+	case f.bodyFilter <- task:
 	case <-f.quit:
 		return nil, nil
 	}
-	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, extraData: extraData, time: t, result: result}:
-	case <-f.quit:
-		return nil, nil
-	}
-	// Retrieve the bodies remaining after filtering
-	select {
-	case task := <-result:
-		log.Debug("FilterBodies", "peer", peer, "transactions", len(task.transactions), "extra", len(task.extraData), "completing", len(f.completing), "duration", time.Since(t))
+	case task := <-task.result:
 		return task.transactions, task.extraData
 	case <-f.quit:
 		return nil, nil
+	}
+}
+
+// Every request completes once, including a send failure, timeout or partial reply.
+func (f *BlockFetcher) fetchBodies(peer string, hashes []common.Hash, requested map[common.Hash]*blockAnnounce) {
+	task := &bodyFilterTask{peer: peer, requested: requested}
+	resCh := make(chan *eth.Response)
+	req, err := requested[hashes[0]].fetchBodies(hashes, resCh)
+	if err != nil {
+		f.filterBodies(task)
+		return
+	}
+	defer req.Close()
+	timeout := time.NewTimer(2 * fetchTimeout)
+	defer timeout.Stop()
+	select {
+	case res := <-resCh:
+		task.time = time.Now()
+		task.transactions, task.extraData, task.withdrawals = res.Res.(*eth.BlockBodiesPacket).Unpack()
+		f.filterBodies(task)
+		res.Done <- nil
+	case <-timeout.C:
+		f.filterBodies(task)
+		f.dropPeer(peer)
+	case <-f.quit:
 	}
 }
 
@@ -367,6 +388,7 @@ func (f *BlockFetcher) loop() {
 			}
 			// Otherwise if fresh and still unknown, try and import
 			if number+minQueueDist < height || f.getBlock(hash) != nil {
+				f.forgetHash(hash)
 				f.forgetBlock(hash)
 				continue
 			}
@@ -400,7 +422,7 @@ func (f *BlockFetcher) loop() {
 				}
 			}
 			// All is well, schedule the announce if block's not yet downloading
-			if _, ok := f.fetching[notification.hash]; ok {
+			if f.fetching[notification.hash] != nil || f.fetched[notification.hash] != nil {
 				break
 			}
 			if _, ok := f.completing[notification.hash]; ok {
@@ -439,6 +461,7 @@ func (f *BlockFetcher) loop() {
 					// If the block still didn't arrive, queue for fetching
 					if f.getBlock(hash) == nil {
 						request[announce.origin] = append(request[announce.origin], hash)
+						f.announces[announce.origin]++
 						f.fetching[hash] = announce
 					}
 				}
@@ -488,7 +511,7 @@ func (f *BlockFetcher) loop() {
 
 		case <-completeTimer.C:
 			// At least one header's timer ran out, retrieve everything
-			request := make(map[string][]common.Hash)
+			request := make(map[string]map[common.Hash]*blockAnnounce)
 
 			for hash, announces := range f.fetched {
 				// Pick a random peer to retrieve from, reset all others
@@ -497,12 +520,20 @@ func (f *BlockFetcher) loop() {
 
 				// If the block still didn't arrive, queue for completion
 				if f.getBlock(hash) == nil {
-					request[announce.origin] = append(request[announce.origin], hash)
+					if request[announce.origin] == nil {
+						request[announce.origin] = make(map[common.Hash]*blockAnnounce)
+					}
+					request[announce.origin][hash] = announce
+					f.announces[announce.origin]++
 					f.completing[hash] = announce
 				}
 			}
 			// Send out all block body requests
-			for peer, hashes := range request {
+			for peer, batch := range request {
+				hashes := make([]common.Hash, 0, len(batch))
+				for hash := range batch {
+					hashes = append(hashes, hash)
+				}
 				log.Trace("Fetching scheduled bodies", "peer", peer, "list", hashes)
 
 				// Create a closure of the fetch and schedule in on a new thread
@@ -511,36 +542,7 @@ func (f *BlockFetcher) loop() {
 				}
 				bodyFetchMeter.Mark(int64(len(hashes)))
 
-				if v, ok := f.completing[hashes[0]]; ok && v != nil {
-					go func(peer string, hashes []common.Hash) {
-						resCh := make(chan *eth.Response)
-
-						req, err := v.fetchBodies(hashes, resCh)
-						if err != nil {
-							return // Legacy code, yolo
-						}
-						defer req.Close()
-
-						timeout := time.NewTimer(2 * fetchTimeout) // 2x leeway before dropping the peer
-						defer timeout.Stop()
-
-						select {
-						case res := <-resCh:
-							res.Done <- nil
-
-							// Ignoring withdrawals here, since the block fetcher is not used post-merge.
-							txs, extra, _ := res.Res.(*eth.BlockBodiesPacket).Unpack()
-							f.FilterBodies(peer, txs, extra, time.Now())
-
-						case <-timeout.C:
-							// The peer didn't respond in time. The request
-							// was already rescheduled at this point, we were
-							// waiting for a catchup. With an unresponsive
-							// peer however, it's a protocol violation.
-							f.dropPeer(peer)
-						}
-					}(peer, hashes)
-				}
+				go f.fetchBodies(peer, hashes, batch)
 			}
 			// Schedule the next fetch if blocks are still pending
 			f.rescheduleComplete(completeTimer)
@@ -612,6 +614,7 @@ func (f *BlockFetcher) loop() {
 				if _, ok := f.completing[hash]; ok {
 					continue
 				}
+				delete(f.fetching, hash) // transfer the outstanding announce to fetched
 				f.fetched[hash] = append(f.fetched[hash], announce)
 				if len(f.fetched) == 1 {
 					f.rescheduleComplete(completeTimer)
@@ -624,13 +627,11 @@ func (f *BlockFetcher) loop() {
 				}
 			}
 
-		case filter := <-f.bodyFilter:
+		case task := <-f.bodyFilter:
 			// Block bodies arrived, extract any explicitly requested blocks, return the rest
-			var task *bodyFilterTask
-			select {
-			case task = <-filter:
-			case <-f.quit:
-				return
+			candidates := task.requested
+			if candidates == nil {
+				candidates = f.completing
 			}
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
 			blocks := []*types.Block{}
@@ -644,8 +645,8 @@ func (f *BlockFetcher) loop() {
 						decodeExtraErr error
 						txnHash        common.Hash // calculated lazily and reused
 					)
-					for hash, announce := range f.completing {
-						if f.queued[hash] != nil || announce.origin != task.peer {
+					for hash, announce := range candidates {
+						if f.completing[hash] != announce || f.queued[hash] != nil || announce.origin != task.peer {
 							continue
 						}
 						if len(task.extraData[i]) != 0 {
@@ -662,10 +663,14 @@ func (f *BlockFetcher) loop() {
 						if txnHash != announce.header.TxHash {
 							continue
 						}
+						withdrawals, ok := eth.MatchBodyWithdrawals(announce.header, task.withdrawals[i])
+						if !ok {
+							continue
+						}
 						// Mark the body matched, reassemble if still unknown
 						matched = true
 						if f.getBlock(hash) == nil {
-							block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i])
+							block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i]).WithWithdrawals(withdrawals)
 							block.ReceivedAt = task.time
 							blocks = append(blocks, block)
 						} else {
@@ -675,23 +680,25 @@ func (f *BlockFetcher) loop() {
 					if matched {
 						task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
 						task.extraData = append(task.extraData[:i], task.extraData[i+1:]...)
+						task.withdrawals = append(task.withdrawals[:i], task.withdrawals[i+1:]...)
 						i--
 						continue
 					}
 				}
 			}
 			bodyFilterOutMeter.Mark(int64(len(task.transactions)))
-			select {
-			case task.result <- task:
-			case <-f.quit:
-				return
-			}
 			// Schedule the retrieved blocks for ordered import
 			for _, block := range blocks {
 				if announce := f.completing[block.Hash()]; announce != nil {
 					f.enqueue(announce.origin, nil, block)
 				}
 			}
+			for hash, announce := range task.requested {
+				if f.completing[hash] == announce && f.queued[hash] == nil {
+					f.forgetCompletion(hash, announce)
+				}
+			}
+			task.result <- task
 		}
 	}
 }
@@ -871,11 +878,7 @@ func (f *BlockFetcher) forgetHash(hash common.Hash) {
 
 	// Remove any pending completions and decrement the DOS counters
 	if announce := f.completing[hash]; announce != nil {
-		f.announces[announce.origin]--
-		if f.announces[announce.origin] <= 0 {
-			delete(f.announces, announce.origin)
-		}
-		delete(f.completing, hash)
+		f.forgetCompletion(hash, announce)
 	}
 
 	// Remove any finish completions and decrement the DOS counters.
@@ -884,15 +887,17 @@ func (f *BlockFetcher) forgetHash(hash common.Hash) {
 	// instead of remove. And will cause a long time at filter bodies.
 	for hash, announce := range f.completing {
 		if f.getBlock(hash) != nil {
-			if announce != nil {
-				f.announces[announce.origin]--
-				if f.announces[announce.origin] == 0 {
-					delete(f.announces, announce.origin)
-				}
-			}
-			delete(f.completing, hash)
+			f.forgetCompletion(hash, announce)
 			log.Debug("Removing pending completion", "origin", announce.origin, "hash", hash)
 		}
+	}
+}
+
+func (f *BlockFetcher) forgetCompletion(hash common.Hash, announce *blockAnnounce) {
+	delete(f.completing, hash)
+	f.announces[announce.origin]--
+	if f.announces[announce.origin] <= 0 {
+		delete(f.announces, announce.origin)
 	}
 }
 

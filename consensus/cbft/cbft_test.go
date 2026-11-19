@@ -23,9 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/enode"
+	"github.com/stretchr/testify/require"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	corestate "github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
@@ -58,6 +63,55 @@ func TestThreshold(t *testing.T) {
 	assert.Equal(t, 4, f.threshold(5))
 	assert.Equal(t, 5, f.threshold(6))
 	assert.Equal(t, 5, f.threshold(7))
+}
+
+func TestCommitBlockWithdrawals(t *testing.T) {
+	db := rawdb.NewMemoryDatabase()
+	defer db.Close()
+	st, err := corestate.New(common.Hash{}, corestate.NewDatabase(db), nil)
+	require.NoError(t, err)
+	engine := &Cbft{log: log.New(), eventMux: new(event.TypeMux)}
+	header := &types.Header{Number: big.NewInt(1), BaseFee: big.NewInt(1)}
+	entries := types.Withdrawals{{Index: 1, Amount: 10}}
+	root := types.DeriveSha(entries, trie.NewStackTrie(nil))
+	header.WithdrawalsHash = &root
+	block, err := engine.Finalize(nil, header, st, nil, nil, entries)
+	require.ErrorContains(t, err, "non-empty withdrawals")
+	require.Nil(t, block)
+	for _, tc := range []struct {
+		name string
+		root *common.Hash
+		body types.Withdrawals
+	}{
+		{"ordinary", nil, nil},
+		{"legacy empty list", nil, types.Withdrawals{}},
+		{"committed empty list", &types.EmptyRootHash, types.Withdrawals{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			header.WithdrawalsHash = tc.root
+			block, err := engine.Finalize(nil, header, st, nil, nil, tc.body)
+			require.NoError(t, err)
+			require.Equal(t, tc.root, block.Header().WithdrawalsHash)
+			qc := &ctypes.QuorumCert{BlockHash: block.Hash(), BlockNumber: block.NumberU64()}
+			engine.blockTree = ctypes.NewBlockTree(block, qc)
+			sub := engine.eventMux.Subscribe(cbfttypes.CbftResult{})
+			defer sub.Unsubscribe()
+			go engine.commitBlock(block, qc, block, block)
+			select {
+			case ev := <-sub.Chan():
+				result := ev.Data.(cbfttypes.CbftResult)
+				result.Block.SetExtraData(result.ExtraData)
+				rawdb.WriteBlock(db, result.Block)
+				stored := rawdb.ReadBlock(db, block.Hash(), block.NumberU64())
+				require.NotNil(t, stored)
+				require.NoError(t, stored.SanityCheck())
+				require.Equal(t, tc.body, stored.Withdrawals())
+				require.Equal(t, result.ExtraData, stored.ExtraData())
+			case <-time.After(3 * time.Second):
+				t.Fatal("no block committed")
+			}
+		})
+	}
 }
 
 func TestBls(t *testing.T) {

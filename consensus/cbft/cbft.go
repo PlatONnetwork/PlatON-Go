@@ -662,7 +662,8 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	// Short circuit if the header is known, or its parent not
 	number := header.Number.Uint64()
 	if chain.GetHeader(header.Hash(), number) != nil {
-		return nil
+		// The historical header hash does not cover the optional withdrawals root.
+		return header.ValidateWithdrawalsRoot()
 	}
 
 	parent := chain.GetHeader(header.ParentHash, number-1)
@@ -713,6 +714,9 @@ func (cbft *Cbft) verifyHeader(chain consensus.ChainReader, header *types.Header
 	if err := header.SanityCheck(); err != nil {
 		cbft.log.Error("Verify header fail, Extra field is too long", "number", header.Number, "hash", header.CacheHash())
 		return fmt.Errorf("verify header fail, Extra field is too long, number:%d, hash:%s", header.Number.Uint64(), header.CacheHash().String())
+	}
+	if err := header.ValidateWithdrawalsRoot(); err != nil {
+		return err
 	}
 
 	// Verify that the gasUsed is <= gasLimit
@@ -839,9 +843,12 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB,
 	txs []*types.Transaction, receipts []*types.Receipt, withdrawals []*types.Withdrawal) (*types.Block, error) {
+	if err := header.ValidateWithdrawals(withdrawals); err != nil {
+		return nil, err
+	}
 	header.Root = state.IntermediateRoot(true)
 	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts), "root", header.Root.String())
-	return types.NewBlock(header, txs, receipts, new(trie.Trie)), nil
+	return types.NewBlock(header, txs, receipts, new(trie.Trie)).WithWithdrawals(withdrawals), nil
 }
 
 // Seal is used to generate a block, and block data is
@@ -1471,7 +1478,7 @@ func (cbft *Cbft) commitBlock(commitBlock *types.Block, commitQC *ctypes.QuorumC
 		cbft.updateChainStateHook(qcState, lockState, commitState)
 	}
 	cbft.log.Info("CommitBlock, send consensus result to worker", "number", commitBlock.Number(), "hash", commitBlock.Hash())
-	cpy := types.NewBlockWithHeader(commitBlock.Header()).WithBody(commitBlock.Transactions(), commitBlock.ExtraData())
+	cpy := commitBlock.WithBody(commitBlock.Transactions(), commitBlock.ExtraData()).WithWithdrawals(commitBlock.Withdrawals())
 	cbft.eventMux.Post(cbfttypes.CbftResult{
 		Block:              cpy,
 		ExtraData:          extra,

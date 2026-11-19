@@ -29,10 +29,13 @@ func NewParallelStateProcessor(config *params.ChainConfig, bc *BlockChain, engin
 }
 
 func (p *ParallelStateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+	header := block.Header()
+	if err := header.ValidateWithdrawals(block.Withdrawals()); err != nil {
+		return nil, nil, 0, err
+	}
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
-		header   = block.Header()
 		allLogs  []*types.Log
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)

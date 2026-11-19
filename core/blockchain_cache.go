@@ -300,16 +300,26 @@ func (bcc *BlockChainCache) executeLoop() {
 }
 
 func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block) error {
-	executed := func() bool {
-		if number, ok := bcc.executed.Load(block.Header().SealHash()); ok && number.(uint64) == block.Number().Uint64() {
-			log.Debug("Block has executed", "number", block.Number(), "hash", block.Hash(), "parentNumber", parent.Number(), "parentHash", parent.Hash())
-			return true
+	header := block.Header()
+	key := header.SealHash()
+	if number, ok := bcc.executed.Load(key); ok && number.(uint64) == block.NumberU64() {
+		if err := header.ValidateWithdrawals(block.Withdrawals()); err != nil {
+			return err
 		}
-		return false
-	}
-
-	if executed() {
-		return nil
+		// SealHash covers neither the root nor the list. Any valid explicit
+		// list is empty and requires Hawking, irrespective of its header root.
+		if block.Withdrawals() == nil || bcc.chainConfig.IsHawking(header.Number) {
+			return nil
+		}
+		bcc.stateDBMu.RLock()
+		if entry := bcc.stateDBCache[key]; entry != nil {
+			defer bcc.stateDBMu.RUnlock()
+			st := entry.stateDB.NewStateDB()
+			defer st.ClearParentReference()
+			return validateWithdrawalFork(header, block.Withdrawals(), bcc.chainConfig, st)
+		}
+		bcc.stateDBMu.RUnlock()
+		// Evicted after the executed lookup. Use the normal execution path.
 	}
 
 	log.Debug("Start execute block", "hash", block.Hash(), "number", block.Number(), "sealHash", block.Header().SealHash())
@@ -332,10 +342,9 @@ func (bcc *BlockChainCache) executeBlock(block *types.Block, parent *types.Block
 		"parentNumber", parent.Number(), "parentHash", parent.Hash(), "duration", time.Since(t), "makeState", elapse, "err", err)
 	if err == nil {
 		//save the receipts and state to consensusCache
-		sealHash := block.Header().SealHash()
-		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
-		bcc.WriteStateDB(sealHash, state, block.NumberU64())
-		bcc.executed.Store(block.Header().SealHash(), block.Number().Uint64())
+		bcc.WriteReceipts(key, receipts, block.NumberU64())
+		bcc.WriteStateDB(key, state, block.NumberU64())
+		bcc.AddSealBlock(key, block.NumberU64())
 		state.UpdateSnaps()
 	} else {
 		return fmt.Errorf("execute block error, err:%s", err.Error())

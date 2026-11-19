@@ -246,10 +246,22 @@ type BlockBody struct {
 	Withdrawals  []*types.Withdrawal `rlp:"optional"` // Withdrawals contained within a block
 }
 
+// MatchBodyWithdrawals reconstructs the optional field when a body is fetched
+// separately. Only an empty list may be normalized to the header's encoding.
+func MatchBodyWithdrawals(header *types.Header, withdrawals types.Withdrawals) (types.Withdrawals, bool) {
+	if len(withdrawals) == 0 {
+		if header.WithdrawalsHash == nil {
+			withdrawals = nil
+		} else {
+			withdrawals = types.Withdrawals{}
+		}
+	}
+	return withdrawals, header.ValidateWithdrawals(withdrawals) == nil
+}
+
 // Unpack retrieves the transactions and uncles from the range packet and returns
 // them in a split flat format that's more consistent with the internal data structures.
 func (p *BlockBodiesPacket) Unpack() ([][]*types.Transaction, [][]byte, [][]*types.Withdrawal) {
-	// TODO(matt): add support for withdrawals to fetchers
 	var (
 		txset         = make([][]*types.Transaction, len(*p))
 		extraData     = make([][]byte, len(*p))

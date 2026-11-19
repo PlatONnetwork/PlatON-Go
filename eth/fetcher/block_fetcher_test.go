@@ -33,6 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/eth/protocols/eth"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -97,6 +98,78 @@ func newTester() *fetcherTester {
 	tester.fetcher.Start()
 
 	return tester
+}
+
+func TestAnnouncedWithdrawalBodyRetry(t *testing.T) {
+	entries := types.Withdrawals{{Index: 1, Amount: 10}}
+	header := &types.Header{ParentHash: genesis.Hash(), Number: big.NewInt(1)}
+	invalid := types.NewBlockWithWithdrawals(header, nil, nil, entries, trie.NewStackTrie(nil))
+	valid := types.NewBlockWithWithdrawals(header, nil, nil, types.Withdrawals{}, trie.NewStackTrie(nil))
+	// The two peers announce the same historical hash in successive requests.
+	require.Equal(t, invalid.Hash(), valid.Hash())
+	tester := newTester()
+	defer tester.fetcher.Stop()
+	imported := make(chan *types.Block, 1)
+	tester.fetcher.importedHook = func(b *types.Block) { imported <- b }
+	announce := func(peer string, block *types.Block, body bodyRequesterFn) {
+		t.Helper()
+		headers := map[common.Hash]*types.Block{block.Hash(): block}
+		require.NoError(t, tester.fetcher.Notify(peer, block.Hash(), 1, time.Now().Add(-arriveTimeout),
+			tester.makeHeaderFetcher(peer, headers, -gatherSlack), body))
+	}
+	reply := func(packet eth.BlockBodiesPacket, done chan error) bodyRequesterFn {
+		return func(_ []common.Hash, sink chan *eth.Response) (*eth.Request, error) {
+			req := &eth.Request{}
+			go func() { sink <- &eth.Response{Req: req, Res: &packet, Done: done} }()
+			return req, nil
+		}
+	}
+	for _, packet := range []eth.BlockBodiesPacket{nil, {{Withdrawals: entries}}} {
+		done := make(chan error, 1)
+		announce("first", invalid, reply(packet, done))
+		select {
+		case <-done:
+			require.Nil(t, tester.getBlock(invalid.Hash()))
+		case <-time.After(3 * time.Second):
+			t.Fatal("incomplete response was not processed")
+		}
+	}
+	announce("second", valid, reply(eth.BlockBodiesPacket{{}}, make(chan error, 1)))
+	select {
+	case b := <-imported:
+		require.Equal(t, valid.Hash(), b.Hash())
+		require.Equal(t, valid.Header().WithdrawalsHash, b.Header().WithdrawalsHash)
+		require.Equal(t, types.Withdrawals{}, b.Withdrawals())
+	case <-time.After(3 * time.Second):
+		t.Fatal("the second peer's body was not imported")
+	}
+}
+
+func TestStaleQueuedBlockReleasesAnnounceQuota(t *testing.T) {
+	const peer = "peer"
+	height := uint64(1)
+	f := NewBlockFetcher(func(common.Hash) *types.Block { return nil }, nil, nil,
+		func() uint64 { return height }, nil, nil, nil)
+	stale := types.NewBlockWithHeader(&types.Header{Number: big.NewInt(1)})
+	// The queued side block accounts for the last occupied slot for this peer.
+	f.announces[peer] = hashLimit
+	f.completing[stale.Hash()] = &blockAnnounce{origin: peer}
+	f.enqueue(peer, nil, stale)
+	require.Contains(t, f.queued, stale.Hash())
+	height++
+
+	stopped := make(chan struct{})
+	go func() { defer close(stopped); f.loop() }()
+	next := common.Hash{1}
+	err := f.Notify(peer, next, height, time.Now(), nil, nil)
+	f.Stop()
+	<-stopped
+	require.NoError(t, err)
+	require.NotContains(t, f.completing, stale.Hash())
+	require.Empty(t, f.queued)
+	require.Empty(t, f.queues)
+	require.Len(t, f.announced[next], 1)
+	require.Equal(t, hashLimit, f.announces[peer])
 }
 
 // getBlock retrieves a block from the tester's block chain.
