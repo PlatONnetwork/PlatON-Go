@@ -404,11 +404,12 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 
 			//register Govern parameter verifiers
 			gov.RegisterGovernParamVerifiers()
-		}
 
-		if err := recoverSnapshotDB(blockChainCache); err != nil {
-			log.Error("recover SnapshotDB fail", "error", err)
-			return nil, errors.New("Failed to recover SnapshotDB")
+			// Replay the per-block SnapshotDB data maintained by the PPOS reactor.
+			if err := recoverSnapshotDB(blockChainCache); err != nil {
+				log.Error("recover SnapshotDB fail", "error", err)
+				return nil, errors.New("Failed to recover SnapshotDB")
+			}
 		}
 
 		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
