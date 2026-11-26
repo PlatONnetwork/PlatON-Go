@@ -79,19 +79,19 @@ func MustParseUint64(s string) uint64 {
 	return v
 }
 
-// SafeSub returns x-y and checks for overflow.
+// SafeSub returns x-y modulo 2^64 and a flag that is true on underflow.
 func SafeSub(x, y uint64) (uint64, bool) {
 	diff, borrowOut := bits.Sub64(x, y, 0)
 	return diff, borrowOut != 0
 }
 
-// SafeAdd returns x+y and checks for overflow.
+// SafeAdd returns x+y modulo 2^64 and a flag that is true on overflow.
 func SafeAdd(x, y uint64) (uint64, bool) {
 	sum, carryOut := bits.Add64(x, y, 0)
 	return sum, carryOut != 0
 }
 
-// SafeMul returns x*y and checks for overflow.
+// SafeMul returns x*y modulo 2^64 and a flag that is true on overflow.
 func SafeMul(x, y uint64) (uint64, bool) {
 	hi, lo := bits.Mul64(x, y)
 	return lo, hi != 0
