@@ -19,6 +19,7 @@ package rlp
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )

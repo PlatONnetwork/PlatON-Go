@@ -86,4 +86,3 @@ type ReadPacket struct {
 	Data []byte
 	Addr *net.UDPAddr
 }
-

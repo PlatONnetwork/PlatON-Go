@@ -8,6 +8,8 @@ package bn256
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"math/big"
 
 	cloudflare "github.com/PlatONnetwork/PlatON-Go/crypto/bn256/cloudflare"

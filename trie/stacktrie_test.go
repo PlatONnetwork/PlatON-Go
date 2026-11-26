@@ -18,9 +18,10 @@ package trie
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"math/big"
 	"testing"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
